@@ -1,0 +1,88 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="bal-pg-title">Stock <em>Balance</em></h1>
+      </div>
+      <p class="bal-pg-sub">What's on hand, where, and at what value — as of each product/location's last recorded movement.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToRecordMovement()" aria-label="Record a stock movement">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Record Movement
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select bal-filter" [(ngModel)]="productFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by product">
+      <option [ngValue]="null">All Products</option>
+      @for (p of products(); track p.id) {
+        <option [ngValue]="p.id">{{ p.productName }} ({{ p.productCode }})</option>
+      }
+    </select>
+    <select class="field-select bal-filter" [(ngModel)]="locationFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="bal-table">
+      <ng-container matColumnDef="productCode">
+        <th mat-header-cell *matHeaderCellDef>Code</th>
+        <td mat-cell *matCellDef="let row">{{ row.productCode }}</td>
+      </ng-container>
+      <ng-container matColumnDef="productName">
+        <th mat-header-cell *matHeaderCellDef>Product</th>
+        <td mat-cell *matCellDef="let row">{{ row.productName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="locationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let row">{{ row.locationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="batchOrSerialNo">
+        <th mat-header-cell *matHeaderCellDef>Batch/Serial</th>
+        <td mat-cell *matCellDef="let row">{{ row.batchOrSerialNo || '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="expiryDate">
+        <th mat-header-cell *matHeaderCellDef>Expiry</th>
+        <td mat-cell *matCellDef="let row">{{ row.expiryDate || '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="qtyOnHand">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Qty On Hand</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.qtyOnHand }}</td>
+      </ng-container>
+      <ng-container matColumnDef="valueOnHand">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Value On Hand</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.valueOnHand | number: '1.2-2' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="lastUpdated">
+        <th mat-header-cell *matHeaderCellDef>Last Updated</th>
+        <td mat-cell *matCellDef="let row">{{ row.lastUpdated | date: 'medium' }}</td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="inventory"
+            title="No stock recorded yet"
+            subtitle="Record a receipt, adjustment, or disposal to see balances here."
+            actionLabel="Record Movement"
+            (actionClick)="goToRecordMovement()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>

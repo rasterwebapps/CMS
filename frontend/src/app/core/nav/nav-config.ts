@@ -156,13 +156,31 @@ export const NAV_ENTRIES: NavEntry[] = [
       // entity's own "Import Floor Plan" button inside Campus Setup now, never as standalone nav items.
     ],
   },
-  // 8. Inventory Management — physical asset/equipment tracking
+  // 8. Inventory Management — physical asset/equipment tracking (legacy lab-consumables feature;
+  // stays as-is until its own migration onto Stock Management below is scheduled — see
+  // docs/inventory-management/DECISION_LOG.md)
   {
     label: 'Inventory Management',
     icon: 'construction',
     items: [
       { label: 'Inventory',   icon: 'inventory_2', route: '/inventory',   permissions: ['INVENTORY_VIEW', 'INVENTORY_CREATE', 'INVENTORY_EDIT', 'INVENTORY_DELETE', 'INVENTORY_EXPORT', 'INVENTORY_MANAGE'] },
       { label: 'Maintenance', icon: 'build',       route: '/maintenance', permissions: ['MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_EDIT', 'MAINTENANCE_DELETE', 'MAINTENANCE_EXPORT', 'MAINTENANCE_MANAGE'] },
+    ],
+  },
+  // 8b. Stock Management — the new Release 3 Inventory Management module (Catalog, Stock,
+  // Procurement, Assets, …, built out phase by phase). Deliberately a separate top-level group
+  // from "Inventory Management" above rather than folding in — that label already belongs to the
+  // legacy feature this module eventually retires. See docs/inventory-management/.
+  {
+    label: 'Stock Management',
+    icon: 'warehouse',
+    items: [
+      { label: 'Stock Balance',     icon: 'inventory',   route: '/inventory/stock/balances', permissions: ['INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'] },
+      { label: 'Cycle Counts',      icon: 'fact_check',  route: '/inventory/stock/cycle-counts', permissions: ['INVENTORY_CYCLE_COUNT_VIEW', 'INVENTORY_CYCLE_COUNT_MANAGE', 'INVENTORY_CYCLE_COUNT_APPROVE'] },
+      { label: 'Products',          icon: 'inventory_2', route: '/inventory/products',   permissions: ['INVENTORY_PRODUCT_VIEW', 'INVENTORY_PRODUCT_MANAGE'] },
+      { label: 'Categories',        icon: 'category',   route: '/inventory/categories', permissions: ['INVENTORY_CATEGORY_VIEW', 'INVENTORY_CATEGORY_MANAGE'] },
+      { label: 'Units of Measure',  icon: 'straighten', route: '/inventory/uoms',        permissions: ['INVENTORY_UOM_VIEW', 'INVENTORY_UOM_MANAGE'] },
+      { label: 'Locations',         icon: 'store',       route: '/inventory/locations',  permissions: ['INVENTORY_LOCATION_VIEW', 'INVENTORY_LOCATION_MANAGE'] },
     ],
   },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)

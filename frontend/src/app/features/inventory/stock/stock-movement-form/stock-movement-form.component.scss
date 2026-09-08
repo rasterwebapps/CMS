@@ -1,0 +1,14 @@
+// Local (not global). No preview side-panel for this form — a movement is a transient action,
+// not an entity worth previewing — so it doesn't use the shared two-column .entry-form-layout;
+// this just centers the standalone-sized .entry-form-card (which has its own max-width).
+.mv-standalone-layout {
+  display: flex;
+  justify-content: center;
+}
+
+.mv-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}

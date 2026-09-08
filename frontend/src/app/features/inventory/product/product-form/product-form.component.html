@@ -1,0 +1,273 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/products" aria-label="Back to products">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Product</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the product details below.' : 'Fill in the details below to register a new product.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="entry-form-sections">
+
+        <!-- ── Basic Information ───────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Basic Information</div>
+              <div class="entry-form-card__hdr-sub">Identity, category, and unit of measure</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+
+            <div class="prod-form-grid">
+              <div class="field-group">
+                <label for="prod-code" class="field-label">Product Code <span class="required-star">*</span></label>
+                <input id="prod-code" class="field-input" formControlName="productCode" placeholder="e.g., CHM-0012"
+                  autocomplete="off" (input)="onCodeInput($event)"
+                  [class.field-input--error]="form.get('productCode')?.invalid && form.get('productCode')?.touched" />
+                @if (form.get('productCode')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('productCode')?.invalid && form.get('productCode')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('productCode') }}</p>
+                } @else {
+                  <p class="field-hint">Uppercase, no spaces · must be unique</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="prod-name" class="field-label">Product Name <span class="required-star">*</span></label>
+                <input id="prod-name" class="field-input" formControlName="productName" placeholder="e.g., Sodium Chloride"
+                  autocomplete="off" [class.field-input--error]="form.get('productName')?.invalid && form.get('productName')?.touched" />
+                @if (form.get('productName')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('productName')?.invalid && form.get('productName')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('productName') }}</p>
+                } @else {
+                  <p class="field-hint">Must be unique within the selected category</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="prod-category" class="field-label">Category <span class="required-star">*</span></label>
+                <select id="prod-category" class="field-select" formControlName="categoryId"
+                  [class.field-select--error]="form.get('categoryId')?.invalid && form.get('categoryId')?.touched">
+                  <option [ngValue]="null" disabled>Select a category</option>
+                  @for (c of categories(); track c.id) {
+                    <option [ngValue]="c.id">{{ c.name }}</option>
+                  }
+                </select>
+                @if (form.get('categoryId')?.invalid && form.get('categoryId')?.touched) {
+                  <p class="field-error">Category is required</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="prod-uom" class="field-label">Base Unit of Measure <span class="required-star">*</span></label>
+                <select id="prod-uom" class="field-select" formControlName="baseUomId"
+                  [class.field-select--error]="form.get('baseUomId')?.invalid && form.get('baseUomId')?.touched">
+                  <option [ngValue]="null" disabled>Select a unit</option>
+                  @for (u of uoms(); track u.id) {
+                    <option [ngValue]="u.id">{{ u.name }} ({{ u.code }})</option>
+                  }
+                </select>
+                @if (form.get('baseUomId')?.invalid && form.get('baseUomId')?.touched) {
+                  <p class="field-error">Base unit of measure is required</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="prod-desc" class="field-label">Description</label>
+              <textarea id="prod-desc" class="field-textarea" formControlName="description" placeholder="Optional description" rows="3"
+                [class.field-textarea--error]="form.get('description')?.invalid && form.get('description')?.touched"></textarea>
+              @if (form.get('description')?.invalid && form.get('description')?.touched) {
+                <p class="field-error">{{ getErrorMessage('description') }}</p>
+              }
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── Classification & Planning ───────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Classification &amp; Planning</div>
+              <div class="entry-form-card__hdr-sub">What kind of item this is, and stock/asset planning fields</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+
+            <div class="prod-flags-row">
+              <label class="checkbox-label"><input type="checkbox" formControlName="isAsset" class="field-checkbox" /> Asset</label>
+              <label class="checkbox-label"><input type="checkbox" formControlName="isConsumable" class="field-checkbox" /> Consumable</label>
+              <label class="checkbox-label"><input type="checkbox" formControlName="isService" class="field-checkbox" /> Service</label>
+              <label class="checkbox-label"><input type="checkbox" formControlName="isLoanable" class="field-checkbox" /> Loanable</label>
+            </div>
+            <p class="field-hint">Not mutually exclusive — check whatever combination applies to this item</p>
+
+            <div class="prod-form-grid">
+              <div class="field-group">
+                <label for="prod-reorder-level" class="field-label">Reorder Level</label>
+                <input id="prod-reorder-level" type="number" step="0.001" class="field-input" formControlName="reorderLevel" placeholder="e.g., 10" />
+              </div>
+              <div class="field-group">
+                <label for="prod-reorder-qty" class="field-label">Reorder Quantity</label>
+                <input id="prod-reorder-qty" type="number" step="0.001" class="field-input" formControlName="reorderQty" placeholder="e.g., 50" />
+              </div>
+              @if (form.value.isAsset) {
+                <div class="field-group">
+                  <label for="prod-depr" class="field-label">Depreciation Rate (% / year)</label>
+                  <input id="prod-depr" type="number" step="0.01" class="field-input" formControlName="depreciationRate" placeholder="e.g., 10" />
+                </div>
+                <div class="field-group">
+                  <label for="prod-warranty" class="field-label">Warranty Period (months)</label>
+                  <input id="prod-warranty" type="number" step="1" class="field-input" formControlName="warrantyPeriodMonths" placeholder="e.g., 24" />
+                </div>
+              }
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── Alternate Names ──────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Alternate Names</div>
+              <div class="entry-form-card__hdr-sub">Other names this same item is known by across locations</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+
+            @if (aliases.length > 0) {
+              <div class="prod-alias-list" formArrayName="aliases">
+                @for (aliasCtrl of aliases.controls; track $index) {
+                  <div class="prod-alias-row">
+                    <input class="field-input" [formControlName]="$index" placeholder="e.g., IV Catheter" autocomplete="off" />
+                    <button type="button" class="btn-secondary" (click)="removeAlias($index)" aria-label="Remove alias">Remove</button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="field-hint">No alternate names added yet.</p>
+            }
+            <button type="button" class="btn-secondary" (click)="addAlias()">+ Add Alternate Name</button>
+
+          </div>
+        </section>
+
+        <!-- ── Category Attributes ──────────────────────────────── -->
+        @if (form.value.categoryId) {
+          <section class="entry-form-card entry-form-card--sectioned">
+            <div class="entry-form-card__hdr">
+              <div class="entry-form-card__hdr-ico">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+              </div>
+              <div>
+                <div class="entry-form-card__hdr-title">Category Attributes</div>
+                <div class="entry-form-card__hdr-sub">Details specific to the selected category</div>
+              </div>
+            </div>
+            <div class="entry-form-card__body">
+
+              @if (attributesLoading()) {
+                <p class="field-hint">Loading attributes…</p>
+              } @else if (categoryAttributes().length === 0) {
+                <p class="field-hint">This category has no custom attributes defined.</p>
+              } @else {
+                <div class="prod-form-grid" formArrayName="attributeValues">
+                  @for (attr of categoryAttributes(); track attr.id; let i = $index) {
+                    <div class="field-group" [formGroupName]="i">
+                      <label [for]="'prod-attr-' + attr.id" class="field-label">
+                        {{ attr.name }} @if (attr.isRequired) { <span class="required-star">*</span> }
+                      </label>
+                      @if (attr.dataType === 'BOOLEAN') {
+                        <label class="checkbox-label">
+                          <input type="checkbox" [id]="'prod-attr-' + attr.id" class="field-checkbox"
+                            [checked]="attributeValueRows.at(i).get('value')?.value === 'true'"
+                            (change)="attributeValueRows.at(i).get('value')?.setValue($any($event.target).checked ? 'true' : 'false')" />
+                          Yes
+                        </label>
+                      } @else if (attr.dataType === 'ENUM') {
+                        <select [id]="'prod-attr-' + attr.id" class="field-select" formControlName="value">
+                          <option value="">— Select —</option>
+                          @for (opt of attributeOptions(attr); track opt) {
+                            <option [value]="opt">{{ opt }}</option>
+                          }
+                        </select>
+                      } @else if (attr.dataType === 'DATE') {
+                        <input [id]="'prod-attr-' + attr.id" type="date" class="field-input" formControlName="value" />
+                      } @else if (attr.dataType === 'NUMBER') {
+                        <input [id]="'prod-attr-' + attr.id" type="number" class="field-input" formControlName="value" />
+                      } @else {
+                        <input [id]="'prod-attr-' + attr.id" type="text" class="field-input" formControlName="value" />
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+            </div>
+          </section>
+        }
+
+        <!-- ── Sticky save/cancel footer ─────────────────────────── -->
+        <div class="entry-form-sticky-footer">
+          <span class="entry-form-sticky-footer__hint">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            Category attributes are only editable once a category is selected.
+          </span>
+          <button type="button" class="btn-cancel" routerLink="/inventory/products">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving() || form.invalid">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Product' : 'Create Product' }}
+            }
+          </button>
+        </div>
+
+      </form>
+
+      <!-- ── RIGHT: Preview Card ─────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Product will appear here' }}
+          </div>
+          @if (previewCode()) { <div class="prev-sub">Code: {{ previewCode() }}</div> }
+          <div class="prev-meta-row">
+            @if (previewCategoryName()) {
+              <span class="prev-pill prev-pill--primary">{{ previewCategoryName() }}</span>
+            }
+          </div>
+        </cms-preview-card>
+      </aside>
+
+    </div>
+  }
+
+</div>

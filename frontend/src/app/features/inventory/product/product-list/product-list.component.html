@@ -1,0 +1,176 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="prod-pg-title">Item <em>Catalog</em></h1>
+      </div>
+      <p class="prod-pg-sub">Manage the products the organization purchases, stocks, issues, and tracks as assets.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" routerLink="/inventory/products/new" aria-label="Add new product">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Product
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search by name or code…"
+        type="text"
+        aria-label="Search products"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+    <select class="field-select prod-category-filter" [(ngModel)]="categoryFilter" (ngModelChange)="onCategoryFilterChange()" aria-label="Filter by category">
+      <option [ngValue]="null">All Categories</option>
+      @for (c of categories(); track c.id) {
+        <option [ngValue]="c.id">{{ c.name }}</option>
+      }
+    </select>
+    <cms-view-toggle
+      [mode]="viewMode()"
+      storageKey="product-view-mode"
+      (modeChange)="setViewMode($event)"
+    />
+  </div>
+
+  <!-- ── Loading ───────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="prod-loading-grid">
+      @for (n of [1,2,3,4,5,6]; track n) {
+        <div class="prod-card-skeleton"></div>
+      }
+    </div>
+  }
+
+  <!-- ── Card view ─────────────────────────────────────────────── -->
+  @else if (viewMode() === 'card') {
+    @if (dataSource.data.length === 0) {
+      <cms-empty-state
+        [icon]="searchValue() ? 'search_off' : 'inventory_2'"
+        [title]="searchValue() ? 'No products found' : 'No products yet'"
+        [subtitle]="searchValue() ? 'No products match your search.' : 'Add your first product to get started.'"
+        [actionLabel]="searchValue() ? 'Clear Search' : 'Add Product'"
+        (actionClick)="handleEmptyAction()"
+      ></cms-empty-state>
+    } @else {
+      <div class="mlp-cards-grid">
+        @for (item of dataSource.data; track item.id; let i = $index) {
+          <div class="prod-card" [class.prod-card--active]="item.isActive" [class.prod-card--inactive]="!item.isActive" [style.animation-delay]="(i * 0.05) + 's'">
+            <div class="prod-card__actions">
+              <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="toggleProductStatus(item)"
+                      [tooltip]="item.isActive ? ('Deactivate ' + item.productName) : ('Activate ' + item.productName)"
+                      ariaLabel="Toggle product status">
+                <cms-icon-toggle-status [active]="item.isActive" [size]="14" />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="success" [iconOnly]="true" [tooltip]="'Edit ' + item.productName" [ariaLabel]="'Edit ' + item.productName" (clicked)="editProduct(item)">
+                <cms-icon-edit [size]="14" />
+              </cms-row-action-btn>
+            </div>
+            <div class="prod-card__icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <div class="prod-card__code">{{ item.productCode }}</div>
+            <div class="prod-card__name">{{ item.productName }}</div>
+            <div class="prod-card__meta-row">
+              <span class="prev-pill prev-pill--primary">{{ item.categoryName }}</span>
+              <span class="prev-pill">{{ item.baseUomCode }}</span>
+              <cms-status-badge [status]="item.isActive ? 'ACTIVE' : 'INACTIVE'" />
+            </div>
+            <div class="prod-card__flags">
+              @if (item.isAsset) { <span class="prev-pill prev-pill--blue">Asset</span> }
+              @if (item.isConsumable) { <span class="prev-pill prev-pill--green">Consumable</span> }
+              @if (item.isService) { <span class="prev-pill prev-pill--amber">Service</span> }
+              @if (item.isLoanable) { <span class="prev-pill prev-pill--muted">Loanable</span> }
+            </div>
+          </div>
+        }
+      </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[10, 25, 50]"
+        [pageSize]="25"
+        showFirstLastButtons
+      ></mat-paginator>
+    }
+  }
+
+  <!-- ── Table view ─────────────────────────────────────────────── -->
+  @else {
+    <div class="content-card mlp-table-card">
+      <div class="table-wrapper">
+      <table mat-table [dataSource]="dataSource" matSort
+             [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+             matSortDisableClear (matSortChange)="onSortChange($event)"
+             class="prod-table">
+        <ng-container matColumnDef="productCode">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+          <td mat-cell *matCellDef="let row">{{ row.productCode }}</td>
+        </ng-container>
+        <ng-container matColumnDef="productName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+          <td mat-cell *matCellDef="let row">{{ row.productName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="categoryName">
+          <th mat-header-cell *matHeaderCellDef>Category</th>
+          <td mat-cell *matCellDef="let row">{{ row.categoryName }}</td>
+        </ng-container>
+        <ng-container matColumnDef="baseUomCode">
+          <th mat-header-cell *matHeaderCellDef>UOM</th>
+          <td mat-cell *matCellDef="let row">{{ row.baseUomCode }}</td>
+        </ng-container>
+        <ng-container matColumnDef="isActive">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="cell-align-center">Status</th>
+          <td mat-cell *matCellDef="let row" class="cell-align-center">
+            <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+           <td mat-cell *matCellDef="let row">
+             <div class="row-actions">
+               <cms-row-action-btn variant="warning" [iconOnly]="true"
+                      (clicked)="toggleProductStatus(row)"
+                      [tooltip]="row.isActive ? 'Deactivate' : 'Activate'"
+                      ariaLabel="Toggle product status">
+                <cms-icon-toggle-status [active]="row.isActive" [size]="14" />
+              </cms-row-action-btn>
+              <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editProduct(row)">
+                <cms-icon-edit [size]="14" />
+              </cms-row-action-btn>
+             </div>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+            <cms-empty-state
+              icon="inventory_2"
+              [title]="searchValue() ? 'No products found' : 'No products yet'"
+              [subtitle]="searchValue() ? 'No products match your search.' : 'Add your first product to get started.'"
+              [actionLabel]="searchValue() ? 'Clear Search' : 'Add Product'"
+              (actionClick)="handleEmptyAction()"
+            ></cms-empty-state>
+          </td>
+        </tr>
+      </table>
+      </div>
+      <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+    </div>
+  }
+
+</div>

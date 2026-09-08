@@ -1,0 +1,7 @@
+// Local (not global) — mirrors other multi-field-row forms' convention.
+.loc-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}

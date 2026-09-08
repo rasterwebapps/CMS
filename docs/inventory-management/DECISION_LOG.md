@@ -1,0 +1,180 @@
+# Inventory Management — Decision Log
+
+This is the running, chronological record of every scope/architecture decision made on the Inventory Management initiative. It exists so a decision's rationale and date survive independently of whichever spec document is being edited that week.
+
+**Rules for this file:**
+1. Append only — never edit or delete a past entry, even if a later decision reverses it. If a decision changes, add a new dated entry that says so and references the entry it supersedes.
+2. Every entry needs: date, the decision, who/what prompted it, and the scope impact.
+3. When a decision changes what [`CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md`](CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md) or the future ER diagram/module-boundary doc says, update those documents in the same change and note it here.
+
+---
+
+## 2026-09-07 — Scope narrowed from "any industry, global" to College + Hospital
+
+**Prompted by:** user clarification during the initial gap-analysis review.
+**Decision:** The target is a vertical-agnostic core that fully serves **both a College and a Hospital deployment**, in generic terms (not worded toward one specific college or hospital) — not the broader "any industry: bank/school/lab/manufacturing" framing used in the original ask.
+**Impact:** `CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` §2B was added to check college coverage with the same rigor previously given only to hospital; Section D's bank/lab/manufacturing gaps were downgraded to "reference only, not v1 scope"; the renaming table (§4) got an explicit College column.
+
+## 2026-09-07 — Foundational decisions (product shape, sequencing, manufacturing scope, migration)
+
+**Prompted by:** four scoping questions put to the user after the initial gap analysis.
+**Decisions (see `CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` §7 for full rationale/scope-impact text):**
+1. **Product shape:** Per-deployment module, not a shared multi-tenant SaaS product. Full multi-tenancy (GAP-01) is out of scope for v1.
+2. **Sequencing:** Generic core first; Healthcare Pack and College/Academic Pack are built as co-equal v1 vertical packs on top of it, not two forks.
+3. **Manufacturing/outbound:** Out of scope for v1. The system is procure → receive → stock → consume-internally only; no BOM/kitting, no sales-order/outbound fulfillment.
+4. **Migration:** The existing SKSCMS `InventoryItem` (lab consumables) module and the Library module are migrated onto the new core, not left standalone.
+
+## 2026-09-07 — Documentation moved into a dedicated tracked folder
+
+**Prompted by:** explicit user request that all documentation for this module be tracked and maintained properly, not left as a single loose file.
+**Decision:** All Inventory Management documentation now lives under `docs/inventory-management/`, indexed by [`README.md`](README.md), with this decision log as the single place standing decisions get recorded going forward. The original SRS PDF was archived to `docs/inventory-management/source/SRS_v3.2_Updated.pdf` for traceability (the business team's copy in `Downloads/` is not under version control and could change or disappear).
+**Impact:** The former top-level `docs/INVENTORY_MANAGEMENT_CORE_REQUIREMENTS.md` was moved to `docs/inventory-management/CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md`; `docs/README.md` was updated to point here instead.
+
+## 2026-09-07 — No vertical-named packs; Library migration deferred (supersedes parts of the two entries above)
+
+**Prompted by:** direct user correction during the specialist-review round.
+**Decisions:**
+1. **No vertical branding, anywhere.** User's own words: *"I dont want to explicitly mention any part of inventory management belonging to hospital or college, it should be a standalone module supporting all industries, understand!"* This **supersedes** the "Healthcare Pack and College/Academic Pack as co-equal v1 vertical packs" framing from the first 2026-09-07 entry above. There is no pack architecture at all — one generic, standalone module. College- and hospital-shaped needs (Library loan/return, academic-period budgeting, patient billing, HIS connector, etc.) are all satisfied as generic, configurable capabilities of the single core (Cost Object concept, Category Attribute Schema, DB-driven role/label config) — never as a named extension, module, table, folder, or doc section branded toward one vertical.
+2. **Library migration deferred.** Only `InventoryItem` (lab consumables) migrates onto the new core now. Library's migration is explicit future work — the second 2026-09-07 entry's "Migrate `InventoryItem` and Library onto the new core" is **superseded**: Library is not migrated in this phase, though the Loanable Item Issue design (GAP-26/28) should not preclude it later.
+3. **No first-pack decision needed** — since there are no packs, the "which vertical ships first" question from the specialist round is moot. The single module ships with whatever functional coverage is built, usable by any deployment.
+
+**Impact:** `CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` §5 principle 1, §7 Decisions 2 and 4, GAP-26's note, and §8's next steps were all revised in place (their content changes; per this file's append-only rule it is *this log entry*, not those edits, that is the permanent record of why). A corresponding lesson was also saved to this session's persistent memory so future sessions don't reintroduce vertical-named packages when working on this module.
+
+## 2026-09-07 — Reuse the existing Campus Infrastructure hierarchy for locations instead of a new Location Master
+
+**Prompted by:** user input during the Frontend Architect specialist round: *"We have infra module sitting on the top, that will be used to geographically locate the organization > branch > blocks > floors > zones > rooms, these will be given a virtual name in Inventory Management System and managed accordingly."*
+**Finding confirmed in code:** `backend/src/main/java/com/cms/model/{Organization,Branch,Block,Floor,Zone,Room}.java` — a real, already-built `Organization → Branch → Block → Floor → Zone → Room` hierarchy, explicitly documented in `Room.java`'s own Javadoc as "generic physical room, shared across future consumers."
+**Decision:** Inventory Management does **not** build its own Location Master or Organization/Branch entity. It references the existing Infra hierarchy (typically at Room level, occasionally Zone) through a new, thin **Inventory Location** entity that adds only what Inventory needs on top: a virtual/display name for that node, and a location role (e.g., Store vs. requesting point). This closes GAP-10 largely for free and means the `Organization Unit` entity proposed earlier the same day (in the "foundational decisions" entry above) is **withdrawn as redundant** — never build it.
+**Impact:** `CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` GAP-10, §6's entity table, and §4's renaming table were all updated to reflect this. Also confirmed: new Inventory nav/menus (e.g., "Stock Management") get their own top-level menu entries rather than folding under an existing section.
+
+## 2026-09-07 — Backend Architect round: balance strategy, ledger connector, InventoryItem retirement
+
+**Decisions:**
+1. **Stock Ledger balance strategy:** append-only ledger for history, with a separate materialized/derived balance table kept in sync on write — not computed by summing the ledger on every read.
+2. **Ledger/accounting connector:** build the generic posting-connector interface now (so nothing hard-codes Tally into the core), but defer writing the actual Tally adapter itself to a later phase.
+3. **`InventoryItem` backend retirement:** checked for existing callers — `InventoryItemService`/`Controller`/`Repository` (`backend/src/main/java/com/cms/...`) have **no callers outside themselves** except seed-data loaders (`LocalDataSeeder`, `DataLoader`); the frontend's only consumers are its own `inventory-list`/`inventory-form` components and the `app.routes.ts` entry. No other module depends on it. **Decision: deprecate and remove the old `InventoryItem` API entirely once migrated — no facade needed**, since nothing else in the app calls it.
+
+## 2026-09-07 — DBA round: field-mapping ownership and migration safety
+
+**Decisions:**
+1. **Field-mapping ownership:** Backend Architect drafts the concrete mapping from `InventoryItem`'s existing columns (`lab_id`, `quantity`, `minimum_quantity`, `unit`, `last_restocked`) into the new Category Attribute Schema; DBA reviews it for migration-safety and column-verification before it's finalized (per this repo's migration hard gates in `CLAUDE.md`).
+2. **Migration safety confirmed:** the `InventoryItem` migration will be tested against a staging copy of real data, with a documented rollback path, before any production cutover — no exception, per `CLAUDE.md`'s Production Data Safety rules.
+
+## 2026-09-07 — QA Lead round: regression scope and test-case timing
+
+**Decisions:**
+1. **Library regression testing:** not needed in this phase — Library migration is deferred entirely (per the earlier 2026-09-07 entry), so there's nothing to regression-test against it yet. Revisit when Library migration is actually scheduled.
+2. **Manual test cases:** authored per completed feature, incrementally, matching this repo's existing `docs/manual-test-cases/README.md` convention — tracked from `docs/inventory-management/README.md`'s index, not batched at the end.
+
+## 2026-09-07 — Security Lead round: roles/permissions and data masking
+
+**Decisions:**
+1. **Roles/permissions:** confirmed — this module's roles and every new button/action's permission go entirely through the existing DB-only Role Management module and the Operation-wise permission mapping rule (`CLAUDE.md`). No hard-coded role enum anywhere in this module's code, no exceptions.
+2. **Data masking:** confirmed — the same masking principle the SRS applies to bank accounts/PAN for non-finance users extends to whatever sensitive reference a deployment's Cost Object carries (e.g., a patient/student/account reference on a requisition), masked for users without the relevant permission.
+
+## 2026-09-07 — Documentation Engineer round: BR entries and milestone tracking
+
+**Decisions:**
+1. **Business Requirements entries:** `docs/inventory-management/` is the authoritative source for this module's detail; `docs/BUSINESS_REQUIREMENTS.md` gets a short pointer entry rather than duplicating full BR-## write-ups for every shipped feature.
+2. **Milestone tracking:** a new `docs/RELEASE_3_MILESTONES.md` is created alongside the existing `RELEASE_1_MILESTONES.md`/`RELEASE_2_MILESTONES.md`, following the repo-wide release-tracker pattern — **not** a module-local tracker inside `docs/inventory-management/` as originally placeholder-listed in that folder's README (corrected there in the same change).
+
+**This closes the specialist review round** started earlier today (Product Owner, Frontend Architect, Backend Architect, DBA, QA Lead, Security Lead, Documentation Engineer all answered). Per `CLAUDE.md`'s @Partner protocol, alignment is now confirmed for this scope; next step is drafting the core ER diagram and module boundaries (`CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` §8).
+
+## 2026-09-07 — Correction: InventoryItem does have a real dependent (Spatial module virtual locations)
+
+**Prompted by:** re-reading `docs/BUSINESS_REQUIREMENTS.md` BR-60 while adding an unrelated pointer entry, which mentioned Equipment/InventoryItem status shown on Spatial floor-plan markers — contradicting the "Backend Architect round" entry above, which claimed `InventoryItem` has no callers outside itself.
+**Correction:** `backend/src/main/java/com/cms/spatial/service/VirtualLocationService.java` lets a floor-plan marker (`VirtualLocation`) polymorphically link to an `InventoryItem` row via an `entityType="INVENTORY_ITEM"` / `entityId` pair (alongside `EQUIPMENT`, `BLOCK`, `ZONE`, `ROOM`), gated by the `INVENTORY_MANAGE` permission. It's a soft/polymorphic reference, not a DB foreign key, but it is a real dependent the earlier "no callers outside itself" claim missed.
+**Impact:** the `InventoryItem` retirement decision (deprecate and remove once migrated) still stands, but the migration plan must additionally: (a) either migrate existing `virtual_locations` rows with `entityType='INVENTORY_ITEM'` to reference the new core's replacement entity (with a new `entityType` value), or explicitly decide those markers are dropped/relinked manually; (b) update `VirtualLocationService`'s `requireLinkPermission` switch and the Spatial frontend's link-kind picker (`spatial.model.ts`, `virtual-location-form-flyout.component.ts`) to point at the new core instead of `InventoryItem`. This is now a required checklist item for whoever executes the `InventoryItem` migration — add it to the eventual migration plan/ER design doc, don't rediscover it then.
+
+## 2026-09-07 — Deployment model: Infra + Inventory must be independently buildable/deployable
+
+**Prompted by:** user's own words: *"At the end of the development, I will build the frontend and backend of the application by choosing infra and inventory modules alone, that should be deployed to hospital!"*
+**Decision:** the Infra module (`Organization → Branch → Block → Floor → Zone → Room`) and the new Inventory module must be designed so a **standalone frontend+backend build containing only those two modules** can be produced and deployed independently (to a hospital, per the stated plan, or any other customer) — separate from the full SKSCMS application. This is a forward-looking design constraint on module boundaries now, not immediate extraction work ("at the end of development" per the user).
+**Open technical risk flagged, not yet resolved — checked in-session:** the codebase today is a flat, monolithic package structure (`com.cms.model`, `com.cms.controller`, `com.cms.service`, `com.cms.repository` — no per-module packages except `com.cms.spatial`), and carries **421 sequential Flyway migrations** spanning the entire CMS (Academics, Fees, Admissions, Library, Timetable, etc.) in one linear history. Two unresolved questions this raises for whoever does the module-boundary design (§8's next step):
+1. **Code boundary:** does "Infra + Inventory alone" mean a genuine package/build-module split (e.g., Gradle multi-module: `:infra`, `:inventory`, `:core`) so a hospital build only compiles what it needs, or a single codebase with a runtime/config toggle that just doesn't expose non-Infra/Inventory endpoints and nav?
+2. **Schema boundary:** a hospital deployment needs its own database with only Infra+Inventory tables — but Flyway's 421-migration history is one linear sequence for the whole CMS, not separable by module. This needs either a curated, from-scratch migration set for a fresh Infra+Inventory-only database (a genuinely new migration baseline, not a subset of the existing V1–V421 history), or running the full history against a DB where the non-Infra/Inventory tables simply stay empty/unused.
+**Impact:** flagged as an open item for the module-boundary design phase — not blocking current documentation work, but the ER diagram/module-boundary doc (§8) must explicitly address both questions before implementation begins, since retrofitting a clean boundary after the fact is expensive.
+
+## 2026-09-07 — Infra+Inventory extraction approach: explicitly deferred, not decided
+
+**Prompted by:** user asked to settle the two open technical questions from the previous entry (code boundary, schema boundary), then answered "not sure / decide later" to both when presented with concrete options.
+**Outcome:** **Neither question is resolved.** This is a genuine deferral, not a silent default — do not treat either of the "Recommended" options presented as chosen. Both remain open:
+1. Code boundary (package restructuring vs. full Gradle multi-module split vs. runtime-toggle-only) — undecided.
+2. Schema boundary (shared migration history vs. a separate curated hospital-only migration baseline) — undecided.
+**Guidance until revisited:** default day-to-day engineering hygiene that doesn't foreclose either path — e.g., writing new Inventory code under its own clean package namespace rather than scattering it through the existing flat `com.cms.*` structure — is reasonable to do regardless, since it's low-cost and reversible either way. But this is ordinary good practice, not a resolution of the open question, and no migration-strategy decision should be assumed. **Revisit both before the actual standalone hospital build is planned** — do not let this stay silently unresolved indefinitely.
+
+## 2026-09-07 — First ER diagram & module boundaries draft
+
+**Produced:** `ER_DIAGRAM_AND_MODULE_BOUNDARIES.md` — ~46 entities across 12 bounded contexts (Catalog, Vendor, Procurement, Receiving, Stock, Requisition & Issue, Asset, Budget & Finance, Approvals, Gate Pass, Consignment, Service Ticket), built from `CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` §6 and every decision above.
+**Two more reuse-vs-duplicate findings caught before they became mistakes** (same discipline as the Infra-hierarchy discovery):
+1. **`audit_log` already exists** (`V90__create_audit_log.sql`, generic `actor/action/entityType/entityId/detail/occurredAt` shape, currently used for role/permission/user changes). Inventory reuses it directly — no new `AuditLog` entity was added to the model.
+2. **`Department` is a stub redirecting to `Speciality`** (`name, code, description, hodFacultyId, hodName, isActive`) — an academic-program concept tied to a Faculty HOD. **This is explicitly not a safe generic-reuse target**, unlike Infra/`audit_log` — it would smuggle college-specific naming back into the core. `Budget` and `RequisitionLineItem`'s cost-attribution fields use a loose `Type`+`Id` reference instead of any FK to `Speciality` or an equivalent hospital table.
+**One open item flagged, not resolved:** whether `Lab` (the FK target of `InventoryItem.lab`) already has its own path into the Infra `Room` hierarchy needs checking before the `InventoryItem` migration is actually drafted — noted in the ER doc §7/§9 rather than assumed.
+
+## 2026-09-07 — Resolved: Lab→Room FK question
+
+**Checked:** `backend/src/main/java/com/cms/model/Lab.java` has a `room` field (`@ManyToOne`, `room_id` FK to `Room`), documented as "Nullable/non-unique."
+**Finding:** the FK path exists, confirming the `InventoryItem.lab` → `InventoryLocation` mapping in `ER_DIAGRAM_AND_MODULE_BOUNDARIES.md` §7 is sound. Non-uniqueness (multiple Labs sharing one Room) needs no design change — `InventoryLocation` already allows multiple rows against the same Infra node. Nullability is a genuine precondition, not a design flaw: any `Lab` with `room = null` (legacy free-text-only labs) has nothing for its `InventoryItem` stock to attach to. **Action required before the migration is written, not before this design:** run `SELECT count(*) FROM labs WHERE room_id IS NULL` against real data (not determinable from source code alone) and backfill any hits via the existing Campus Infrastructure module.
+**Impact:** ER doc §7 and §9 updated; this was the last open item from the initial ER draft.
+
+## 2026-09-07 — Stakeholder-facing milestone file created
+
+**Prompted by:** user request for a milestone file to share with stakeholders — phases and what's covered only, deliberately no timelines, kept updated as a living reference as things change.
+**Decision:** created `MILESTONES.md` in this folder, distinct from `../RELEASE_3_MILESTONES.md` (the technical engineering tracker created earlier). Nine phases (0–8): Discovery & Design (in progress), then Foundation, Purchasing & Suppliers, Receiving & Stock Movement, Requests/Issues/Returns, Equipment & Asset Management, Budgets & Approvals, Gate Pass/Consignment/Service Requests, Reporting — each phase written in plain language with what it covers and a todo list, no jargon, no dates. Library migration and the standalone-packaging question are called out as confirmed-but-not-yet-scheduled rather than folded into a numbered phase, so they aren't mistaken for forgotten.
+**Impact:** both `MILESTONES.md` and `RELEASE_3_MILESTONES.md` cross-reference each other with an explicit instruction to keep them in sync — same work, two audiences, must not drift. `README.md`'s index updated. **Whoever updates one when a phase's status changes must update the other in the same pass.**
+
+## 2026-09-07 — Phase 1 kickoff: Lab.room_id finding, delivery order, package/nav naming
+
+**Prompted by:** user instruction to start Phase 1 (Foundation: Catalog, Stock Tracking & Locations) implementation.
+**Precondition check run:** `SELECT count(*) FROM labs WHERE room_id IS NULL` against the local dev database returned **7 of 7 labs** — every local `Lab` row currently has no `room_id`. This confirms the precondition flagged in the "Resolved: Lab→Room FK question" entry above is real and, on this dataset, total. It does not block Catalog/Stock work; it blocks only the `InventoryItem` migration step.
+**Decisions (from questions put to the user before writing code):**
+1. **Delivery order:** Phase 1 is delivered as one vertical slice per todo — each slice (backend migrations/entities/services/controllers, frontend list+form, permissions, nav) finished and reviewable before the next starts. Order: Catalog & UOM → Stock Tracking → Physical Counts → `InventoryItem` migration last.
+2. **`InventoryItem` migration:** explicitly deferred. **User's own words:** *"We need to build the core first, later we will think of migrating the existing data/records."* The new schema is built so the migration *could* happen later, but no migration script is written now, and the old `InventoryItem` module keeps running unchanged until that's revisited — same deferred posture as the Library migration.
+3. **First slice scope, within Catalog & UOM:** starting with `Category` (self-referencing hierarchy, no `CategoryAttribute` yet) and `Uom` — the two dependency-free entities everything else in Catalog builds on. `Product` (with its aliases/attribute-values/images) follows as the next slice once these land.
+4. **Package namespace:** new backend code lives under `com.cms.inventory.catalog` (model/repository/service/controller/dto), mirroring the existing `com.cms.spatial` module-namespaced package — per the "extraction approach: explicitly deferred" entry above, this is low-cost/reversible groundwork, not a resolution of the open code-boundary question.
+5. **`Uom` primary key:** the ER doc (§2) modelled `Uom` with `UomCode` as its primary key. Implemented instead with the same surrogate `Long id` + unique `code` column every other master in this codebase uses (`RoomSubType`, `RoomPurposeCategory`, etc.) — keeps every FK in the app `Long`-typed and consistent; `code` is still enforced unique, so no capability is lost. Noted here as a small, deliberate deviation from the ER draft's exact wording, not an oversight.
+6. **Permission naming:** `INVENTORY_CATEGORY_VIEW`/`INVENTORY_CATEGORY_MANAGE`, `INVENTORY_UOM_VIEW`/`INVENTORY_UOM_MANAGE` — checked for collision against the legacy `INVENTORY_VIEW`/`INVENTORY_CREATE`/etc. codes (the old lab-consumables feature); none.
+7. **Nav placement:** a new top-level **"Stock Management"** sidenav group is added for these screens, per the earlier "new Inventory nav/menus... get their own top-level menu entries" decision — kept separate from the existing **"Inventory Management"** nav group, which is the legacy simple asset/equipment feature (`/inventory`, `/maintenance`) and stays exactly as-is until its own migration is scheduled. Reusing the "Inventory Management" label for the new module's nav would have collided with that existing, still-live group.
+**Impact:** this entry is the record of the above; `MILESTONES.md` and `RELEASE_3_MILESTONES.md` status tables updated in the same change to show Phase 1 / R3-M1 in progress.
+
+## 2026-09-07 — Product slice: CategoryAttribute nesting, image upload deferred, uniqueness scope
+
+**Prompted by:** user instruction to continue Phase 1 into `Product` after Category/Uom shipped.
+**Decisions:**
+1. **`CategoryAttribute` gets its own nested CRUD** under Category (`/inventory/categories/{categoryId}/attributes`), reusing `INVENTORY_CATEGORY_VIEW`/`INVENTORY_CATEGORY_MANAGE` rather than new permission codes — an attribute has no lifecycle independent of the category that defines it, so it isn't a distinct "operation" in the Operation-wise permission mapping sense.
+2. **`ProductAlias` and `ProductAttributeValue` are managed as child collections**, replaced wholesale on every `Product` create/update rather than getting their own CRUD endpoints/permissions — small nested lists edited only in the context of their parent Product form.
+3. **`ProductImage` explicitly deferred**, along with the MinIO upload plumbing it needs (multipart endpoint, frontend dropzone/thumbnail picker — real, separately-scoped work; `FloorPlanService`/`MinioStorageService` are the precedent to follow when it's built). Not modelled in this migration at all, to avoid a dangling unused table — added in its own later pass instead. `Product` core + aliases + attribute values ship now.
+4. **Uniqueness scope:** `ProductCode` is globally unique (the natural catalog identifier); `ProductName` is unique only within its `Category` (mirrors `Category`'s own sibling-name scoping) — not global, since `ProductAlias` already exists precisely to let "the same item" carry different display names across locations, so forcing global name uniqueness would fight that.
+5. **`CategoryAttribute.dataType = ENUM`** needs a way to define its allowed values, which the ER draft didn't specify a mechanism for. Added a simple `enum_options` (comma-separated string) column rather than a separate options table — lightweight, sufficient for a picklist, revisit only if a real need for per-option metadata shows up.
+6. **No attribute inheritance from ancestor categories.** A Product only sees `CategoryAttribute`s defined directly on its own `Category`, not ones defined on that category's parents. Simpler, and matches the ER draft's plain reading; can be revisited if a real use case needs it.
+
+## 2026-09-07 — Stock Tracking slice: Room-only locations, movement types, decrease valuation
+
+**Prompted by:** user instruction to continue Phase 1 into Stock Tracking after the Product/CategoryAttribute slice shipped.
+**Decisions:**
+1. **`InventoryLocation` wraps a `Room` only in this pass — no `Zone`-level locations yet.** The ER draft's §4 modelled `InfraNodeType [Room/Zone]`; the doc's own wording already says Inventory uses Zone only "occasionally." Implemented as a real, non-nullable FK to `rooms(id)` rather than the polymorphic `entityType`/`entityId` soft-reference pattern `VirtualLocation` uses for its five link kinds — a real FK is strictly better than a soft reference when there's exactly one possible target table, which is the case once Zone support is dropped for now. `VirtualName` is globally unique (not scoped per Room), since multiple `InventoryLocation` rows can legitimately point at the same Room (two Labs sharing a physical Room, each with its own distinct virtual name) but should never collide with each other in the picker UI. Add Zone-level support later as a genuine, reviewed extension if a real need shows up — don't quietly reintroduce the polymorphic-reference approach without re-checking this reasoning.
+2. **Room/Zone picking reuses the existing Infra frontend service** (`CampusInfrastructureService.getAllActiveZones()` + `getRoomsByZone()`), not the existing `cms-room-picker` shared component — that component requires a `purposeCategoryId` (it's built for venue-linking screens like Lab/Classroom/ClinicalVenue), which Inventory has no equivalent of and shouldn't invent one just to reuse the component.
+3. **Movement types exposed in this pass: `RECEIPT`, `ADJUSTMENT`, `DISPOSAL` only** — `ISSUE`, `TRANSFER`, `RETURN`, `CONSIGNMENT_CONSUMPTION` all belong to workflows (Requisition, Stock Transfer, Vendor Consignment) that don't exist yet; exposing them now would let someone record a movement with no corresponding real-world transaction backing it. The `StockLedger.txnType` column itself still allows the full ER-drafted enum, so later phases don't need a migration to add values — only today's UI/API surface is narrowed.
+4. **Decrease-side valuation uses the current weighted-average unit cost, not FIFO/FEFO.** For a `DISPOSAL` or a decreasing `ADJUSTMENT`, if the caller doesn't supply a unit cost, the value removed is computed from the existing `StockBalance`'s own `valueOnHand / qtyOnHand`. Real FIFO/FEFO issue valuation is explicitly Phase 3 scope per the ER doc (§3's GRN/batch work) — this is a deliberately simple stand-in, not an attempt at real costing.
+5. **A movement that would drive `qtyOnHand` negative is rejected.** Defensive validation, not from the ER doc — prevents silently-wrong stock data before any reconciliation/cycle-count tooling exists to catch it (that's Phase 1's next todo).
+6. **`StockBatch` has no dedicated CRUD screen.** A batch/serial number + expiry date are optional fields on the "Record Stock Movement" form itself; a matching `StockBatch` row is created on the fly the first time a given batch/serial number is used for a product, exactly like `ProductAlias`/`ProductAttributeValue` are managed as part of their parent's form rather than as their own master.
+7. **Stock Ledger movement history has no browsing screen yet** — only the "Record Movement" write path and the `StockBalance` read (current on-hand qty/value) are built. The backend read endpoint for ledger history is *not* added preemptively either, unlike some other deferred pieces — there's no consumer for it yet, so it's simple to add together with its screen in a later pass rather than carry unused surface area now.
+**Impact:** new tables `inventory_locations`, `stock_batches`, `stock_ledger`, `stock_balances`; new permissions `INVENTORY_LOCATION_VIEW/MANAGE`, `INVENTORY_STOCK_VIEW/MANAGE`.
+
+## 2026-09-08 — Cycle Count slice: full-location + ad-hoc scope, blind count, unbatched-only auto-post
+
+**Prompted by:** user instruction to continue Phase 1 into "Physical stock counts / reconciliation" after the Stock Tracking slice shipped; three scoping questions put to the user first (count scope, blind vs visible system quantity, variance resolution), each explained with a concrete example before the user answered.
+**Decisions:**
+1. **Count scope — full location + ad-hoc, together.** Starting a count against a location defaults its sheet to every product currently holding any balance there, but products can still be added (even zero-balance ones) or removed before counting starts. Real ABC-driven auto-scheduling stays deferred, same posture as other scheduling features in this module.
+2. **Blind count.** The count-entry screen never shows the system's expected quantity — the counter enters only what they physically found, with the comparison and variance revealed only after submission. Standard stock-take practice, and the one thing GAP-09 explicitly called out as missing from the SRS. Implemented API-side (not just hidden in the UI): `CycleCountLineResponse.systemQtySnapshot`/`varianceQty` come back `null` from every endpoint the count-entry screen reads while the header is still DRAFT, one response shape reused across both screens rather than a second blind-only DTO.
+3. **Variance resolution — separate approve permission, auto-post.** Only nonzero-variance lines need sign-off; a zero-variance line auto-closes (`MATCHED`) with no approval step. `INVENTORY_CYCLE_COUNT_APPROVE` is its own permission, distinct from `INVENTORY_CYCLE_COUNT_MANAGE` (per the operation-wise permission mapping rule) — approving immediately posts an `ADJUSTMENT` through the existing `StockMovementService`, exactly as a manual adjustment would; rejecting dismisses the variance as a counting error with no stock change.
+4. **A line's `systemQtySnapshot` is fixed once, at line-creation time** (count creation for a FULL_LOCATION line, or the moment a product is added ad-hoc) — never re-fetched later, so a movement recorded elsewhere mid-count can't quietly move the baseline out from under an in-progress count.
+5. **Snapshot is summed across every `StockBalance` row for the product/location (batched and unbatched), matching what a person physically counting the shelf actually sees — but posting an approved variance only ever adjusts the unbatched balance row**, the same simplification spirit as this module's earlier "no batch CRUD screen, no FIFO/FEFO" calls. If a product's stock is genuinely spread across named batches, auto-posting can hit the existing negative-stock guard in `StockMovementService`; `CycleCountService.approveLine` catches that and surfaces a clear message pointing the user at Record Stock Movement (against the specific batch) instead of silently misattributing the adjustment. Real per-batch cycle counting is out of scope until batch-level workflows exist.
+6. **Header lifecycle:** DRAFT (building/counting, blind) → SUBMITTED (variances computed, nonzero ones await approve/reject) → COMPLETED (every line in a terminal state — MATCHED, APPROVED, or REJECTED). CANCELLED is reachable only from DRAFT — once submitted, the workflow must run to completion via approve/reject on each line rather than allow a partial-rollback of already-posted adjustments.
+7. **New permissions:** `INVENTORY_CYCLE_COUNT_VIEW` / `_MANAGE` / `_APPROVE`, seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN plus the DEV_ADMIN/SUPPORT_ADMIN catch-all sync, matching V427's pattern.
+8. **Shared `CmsStatusBadgeComponent` extended**, not forked: `MATCHED` (success), `PENDING_REVIEW` (warning, alongside the existing `UNDER_REVIEW`), and `PENDING_COUNT` (pending) added to its `resolveClass()` switch rather than building a parallel badge system, per this repo's badge-consistency gate — `DRAFT`/`SUBMITTED`/`COMPLETED`/`CANCELLED`/`APPROVED`/`REJECTED` already existed in that switch and needed no change.
+**Impact:** new tables `cycle_counts`, `cycle_count_lines` (V428); new permissions (V429); `StockBalanceRepository` gained two read-only aggregate queries (`sumQtyByProductForLocation`, `sumQtyForProductAndLocation`) used only by the new `CycleCountService`, not by `StockMovementService`'s existing write path. `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the same change — Phase 1 / R3-M1's "Physical stock counts" todo is now done, closing out Phase 1 except the still-deferred `InventoryItem` migration.
+
+---
+
+*Next entry goes here — do not insert above this line.*

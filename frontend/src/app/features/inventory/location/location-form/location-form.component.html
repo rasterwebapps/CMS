@@ -1,0 +1,148 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/locations" aria-label="Back to inventory locations">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Inventory Location</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the location details below.' : 'Pick the room this location wraps, then give it a name.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <!-- ── LEFT: Form Card ─────────────────────────────────── -->
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Location Information</div>
+            <div class="entry-form-card__hdr-sub">Which room this location wraps, its name, and its role</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="loc-form-grid">
+              <!-- Zone -->
+              <div class="field-group">
+                <label for="loc-zone" class="field-label">Zone <span class="required-star">*</span></label>
+                <select id="loc-zone" class="field-select" formControlName="zoneId"
+                  [class.field-select--error]="form.get('zoneId')?.invalid && form.get('zoneId')?.touched">
+                  <option [ngValue]="null" disabled>Select a zone</option>
+                  @for (z of zones(); track z.id) {
+                    <option [ngValue]="z.id">{{ z.floorName }} · {{ z.name }}</option>
+                  }
+                </select>
+                @if (form.get('zoneId')?.invalid && form.get('zoneId')?.touched) {
+                  <p class="field-error">Zone is required</p>
+                }
+              </div>
+
+              <!-- Room -->
+              <div class="field-group">
+                <label for="loc-room" class="field-label">Room <span class="required-star">*</span></label>
+                <select id="loc-room" class="field-select" formControlName="roomId" [disabled]="!form.value.zoneId || roomsLoading()"
+                  [class.field-select--error]="form.get('roomId')?.invalid && form.get('roomId')?.touched">
+                  <option [ngValue]="null" disabled>{{ !form.value.zoneId ? 'Select a zone first' : (roomsLoading() ? 'Loading…' : 'Select a room') }}</option>
+                  @for (r of rooms(); track r.id) {
+                    <option [ngValue]="r.id">{{ r.roomNumber }}</option>
+                  }
+                </select>
+                @if (form.get('roomId')?.invalid && form.get('roomId')?.touched) {
+                  <p class="field-error">Room is required</p>
+                } @else if (form.value.zoneId && !roomsLoading() && rooms().length === 0) {
+                  <p class="field-hint">This zone has no active rooms.</p>
+                }
+              </div>
+            </div>
+
+            <!-- Virtual Name -->
+            <div class="field-group">
+              <label for="loc-name" class="field-label">
+                Virtual Name <span class="required-star">*</span>
+              </label>
+              <input
+                id="loc-name"
+                class="field-input"
+                formControlName="virtualName"
+                placeholder="e.g., Main Pharmacy Store"
+                autocomplete="off"
+                [class.field-input--error]="form.get('virtualName')?.invalid && form.get('virtualName')?.touched"
+              />
+              @if (form.get('virtualName')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('virtualName')?.invalid && form.get('virtualName')?.touched) {
+                <p class="field-error">{{ getErrorMessage('virtualName') }}</p>
+              } @else {
+                <p class="field-hint">How this location is shown throughout Inventory — must be unique</p>
+              }
+            </div>
+
+            <!-- Role -->
+            <div class="field-group">
+              <label for="loc-role" class="field-label">Role <span class="required-star">*</span></label>
+              <select id="loc-role" class="field-select" formControlName="locationRole">
+                @for (r of roles; track r.value) {
+                  <option [value]="r.value">{{ r.label }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- Description -->
+            <div class="field-group">
+              <label for="loc-desc" class="field-label">Description</label>
+              <textarea
+                id="loc-desc"
+                class="field-textarea"
+                formControlName="description"
+                placeholder="Optional description"
+                rows="3"
+                [class.field-textarea--error]="form.get('description')?.invalid && form.get('description')?.touched"
+              ></textarea>
+              @if (form.get('description')?.invalid && form.get('description')?.touched) {
+                <p class="field-error">{{ getErrorMessage('description') }}</p>
+              }
+            </div>
+
+            <!-- Footer -->
+            <div class="entry-form-card__footer">
+              <a routerLink="/inventory/locations" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Update' : 'Save' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- ── RIGHT: Preview Card ─────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Location will appear here' }}
+          </div>
+          @if (previewRoom()) { <div class="prev-sub">{{ previewRoom() }}</div> }
+        </cms-preview-card>
+      </aside>
+
+    </div>
+  }
+
+</div>

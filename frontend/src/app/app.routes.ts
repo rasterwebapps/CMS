@@ -108,6 +108,142 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'inventory/categories',
+    canActivate: withPermission('INVENTORY_CATEGORY_VIEW', 'INVENTORY_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/category/category-list/category-list.component').then(
+        (m) => m.CategoryListComponent
+      ),
+  },
+  {
+    path: 'inventory/categories/new',
+    canActivate: withPermission('INVENTORY_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/category/category-form/category-form.component').then(
+        (m) => m.CategoryFormComponent
+      ),
+  },
+  {
+    path: 'inventory/categories/:id/edit',
+    canActivate: withPermission('INVENTORY_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/category/category-form/category-form.component').then(
+        (m) => m.CategoryFormComponent
+      ),
+  },
+  {
+    path: 'inventory/uoms',
+    canActivate: withPermission('INVENTORY_UOM_VIEW', 'INVENTORY_UOM_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/uom/uom-list/uom-list.component').then(
+        (m) => m.UomListComponent
+      ),
+  },
+  {
+    path: 'inventory/uoms/new',
+    canActivate: withPermission('INVENTORY_UOM_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/uom/uom-form/uom-form.component').then(
+        (m) => m.UomFormComponent
+      ),
+  },
+  {
+    path: 'inventory/uoms/:id/edit',
+    canActivate: withPermission('INVENTORY_UOM_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/uom/uom-form/uom-form.component').then(
+        (m) => m.UomFormComponent
+      ),
+  },
+  {
+    path: 'inventory/products',
+    canActivate: withPermission('INVENTORY_PRODUCT_VIEW', 'INVENTORY_PRODUCT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/product/product-list/product-list.component').then(
+        (m) => m.ProductListComponent
+      ),
+  },
+  {
+    path: 'inventory/products/new',
+    canActivate: withPermission('INVENTORY_PRODUCT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/product/product-form/product-form.component').then(
+        (m) => m.ProductFormComponent
+      ),
+  },
+  {
+    path: 'inventory/products/:id/edit',
+    canActivate: withPermission('INVENTORY_PRODUCT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/product/product-form/product-form.component').then(
+        (m) => m.ProductFormComponent
+      ),
+  },
+  {
+    path: 'inventory/locations',
+    canActivate: withPermission('INVENTORY_LOCATION_VIEW', 'INVENTORY_LOCATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/location/location-list/location-list.component').then(
+        (m) => m.LocationListComponent
+      ),
+  },
+  {
+    path: 'inventory/locations/new',
+    canActivate: withPermission('INVENTORY_LOCATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/location/location-form/location-form.component').then(
+        (m) => m.LocationFormComponent
+      ),
+  },
+  {
+    path: 'inventory/locations/:id/edit',
+    canActivate: withPermission('INVENTORY_LOCATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/location/location-form/location-form.component').then(
+        (m) => m.LocationFormComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/balances',
+    canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/stock/stock-balance-list/stock-balance-list.component').then(
+        (m) => m.StockBalanceListComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/movements/new',
+    canActivate: withPermission('INVENTORY_STOCK_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/stock/stock-movement-form/stock-movement-form.component').then(
+        (m) => m.StockMovementFormComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/cycle-counts',
+    canActivate: withPermission('INVENTORY_CYCLE_COUNT_VIEW', 'INVENTORY_CYCLE_COUNT_MANAGE', 'INVENTORY_CYCLE_COUNT_APPROVE'),
+    loadComponent: () =>
+      import('./features/inventory/cycle-count/cycle-count-list/cycle-count-list.component').then(
+        (m) => m.CycleCountListComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/cycle-counts/new',
+    canActivate: withPermission('INVENTORY_CYCLE_COUNT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/cycle-count/cycle-count-new/cycle-count-new.component').then(
+        (m) => m.CycleCountNewComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/cycle-counts/:id',
+    canActivate: withPermission('INVENTORY_CYCLE_COUNT_VIEW', 'INVENTORY_CYCLE_COUNT_MANAGE', 'INVENTORY_CYCLE_COUNT_APPROVE'),
+    loadComponent: () =>
+      import('./features/inventory/cycle-count/cycle-count-detail/cycle-count-detail.component').then(
+        (m) => m.CycleCountDetailComponent
+      ),
+  },
+  {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),
     data: { level: 'FLOOR' },

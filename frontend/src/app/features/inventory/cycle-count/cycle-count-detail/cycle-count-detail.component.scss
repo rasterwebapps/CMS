@@ -1,0 +1,213 @@
+.cc-detail-loading {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.cc-detail-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ── Summary card ──────────────────────────────────────────────────
+.cc-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 20px;
+}
+
+.cc-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.cc-summary-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+}
+
+.cc-summary-value {
+  font-size: 0.875rem;
+  color: var(--cms-text-primary);
+
+  &--warn {
+    color: var(--cms-warning);
+    font-weight: 600;
+  }
+}
+
+// ── Add-product row (DRAFT only) ─────────────────────────────────
+.cc-add-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.cc-add-select {
+  flex: 1;
+  max-width: 420px;
+}
+
+// ── Count sheet table ─────────────────────────────────────────────
+.cc-table-card {
+  flex: 1;
+}
+
+.cc-line-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--cms-text-table-header);
+    background: var(--cms-bg-subtle);
+    border-bottom: 1px solid var(--cms-border-default);
+    padding: 10px 14px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--cms-border-light);
+    color: var(--cms-text-primary);
+    font-size: 0.875rem;
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  .cell-align-right { text-align: right; }
+  .cell-align-center { text-align: center; }
+}
+
+.cc-product-name {
+  font-weight: 600;
+}
+
+.cc-product-code {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+}
+
+.cc-qty-input {
+  width: 100px;
+  text-align: right;
+  margin-left: auto;
+}
+
+.cc-notes-input {
+  width: 100%;
+  min-width: 160px;
+}
+
+.cc-empty-row {
+  text-align: center;
+  padding: 32px 14px;
+  color: var(--cms-text-muted);
+}
+
+.cc-muted {
+  color: var(--cms-text-muted);
+  font-size: 0.8125rem;
+}
+
+.cc-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-danger);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--cms-danger-light);
+    border-color: var(--cms-danger);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.cc-variance-pos {
+  color: var(--cms-success);
+  font-weight: 600;
+}
+
+.cc-variance-neg {
+  color: var(--cms-danger);
+  font-weight: 600;
+}
+
+.cc-resolution-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cc-approve-btn,
+.cc-reject-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.cc-approve-btn {
+  color: var(--cms-success);
+  border-color: var(--cms-success);
+  background: var(--cms-success-light);
+
+  &:hover:not(:disabled) {
+    background: var(--cms-success);
+    color: #fff;
+  }
+}
+
+.cc-reject-btn {
+  color: var(--cms-danger);
+  border-color: var(--cms-danger);
+  background: var(--cms-danger-light);
+
+  &:hover:not(:disabled) {
+    background: var(--cms-danger);
+    color: #fff;
+  }
+}
+
+// ── Footer actions ──────────────────────────────────────────────
+.cc-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

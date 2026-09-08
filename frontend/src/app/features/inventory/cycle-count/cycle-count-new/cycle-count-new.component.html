@@ -1,0 +1,88 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/stock/cycle-counts" aria-label="Back to cycle counts">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">New Cycle <em>Count</em></h1>
+      </div>
+      <p class="page-subtitle">Products are counted blind — the system quantity stays hidden until you submit.</p>
+    </div>
+  </div>
+
+  <div class="mv-standalone-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Count Details</div>
+          <div class="entry-form-card__hdr-sub">Where this count is against, and what it should cover</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="cc-new-grid">
+            <div class="field-group">
+              <label for="cc-location" class="field-label">Location <span class="required-star">*</span></label>
+              <select id="cc-location" class="field-select" formControlName="locationId"
+                [class.field-select--error]="form.get('locationId')?.invalid && form.get('locationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('locationId')?.invalid && form.get('locationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('locationId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="cc-date" class="field-label">Count Date <span class="required-star">*</span></label>
+              <input id="cc-date" type="date" class="field-input" formControlName="countDate"
+                [class.field-input--error]="form.get('countDate')?.invalid && form.get('countDate')?.touched" />
+              @if (form.get('countDate')?.invalid && form.get('countDate')?.touched) {
+                <p class="field-error">{{ getErrorMessage('countDate') }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="cc-scope" class="field-label">Scope <span class="required-star">*</span></label>
+            <select id="cc-scope" class="field-select" formControlName="scope">
+              @for (s of scopes; track s.value) {
+                <option [value]="s.value">{{ s.label }}</option>
+              }
+            </select>
+            <p class="field-hint">{{ scopes.find(s => s.value === form.value.scope)?.hint }}</p>
+          </div>
+
+          <div class="field-group">
+            <label for="cc-notes" class="field-label">Notes</label>
+            <textarea id="cc-notes" class="field-textarea" formControlName="notes" placeholder="Optional reason/reference for this count" rows="3"></textarea>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/stock/cycle-counts" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              Start Count
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>

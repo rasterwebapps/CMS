@@ -1,0 +1,172 @@
+# Inventory Management — Progress & Phases
+
+> **Purpose of this document:** a stakeholder-facing view of what the Inventory Management module will cover, grouped into phases, and where things currently stand. **Deliberately no dates or timelines** — phases show what's covered and their sequence, not when. This file is a living reference: as scope changes or work completes, it gets updated in place and the status markers below get moved — it is not a one-time snapshot.
+>
+> Looking for engineering-level detail (data model, technical decisions, open questions)? See [`README.md`](README.md) for the full documentation index. This file intentionally stays non-technical for sharing outside the engineering team.
+
+**Last updated:** 2026-09-08
+
+---
+
+## What this is
+
+Inventory Management is a new, standalone module being built for the platform — covering purchasing, stock tracking, equipment/asset management, and related approvals. It's designed as a general-purpose module usable by any type of organization managing physical stock and equipment, not built around the assumptions of one particular kind of institution. It's being designed to plug into the platform's existing location/campus structure rather than duplicate it.
+
+---
+
+## Status at a glance
+
+| Phase | Covers | Status |
+|---|---|---|
+| 0 | Discovery &amp; Design | 🟡 In Progress |
+| 1 | Foundation — Catalog, Stock Tracking &amp; Locations | 🟡 In Progress |
+| 2 | Purchasing &amp; Suppliers | ⬜ Not Started |
+| 3 | Receiving &amp; Stock Movement | ⬜ Not Started |
+| 4 | Requests, Issues &amp; Returns | ⬜ Not Started |
+| 5 | Equipment &amp; Asset Management | ⬜ Not Started |
+| 6 | Budgets &amp; Approvals | ⬜ Not Started |
+| 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ⬜ Not Started |
+| 8 | Reporting &amp; Dashboards | ⬜ Not Started |
+
+**Status legend:** ⬜ Not Started · 🟡 In Progress · ✅ Done
+
+---
+
+## Phase 0 — Discovery & Design
+
+**Status: 🟡 In Progress**
+
+**Covers:** Reviewing the requirements document supplied for this module, checking it against real needs across different kinds of organizations, deciding what's actually in scope, and producing the first design of how the system will be structured before any building starts.
+
+**Done so far:**
+- Reviewed the full requirements document supplied by the business team and identified what it was missing for general-purpose use
+- Confirmed the scope: a standalone module that works for different kinds of organizations without being built around any one of them specifically
+- Found and reused existing parts of the platform instead of duplicating them (the location/campus structure, and the audit trail that records who changed what)
+- Produced a first draft of the complete data design (what information the system tracks and how it connects)
+
+**Still to do:**
+- Design draft under review
+- One open question on how a future stand-alone version of this module (for a deployment that only needs Inventory and the location structure, nothing else) would be packaged — not yet decided, doesn't block the design review
+- A data-quality check needed against the existing lab-inventory feature before it can be migrated (see Phase 1)
+
+---
+
+## Phase 1 — Foundation: Catalog, Stock Tracking & Locations
+
+**Status: 🟡 In Progress**
+
+**Covers:** The basic building blocks everything else depends on — a catalog of items (with categories, images, alternate names), units of measure, a record of what's in stock and where, and connecting stock locations to the platform's existing campus/location structure. Also includes bringing the platform's existing simple lab-inventory feature onto this new, more capable system.
+
+**Doing now:** The item catalog, the core stock-tracking record, and physical stock counts are all in place — items can be received, adjusted, or written off at a named stock location, with a running record of what's on hand and its value, and that record can now be checked against a physical count with variances reviewed before they're posted. Only the lab-inventory migration is left before this phase is fully done.
+
+**Todo:**
+- Item catalog with configurable categories (so different kinds of items — a lab chemical, a library book, an IT asset — can each carry the details relevant to them) — ✅ done (categories, units of measure, and the product catalog itself, each with its own screen; a photo/image per product is intentionally not included yet — see "Not yet scheduled" below)
+- Core stock-tracking record (what's on hand, where, in what batch, at what value) — ✅ done (stock locations tied to existing campus rooms, a Stock Balance report, and a way to record receipts/adjustments/write-offs; issuing stock to a requester and moving stock between locations wait on the workflows those depend on, which come in later phases)
+- Physical stock counts / reconciliation — ✅ done (a blind count against a location — the counter doesn't see the system's expected quantity — with any variance reviewed and either approved, which updates stock, or rejected as a counting error)
+- Migrate the existing simple lab-inventory feature onto the new system — confirmed deferred until the rest of the Foundation phase is in place; see "Not yet scheduled" note below
+
+---
+
+## Phase 2 — Purchasing & Suppliers
+
+**Status: ⬜ Not Started**
+
+**Covers:** Raising a request for items, getting and comparing quotes, issuing purchase orders, and registering and managing the suppliers those orders go to (including their approved rates and any standing rate agreements).
+
+**Todo:**
+- Purchase request → purchase order flow
+- Supplier registration, approval, and rate management
+- Price comparison and rate-contract support
+
+---
+
+## Phase 3 — Receiving & Stock Movement
+
+**Status: ⬜ Not Started**
+
+**Covers:** Recording deliveries against purchase orders, checking quantities and prices match what was ordered, tracking batches and expiry where relevant, and moving stock between locations.
+
+**Todo:**
+- Goods-receipt recording and matching against orders
+- Batch/expiry tracking
+- Transfers between locations
+- Returning defective or incorrect deliveries to the supplier
+
+---
+
+## Phase 4 — Requests, Issues & Returns
+
+**Status: ⬜ Not Started**
+
+**Covers:** A department or location requesting items from stock, issuing them out, and handling returns — plus a general "borrow and return" capability for equipment that gets loaned out and is expected back (sports equipment, hostel items, and similar), rather than consumed.
+
+**Todo:**
+- Requisition (request-and-issue) workflow
+- Auto-restocking when items run low
+- Internal returns
+- Generic loan/return tracking for borrowed equipment
+
+---
+
+## Phase 5 — Equipment & Asset Management
+
+**Status: ⬜ Not Started**
+
+**Covers:** Tracking equipment and other owned assets through their full life — from purchase, through maintenance schedules and service contracts, to eventual retirement or disposal — including the standard depreciation calculations finance needs.
+
+**Todo:**
+- Asset register and lifecycle tracking
+- Maintenance scheduling and service contracts
+- Depreciation
+- Disposal/write-off workflow
+
+---
+
+## Phase 6 — Budgets & Approvals
+
+**Status: ⬜ Not Started**
+
+**Covers:** Setting spending limits per location or area, and the multi-level sign-off process a purchase or request goes through before it's approved — including handling exceptions (urgent purchases, single-supplier situations) with a documented reason.
+
+**Todo:**
+- Budget allocation and tracking
+- Multi-level approval routing, including parallel sign-off where more than one person needs to weigh in at once
+- Exception handling with documented reasons
+
+---
+
+## Phase 7 — Gate Pass, Vendor-Owned Stock & Service Requests
+
+**Status: ⬜ Not Started**
+
+**Covers:** Tracking items and equipment physically leaving or entering a premises (for repair, loan, or disposal), managing stock that a supplier owns but keeps on-site until it's used, and a general internal service/complaint ticketing capability.
+
+**Todo:**
+- Outward/inward gate pass tracking, including overdue alerts for items that should have come back
+- Vendor-owned ("consignment") stock tracking and periodic billing
+- Internal service ticketing
+
+---
+
+## Phase 8 — Reporting & Dashboards
+
+**Status: ⬜ Not Started**
+
+**Covers:** The dashboards and reports that pull together everything from the phases above — stock positions, spending, price comparisons, and turnaround times — for day-to-day use and management review.
+
+**Todo:**
+- Everything in this phase depends on the phases above being in place first
+
+---
+
+## Not yet scheduled into a phase
+
+A couple of items are confirmed as part of the plan but not yet assigned to a specific phase above — called out here so they aren't mistaken for forgotten:
+
+- **Bringing the existing library feature onto this system.** Deliberately deferred — the library feature keeps working as it is today until this is scheduled.
+- **Packaging a stand-alone version of this module** (just Inventory plus the location structure, for a deployment that doesn't need the rest of the platform). The design accounts for this being possible later, but exactly how it gets built and packaged is still an open question.
+- **Photos on a product's catalog entry.** The product catalog itself (name, code, category, units, alternate names, custom per-category details) is done, but attaching a photo to a product isn't yet — it needs its own upload capability, which is a real piece of work in its own right rather than an extra field.
+
+---
+
+> Updated whenever scope changes or a phase's status moves — check the **Last updated** date above, not just this document's existence, to know how current it is.

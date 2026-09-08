@@ -1,0 +1,138 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/stock/balances" aria-label="Back to stock balance">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">Record <em>Stock Movement</em></h1>
+      </div>
+      <p class="page-subtitle">Only Receipt, Adjustment, and Disposal can be recorded here — Issue/Transfer/Return come with their own workflows in a later phase.</p>
+    </div>
+  </div>
+
+  <div class="mv-standalone-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Movement Details</div>
+          <div class="entry-form-card__hdr-sub">What moved, where, and how much</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="mv-form-grid">
+            <div class="field-group">
+              <label for="mv-product" class="field-label">Product <span class="required-star">*</span></label>
+              <select id="mv-product" class="field-select" formControlName="productId"
+                [class.field-select--error]="form.get('productId')?.invalid && form.get('productId')?.touched">
+                <option [ngValue]="null" disabled>Select a product</option>
+                @for (p of products(); track p.id) {
+                  <option [ngValue]="p.id">{{ p.productName }} ({{ p.productCode }})</option>
+                }
+              </select>
+              @if (form.get('productId')?.invalid && form.get('productId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('productId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="mv-location" class="field-label">Location <span class="required-star">*</span></label>
+              <select id="mv-location" class="field-select" formControlName="locationId"
+                [class.field-select--error]="form.get('locationId')?.invalid && form.get('locationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('locationId')?.invalid && form.get('locationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('locationId') }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="mv-type" class="field-label">Transaction Type <span class="required-star">*</span></label>
+            <select id="mv-type" class="field-select" formControlName="txnType">
+              @for (t of txnTypes; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+            <p class="field-hint">{{ txnTypes.find(t => t.value === form.value.txnType)?.hint }}</p>
+          </div>
+
+          @if (form.value.txnType === 'ADJUSTMENT') {
+            <div class="field-group">
+              <label for="mv-direction" class="field-label">Direction <span class="required-star">*</span></label>
+              <select id="mv-direction" class="field-select" formControlName="direction">
+                <option value="INCREASE">Increase — found extra</option>
+                <option value="DECREASE">Decrease — found missing</option>
+              </select>
+            </div>
+          }
+
+          <div class="mv-form-grid">
+            <div class="field-group">
+              <label for="mv-qty" class="field-label">Quantity <span class="required-star">*</span></label>
+              <input id="mv-qty" type="number" step="0.001" min="0.001" class="field-input" formControlName="quantity"
+                placeholder="e.g., 10"
+                [class.field-input--error]="form.get('quantity')?.invalid && form.get('quantity')?.touched" />
+              @if (form.get('quantity')?.invalid && form.get('quantity')?.touched) {
+                <p class="field-error">{{ getErrorMessage('quantity') }}</p>
+              } @else {
+                <p class="field-hint">Always a positive amount — direction is set above</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="mv-cost" class="field-label">Unit Cost</label>
+              <input id="mv-cost" type="number" step="0.01" min="0" class="field-input" formControlName="unitCost" placeholder="Optional" />
+              <p class="field-hint">Leave blank on a decrease to use the current average cost</p>
+            </div>
+          </div>
+
+          <div class="mv-form-grid">
+            <div class="field-group">
+              <label for="mv-batch" class="field-label">Batch/Serial No.</label>
+              <input id="mv-batch" class="field-input" formControlName="batchOrSerialNo" placeholder="Optional" autocomplete="off" />
+            </div>
+
+            <div class="field-group">
+              <label for="mv-expiry" class="field-label">Expiry Date</label>
+              <input id="mv-expiry" type="date" class="field-input" formControlName="expiryDate" [disabled]="!form.value.batchOrSerialNo?.trim()" />
+              @if (!form.value.batchOrSerialNo?.trim()) {
+                <p class="field-hint">Enter a batch/serial number first</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="mv-notes" class="field-label">Notes</label>
+            <textarea id="mv-notes" class="field-textarea" formControlName="notes" placeholder="Optional reference/reason" rows="3"></textarea>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/stock/balances" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              Record Movement
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>

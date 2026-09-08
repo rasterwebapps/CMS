@@ -1,0 +1,172 @@
+@if (loading()) {
+  <div class="cc-detail-loading"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (count(); as c) {
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/stock/cycle-counts" aria-label="Back to cycle counts">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">Cycle Count <em>#{{ c.id }}</em></h1>
+        <cms-status-badge [status]="c.status" />
+      </div>
+      <p class="page-subtitle">{{ c.locationVirtualName }} — {{ c.countDate | date: 'mediumDate' }}</p>
+    </div>
+  </div>
+
+  <div class="cc-detail-layout">
+
+    <!-- ── Summary card ──────────────────────────────────────── -->
+    <div class="entry-form-card entry-form-card--sectioned cc-summary-card">
+      <div class="entry-form-card__body cc-summary-grid">
+        <div class="cc-summary-item">
+          <span class="cc-summary-label">Scope</span>
+          <span class="cc-summary-value">{{ c.scope === 'FULL_LOCATION' ? 'Full Location' : 'Ad-hoc' }}</span>
+        </div>
+        <div class="cc-summary-item">
+          <span class="cc-summary-label">Created</span>
+          <span class="cc-summary-value">{{ c.createdBy || '—' }} · {{ c.createdAt | date: 'medium' }}</span>
+        </div>
+        @if (c.submittedAt) {
+          <div class="cc-summary-item">
+            <span class="cc-summary-label">Submitted</span>
+            <span class="cc-summary-value">{{ c.submittedBy || '—' }} · {{ c.submittedAt | date: 'medium' }}</span>
+          </div>
+        }
+        @if (c.completedAt) {
+          <div class="cc-summary-item">
+            <span class="cc-summary-label">Completed</span>
+            <span class="cc-summary-value">{{ c.completedAt | date: 'medium' }}</span>
+          </div>
+        }
+        @if (c.status === 'SUBMITTED') {
+          <div class="cc-summary-item">
+            <span class="cc-summary-label">Pending Review</span>
+            <span class="cc-summary-value" [class.cc-summary-value--warn]="c.pendingReviewCount > 0">{{ c.pendingReviewCount }} of {{ c.lineCount }}</span>
+          </div>
+        }
+        @if (c.notes) {
+          <div class="cc-summary-item cc-summary-item--full">
+            <span class="cc-summary-label">Notes</span>
+            <span class="cc-summary-value">{{ c.notes }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── DRAFT: add-product row ────────────────────────────── -->
+    @if (c.status === 'DRAFT') {
+      <div class="entry-form-card entry-form-card--sectioned cc-add-card">
+        <div class="entry-form-card__body cc-add-row">
+          <select class="field-select cc-add-select" [ngModel]="addProductId()" (ngModelChange)="addProductId.set($event)" aria-label="Add a product to the count sheet">
+            <option [ngValue]="null" disabled>Add a product…</option>
+            @for (p of availableProducts(); track p.id) {
+              <option [ngValue]="p.id">{{ p.productName }} ({{ p.productCode }})</option>
+            }
+          </select>
+          <button class="btn-secondary" [disabled]="addProductId() == null || busy()" (click)="addProduct()">Add to Sheet</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Count sheet ───────────────────────────────────────── -->
+    <div class="content-card cc-table-card">
+      <div class="table-wrapper">
+        <table class="cc-line-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>UOM</th>
+              @if (c.status === 'DRAFT') {
+                <th class="cell-align-right">Counted Qty</th>
+                <th>Notes</th>
+                <th class="actions-header"></th>
+              } @else {
+                <th class="cell-align-right">Counted Qty</th>
+                <th class="cell-align-right">System Qty</th>
+                <th class="cell-align-right">Variance</th>
+                <th class="cell-align-center">Status</th>
+                <th>Resolution</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of c.lines ?? []; track line.id) {
+              <tr>
+                <td>
+                  <div class="cc-product-name">{{ line.productName }}</div>
+                  <div class="cc-product-code">{{ line.productCode }}</div>
+                </td>
+                <td>{{ line.uomCode || '—' }}</td>
+
+                @if (c.status === 'DRAFT') {
+                  <td class="cell-align-right">
+                    <input type="number" step="0.001" min="0" class="field-input cc-qty-input"
+                      [ngModel]="line.countedQty" (ngModelChange)="line.countedQty = $event"
+                      (blur)="saveCount(line)" placeholder="Count…" aria-label="Counted quantity" />
+                  </td>
+                  <td>
+                    <input class="field-input cc-notes-input" [ngModel]="line.notes"
+                      (ngModelChange)="line.notes = $event" (blur)="saveCount(line)"
+                      placeholder="Optional" aria-label="Line notes" />
+                  </td>
+                  <td>
+                    <button class="cc-remove-btn" (click)="removeLine(line)" [disabled]="busy()" aria-label="Remove line">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </td>
+                } @else {
+                  <td class="cell-align-right">{{ line.countedQty ?? '—' }}</td>
+                  <td class="cell-align-right">{{ line.systemQtySnapshot ?? '—' }}</td>
+                  <td class="cell-align-right">
+                    @if (line.varianceQty != null) {
+                      <span [class.cc-variance-pos]="line.varianceQty > 0" [class.cc-variance-neg]="line.varianceQty < 0">
+                        {{ line.varianceQty > 0 ? '+' : '' }}{{ line.varianceQty }}
+                      </span>
+                    } @else { — }
+                  </td>
+                  <td class="cell-align-center"><cms-status-badge [status]="line.status" /></td>
+                  <td>
+                    @if (line.status === 'PENDING_REVIEW' && canApprove()) {
+                      <div class="cc-resolution-row">
+                        <input class="field-input cc-notes-input" [ngModel]="line.resolutionNotes"
+                          (ngModelChange)="line.resolutionNotes = $event" placeholder="Resolution note (optional)" aria-label="Resolution note" />
+                        <button class="cc-approve-btn" [disabled]="busy()" (click)="approveLine(line)">Approve</button>
+                        <button class="cc-reject-btn" [disabled]="busy()" (click)="rejectLine(line)">Reject</button>
+                      </div>
+                    } @else if (line.status === 'PENDING_REVIEW') {
+                      <span class="cc-muted">Awaiting approval</span>
+                    } @else if (line.resolvedBy) {
+                      <span class="cc-muted">{{ line.resolvedBy }} · {{ line.resolvedAt | date: 'short' }}</span>
+                    } @else {
+                      <span class="cc-muted">—</span>
+                    }
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="cc-empty-row">No products on this count sheet yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Footer actions ────────────────────────────────────── -->
+    @if (c.status === 'DRAFT') {
+      <div class="cc-footer-actions">
+        <button class="btn-secondary" [disabled]="busy()" (click)="cancelCount()">Cancel Count</button>
+        <button class="btn-primary" [disabled]="busy() || !(c.lines ?? []).length" (click)="submitCount()">
+          @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+          Submit Count
+        </button>
+      </div>
+    }
+
+  </div>
+
+</div>
+}

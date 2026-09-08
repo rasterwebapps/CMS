@@ -1,0 +1,27 @@
+# Inventory Management — Documentation Index
+
+This folder is the single home for everything documenting the Inventory Management initiative — a standalone, industry-agnostic procurement/stock/asset module (functionally checked against College and Hospital needs, but never branded or built as separate modules toward either — see the core doc for full scope, and `DECISION_LOG.md`'s 2026-09-07 entry for why). Every new document produced for this initiative goes here, gets listed in the table below, and gets a status kept current as work progresses. Nothing about this module should live as a loose file elsewhere in `docs/`.
+
+## Document Index
+
+| Document | Purpose | Status | Last updated |
+|---|---|---|---|
+| [CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md](CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md) | Reviews the business team's SRS against a standalone, industry-agnostic core (functionally checked against College+Hospital needs, never branded toward either); lists every gap (`GAP-01`…`GAP-29`) and the foundational scope decisions | Draft v0.3 — decisions recorded and revised, not yet approved | 2026-09-07 |
+| [DECISION_LOG.md](DECISION_LOG.md) | Append-only chronological record of every scope/architecture decision, with rationale | Living document | 2026-09-07 |
+| [MILESTONES.md](MILESTONES.md) | **Stakeholder-facing** progress tracker — phases and what each covers, no timelines, kept updated as status changes. Distinct from `../RELEASE_3_MILESTONES.md` (the technical/engineering tracker) — see the cross-reference note in each. | Living document | 2026-09-07 |
+| [source/SRS_v3.2_Updated.pdf](source/SRS_v3.2_Updated.pdf) | Archived copy of the business team's original SRS (v1.0, July 2026) that the gap analysis is derived from | Reference, frozen | 2026-09-07 |
+| Specialist review output (@Partner round) | Product Owner / Frontend / Backend / DBA / QA / Security / Docs questions and answers, run against the core doc before design starts | Complete — recorded as dated entries in `DECISION_LOG.md` rather than a separate doc | 2026-09-07 |
+| [ER_DIAGRAM_AND_MODULE_BOUNDARIES.md](ER_DIAGRAM_AND_MODULE_BOUNDARIES.md) | The full entity model (~46 entities across 12 bounded contexts), reuse-vs-build findings (Infra locations, existing `audit_log`, `Speciality` caution), and the concrete `InventoryItem` migration field mapping | Draft v0.1, not formally signed off — but §2's `Category`/`Uom`/`Product`/`CategoryAttribute` are now built against it (`ProductImage` deferred) | 2026-09-07 |
+| [../RELEASE_3_MILESTONES.md](../RELEASE_3_MILESTONES.md) | Phase/task breakdown, in the repo-wide release-tracker style (alongside `RELEASE_1`/`RELEASE_2`) — *lives one level up in `docs/`, not inside this folder, per the Documentation Engineer round* | In progress — R3-M1 underway | 2026-09-07 |
+| [../manual-test-cases/inventory-catalog-category-uom.md](../manual-test-cases/inventory-catalog-category-uom.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside the Category/UOM masters | 2026-09-07 |
+| [../manual-test-cases/inventory-catalog-product.md](../manual-test-cases/inventory-catalog-product.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside the Product/CategoryAttribute masters | 2026-09-07 |
+| [../manual-test-cases/inventory-stock-tracking.md](../manual-test-cases/inventory-stock-tracking.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside InventoryLocation/StockLedger/StockBalance | 2026-09-07 |
+| [../manual-test-cases/inventory-stock-cycle-count.md](../manual-test-cases/inventory-stock-cycle-count.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside CycleCount/CycleCountLine | 2026-09-08 |
+
+## Conventions for This Folder
+
+1. **Every new document about this module is added here and listed in the index above** — including its status and last-updated date. A document that exists but isn't listed above is out of date by definition; fix the index in the same change.
+2. **Decisions are logged, not just implied by an edit.** Any scope, architecture, or naming decision goes into `DECISION_LOG.md` (append-only) *and* gets reflected in whichever doc it affects (usually the core doc). Don't let a decision live only in chat history or only in a stale table row.
+3. **Status values:** `Draft` (being written/revised), `Living document` (never "finished," always append/update), `Approved` (business team has signed off — the point at which implementation may begin against it), `Superseded by <doc>` (kept for history, no longer authoritative), `Reference, frozen` (source material, not edited).
+4. **The core doc (`CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md`) version-bumps its `Status` line (v0.1 → v0.2 → …) every time its scope changes** — check that line, not just the file's git history, to know if you're looking at the latest thinking.
+5. **This is a sub-tree of `docs/`** — it follows the same rules as the rest of the repo's documentation (see `docs/README.md` and root `CLAUDE.md`), it's just scoped to one initiative so it doesn't get lost among unrelated documents as it grows.

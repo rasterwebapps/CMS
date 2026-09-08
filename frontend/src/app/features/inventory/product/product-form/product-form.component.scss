@@ -1,0 +1,35 @@
+// Local (not global) — mirrors code-input-wrap's convention: Angular's emulated
+// ViewEncapsulation does not let a class defined in one component's SCSS style another
+// component's template.
+
+.prod-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.prod-flags-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.prod-alias-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.prod-alias-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .field-input {
+    flex: 1;
+  }
+}
