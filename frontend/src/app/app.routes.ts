@@ -554,6 +554,55 @@ export const routes: Routes = [
         (m) => m.AssetFormComponent
       ),
   },
+  // Phase 5 "Equipment & Asset Management" — Maintenance Schedules + Service Contracts (second slice).
+  {
+    path: 'inventory/asset/maintenance-schedules',
+    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/maintenance-schedule/maintenance-schedule-list/maintenance-schedule-list.component').then(
+        (m) => m.MaintenanceScheduleListComponent
+      ),
+  },
+  {
+    path: 'inventory/asset/maintenance-schedules/new',
+    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/maintenance-schedule/maintenance-schedule-form/maintenance-schedule-form.component').then(
+        (m) => m.MaintenanceScheduleFormComponent
+      ),
+  },
+  {
+    path: 'inventory/asset/maintenance-schedules/:id/edit',
+    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/maintenance-schedule/maintenance-schedule-form/maintenance-schedule-form.component').then(
+        (m) => m.MaintenanceScheduleFormComponent
+      ),
+  },
+  {
+    path: 'inventory/asset/service-contracts',
+    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/service-contract/service-contract-list/service-contract-list.component').then(
+        (m) => m.ServiceContractListComponent
+      ),
+  },
+  {
+    path: 'inventory/asset/service-contracts/new',
+    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/service-contract/service-contract-form/service-contract-form.component').then(
+        (m) => m.ServiceContractFormComponent
+      ),
+  },
+  {
+    path: 'inventory/asset/service-contracts/:id/edit',
+    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/asset/service-contract/service-contract-form/service-contract-form.component').then(
+        (m) => m.ServiceContractFormComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

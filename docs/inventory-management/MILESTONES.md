@@ -124,7 +124,7 @@ Inventory Management is a new, standalone module being built for the platform �
 
 **Todo:**
 - Asset register and lifecycle tracking — ✅ done
-- Maintenance scheduling and service contracts — still to come
+- Maintenance scheduling and service contracts — ✅ done (recurring or one-off maintenance visits with live overdue tracking; vendor service contracts reusing the existing Supplier master)
 - Depreciation — still to come
 - Disposal/write-off workflow — still to come
 

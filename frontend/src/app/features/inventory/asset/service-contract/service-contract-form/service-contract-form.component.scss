@@ -1,0 +1,11 @@
+.sc-standalone-layout {
+  display: flex;
+  justify-content: center;
+}
+
+.sc-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}

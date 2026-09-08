@@ -1,0 +1,109 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/asset/service-contracts" aria-label="Back to service contracts">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'New' }} Service <em>Contract</em></h1>
+      </div>
+      <p class="page-subtitle">Coverage for one asset from a registered supplier.</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <div class="sc-standalone-layout">
+
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Contract Details</div>
+            <div class="entry-form-card__hdr-sub">Asset, supplier, and coverage window</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="sc-form-grid">
+              <div class="field-group">
+                <label for="sc-asset" class="field-label">Asset <span class="required-star">*</span></label>
+                <select id="sc-asset" class="field-select" formControlName="assetId"
+                  [class.field-select--error]="form.get('assetId')?.invalid && form.get('assetId')?.touched">
+                  <option [ngValue]="null" disabled>Select an asset</option>
+                  @for (a of assets(); track a.id) {
+                    <option [ngValue]="a.id">{{ a.assetTag }} — {{ a.productName }}</option>
+                  }
+                </select>
+                @if (form.get('assetId')?.invalid && form.get('assetId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('assetId') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="sc-supplier" class="field-label">Supplier <span class="required-star">*</span></label>
+                <select id="sc-supplier" class="field-select" formControlName="supplierId"
+                  [class.field-select--error]="form.get('supplierId')?.invalid && form.get('supplierId')?.touched">
+                  <option [ngValue]="null" disabled>Select a supplier</option>
+                  @for (s of suppliers(); track s.id) {
+                    <option [ngValue]="s.id">{{ s.supplierName }}</option>
+                  }
+                </select>
+                @if (form.get('supplierId')?.invalid && form.get('supplierId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('supplierId') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="sc-number" class="field-label">Contract Number</label>
+                <input id="sc-number" class="field-input" formControlName="contractNumber" />
+              </div>
+
+              <div class="field-group">
+                <label for="sc-start" class="field-label">Start Date <span class="required-star">*</span></label>
+                <input id="sc-start" type="date" class="field-input" formControlName="startDate"
+                  [class.field-input--error]="form.get('startDate')?.invalid && form.get('startDate')?.touched" />
+                @if (form.get('startDate')?.invalid && form.get('startDate')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('startDate') }}</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="sc-end" class="field-label">End Date</label>
+                <input id="sc-end" type="date" class="field-input" formControlName="endDate" />
+              </div>
+
+              <div class="field-group">
+                <label for="sc-renewal" class="field-label">Renewal Reminder</label>
+                <input id="sc-renewal" type="date" class="field-input" formControlName="renewalReminderDate" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="sc-coverage" class="field-label">Coverage Details</label>
+              <textarea id="sc-coverage" class="field-textarea" formControlName="coverageDetails" rows="3"></textarea>
+            </div>
+
+            <div class="entry-form-card__footer">
+              <a routerLink="/inventory/asset/service-contracts" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) { <mat-spinner diameter="16"></mat-spinner> }
+                {{ isEditMode() ? 'Save Changes' : 'Create Contract' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+    </div>
+  }
+
+</div>

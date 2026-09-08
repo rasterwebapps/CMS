@@ -605,4 +605,41 @@ unattended, no-confirmation build session as the entries above.
 `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
 committing.
 
+## 2026-09-08 — Maintenance & Service Contracts slice: made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the entries above. Also verified two infrastructure
+facts worth recording: (1) this module's `OC-XXX` numbers are a local commit-message convention
+only, not real Jira tickets (`scripts/jira.sh info OC-200` returns "Issue Does Not Exist" against
+a working, reachable Jira instance) — consistent with how this module has always worked, not a
+gap introduced tonight; (2) a stronger cross-session continuation mechanism already exists in
+this repo (`scripts/r2-autonomous-run.sh`, a system-crontab-triggered headless `claude -p`
+process) but was deliberately not adopted for tonight since the user committed to keeping this
+terminal open, and running two autonomous processes against the same plan file risks real
+number-collision races. Both are recorded in `AUTONOMOUS_OVERNIGHT_PLAN.md`'s new
+"Infrastructure notes" section for any future session.
+**Decisions (feature slice):**
+1. **`AssetMaintenanceSchedule.recurrenceIntervalDays` is a plain day-count**, not a frequency
+   enum (`MONTHLY`/`QUARTERLY`/...) plus a custom-value escape hatch — one field covers every
+   cadence uniformly, simplest thing that works, matching this module's repeated "simple unless
+   there's a real need" bias.
+2. **`markPerformed` advances `nextDueDate` from the performed date, not the old due date** —
+   standard preventive-maintenance practice (a visit that happens late doesn't compress the next
+   interval); a `ONE_OFF` schedule deactivates instead, since there's nothing to recur to.
+3. **`AssetServiceContract` links the existing `Supplier` master** rather than a free-text vendor
+   name or a new vendor entity — same reuse-over-duplicate discipline already applied to the Infra
+   hierarchy and `audit_log`; a maintenance vendor is the same kind of thing a purchasing vendor
+   is. Shape (supplier link, coverage window, renewal reminder, active flag) mirrors
+   `RateContract`'s own fields, the closest in-repo "standing agreement with a supplier" precedent.
+4. **One permission pair covers both entities** (`INVENTORY_ASSET_MAINTENANCE_VIEW`/`_MANAGE`) —
+   the plan's own wording already bundled "Maintenance scheduling and service contracts" as one
+   slice/bullet with one permission pair, not two independent operations.
+5. **"Overdue" (schedules) and "expired" (contracts) are both computed at read time**, never
+   stored — same pattern `LoanableItemIssue`'s overdue flag already established, extended here to
+   a second, analogous case (a contract past its `endDate`).
+**Impact:** new tables `asset_maintenance_schedules`, `asset_service_contracts` (V454); new
+permissions (V455). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the same change.
+`./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
+committing.
+
 *Next entry goes here — do not insert above this line.*

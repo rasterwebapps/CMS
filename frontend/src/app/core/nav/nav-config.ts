@@ -261,6 +261,8 @@ export const NAV_ENTRIES: NavEntry[] = [
     modules: ['INVENTORY'],
     items: [
       { label: 'Asset Register', icon: 'inventory_2', route: '/inventory/asset/assets', permissions: ['INVENTORY_ASSET_VIEW', 'INVENTORY_ASSET_MANAGE'] },
+      { label: 'Maintenance Schedules', icon: 'build', route: '/inventory/asset/maintenance-schedules', permissions: ['INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'] },
+      { label: 'Service Contracts', icon: 'handshake', route: '/inventory/asset/service-contracts', permissions: ['INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'] },
     ],
   },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
