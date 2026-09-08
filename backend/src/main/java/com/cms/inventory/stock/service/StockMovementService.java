@@ -79,19 +79,17 @@ public class StockMovementService {
         BigDecimal magnitude = request.quantity();
         BigDecimal qtyDelta = switch (txnType) {
             case RECEIPT -> magnitude;
-            // RETURN here means returning goods to a supplier — always a decrease, same as
-            // DISPOSAL, no direction needed. (A different, not-yet-built Phase 4 concept —
-            // returning previously-*issued* stock back to a location — will need its own look
-            // at whether it can reuse this same enum value with a direction, or needs its own;
-            // don't assume this decrease-only handling still fits without re-checking then.)
-            // ISSUE (Phase 4: Stock Issue Request approval) is also decrease-only — stock leaving
-            // the issuing location for a requesting location, no matching increase posted here
-            // (the requester isn't itself an InventoryLocation with its own tracked balance in
-            // this slice's scope — see the "Stock Issue Request slice" decision-log entry).
-            case DISPOSAL, RETURN, ISSUE -> magnitude.negate();
-            // TRANSFER shares ADJUSTMENT's direction-based handling — StockTransferService posts
-            // one DECREASE call at the source location and one INCREASE call at the destination.
-            case ADJUSTMENT, TRANSFER -> "DECREASE".equalsIgnoreCase(request.direction()) ? magnitude.negate() : magnitude;
+            // ISSUE (Phase 4: Stock Issue Request approval) is decrease-only — stock leaving the
+            // issuing location for a requesting location, no matching increase posted here (the
+            // requester isn't itself an InventoryLocation with its own tracked balance in this
+            // slice's scope — see the "Stock Issue Request slice" decision-log entry).
+            case DISPOSAL, ISSUE -> magnitude.negate();
+            // RETURN is direction-based, same shape as ADJUSTMENT/TRANSFER — widened from an
+            // original decrease-only meaning (goods leaving to a supplier, still SupplierReturn-
+            // Service's own DECREASE call) once Phase 4's Internal Return needed the *opposite*
+            // direction (previously-issued stock coming back to the issuing/store location, an
+            // INCREASE). See the "Internal Return slice" decision-log entry.
+            case ADJUSTMENT, TRANSFER, RETURN -> "DECREASE".equalsIgnoreCase(request.direction()) ? magnitude.negate() : magnitude;
             default -> throw new IllegalArgumentException(
                 "Transaction type '" + txnType + "' is not yet available — only RECEIPT, ADJUSTMENT, DISPOSAL, TRANSFER, RETURN, and ISSUE can be recorded here");
         };

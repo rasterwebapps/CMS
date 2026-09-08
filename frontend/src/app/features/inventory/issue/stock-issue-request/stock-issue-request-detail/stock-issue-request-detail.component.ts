@@ -42,6 +42,9 @@ export class StockIssueRequestDetailComponent implements OnInit {
   protected readonly addQty       = signal<number | null>(null);
 
   protected readonly canApprove = computed(() => this.permissionService.has('INVENTORY_ISSUE_REQUEST_APPROVE'));
+  protected readonly canReturn  = computed(() => this.permissionService.has('INVENTORY_ISSUE_REQUEST_RETURN'));
+
+  protected returnQtyByLine: Record<number, number | null> = {};
 
   private requestId!: number;
 
@@ -132,6 +135,21 @@ export class StockIssueRequestDetailComponent implements OnInit {
     this.requestService.rejectLine(this.requestId, line.id, { notes: line.resolutionNotes ?? undefined }).subscribe({
       next: () => { this.toast.success('Line rejected'); this.busy.set(false); this.load(); },
       error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to reject line'); this.busy.set(false); },
+    });
+  }
+
+  protected returnLine(line: StockIssueRequestItem): void {
+    const qty = this.returnQtyByLine[line.id];
+    if (qty == null || qty <= 0) return;
+    this.busy.set(true);
+    this.requestService.returnLine(this.requestId, line.id, { returnedQty: qty }).subscribe({
+      next: () => {
+        this.returnQtyByLine[line.id] = null;
+        this.toast.success('Stock returned to the issuing location');
+        this.busy.set(false);
+        this.load();
+      },
+      error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to return stock'); this.busy.set(false); },
     });
   }
 

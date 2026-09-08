@@ -28,6 +28,11 @@ export interface StockIssueRequestResolutionRequest {
   notes?: string;
 }
 
+export interface StockIssueRequestReturnLineRequest {
+  returnedQty: number;
+  notes?: string;
+}
+
 export interface StockIssueRequestItem {
   id: number;
   productId: number;
@@ -39,6 +44,7 @@ export interface StockIssueRequestItem {
   resolvedBy: string | null;
   resolvedAt: string | null;
   resolutionNotes: string | null;
+  returnedQty: number;
   notes: string | null;
 }
 

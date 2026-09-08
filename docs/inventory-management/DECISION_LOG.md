@@ -481,4 +481,53 @@ unattended, no-confirmation build session as the four entries above.
 `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean before
 committing.
 
+## 2026-09-08 — Auto-restocking (OC-206) skipped: needs real product-policy input
+
+**Made autonomously overnight — flag for morning review.** Per `AUTONOMOUS_OVERNIGHT_PLAN.md`'s
+own standing rule 7 ("stop and leave a clear note instead of guessing... skip to the next
+independent slice"), OC-206 ("Auto-restocking when items run low") was not implemented as
+originally sketched in that plan file. On closer look while starting it, the plan's own wording —
+"extend the Wanted List shortage job so it also nets against open `StockIssueRequest` lines the
+same way it already nets against open Purchase Requisition lines" — doesn't hold up: a pending
+internal issue request against location B doesn't reduce location A's *own* need to buy more
+total stock into the system; it only reflects B's stock being drawn down. Netting them together
+would incorrectly suppress a real purchase-shortage signal. A version of "auto-restocking" that
+would make sense — e.g. preferring an internal transfer from a location with surplus over
+recommending a new purchase — requires real deployment policy (which locations are internal
+stores vs. requesting points for this purpose, sourcing-preference rules, whether that's even
+desired behavior) that no ERP-standard default settles cleanly. **Left unimplemented, flagged
+here rather than guessed at or silently skipped.** Revisit with the user's actual input before
+building it — do not reopen this without asking first, autonomous session or not.
+
+## 2026-09-08 — Internal Return slice: RETURN widened to direction-based, made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the entries above (skipping OC-206 per the entry
+just above, moving to OC-207).
+**Decisions:**
+1. **`StockMovementService`'s `RETURN` transaction type widened from decrease-only to
+   direction-based** (joining `ADJUSTMENT`/`TRANSFER`'s existing `INCREASE`/`DECREASE` handling)
+   — exactly the re-check the "Return to Supplier slice" entry's own code comment said would be
+   needed once this concept showed up. `SupplierReturnService`'s existing call was updated to
+   pass `direction: "DECREASE"` explicitly (previously implicit/always-negate) so its behavior is
+   unchanged; the new Internal Return action passes `"INCREASE"`.
+2. **No new document/entity for the return itself** — unlike `SupplierReturn` (its own header +
+   line table, because a supplier return can bundle several receipt lines), an internal return is
+   a simple accumulating action directly against an already-`APPROVED` `StockIssueRequestItem`:
+   a new `returnedQty` running-total column on that same table (same "running total on the line
+   itself" shape as `PurchaseOrderItem.receivedQty`), and a single `returnLine` service method —
+   no draft/confirm two-step, since there's no multi-line document to batch first.
+3. **Only an `APPROVED` (i.e. actually issued) line can be returned**, and only up to `requestedQty
+   - returnedQty` — enforced both in the service and via a DB check constraint
+   (`returned_qty <= requested_qty`).
+4. **Its own permission** (`INVENTORY_ISSUE_REQUEST_RETURN`), separate from `_APPROVE` — per the
+   operation-wise permission mapping rule, returning stock is a distinct, audit-worthy action from
+   approving the original issue.
+**Impact:** `StockMovementService`'s qty-delta switch changed (RETURN moved from the
+`DISPOSAL`-grouped decrease-only branch to the `ADJUSTMENT`/`TRANSFER`-grouped direction-based
+branch); `SupplierReturnService` updated to pass explicit direction; new columns/constraint on
+`stock_issue_request_items` (V448); new permission (V449). `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and `npx tsc -p
+tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

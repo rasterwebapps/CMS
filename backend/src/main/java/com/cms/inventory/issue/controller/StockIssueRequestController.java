@@ -23,6 +23,7 @@ import com.cms.inventory.issue.dto.StockIssueRequestCreateRequest;
 import com.cms.inventory.issue.dto.StockIssueRequestItemResponse;
 import com.cms.inventory.issue.dto.StockIssueRequestResolutionRequest;
 import com.cms.inventory.issue.dto.StockIssueRequestResponse;
+import com.cms.inventory.issue.dto.StockIssueRequestReturnLineRequest;
 import com.cms.inventory.issue.service.StockIssueRequestService;
 
 import jakarta.validation.Valid;
@@ -94,6 +95,14 @@ public class StockIssueRequestController {
             @PathVariable Long id, @PathVariable Long lineId,
             @Valid @RequestBody(required = false) StockIssueRequestResolutionRequest request, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(requestService.rejectLine(id, lineId, request != null ? request : new StockIssueRequestResolutionRequest(null), username(jwt)));
+    }
+
+    @PostMapping("/{id}/lines/{lineId}/return")
+    @PreAuthorize("@perm.has('INVENTORY_ISSUE_REQUEST_RETURN')")
+    public ResponseEntity<StockIssueRequestItemResponse> returnLine(
+            @PathVariable Long id, @PathVariable Long lineId,
+            @Valid @RequestBody StockIssueRequestReturnLineRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(requestService.returnLine(id, lineId, request, username(jwt)));
     }
 
     @PostMapping("/{id}/cancel")

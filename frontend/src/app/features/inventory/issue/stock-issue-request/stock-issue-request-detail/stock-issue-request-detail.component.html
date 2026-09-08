@@ -118,8 +118,16 @@
                       </div>
                     } @else if (line.status === 'PENDING') {
                       <span class="ir-muted">Awaiting approval</span>
+                    } @else if (line.status === 'APPROVED' && canReturn() && line.returnedQty < line.requestedQty) {
+                      <div class="ir-resolution-row">
+                        <span class="ir-muted">Issued{{ line.returnedQty > 0 ? ' · ' + line.returnedQty + ' returned' : '' }}</span>
+                        <input type="number" step="0.001" min="0" class="field-input ir-return-qty-input"
+                          [ngModel]="returnQtyByLine[line.id]" (ngModelChange)="returnQtyByLine[line.id] = $event"
+                          placeholder="Qty to return" aria-label="Quantity to return" />
+                        <button class="ir-approve-btn" [disabled]="busy() || !returnQtyByLine[line.id]" (click)="returnLine(line)">Return</button>
+                      </div>
                     } @else if (line.resolvedBy) {
-                      <span class="ir-muted">{{ line.resolvedBy }} · {{ line.resolvedAt | date: 'short' }}</span>
+                      <span class="ir-muted">{{ line.resolvedBy }} · {{ line.resolvedAt | date: 'short' }}{{ line.returnedQty > 0 ? ' · ' + line.returnedQty + ' returned' : '' }}</span>
                     } @else {
                       <span class="ir-muted">—</span>
                     }

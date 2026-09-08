@@ -39,8 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-206** (OC-205 was the last used, Stock Issue Request). Increment per slice.
-5. **Next Flyway migration number: V448** (V447 was the last used). Increment per file;
+4. **Next OC ticket number: OC-208** (OC-207 was the last used, Internal Return — OC-206 was
+   skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V450** (V449 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -123,12 +124,14 @@
       lifecycle almost exactly — closest in-repo precedent); approving posts an `ISSUE`
       movement (enum value already reserved) decreasing the issuing location's balance.
       Permissions: `INVENTORY_ISSUE_REQUEST_VIEW`/`_MANAGE`/`_APPROVE`.
-- [ ] **Auto-restocking when items run low** (OC-206, independent of phase order — can be
-      done any time after this phase's issue workflow exists). Extends the existing Wanted
-      List shortage job so a location marked for auto-restock also nets against open
-      `StockIssueRequest` lines the same way it already nets against open Purchase
-      Requisition lines, so the two request types don't double-count the same shortage.
-- [ ] **Internal returns** (OC-207). A location returns previously-issued stock back to the
+- [ ] **Auto-restocking when items run low** (OC-206) — **SKIPPED, needs real product-policy
+      input, do not reopen without asking the user first.** This item's original wording
+      (netting Wanted List shortages against open `StockIssueRequest` lines) turned out not to
+      make business sense on closer look — see the "Auto-restocking (OC-206) skipped"
+      decision-log entry for the full reasoning. A real version of this feature (e.g. preferring
+      an internal transfer over a new purchase when another location has surplus) needs actual
+      deployment policy no ERP-standard default can safely guess.
+- [x] **Internal returns** (OC-207, shipped 2026-09-08). A location returns previously-issued stock back to the
       issuing location; posts the mirrored increase/decrease using the existing `RETURN`
       movement type, linked back to the originating `StockIssueRequest` line for traceability.
 - [ ] **Generic loan/return tracking for borrowable equipment** (OC-208). `LoanableItemIssue`
@@ -247,6 +250,11 @@ broken/half-done, and any judgment call made that a future session should sanity
 - **2026-09-08, same session, after OC-205:** Stock Issue Request shipped (new
   `com.cms.inventory.issue` package + widened `StockMovementService` for `ISSUE` + frontend +
   migrations V446/V447 + docs), compile/typecheck both clean, committed locally. Naming stayed
-  cleanly distinct from Purchase Requisition per the standing caution. Next: Phase 4's
-  remaining slices — Auto-restocking (OC-206, extends Wanted List), Internal Returns (OC-207),
-  Loanable Item Issue (OC-208).
+  cleanly distinct from Purchase Requisition per the standing caution.
+- **2026-09-08, same session, after skipping OC-206 and shipping OC-207:** Auto-restocking
+  (OC-206) turned out to need real product-policy input on closer look — skipped and flagged
+  per the plan's own escape-valve rule, see the decision log. Internal Return (OC-207) shipped
+  instead: widened `StockMovementService`'s `RETURN` to be direction-based (was decrease-only),
+  added a `returnedQty` running total to `StockIssueRequestItem`, new
+  `INVENTORY_ISSUE_REQUEST_RETURN` permission, migrations V448/V449. Compile/typecheck both
+  clean, committed locally. Next: Loanable Item Issue (OC-208), the last Phase 4 slice.

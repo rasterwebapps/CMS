@@ -51,6 +51,14 @@ public class StockIssueRequestItem {
     @Column(name = "resolution_notes", length = 500)
     private String resolutionNotes;
 
+    /**
+     * Running total returned back to the issuing location so far (Phase 4's "Internal Return"
+     * slice) — only meaningful once {@code status = APPROVED} (issued). Mirrors {@code
+     * PurchaseOrderItem.receivedQty}'s "running total on the line itself" shape.
+     */
+    @Column(name = "returned_qty", nullable = false, precision = 14, scale = 3)
+    private BigDecimal returnedQty = BigDecimal.ZERO;
+
     @Column(length = 500)
     private String notes;
 
@@ -77,6 +85,9 @@ public class StockIssueRequestItem {
 
     public String getResolutionNotes() { return resolutionNotes; }
     public void setResolutionNotes(String resolutionNotes) { this.resolutionNotes = resolutionNotes; }
+
+    public BigDecimal getReturnedQty() { return returnedQty; }
+    public void setReturnedQty(BigDecimal returnedQty) { this.returnedQty = returnedQty; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

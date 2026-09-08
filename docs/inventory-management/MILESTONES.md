@@ -109,7 +109,7 @@ Inventory Management is a new, standalone module being built for the platform �
 **Todo:**
 - Requisition (request-and-issue) workflow — ✅ done
 - Auto-restocking when items run low — still to come
-- Internal returns — still to come
+- Internal returns — ✅ done (return previously-issued stock back to the issuing location from an approved request line)
 - Generic loan/return tracking for borrowed equipment — still to come
 
 ---

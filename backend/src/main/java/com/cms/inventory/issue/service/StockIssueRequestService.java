@@ -1,5 +1,6 @@
 package com.cms.inventory.issue.service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +20,7 @@ import com.cms.inventory.issue.dto.StockIssueRequestCreateRequest;
 import com.cms.inventory.issue.dto.StockIssueRequestItemResponse;
 import com.cms.inventory.issue.dto.StockIssueRequestResolutionRequest;
 import com.cms.inventory.issue.dto.StockIssueRequestResponse;
+import com.cms.inventory.issue.dto.StockIssueRequestReturnLineRequest;
 import com.cms.inventory.issue.model.StockIssueRequest;
 import com.cms.inventory.issue.model.StockIssueRequestItem;
 import com.cms.inventory.issue.model.enums.StockIssueRequestItemStatus;
@@ -262,12 +264,46 @@ public class StockIssueRequestService {
             includeLines ? lines.stream().map(this::toLineResponse).toList() : null);
     }
 
+    /**
+     * Returns previously-issued stock back to this request's issuing location (Phase 4's
+     * "Internal Return" concept) — only meaningful once the line is {@code APPROVED} (issued).
+     * Posts an increasing {@code RETURN} movement (opposite direction from {@code
+     * SupplierReturnService}'s own decreasing use of the same transaction type) and accumulates
+     * the line's own {@code returnedQty} running total. See the "Internal Return slice"
+     * decision-log entry.
+     */
+    @Transactional
+    public StockIssueRequestItemResponse returnLine(Long requestId, Long lineId, StockIssueRequestReturnLineRequest request, String actor) {
+        StockIssueRequest issueRequest = requireRequest(requestId);
+        StockIssueRequestItem line = requireLine(issueRequest, lineId);
+        if (line.getStatus() != StockIssueRequestItemStatus.APPROVED) {
+            throw new IllegalArgumentException("Only an approved (issued) line can be returned");
+        }
+        BigDecimal openQty = line.getRequestedQty().subtract(line.getReturnedQty());
+        if (request.returnedQty().compareTo(openQty) > 0) {
+            throw new IllegalArgumentException(
+                "Returned quantity (" + request.returnedQty() + ") exceeds what's still returnable on this line (" + openQty + ")");
+        }
+
+        stockMovementService.recordMovement(new StockMovementRequest(
+            line.getProduct().getId(), issueRequest.getIssuingLocation().getId(), null, null,
+            "RETURN", "INCREASE", request.returnedQty(), null,
+            "Internal Return — Stock Issue Request #" + issueRequest.getId() + " line #" + line.getId()
+                + (request.notes() != null ? " — " + request.notes() : "")
+        ), actor);
+
+        line.setReturnedQty(line.getReturnedQty().add(request.returnedQty()));
+        lineRepository.save(line);
+        return toLineResponse(line);
+    }
+
     private StockIssueRequestItemResponse toLineResponse(StockIssueRequestItem line) {
         Product product = line.getProduct();
         return new StockIssueRequestItemResponse(
             line.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
             line.getRequestedQty(), line.getStatus().name(),
-            line.getResolvedBy(), line.getResolvedAt(), line.getResolutionNotes(), line.getNotes());
+            line.getResolvedBy(), line.getResolvedAt(), line.getResolutionNotes(),
+            line.getReturnedQty(), line.getNotes());
     }
 }

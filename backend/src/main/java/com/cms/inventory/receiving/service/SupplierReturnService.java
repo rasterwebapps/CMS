@@ -189,7 +189,7 @@ public class SupplierReturnService {
 
             stockMovementService.recordMovement(new StockMovementRequest(
                 receiptLine.getPurchaseOrderItem().getProduct().getId(), location.getId(), null, null,
-                "RETURN", null, line.getReturnedQty(), receiptLine.getUnitCost(),
+                "RETURN", "DECREASE", line.getReturnedQty(), receiptLine.getUnitCost(),
                 "Supplier Return #" + ret.getId() + (line.getNotes() != null ? " — " + line.getNotes() : "")
             ), actor);
 

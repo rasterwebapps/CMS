@@ -9,6 +9,7 @@ import {
   StockIssueRequestCreateRequest,
   StockIssueRequestItem,
   StockIssueRequestResolutionRequest,
+  StockIssueRequestReturnLineRequest,
 } from './stock-issue-request.model';
 
 @Injectable({ providedIn: 'root' })
@@ -49,6 +50,10 @@ export class StockIssueRequestService {
 
   rejectLine(requestId: number, lineId: number, request: StockIssueRequestResolutionRequest): Observable<StockIssueRequestItem> {
     return this.http.post<StockIssueRequestItem>(`${this.baseUrl}/${requestId}/lines/${lineId}/reject`, request);
+  }
+
+  returnLine(requestId: number, lineId: number, request: StockIssueRequestReturnLineRequest): Observable<StockIssueRequestItem> {
+    return this.http.post<StockIssueRequestItem>(`${this.baseUrl}/${requestId}/lines/${lineId}/return`, request);
   }
 
   cancel(requestId: number): Observable<void> {

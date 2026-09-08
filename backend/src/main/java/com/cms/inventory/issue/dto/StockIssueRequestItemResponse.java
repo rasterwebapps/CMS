@@ -14,5 +14,6 @@ public record StockIssueRequestItemResponse(
     String resolvedBy,
     Instant resolvedAt,
     String resolutionNotes,
+    BigDecimal returnedQty,
     String notes
 ) {}

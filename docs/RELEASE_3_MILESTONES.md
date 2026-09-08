@@ -56,7 +56,7 @@ Derived from `docs/inventory-management/CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` �
 | R3-M1: Core data model | 🟡 In Progress — Category/Uom/Product/CategoryAttribute masters + InventoryLocation/StockBatch/StockLedger/StockBalance + CycleCount (physical stock counts) shipped; only the deferred `InventoryItem` migration (R3-M8) is left in Phase 1 | 55% |
 | R3-M2: Procurement & Vendor Management | ✅ Done — TaxRule/Supplier/RateContract/VendorProductMapping/Purchase Requisition/Wanted List/Purchase Order all shipped (see `docs/inventory-management/DECISION_LOG.md`'s "Purchase Order slice" entry) | 100% |
 | R3-M3: GRN & Stock Control | ✅ Done — Goods Receipt, Stock Transfer, and Return to Supplier all shipped | 100% |
-| R3-M4: Requisition & Issue | 🟡 In Progress — Stock Issue Request (request on-hand stock from another location, approve posts a real ISSUE movement) shipped; auto-restocking, internal returns, and loanable-item issue still to come | 25% |
+| R3-M4: Requisition & Issue | 🟡 In Progress — Stock Issue Request and Internal Return shipped; auto-restocking (needs product-policy input, flagged) and loanable-item issue still to come | 50% |
 | R3-M5: Asset Management | ⬜ Not Started | 0% |
 | R3-M6: Approvals & Gate Pass | ⬜ Not Started | 0% |
 | R3-M7: Reporting | ⬜ Not Started | 0% |
