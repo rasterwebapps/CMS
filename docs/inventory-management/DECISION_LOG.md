@@ -210,4 +210,14 @@ This is the running, chronological record of every scope/architecture decision m
 
 ---
 
+## 2026-09-08 — Reference architecture pivot: mirror the IHMS pharmacy app's proven patterns
+
+**Prompted by:** user surfaced an existing, mature pharmacy/procurement application (IHMS — internal Bitbucket project `IHMS`, repo `ihms`; `pharmacy` backend service, `onepharmacy-ui`/`onestore-ui` Angular frontends) mid-session and asked how much it should inform the design of the Inventory Management module's remaining phases.
+**Review findings:** IHMS's domain model (~190 JHipster entities) and screen inventory map closely onto Phases 2–7 of this module's plan — `PurchaseOrder`/`PurchaseOrderItem` with a receipt-progress status lifecycle (`PENDING → ORDERED → IN_PROGRESS → PARTIALLY_COMPLETED → COMPLETED`/`FORCE_CLOSED`, no approval gate — validating this module's own "no PO approval gate this phase" call), `Purchase`/`PurchaseItem` (GRN) with a two-step save→confirm draft workflow and a `Delivery Challan → GRN` conversion path, a two-tier requisition split (`StockIndent` for branch-to-branch transfer requests vs `IssueLocationIndent` for department-level issue within a branch — matching this module's own planned Phase 4 split), `Consignment`/`ConsignmentItem` for vendor-owned stock that converts into an owned `Purchase` as it's consumed (Phase 7), and rack/bin-scoped `PhysicalStock` counts.
+**One divergence flagged, not reversed:** IHMS's `SupplierRateContract` is flat — one row per (supplier, product, rate, date range) directly. This module's already-shipped `RateContract` (supplier-level: value cap/terms/renewal) + `RateContractLine` (per-product negotiated rate, child collection) + `VendorProductMapping` (default per-product rate) is more normalized. Left as shipped rather than reworked, since it predates this instruction — recorded here as the reference precedent for how future divergences from IHMS's shape should be called out (a conscious, logged decision, not a default).
+**Decision:** Going forward, every remaining Inventory Management phase's design starts from checking IHMS's corresponding entities/screens first, and adopts its status lifecycles, workflow shapes, and field sets as the strong default — diverging is a conscious, logged choice, not an unexamined one. This does not relax the standing "no vertical branding" rule — IHMS's pharmacy-specific fields (drug/molecule/dosage-form concepts, patient/HIS/insurance coupling) are not ported; only the generic operational patterns (PO/GRN lifecycle, indent/issue split, consignment conversion, etc.) are.
+**Impact:** Informs every subsequent phase's design from here on; no code changed by this entry itself. See the auto-memory note (`inventory-mirrors-ihms-pharmacy-app`) for the session-independent version of this rule.
+
+---
+
 *Next entry goes here — do not insert above this line.*
