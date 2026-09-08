@@ -220,4 +220,21 @@ This is the running, chronological record of every scope/architecture decision m
 
 ---
 
+## 2026-09-08 — Purchase Requisition slice: no PO/Wanted-List dependency yet, per-line approval, mirrors CycleCount
+
+**Prompted by:** user instruction to continue Phase 2 after reviewing IHMS; five scoping questions put to the user first, one specialist group at a time via multiple-choice.
+**Decisions:**
+1. **Given IHMS has no separate "Purchase Requisition" document** (only an auto-computed, reorder-triggered "wanted list" and a Direct PO entry that skips past any request step), the user chose to build **both**: a real human-submitted Purchase Requisition (this entry) *and* a reorder-triggered Wanted List as its own later slice — not a straight IHMS mirror here.
+2. **Delivery order:** given the resulting scope now spans three linked pieces (Requisition, Wanted List, Purchase Order), the user chose to ship **Purchase Requisition alone first**, standing on its own — Wanted List and Purchase Order remain separate future slices, continuing this phase's established vertical-slice-at-a-time delivery style.
+3. **Purchase Requisition targets an `InventoryLocation`** (required) — where the requisitioned stock will land, matching how Stock Movement/Cycle Count already scope everything to a Location.
+4. **Approve/reject happens per line, not just at the requisition header level** — mirrors IHMS's `StockRequirementItem` granularity, but the actual shape (header DRAFT→SUBMITTED→COMPLETED/CANCELLED, per-line PENDING→APPROVED/REJECTED with `resolvedBy`/`resolvedAt`/`resolutionNotes`) mirrors this module's own already-shipped `CycleCount`/`CycleCountLine` far more closely than anything in IHMS — a closer, more directly reusable in-repo precedent. `CANCELLED` is reachable only from `DRAFT`, same rule as CycleCount.
+5. **PO status lifecycle decision (for the future PO slice) recorded now while fresh:** mirror IHMS's receipt-progress-driven states (`PENDING → ORDERED → IN_PROGRESS → PARTIALLY_COMPLETED → COMPLETED` + `FORCE_CLOSED`) rather than the earlier plain Draft/Sent/Closed plan — still no approval gate, per the original "Phase 2 kickoff" decision.
+6. **Wanted List trigger decision (for the future slice) recorded now while fresh:** a scheduled background job (not an on-demand action) will compute reorder-level shortages once that slice is built.
+7. **An `APPROVED` requisition line does not itself create anything** — no PO exists yet to create. It simply reaches a terminal state; picking up approved lines into a PO is explicitly the next slice's job, not retrofitted here.
+8. **Manual actor/timestamp fields** (`createdBy`/`createdAt`, `submittedBy`/`submittedAt`, `completedAt`), not the generic auditing listener — same reasoning as `CycleCount`: this header has several distinct actor/timestamp pairs a single listener doesn't fit.
+9. **New permissions:** `INVENTORY_PURCHASE_REQUISITION_VIEW`/`_MANAGE`/`_APPROVE`, seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN plus the DEV_ADMIN/SUPPORT_ADMIN catch-all sync, matching V429's (Cycle Count) pattern.
+**Impact:** new tables `purchase_requisitions`, `purchase_requisition_items` (V434); new permissions (V435). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the same change.
+
+---
+
 *Next entry goes here — do not insert above this line.*

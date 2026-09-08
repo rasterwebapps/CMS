@@ -1,0 +1,95 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="pr-pg-title">Purchase <em>Requisitions</em></h1>
+      </div>
+      <p class="pr-pg-sub">A location's request to purchase specific products — reviewed and approved or rejected per line.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToNew()" aria-label="Start a new purchase requisition">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Requisition
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select pr-filter" [(ngModel)]="locationFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+    <select class="field-select pr-filter" [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by status">
+      <option [ngValue]="null">All Statuses</option>
+      <option value="DRAFT">Draft</option>
+      <option value="SUBMITTED">Submitted</option>
+      <option value="COMPLETED">Completed</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="pr-table">
+      <ng-container matColumnDef="requisitionDate">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let row">{{ row.requisitionDate | date: 'mediumDate' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="locationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let row">{{ row.locationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center">
+          <cms-status-badge [status]="row.status" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="lineCount">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Products</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.lineCount }}</td>
+      </ng-container>
+      <ng-container matColumnDef="pendingCount">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Pending</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">
+          @if (row.pendingCount > 0) {
+            <span class="pr-pending-chip">{{ row.pendingCount }}</span>
+          } @else {
+            —
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-actions">
+            <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Open" ariaLabel="Open purchase requisition" (clicked)="openRequisition(row)">
+              <cms-icon-view [size]="14" />
+            </cms-row-action-btn>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="openRequisition(row)" class="pr-row"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="assignment"
+            title="No purchase requisitions yet"
+            subtitle="Request specific products be purchased for a location to see it here."
+            actionLabel="New Requisition"
+            (actionClick)="goToNew()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>

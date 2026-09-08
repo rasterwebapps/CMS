@@ -341,6 +341,31 @@ export const routes: Routes = [
         (m) => m.VendorProductMappingFormComponent
       ),
   },
+  // Phase 2 "Purchasing & Suppliers" — Purchase Requisition (third slice).
+  {
+    path: 'inventory/procurement/purchase-requisitions',
+    canActivate: withPermission('INVENTORY_PURCHASE_REQUISITION_VIEW', 'INVENTORY_PURCHASE_REQUISITION_MANAGE', 'INVENTORY_PURCHASE_REQUISITION_APPROVE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/purchase-requisition/purchase-requisition-list/purchase-requisition-list.component').then(
+        (m) => m.PurchaseRequisitionListComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/purchase-requisitions/new',
+    canActivate: withPermission('INVENTORY_PURCHASE_REQUISITION_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/purchase-requisition/purchase-requisition-new/purchase-requisition-new.component').then(
+        (m) => m.PurchaseRequisitionNewComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/purchase-requisitions/:id',
+    canActivate: withPermission('INVENTORY_PURCHASE_REQUISITION_VIEW', 'INVENTORY_PURCHASE_REQUISITION_MANAGE', 'INVENTORY_PURCHASE_REQUISITION_APPROVE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/purchase-requisition/purchase-requisition-detail/purchase-requisition-detail.component').then(
+        (m) => m.PurchaseRequisitionDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),
