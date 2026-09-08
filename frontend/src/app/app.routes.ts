@@ -694,6 +694,39 @@ export const routes: Routes = [
         (m) => m.GatePassDetailComponent
       ),
   },
+  // Phase 7 "Gate Pass, Vendor-Owned Stock & Service Requests" — Consignment stock (second slice).
+  {
+    path: 'inventory/consignment/agreements',
+    canActivate: withPermission('INVENTORY_CONSIGNMENT_VIEW', 'INVENTORY_CONSIGNMENT_MANAGE', 'INVENTORY_CONSIGNMENT_CONVERT'),
+    loadComponent: () =>
+      import('./features/inventory/consignment/agreement/agreement-list/agreement-list.component').then(
+        (m) => m.ConsignmentAgreementListComponent
+      ),
+  },
+  {
+    path: 'inventory/consignment/agreements/new',
+    canActivate: withPermission('INVENTORY_CONSIGNMENT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/consignment/agreement/agreement-form/agreement-form.component').then(
+        (m) => m.ConsignmentAgreementFormComponent
+      ),
+  },
+  {
+    path: 'inventory/consignment/agreements/:id/edit',
+    canActivate: withPermission('INVENTORY_CONSIGNMENT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/consignment/agreement/agreement-form/agreement-form.component').then(
+        (m) => m.ConsignmentAgreementFormComponent
+      ),
+  },
+  {
+    path: 'inventory/consignment/stock-lines',
+    canActivate: withPermission('INVENTORY_CONSIGNMENT_VIEW', 'INVENTORY_CONSIGNMENT_MANAGE', 'INVENTORY_CONSIGNMENT_CONVERT'),
+    loadComponent: () =>
+      import('./features/inventory/consignment/stock-line/stock-line-list/stock-line-list.component').then(
+        (m) => m.ConsignmentStockLineListComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

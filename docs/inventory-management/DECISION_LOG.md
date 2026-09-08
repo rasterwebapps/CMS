@@ -914,4 +914,61 @@ COLLEGE_ADMIN with the catch-all sync block (V465). `MILESTONES.md` and
 `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
 `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-08 — Consignment stock slice (OC-217)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Adds Phase 7's second slice, following this session's own standing instruction (see the
+2026-09-08 "Reference architecture pivot" and "Wanted List slice" entries above) to check IHMS's
+own `Consignment`/`ConsignmentItem` as a reference point but take the essence, not replicate it,
+since IHMS's actual entities carry heavy pharmacy-billing fields (gross/discount/tax/margin/HSN/
+batch/MRP) that have no place in a generic module.
+
+1. **Two entities, not one flat table**: `ConsignmentAgreement` (header — supplier, one location,
+   agreement number, validity, a billing-cycle-days term) is its own simple master, shaped exactly
+   like the already-shipped `Budget` (create/list/get/update, no delete, one location per row) —
+   a much closer, more directly reusable in-repo precedent than IHMS's own heavier `Consignment`
+   header. `ConsignmentStockLine` (one row per agreement+product, the reference architecture's own
+   `ConsignmentStockLedger`) is the running balance.
+2. **`qtyOnHand` is computed live (`receivedQty - consumedQty`), never stored** — a deliberate,
+   logged divergence from the ER doc's original flat `QtyOnHand` field, in favor of this module's
+   own "computed live, never stored" discipline already used for overdue flags, depreciation, and
+   budget consumption. Storing only the two raw facts (`receivedQty`, `consumedQty`) also makes
+   the DB-level `consumed_qty <= received_qty` CHECK constraint straightforward.
+3. **Receiving consignment stock posts a real `RECEIPT` to the main `StockLedger`** (via
+   `StockMovementService.recordMovement`, reused rather than duplicated) **immediately**, even
+   though the business doesn't own it yet — physically it's on the shelf and usable from day one;
+   the whole point of vendor-managed stock is that it's available for normal operational use. The
+   `ConsignmentStockLine` row is the side-ledger that separately remembers it isn't paid for.
+4. **Recording consumption ("ownership transfer" — the portion the supplier should now bill for)
+   is a standalone financial reconciliation action and deliberately does NOT post a second stock
+   movement.** The physical decrease already happened independently, whenever the stock was
+   actually used through a normal flow (Stock Issue Request, etc.) — correlating exactly which
+   physical units came from consignment vs. owned stock would require real lot-level ownership
+   costing, the same FIFO/FEFO-valuation deferral already made in the Stock Tracking slice. This
+   also means consumption is a manual, periodic reconciliation (informed by the business's own
+   operational knowledge), not an automatic trigger off any other screen.
+5. **No automatic "converts into an owned Purchase/GRN" document is generated** — considered and
+   rejected for this slice. `PurchaseOrder`'s own lifecycle assumes a real Goods Receipt arrives
+   against it; auto-creating an already-settled PO with no matching GRN would produce a confusing
+   paper trail and require assumptions this slice hasn't reviewed. Recording consumption instead
+   stays a pure ownership/audit-trail reconciliation on the `ConsignmentStockLine` row itself
+   (mirrors IHMS's own `ConsignmentItem.convertedToPurchaseQuantity` — a tracking field, not proof
+   IHMS auto-creates a document either). A real billing/PO-generation engine is a reasonable
+   future escalation once real invoicing requirements are gathered, not built here.
+6. **No periodic billing *engine* is built** — `billingCycleDays` is captured as a plain term on
+   the agreement (informational), but there is no scheduler or invoice-generation run in this
+   slice. `MILESTONES.md`'s Todo line is worded to make this explicit rather than imply more was
+   shipped than actually was.
+7. **`Manage` (agreements, receiving stock) and `Convert` (recording consumption) are separate
+   permissions**, per the operation-wise permission mapping rule — mirrors the Wanted List's own
+   MANAGE/RUN/CONVERT split, since "who can receive stock" and "who can authorize an ownership
+   transfer for billing" are typically different roles (store staff vs. finance/procurement).
+
+**Impact:** new tables `consignment_agreements`, `consignment_stock_lines` (V466); new
+permissions `INVENTORY_CONSIGNMENT_VIEW` / `_MANAGE` / `_CONVERT` seeded to DEV_ADMIN/
+SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with the catch-all sync block (V467). `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
+`npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

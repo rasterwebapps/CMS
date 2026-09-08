@@ -151,11 +151,11 @@ Inventory Management is a new, standalone module being built for the platform �
 
 **Covers:** Tracking items and equipment physically leaving or entering a premises (for repair, loan, or disposal), managing stock that a supplier owns but keeps on-site until it's used, and a general internal service/complaint ticketing capability.
 
-**Doing now:** A gate pass can be raised for a product or an asset moving in or out of a location, approved, then physically verified at the gate by security — always two distinct steps, even when the same person can do both. A non-returnable pass closes as soon as it's verified; a returnable one (the common repair/loan send-out case) stays open, with overdue tracking, until marked returned.
+**Doing now:** A gate pass can be raised for a product or an asset moving in or out of a location, approved, then physically verified at the gate by security — always two distinct steps, even when the same person can do both. A non-returnable pass closes as soon as it's verified; a returnable one (the common repair/loan send-out case) stays open, with overdue tracking, until marked returned. Separately, an agreement can be set up with a supplier for stock they keep on-site without the business owning it — receiving that stock makes it immediately usable, and recording how much has actually been consumed is a separate step that transfers ownership for billing purposes without moving any physical stock a second time.
 
 **Todo:**
 - Outward/inward gate pass tracking, including overdue alerts for items that should have come back — ✅ done
-- Vendor-owned ("consignment") stock tracking and periodic billing
+- Vendor-owned ("consignment") stock tracking, with a billing-cycle term captured on the agreement — ✅ done (an actual periodic invoice/billing-run engine is not built in this slice — see the decision log)
 - Internal service ticketing
 
 ---

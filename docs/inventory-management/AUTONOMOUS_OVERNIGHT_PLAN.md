@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-217** (OC-216 was the last used, Outward/inward Gate Pass —
-   OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V466** (V465 was the last used). Increment per file;
+4. **Next OC ticket number: OC-218** (OC-217 was the last used, Vendor-owned consignment
+   stock — OC-206 was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V468** (V467 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -192,9 +192,13 @@
 - [x] **Outward/inward gate pass** (OC-216, shipped 2026-09-08), including overdue alerts for
       items that should have returned (repair/loan send-outs). Approval and gate/security
       verification are two distinct, separately-permissioned steps.
-- [ ] **Vendor-owned ("consignment") stock** (OC-217) — mirrors IHMS's `Consignment`/
-      `ConsignmentItem` converting into an owned `Purchase`/GRN as it's consumed, per the
-      reference-architecture entry.
+- [x] **Vendor-owned ("consignment") stock** (OC-217, shipped 2026-09-08) — takes the essence
+      of IHMS's `Consignment`/`ConsignmentItem` (not a straight mirror, per the "Reference
+      architecture pivot" entry's own later refinement). Receiving posts to the main stock
+      ledger immediately (usable from day one); recording consumption is a separate, manual
+      ownership-transfer reconciliation that does not move stock a second time and does not
+      auto-generate a Purchase/GRN — see the decision log for why. No periodic billing engine
+      built (billing-cycle is a captured term only).
 - [ ] **Internal service ticketing** (OC-218) — general complaint/service-request tracking,
       independent of phase order, can be built any time.
 
@@ -359,3 +363,13 @@ broken/half-done, and any judgment call made that a future session should sanity
   detail, nav entry, status-badge classes for the two new states). `./gradlew compileJava` and
   `npx tsc --noEmit` both passed clean. Next: Vendor-owned ("consignment") stock (OC-217),
   mirroring IHMS's `Consignment`/`ConsignmentItem`.
+- **2026-09-08, same session, after OC-217:** Vendor-owned (consignment) stock shipped —
+  `ConsignmentAgreement` (simple master, shaped like `Budget`) + `ConsignmentStockLine` (running
+  balance, `qtyOnHand` computed live as `receivedQty - consumedQty`, a deliberate divergence from
+  the ER doc's flat field, logged in the decision log). Receiving posts a real `RECEIPT` to the
+  main `StockLedger` via the existing `StockMovementService` (usable immediately, even though not
+  yet owned); recording consumption is a standalone financial reconciliation with no second stock
+  movement and no auto-generated Purchase/GRN — both consciously scoped out, reasoning fully in
+  the decision log. Migrations V466/V467. Full frontend (agreement list/form, stock-line list
+  with Receive/Consume dialogs, nav entries). `./gradlew compileJava` and `npx tsc --noEmit` both
+  passed clean. Next: Internal service ticketing (OC-218), the last Phase 7 slice.
