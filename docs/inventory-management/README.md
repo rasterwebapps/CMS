@@ -20,6 +20,7 @@ This folder is the single home for everything documenting the Inventory Manageme
 | [../manual-test-cases/inventory-procurement-suppliers.md](../manual-test-cases/inventory-procurement-suppliers.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside TaxRule/Supplier/RateContract | 2026-09-08 |
 | [../manual-test-cases/inventory-procurement-vendor-product-mappings.md](../manual-test-cases/inventory-procurement-vendor-product-mappings.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside VendorProductMapping/RateContractLine | 2026-09-08 |
 | [../manual-test-cases/inventory-procurement-purchase-requisition.md](../manual-test-cases/inventory-procurement-purchase-requisition.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside PurchaseRequisition/PurchaseRequisitionItem | 2026-09-08 |
+| [../manual-test-cases/inventory-procurement-wanted-list.md](../manual-test-cases/inventory-procurement-wanted-list.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside WantedListItem | 2026-09-08 |
 
 ## Conventions for This Folder
 

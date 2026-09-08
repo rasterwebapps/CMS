@@ -1,0 +1,60 @@
+.wl-pg-title {
+  margin: 0 0 2px;
+  font-family: var(--cms-font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+
+  em {
+    font-style: italic;
+    color: var(--cms-primary);
+  }
+}
+
+.wl-pg-sub {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+  max-width: 640px;
+}
+
+.wl-filter {
+  max-width: 220px;
+  flex-shrink: 0;
+}
+
+.wl-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.wl-bulk-count {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+}
+
+.wl-product-name {
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.wl-product-code {
+  font-size: 12px;
+  color: var(--cms-text-muted);
+}
+
+.wl-suggested-qty {
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.wl-uom {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--cms-text-muted);
+}

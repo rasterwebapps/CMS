@@ -366,6 +366,15 @@ export const routes: Routes = [
         (m) => m.PurchaseRequisitionDetailComponent
       ),
   },
+  // Phase 2 "Purchasing & Suppliers" — Wanted List (fourth slice, MRP-style reorder shortages).
+  {
+    path: 'inventory/procurement/wanted-list',
+    canActivate: withPermission('INVENTORY_WANTED_LIST_VIEW', 'INVENTORY_WANTED_LIST_MANAGE', 'INVENTORY_WANTED_LIST_CONVERT', 'INVENTORY_WANTED_LIST_RUN'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/wanted-list/wanted-list-list/wanted-list-list.component').then(
+        (m) => m.WantedListListComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

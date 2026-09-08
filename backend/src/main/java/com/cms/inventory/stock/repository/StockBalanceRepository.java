@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.cms.inventory.stock.model.ReorderShortageProjection;
 import com.cms.inventory.stock.model.StockBalance;
 
 @Repository
@@ -49,6 +50,27 @@ public interface StockBalanceRepository extends JpaRepository<StockBalance, Long
      * the only thing allowed to write this table, always paired with a {@code StockLedger} insert
      * in the same transaction.
      */
+    /**
+     * Every (product, location) pair currently below the product's configured reorder level,
+     * summed across batches — the raw candidate set for the Wanted List shortage job. Only
+     * considers active products with a reorder level configured and active locations, and only
+     * pairs that already hold a stock balance row (an established stocking relationship) — a
+     * location that has never received a product isn't inferred to need it. See the
+     * "Wanted List slice" decision-log entry for why netting happens in the service layer instead
+     * of here (open Purchase Requisition quantity lives in a different module's tables).
+     */
+    @Query(value = """
+        SELECT b.product_id AS productId, b.location_id AS locationId, SUM(b.qty_on_hand) AS qtyOnHand,
+               p.reorder_level AS reorderLevel, p.reorder_qty AS reorderQty
+        FROM stock_balances b
+        JOIN products p ON p.id = b.product_id
+        JOIN inventory_locations l ON l.id = b.location_id
+        WHERE p.reorder_level IS NOT NULL AND p.is_active = true AND l.is_active = true
+        GROUP BY b.product_id, b.location_id, p.reorder_level, p.reorder_qty
+        HAVING SUM(b.qty_on_hand) < p.reorder_level
+        """, nativeQuery = true)
+    List<ReorderShortageProjection> findReorderShortageCandidates();
+
     @Modifying
     @Query(value = """
         INSERT INTO stock_balances (product_id, location_id, batch_id, qty_on_hand, value_on_hand, last_updated)
