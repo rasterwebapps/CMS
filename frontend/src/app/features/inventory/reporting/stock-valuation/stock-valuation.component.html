@@ -1,0 +1,68 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="sv-pg-title">Stock Valuation <em>Report</em></h1>
+      </div>
+      <p class="sv-pg-sub">
+        Total on-hand value by category, computed live from current stock balances.
+        @if (report(); as r) { <span class="sv-generated">Updated {{ r.generatedAt | date: 'short' }}</span> }
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select sv-filter" [(ngModel)]="locationFilter" (ngModelChange)="load()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+  </div>
+
+  @if (loading()) {
+    <div class="sv-loading"><mat-spinner diameter="40"></mat-spinner></div>
+  } @else if (report(); as r) {
+    @if (r.categories.length === 0) {
+      <cms-empty-state
+        icon="inventory_2"
+        title="No stock on hand yet"
+        subtitle="Once stock is received against a category's products, its valuation will appear here."
+      ></cms-empty-state>
+    } @else {
+      <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
+        <table class="sv-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th class="cell-align-right">Products</th>
+              <th class="cell-align-right">Total Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of r.categories; track row.categoryId) {
+              <tr>
+                <td>{{ row.categoryName }}</td>
+                <td class="cell-align-right">{{ row.productCount }}</td>
+                <td class="cell-align-right">{{ row.totalValue | number: '1.2-2' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="sv-total-row">
+              <td>Grand Total</td>
+              <td class="cell-align-right">{{ r.grandTotalProductCount }}</td>
+              <td class="cell-align-right">{{ r.grandTotalValue | number: '1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        </div>
+      </div>
+    }
+  }
+
+</div>

@@ -216,6 +216,15 @@ export const routes: Routes = [
         (m) => m.InventoryDashboardComponent
       ),
   },
+  // Phase 8 "Reporting & Dashboards" — Stock Valuation Report (second slice).
+  {
+    path: 'inventory/reporting/stock-valuation',
+    canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reporting/stock-valuation/stock-valuation.component').then(
+        (m) => m.StockValuationReportComponent
+      ),
+  },
   {
     path: 'inventory/stock/balances',
     canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),

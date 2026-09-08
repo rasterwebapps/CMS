@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import com.cms.inventory.stock.model.ReorderShortageProjection;
 import com.cms.inventory.stock.model.StockBalance;
+import com.cms.inventory.stock.model.StockValuationByCategoryProjection;
 
 @Repository
 public interface StockBalanceRepository extends JpaRepository<StockBalance, Long>, JpaSpecificationExecutor<StockBalance> {
@@ -70,6 +71,24 @@ public interface StockBalanceRepository extends JpaRepository<StockBalance, Long
         HAVING SUM(b.qty_on_hand) < p.reorder_level
         """, nativeQuery = true)
     List<ReorderShortageProjection> findReorderShortageCandidates();
+
+    /**
+     * The Stock Valuation Report's category rollup — distinct product count and total value
+     * currently on hand per category, optionally narrowed to one location. See {@link
+     * StockValuationByCategoryProjection} for why a summed quantity is deliberately not included.
+     */
+    @Query("""
+        SELECT c.id AS categoryId, c.name AS categoryName,
+               COUNT(DISTINCT b.product.id) AS productCount,
+               COALESCE(SUM(b.valueOnHand), 0) AS totalValue
+        FROM StockBalance b
+        JOIN b.product p
+        JOIN p.category c
+        WHERE (:locationId IS NULL OR b.location.id = :locationId)
+        GROUP BY c.id, c.name
+        ORDER BY c.name
+        """)
+    List<StockValuationByCategoryProjection> sumValuationByCategory(@Param("locationId") Long locationId);
 
     @Modifying
     @Query(value = """

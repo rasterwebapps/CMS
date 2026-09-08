@@ -40,6 +40,7 @@ This folder is the single home for everything documenting the Inventory Manageme
 | [../manual-test-cases/inventory-service-ticket.md](../manual-test-cases/inventory-service-ticket.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside the Service Ticket workflow | 2026-09-08 |
 | [../manual-test-cases/inventory-dashboard.md](../manual-test-cases/inventory-dashboard.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside the Inventory Dashboard | 2026-09-08 |
 | [../manual-test-cases/inventory-product-image.md](../manual-test-cases/inventory-product-image.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside the Product Image slice | 2026-09-08 |
+| [../manual-test-cases/inventory-stock-valuation-report.md](../manual-test-cases/inventory-stock-valuation-report.md) | Per this repo's convention (`docs/manual-test-cases/README.md`), one file per completed feature area | NOT TESTED — written alongside the Stock Valuation Report | 2026-09-09 |
 | [AUTONOMOUS_OVERNIGHT_PLAN.md](AUTONOMOUS_OVERNIGHT_PLAN.md) | Checklist + standing rules for the unattended, no-confirmation build session the user authorized on 2026-09-08 (through ~2026-09-09 15:00 IST) — single source of truth for what's shipped vs. left, so any session can resume it | Living document, in active use | 2026-09-08 |
 
 ## Conventions for This Folder

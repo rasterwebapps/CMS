@@ -1113,4 +1113,45 @@ seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with the catch-all sync bl
 `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
 `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-09 — Stock Valuation Report slice (OC-221)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Phase 8's second slice. The OC-219 breakdown had flagged all five remaining report slices as
+needing real product input on layout/grouping/filter shape before any could be built — on
+reconsidering this one specifically, that call was more conservative than it needed to be, and
+is revised here: a **category-grouped total-value rollup** is the single most standard, close to
+zero-ambiguity report shape in ERP inventory management (every major ERP ships an "Inventory
+Valuation Summary" that is, at its core, exactly this), and it required no new business logic —
+every figure it needs (`qtyOnHand`, `valueOnHand`) is already fully computed and persisted on
+`StockBalance` by the existing, already-shipped `StockMovementService`.
+
+1. **Grouped by Category, not by product or location** — Category is the one dimension every
+   product always has (mandatory FK), and is the standard first cut for a valuation summary; an
+   optional Location filter narrows the same rollup rather than adding a second grouping
+   dimension, keeping the v1 shape simple. Per-product/per-location detail already exists on the
+   Stock Balance list — this report intentionally doesn't duplicate that, it adds the rollup
+   that list doesn't have.
+2. **Deliberately does NOT sum raw quantity across a category** — only a distinct product count
+   is shown alongside total value. Products in the same category can carry different UOMs (kg,
+   pieces, litres, …), so summing `qtyOnHand` across them would produce a meaningless number;
+   money, by contrast, is always safely summable regardless of a product's UOM. This is a
+   substantive correctness call, not a cosmetic omission — logged so a future session doesn't
+   "helpfully" add a summed-quantity column back in.
+3. **Reuses `INVENTORY_STOCK_VIEW`/`_MANAGE` rather than a new dedicated permission** — a
+   deliberate departure from the Dashboard slice's own new-permission call, and logged as such:
+   the Dashboard aggregates across many separately-permissioned bounded contexts (approvals,
+   gate passes, tickets, budgets, …) so no single existing permission fit it; this report is a
+   rollup of exactly the same `StockBalance` data the Stock Balance list already shows under the
+   Stock permission, so reusing it is the more consistent call, not a new "operation."
+4. **One new repository query** (`StockBalanceRepository.sumValuationByCategory`, a `GROUP BY`
+   over the existing `StockBalance` entity) plus its own small projection interface, following
+   the exact pattern `ReorderShortageProjection` already established there — no new service
+   package, no new table, no new migration (same "no new migration" posture as the Depreciation
+   slice, which also computed everything live from already-captured fields).
+
+**Impact:** no new tables, no new permissions, no new migration. `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
+`npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

@@ -166,11 +166,11 @@ Inventory Management is a new, standalone module being built for the platform �
 
 **Covers:** The dashboards and reports that pull together everything from the phases above — stock positions, spending, price comparisons, and turnaround times — for day-to-day use and management review.
 
-**Doing now:** A single Inventory Dashboard gives an at-a-glance overview across the whole module — open purchase orders, pending requisitions/wanted-list items, active approvals, overdue gate passes/loans, open service tickets, over-allocated budgets, outstanding consignment liability, and assets under maintenance — every figure computed live, nothing precomputed or stored.
+**Doing now:** A single Inventory Dashboard gives an at-a-glance overview across the whole module — open purchase orders, pending requisitions/wanted-list items, active approvals, overdue gate passes/loans, open service tickets, over-allocated budgets, outstanding consignment liability, and assets under maintenance — every figure computed live, nothing precomputed or stored. A Stock Valuation Report shows total on-hand value grouped by category (with a location filter), the standard ERP "inventory valuation summary."
 
 **Todo:**
 - Inventory Dashboard (at-a-glance overview) — ✅ done
-- Stock valuation report (by product/location/category)
+- Stock valuation report (by category, with a location filter) — ✅ done
 - Purchase order aging / cycle-time report
 - Price comparison report (across suppliers/rate contracts)
 - Asset depreciation summary report

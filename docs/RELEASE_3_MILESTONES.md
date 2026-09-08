@@ -59,7 +59,7 @@ Derived from `docs/inventory-management/CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` �
 | R3-M4: Requisition & Issue | 🟡 In Progress — Stock Issue Request, Internal Return, and Loanable Item Issue all shipped; auto-restocking deliberately deferred pending real product-policy input (see DECISION_LOG.md) | 75% |
 | R3-M5: Asset Management | ✅ Done — Asset register, Maintenance/Service Contracts, straight-line Depreciation, and Disposal all shipped | 100% |
 | R3-M6: Approvals & Gate Pass | ✅ Done — Budget allocation/tracking, Multi-level approval routing, Exception handling, Outward/inward Gate Pass, Vendor-owned (consignment) stock tracking, and internal Service Ticketing all shipped | 100% |
-| R3-M7: Reporting | 🟡 In Progress — Inventory Dashboard (at-a-glance overview across the module) shipped; stock valuation, PO aging, price comparison, depreciation, and budget-vs-actual reports still to come | 15% |
+| R3-M7: Reporting | 🟡 In Progress — Inventory Dashboard and Stock Valuation Report (by category) shipped; PO aging, price comparison, depreciation, and budget-vs-actual reports still to come | 30% |
 | R3-M8: InventoryItem migration | ⬜ Not Started | 0% |
 | R3-M9: Standalone deployability | ⬜ Not Started — open technical questions unresolved | 0% |
 
