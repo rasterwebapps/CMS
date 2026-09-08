@@ -1,0 +1,133 @@
+@if (loading()) {
+  <div class="gp-detail-loading"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (pass(); as p) {
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/gate-pass/gate-passes" aria-label="Back to gate passes">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ p.productName ?? p.assetTag }} <em>Gate Pass</em></h1>
+        <cms-status-badge [status]="p.status" />
+        @if (p.overdue) { <span class="gp-overdue-chip">Overdue</span> }
+      </div>
+      <p class="page-subtitle">{{ p.direction === 'OUTWARD' ? 'Outward' : 'Inward' }} · {{ p.locationVirtualName }} — party: {{ p.partyName }}</p>
+    </div>
+  </div>
+
+  <div class="gp-detail-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned gp-summary-card">
+      <div class="entry-form-card__body gp-summary-grid">
+        <div class="gp-summary-item">
+          <span class="gp-summary-label">Item</span>
+          <span class="gp-summary-value">{{ p.productName ? (p.productName + ' (' + p.productCode + ')') : ('Asset ' + p.assetTag) }}</span>
+        </div>
+        <div class="gp-summary-item">
+          <span class="gp-summary-label">Quantity</span>
+          <span class="gp-summary-value">{{ p.quantity }}</span>
+        </div>
+        <div class="gp-summary-item">
+          <span class="gp-summary-label">Party</span>
+          <span class="gp-summary-value">{{ p.partyName }}{{ p.partyContact ? ' · ' + p.partyContact : '' }}</span>
+        </div>
+        <div class="gp-summary-item">
+          <span class="gp-summary-label">Pass Date</span>
+          <span class="gp-summary-value">{{ p.passDate | date: 'mediumDate' }}</span>
+        </div>
+        @if (p.returnable) {
+          <div class="gp-summary-item">
+            <span class="gp-summary-label">Expected Return</span>
+            <span class="gp-summary-value" [class.gp-summary-value--warn]="p.overdue">{{ p.expectedReturnDate | date: 'mediumDate' }}</span>
+          </div>
+        }
+        @if (p.actualReturnDate) {
+          <div class="gp-summary-item">
+            <span class="gp-summary-label">Actual Return</span>
+            <span class="gp-summary-value">{{ p.returnedBy || '—' }} · {{ p.actualReturnDate | date: 'mediumDate' }}</span>
+          </div>
+        }
+        @if (p.linkedPurchaseOrderId) {
+          <div class="gp-summary-item">
+            <span class="gp-summary-label">Linked Purchase Order</span>
+            <span class="gp-summary-value">#{{ p.linkedPurchaseOrderId }}</span>
+          </div>
+        }
+        <div class="gp-summary-item gp-summary-item--full">
+          <span class="gp-summary-label">Reason</span>
+          <span class="gp-summary-value">{{ p.reason }}</span>
+        </div>
+        @if (p.notes) {
+          <div class="gp-summary-item gp-summary-item--full">
+            <span class="gp-summary-label">Notes</span>
+            <span class="gp-summary-value">{{ p.notes }}</span>
+          </div>
+        }
+        <div class="gp-summary-item">
+          <span class="gp-summary-label">Created</span>
+          <span class="gp-summary-value">{{ p.createdBy || '—' }} · {{ p.createdAt | date: 'medium' }}</span>
+        </div>
+        @if (p.approvedAt) {
+          <div class="gp-summary-item">
+            <span class="gp-summary-label">Approved</span>
+            <span class="gp-summary-value">{{ p.approvedBy || '—' }} · {{ p.approvedAt | date: 'medium' }}</span>
+          </div>
+        }
+        @if (p.rejectedAt) {
+          <div class="gp-summary-item gp-summary-item--full">
+            <span class="gp-summary-label">Rejected</span>
+            <span class="gp-summary-value">{{ p.rejectedBy || '—' }} · {{ p.rejectedAt | date: 'medium' }} — {{ p.rejectionReason }}</span>
+          </div>
+        }
+        @if (p.gateVerifiedAt) {
+          <div class="gp-summary-item">
+            <span class="gp-summary-label">Gate Verified</span>
+            <span class="gp-summary-value">{{ p.gateVerifiedBy || '—' }} · {{ p.gateVerifiedAt | date: 'medium' }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (p.status === 'PENDING_APPROVAL' && canApprove()) {
+      <div class="entry-form-card entry-form-card--sectioned gp-action-card">
+        <div class="entry-form-card__body gp-action-row">
+          <input class="field-input gp-action-input" [(ngModel)]="rejectReason" placeholder="Rejection reason (required to reject)" />
+          <button class="btn-secondary gp-reject-btn" [disabled]="busy()" (click)="reject()">Reject</button>
+          <button class="btn-primary" [disabled]="busy()" (click)="approve()">
+            @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+            Approve
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (p.status === 'APPROVED' && canVerify()) {
+      <div class="entry-form-card entry-form-card--sectioned gp-action-card">
+        <div class="entry-form-card__body gp-action-row">
+          <button class="btn-primary" [disabled]="busy()" (click)="verifyGate()">
+            @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+            Verify at Gate
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (p.status === 'GATE_VERIFIED' && p.returnable && canReturn()) {
+      <div class="entry-form-card entry-form-card--sectioned gp-action-card">
+        <div class="entry-form-card__body gp-action-row">
+          <input class="field-input gp-action-input" [(ngModel)]="returnNotes" placeholder="Return notes (optional)" />
+          <button class="btn-primary" [disabled]="busy()" (click)="markReturned()">
+            @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+            Mark Returned
+          </button>
+        </div>
+      </div>
+    }
+
+  </div>
+
+</div>
+}

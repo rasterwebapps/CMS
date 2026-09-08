@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-216** (OC-215 was the last used, Exception handling with
-   documented reasons — OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V464** (V463 was the last used). Increment per file;
+4. **Next OC ticket number: OC-217** (OC-216 was the last used, Outward/inward Gate Pass —
+   OC-206 was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V466** (V465 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -189,8 +189,9 @@
 
 ## Phase 7 — Gate Pass, Vendor-Owned Stock & Service Requests
 
-- [ ] **Outward/inward gate pass** (OC-216), including overdue alerts for items that should
-      have returned (repair/loan send-outs).
+- [x] **Outward/inward gate pass** (OC-216, shipped 2026-09-08), including overdue alerts for
+      items that should have returned (repair/loan send-outs). Approval and gate/security
+      verification are two distinct, separately-permissioned steps.
 - [ ] **Vendor-owned ("consignment") stock** (OC-217) — mirrors IHMS's `Consignment`/
       `ConsignmentItem` converting into an owned `Purchase`/GRN as it's consumed, per the
       reference-architecture entry.
@@ -346,3 +347,15 @@ broken/half-done, and any judgment call made that a future session should sanity
   exception-reason chip on the resolved-action row. `./gradlew compileJava` and
   `npx tsc --noEmit` both passed clean. Next: Phase 7 (Gate Pass, Vendor-Owned Stock & Service
   Requests) — Outward/inward gate pass (OC-216) is next up.
+- **2026-09-08, same session, after OC-216:** Outward/inward Gate Pass shipped — Phase 7's
+  first slice. New `com.cms.inventory.gatepass` package (entity, 2 enums, 3 DTOs, repository,
+  service, controller), following the `GatePass` entity already sketched in
+  `ER_DIAGRAM_AND_MODULE_BOUNDARIES.md` §6. Exactly one of product/asset enforced by a DB CHECK
+  constraint; approval (`INVENTORY_GATE_PASS_APPROVE`) and gate/security verification
+  (`INVENTORY_GATE_PASS_VERIFY`) are two distinct, separately-permissioned steps even when held
+  by the same person; a non-returnable pass closes on verification, a returnable one goes
+  "Gate Verified" and can go overdue (computed live, never stored, same posture as
+  `LoanableItemIssue`) until marked returned. Migrations V464/V465. Full frontend (list/new/
+  detail, nav entry, status-badge classes for the two new states). `./gradlew compileJava` and
+  `npx tsc --noEmit` both passed clean. Next: Vendor-owned ("consignment") stock (OC-217),
+  mirroring IHMS's `Consignment`/`ConsignmentItem`.

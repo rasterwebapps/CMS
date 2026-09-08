@@ -278,6 +278,17 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Approvals', icon: 'fact_check', route: '/inventory/approval/instances', permissions: ['INVENTORY_APPROVAL_VIEW', 'INVENTORY_APPROVAL_ACT'] },
     ],
   },
+  // 8h. Gate Pass, Vendor-Owned Stock & Service Requests — Phase 7 of the Inventory Management
+  // module. Own top-level group, same "new Inventory sub-area gets its own entry" convention.
+  // See docs/inventory-management/DECISION_LOG.md's "Gate Pass slice" entry.
+  {
+    label: 'Gate Pass & Service Requests',
+    icon: 'local_shipping',
+    modules: ['INVENTORY'],
+    items: [
+      { label: 'Gate Passes', icon: 'local_shipping', route: '/inventory/gate-pass/gate-passes', permissions: ['INVENTORY_GATE_PASS_VIEW', 'INVENTORY_GATE_PASS_MANAGE', 'INVENTORY_GATE_PASS_APPROVE', 'INVENTORY_GATE_PASS_VERIFY', 'INVENTORY_GATE_PASS_RETURN'] },
+    ],
+  },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
   {
     label: 'Hostel Management',

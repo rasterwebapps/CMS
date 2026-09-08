@@ -1,0 +1,114 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="gp-pg-title">Gate <em>Passes</em></h1>
+      </div>
+      <p class="gp-pg-sub">Products and assets crossing the gate outside a normal stock movement, with overdue alerts for returnable send-outs.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToNew()" aria-label="Create a new gate pass">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Gate Pass
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select gp-filter" [(ngModel)]="locationFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+    <select class="field-select gp-filter" [(ngModel)]="directionFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by direction">
+      <option [ngValue]="null">All Directions</option>
+      <option value="OUTWARD">Outward</option>
+      <option value="INWARD">Inward</option>
+    </select>
+    <select class="field-select gp-filter" [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by status">
+      <option [ngValue]="null">All Statuses</option>
+      <option value="PENDING_APPROVAL">Pending Approval</option>
+      <option value="APPROVED">Approved</option>
+      <option value="REJECTED">Rejected</option>
+      <option value="GATE_VERIFIED">Gate Verified</option>
+      <option value="RETURNED">Returned</option>
+      <option value="CLOSED">Closed</option>
+    </select>
+    <label class="gp-overdue-toggle">
+      <input type="checkbox" [(ngModel)]="overdueOnly" (ngModelChange)="onFilterChange()" />
+      Overdue only
+    </label>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="gp-table">
+      <ng-container matColumnDef="item">
+        <th mat-header-cell *matHeaderCellDef>Item</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="gp-item-name">{{ row.productName ?? row.assetTag }}</div>
+          <div class="gp-item-sub">{{ row.productCode ?? ('Asset · ' + row.assetTag) }}</div>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="locationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let row">{{ row.locationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="partyName">
+        <th mat-header-cell *matHeaderCellDef>Party</th>
+        <td mat-cell *matCellDef="let row">{{ row.partyName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="direction">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Direction</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center">{{ row.direction === 'OUTWARD' ? 'Outward' : 'Inward' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="expectedReturnDate">
+        <th mat-header-cell *matHeaderCellDef>Expected Return</th>
+        <td mat-cell *matCellDef="let row" [class.gp-overdue-cell]="row.overdue">
+          @if (row.returnable) {
+            {{ row.expectedReturnDate | date: 'mediumDate' }}
+            @if (row.overdue) { <span class="gp-overdue-chip">Overdue</span> }
+          } @else {
+            <span class="gp-muted">Non-returnable</span>
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center">
+          <cms-status-badge [status]="row.status" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-actions">
+            <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Open" ariaLabel="Open gate pass" (clicked)="openPass(row)">
+              <cms-icon-view [size]="14" />
+            </cms-row-action-btn>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="openPass(row)" class="gp-row"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="local_shipping"
+            title="No gate passes yet"
+            subtitle="Create a gate pass when a product or asset needs to leave or enter the premises."
+            actionLabel="New Gate Pass"
+            (actionClick)="goToNew()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>

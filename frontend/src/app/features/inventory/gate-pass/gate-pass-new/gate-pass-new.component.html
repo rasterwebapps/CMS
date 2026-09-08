@@ -1,0 +1,166 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/gate-pass/gate-passes" aria-label="Back to gate passes">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">New Gate <em>Pass</em></h1>
+      </div>
+      <p class="page-subtitle">Track a product or asset leaving or entering the premises outside a normal stock movement.</p>
+    </div>
+  </div>
+
+  <div class="mv-standalone-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Gate Pass Details</div>
+          <div class="entry-form-card__hdr-sub">What's moving, which direction, and whether it's expected back</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="gp-new-grid">
+            <div class="field-group">
+              <label for="gp-direction" class="field-label">Direction <span class="required-star">*</span></label>
+              <select id="gp-direction" class="field-select" formControlName="direction">
+                <option value="OUTWARD">Outward (leaving premises)</option>
+                <option value="INWARD">Inward (entering premises)</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label">Returnable</label>
+              <label class="gp-checkbox-row">
+                <input type="checkbox" formControlName="returnable" />
+                Expected to come back
+              </label>
+            </div>
+
+            <div class="field-group">
+              <label for="gp-target-type" class="field-label">Item Type <span class="required-star">*</span></label>
+              <select id="gp-target-type" class="field-select" formControlName="targetType">
+                <option value="PRODUCT">Product</option>
+                <option value="ASSET">Asset</option>
+              </select>
+            </div>
+
+            @if (form.value.targetType === 'PRODUCT') {
+              <div class="field-group gp-new-full">
+                <cms-product-picker
+                  label="Product"
+                  [selectedProductId]="form.value.productId"
+                  (selectedProductIdChange)="form.get('productId')?.setValue($event)"
+                />
+              </div>
+            } @else {
+              <div class="field-group gp-new-full">
+                <label for="gp-asset" class="field-label">Asset <span class="required-star">*</span></label>
+                <select id="gp-asset" class="field-select" formControlName="assetId">
+                  <option [ngValue]="null" disabled>Select an available asset</option>
+                  @for (a of availableAssets(); track a.id) {
+                    <option [ngValue]="a.id">{{ a.assetTag }} — {{ a.productName }}</option>
+                  }
+                </select>
+              </div>
+            }
+
+            <div class="field-group">
+              <label for="gp-location" class="field-label">Location <span class="required-star">*</span></label>
+              <select id="gp-location" class="field-select" formControlName="locationId"
+                [class.field-select--error]="form.get('locationId')?.invalid && form.get('locationId')?.touched">
+                <option [ngValue]="null" disabled>Select a location</option>
+                @for (l of locations(); track l.id) {
+                  <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                }
+              </select>
+              @if (form.get('locationId')?.invalid && form.get('locationId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('locationId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="gp-quantity" class="field-label">Quantity <span class="required-star">*</span></label>
+              <input id="gp-quantity" type="number" step="0.001" min="0.001" class="field-input" formControlName="quantity"
+                [class.field-input--error]="form.get('quantity')?.invalid && form.get('quantity')?.touched" />
+              @if (form.get('quantity')?.invalid && form.get('quantity')?.touched) {
+                <p class="field-error">{{ getErrorMessage('quantity') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="gp-party-name" class="field-label">Party Name <span class="required-star">*</span></label>
+              <input id="gp-party-name" type="text" class="field-input" formControlName="partyName" placeholder="Who is carrying the item"
+                [class.field-input--error]="form.get('partyName')?.invalid && form.get('partyName')?.touched" />
+              @if (form.get('partyName')?.invalid && form.get('partyName')?.touched) {
+                <p class="field-error">{{ getErrorMessage('partyName') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="gp-party-contact" class="field-label">Party Contact</label>
+              <input id="gp-party-contact" type="text" class="field-input" formControlName="partyContact" placeholder="Phone or email" />
+            </div>
+
+            <div class="field-group">
+              <label for="gp-po" class="field-label">Linked Purchase Order ID</label>
+              <input id="gp-po" type="number" class="field-input" formControlName="linkedPurchaseOrderId" placeholder="Optional — e.g. a repair/service PO" />
+            </div>
+
+            <div class="field-group">
+              <label for="gp-pass-date" class="field-label">Pass Date <span class="required-star">*</span></label>
+              <input id="gp-pass-date" type="date" class="field-input" formControlName="passDate" />
+            </div>
+
+            @if (form.value.returnable) {
+              <div class="field-group">
+                <label for="gp-expected" class="field-label">Expected Return Date <span class="required-star">*</span></label>
+                <input id="gp-expected" type="date" class="field-input" formControlName="expectedReturnDate"
+                  [class.field-input--error]="form.get('expectedReturnDate')?.invalid && form.get('expectedReturnDate')?.touched" />
+                @if (form.get('expectedReturnDate')?.invalid && form.get('expectedReturnDate')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('expectedReturnDate') }}</p>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="gp-reason" class="field-label">Reason <span class="required-star">*</span></label>
+            <textarea id="gp-reason" class="field-textarea" formControlName="reason" placeholder="Why is this item moving through the gate" rows="2"
+              [class.field-textarea--error]="form.get('reason')?.invalid && form.get('reason')?.touched"></textarea>
+            @if (form.get('reason')?.invalid && form.get('reason')?.touched) {
+              <p class="field-error">{{ getErrorMessage('reason') }}</p>
+            }
+          </div>
+
+          <div class="field-group">
+            <label for="gp-notes" class="field-label">Notes</label>
+            <textarea id="gp-notes" class="field-textarea" formControlName="notes" placeholder="Optional additional detail" rows="2"></textarea>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/gate-pass/gate-passes" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              Create Gate Pass
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>

@@ -1,0 +1,40 @@
+package com.cms.inventory.gatepass.dto;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+
+public record GatePassResponse(
+    Long id,
+    String direction,
+    boolean returnable,
+    Long productId,
+    String productCode,
+    String productName,
+    Long assetId,
+    String assetTag,
+    Long locationId,
+    String locationVirtualName,
+    BigDecimal quantity,
+    String reason,
+    String partyName,
+    String partyContact,
+    Long linkedPurchaseOrderId,
+    LocalDate passDate,
+    LocalDate expectedReturnDate,
+    LocalDate actualReturnDate,
+    boolean overdue,
+    String status,
+    String notes,
+    String createdBy,
+    Instant createdAt,
+    String approvedBy,
+    Instant approvedAt,
+    String rejectedBy,
+    Instant rejectedAt,
+    String rejectionReason,
+    String gateVerifiedBy,
+    Instant gateVerifiedAt,
+    String returnedBy,
+    Instant returnedAt
+) {}

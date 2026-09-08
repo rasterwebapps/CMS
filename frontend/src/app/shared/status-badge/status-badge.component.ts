@@ -78,6 +78,7 @@ export class CmsStatusBadgeComponent {
       case 'PENDING_REVIEW':
       case 'DEFERRED':
       case 'PARTIALLY_COMPLETED':
+      case 'GATE_VERIFIED':
         return 'status-warning';
 
       // ── Neutral / pending states ─────────────────────────────────────────
@@ -93,6 +94,7 @@ export class CmsStatusBadgeComponent {
       case 'NOT_PLANNED':
       case 'PENDING_COUNT':
       case 'ORDERED':
+      case 'PENDING_APPROVAL':
         return 'status-pending';
 
       // ── Negative / terminal failure states ───────────────────────────────

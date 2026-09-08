@@ -864,4 +864,54 @@ change — this closes Phase 6 end-to-end (Budget allocation, Multi-level approv
 Exception handling). `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both
 run clean before committing.
 
+## 2026-09-08 — Gate Pass slice (OC-216)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Adds Phase 7's ("Gate Pass, Vendor-Owned Stock & Service Requests") first slice, following the
+`GatePass` entity already sketched in `ER_DIAGRAM_AND_MODULE_BOUNDARIES.md` §6.
+
+1. **New `com.cms.inventory.gatepass` bounded context** (own package, matching the ER doc's own
+   "Gate Pass" module boundary), rather than folding this into `issue` — a gate pass tracks a
+   physical crossing of the gate, a different concern from stock issue/return even though both
+   involve a product leaving/returning.
+2. **Exactly one of `product`/`asset` is set, enforced both by a DB `CHECK` constraint and in the
+   service** — mirrors the ER doc's own "ProductId (FK, nullable) or AssetId (FK, nullable)"
+   shape, and the same "exactly one nullable FK, real constraint, not a soft polymorphic
+   reference" posture used for `ApprovalInstance`'s two document-type FKs.
+3. **Approval and gate (security) verification are always two separate steps/permissions**
+   (`INVENTORY_GATE_PASS_APPROVE` vs. `INVENTORY_GATE_PASS_VERIFY`), even though the same person
+   can hold both — the ER doc's own `ApprovedBy`/`SecurityVerifiedBy` split already implied this,
+   and it matches the operation-wise permission mapping rule (approving a request and physically
+   checking an item at the gate are genuinely different operations, typically different roles —
+   an office approver vs. a security guard).
+4. **A non-returnable pass closes as soon as it's gate-verified; a returnable one only then
+   becomes "in effect" (`GATE_VERIFIED`) and can go overdue.** This mirrors `LoanableItemIssue`'s
+   posture exactly: "overdue" is derived at read time from `expectedReturnDate`, never stored,
+   and only applies while the pass is in that open, returnable, verified window.
+5. **`partyName`/`partyContact` fields** (who is physically carrying/receiving the item) were
+   added even though not explicit in the ER doc's attribute list — a gate pass without knowing
+   who has the item isn't usable in practice; named as generic "party" fields (not
+   "borrower"/"visitor"/"courier") per the module's no-vertical-branding rule, since the same
+   field covers a courier, a vendor's technician, or an internal staff member depending on
+   deployment.
+6. **`linkedPurchaseOrderId` is a plain optional numeric field, no picker built** — same
+   reasoning as the Approval engine's permission-code text input (no `PurchaseOrder` picker
+   component exists yet, and building one only for this one optional field would be scope creep
+   for this slice); validated server-side against a real `PurchaseOrder` if provided.
+7. **No dedicated Asset picker component was built either** — the asset-target path uses a plain
+   `<select>` populated from `AssetService.getPage({status: 'AVAILABLE'})`, while the product-
+   target path reuses the existing, richer `cms-product-picker`. A real asset picker component is
+   a reasonable future enhancement once more screens need one, not built here for a single field.
+8. **`quantity` is `BigDecimal`**, consistent with every other quantity field across the module
+   (`StockMovementService`, `StockTransferLine`, etc.) — even though a single serialized `Asset`
+   conceptually always moves as quantity 1, keeping one consistent numeric type avoids a
+   product-vs-asset special case in the DTO/entity.
+
+**Impact:** new table `gate_passes` (V464); new permissions `INVENTORY_GATE_PASS_VIEW` /
+`_MANAGE` / `_APPROVE` / `_VERIFY` / `_RETURN` seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/
+COLLEGE_ADMIN with the catch-all sync block (V465). `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
+`npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*

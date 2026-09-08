@@ -25,7 +25,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 4 | Requests, Issues &amp; Returns | 🟡 In Progress (auto-restocking deliberately deferred — needs real product-policy input) |
 | 5 | Equipment &amp; Asset Management | ✅ Done |
 | 6 | Budgets &amp; Approvals | ✅ Done |
-| 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ⬜ Not Started |
+| 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | 🟡 In Progress |
 | 8 | Reporting &amp; Dashboards | ⬜ Not Started |
 
 **Status legend:** ⬜ Not Started · 🟡 In Progress · ✅ Done
@@ -147,12 +147,14 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 7 — Gate Pass, Vendor-Owned Stock & Service Requests
 
-**Status: ⬜ Not Started**
+**Status: 🟡 In Progress**
 
 **Covers:** Tracking items and equipment physically leaving or entering a premises (for repair, loan, or disposal), managing stock that a supplier owns but keeps on-site until it's used, and a general internal service/complaint ticketing capability.
 
+**Doing now:** A gate pass can be raised for a product or an asset moving in or out of a location, approved, then physically verified at the gate by security — always two distinct steps, even when the same person can do both. A non-returnable pass closes as soon as it's verified; a returnable one (the common repair/loan send-out case) stays open, with overdue tracking, until marked returned.
+
 **Todo:**
-- Outward/inward gate pass tracking, including overdue alerts for items that should have come back
+- Outward/inward gate pass tracking, including overdue alerts for items that should have come back — ✅ done
 - Vendor-owned ("consignment") stock tracking and periodic billing
 - Internal service ticketing
 

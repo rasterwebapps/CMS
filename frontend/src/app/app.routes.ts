@@ -669,6 +669,31 @@ export const routes: Routes = [
         (m) => m.ApprovalInstanceDetailComponent
       ),
   },
+  // Phase 7 "Gate Pass, Vendor-Owned Stock & Service Requests" — Gate Pass (first slice).
+  {
+    path: 'inventory/gate-pass/gate-passes',
+    canActivate: withPermission('INVENTORY_GATE_PASS_VIEW', 'INVENTORY_GATE_PASS_MANAGE', 'INVENTORY_GATE_PASS_APPROVE', 'INVENTORY_GATE_PASS_VERIFY', 'INVENTORY_GATE_PASS_RETURN'),
+    loadComponent: () =>
+      import('./features/inventory/gate-pass/gate-pass-list/gate-pass-list.component').then(
+        (m) => m.GatePassListComponent
+      ),
+  },
+  {
+    path: 'inventory/gate-pass/gate-passes/new',
+    canActivate: withPermission('INVENTORY_GATE_PASS_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/gate-pass/gate-pass-new/gate-pass-new.component').then(
+        (m) => m.GatePassNewComponent
+      ),
+  },
+  {
+    path: 'inventory/gate-pass/gate-passes/:id',
+    canActivate: withPermission('INVENTORY_GATE_PASS_VIEW', 'INVENTORY_GATE_PASS_MANAGE', 'INVENTORY_GATE_PASS_APPROVE', 'INVENTORY_GATE_PASS_VERIFY', 'INVENTORY_GATE_PASS_RETURN'),
+    loadComponent: () =>
+      import('./features/inventory/gate-pass/gate-pass-detail/gate-pass-detail.component').then(
+        (m) => m.GatePassDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

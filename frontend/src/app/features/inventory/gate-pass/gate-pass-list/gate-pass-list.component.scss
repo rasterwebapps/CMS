@@ -1,0 +1,71 @@
+.gp-pg-title {
+  margin: 0 0 2px;
+  font-family: var(--cms-font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+
+  em {
+    font-style: italic;
+    color: var(--cms-primary);
+  }
+}
+
+.gp-pg-sub {
+  margin: 0 0 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.gp-filter {
+  max-width: 220px;
+  flex-shrink: 0;
+}
+
+.gp-overdue-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--cms-text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gp-row {
+  cursor: pointer;
+}
+
+.gp-item-name {
+  font-weight: 600;
+}
+
+.gp-item-sub {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+}
+
+.gp-muted {
+  color: var(--cms-text-muted);
+  font-size: 0.8125rem;
+}
+
+.gp-overdue-cell {
+  color: var(--cms-danger);
+  font-weight: 600;
+}
+
+.gp-overdue-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--cms-danger);
+  background: var(--cms-danger-light);
+}

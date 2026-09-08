@@ -1,0 +1,74 @@
+.gp-detail-loading {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.gp-detail-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gp-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 20px;
+}
+
+.gp-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.gp-summary-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+}
+
+.gp-summary-value {
+  font-size: 0.875rem;
+  color: var(--cms-text-primary);
+
+  &--warn {
+    color: var(--cms-danger);
+    font-weight: 600;
+  }
+}
+
+.gp-overdue-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 10px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--cms-danger);
+  background: var(--cms-danger-light);
+}
+
+.gp-action-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.gp-action-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.gp-reject-btn {
+  color: var(--cms-danger);
+  border-color: var(--cms-danger);
+}
