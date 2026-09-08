@@ -1,0 +1,55 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="pct-pg-title">PO Cycle <em>Time</em></h1>
+      </div>
+      <p class="pct-pg-sub">
+        Average days from a purchase order being raised to being fully received, by supplier. Only fully-received orders are counted.
+        @if (report(); as r) { <span class="pct-generated">Updated {{ r.generatedAt | date: 'short' }}</span> }
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="pct-loading"><mat-spinner diameter="40"></mat-spinner></div>
+  } @else if (report(); as r) {
+    @if (r.grandTotalCompletedOrderCount === 0) {
+      <cms-empty-state
+        icon="schedule"
+        title="No fully-received orders yet"
+        subtitle="Once a purchase order is fully received, its cycle time will appear here."
+      ></cms-empty-state>
+    } @else {
+      <div class="pct-overall-banner anim-rise">
+        Overall average: <strong>{{ r.overallAverageCycleDays | number: '1.1-1' }} days</strong>
+        across {{ r.grandTotalCompletedOrderCount }} fully-received order{{ r.grandTotalCompletedOrderCount === 1 ? '' : 's' }}
+      </div>
+      <div class="content-card mlp-table-card">
+        <div class="table-wrapper">
+        <table class="pct-table">
+          <thead>
+            <tr>
+              <th>Supplier</th>
+              <th class="cell-align-right">Fully-Received Orders</th>
+              <th class="cell-align-right">Average Cycle Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of r.suppliers; track row.supplierId) {
+              <tr>
+                <td>{{ row.supplierName }}</td>
+                <td class="cell-align-right">{{ row.completedOrderCount }}</td>
+                <td class="cell-align-right">{{ row.averageCycleDays | number: '1.1-1' }} days</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        </div>
+      </div>
+    }
+  }
+
+</div>

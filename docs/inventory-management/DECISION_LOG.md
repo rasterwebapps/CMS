@@ -1303,4 +1303,44 @@ status flipped to ✅ Done) and `RELEASE_3_MILESTONES.md` (R3-M7 to 100%) update
 change. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
 before committing.
 
+## 2026-09-09 — Purchase Order Cycle-Time Report slice (OC-226)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+A follow-on Phase 8 slice, not part of the original OC-219 breakdown's six items — the PO
+Aging Report's own decision-log entry (OC-222) explicitly deferred Cycle-Time as "a genuinely
+different metric... real, separately-scoped work," not silently dropped. With every item in
+that six-item breakdown now shipped, this was the next natural piece of already-flagged real
+work to pick up, following the identical "standard ERP metric, computed from data the module
+already captures" pattern as the rest of Phase 8.
+
+1. **Cycle time = days from `poDate` to the latest `confirmedAt` among a PO's own confirmed
+   Goods Receipts** — the moment its last line was fully received, i.e. the exact moment it
+   became `COMPLETED`. Only `COMPLETED` orders are counted; an order still open, or
+   `FORCE_CLOSED` before every line arrived, was never actually "fully received" and has no
+   real cycle time to report (counting it would understate or fabricate a number).
+2. **Grouped by supplier, averaged** — "which suppliers fulfil fastest" is the standard framing
+   for this KPI (mirrors the Price Comparison report's own "compare suppliers" framing), plus
+   an overall grand average computed directly across every order (not an average of the
+   per-supplier averages, which would incorrectly weight every supplier equally regardless of
+   how many orders each has).
+3. **One new repository query on the existing `GoodsReceiptRepository`**
+   (`findCompletedOrdersForCycleTime`, a `GROUP BY` joining `GoodsReceipt`→`PurchaseOrder`→
+   `Supplier`) plus its own projection interface — the bucketing/averaging math itself happens
+   in Java in the new service, matching the PO Aging Report's own split of "SQL fetches raw
+   rows, Java does the domain-specific math."
+4. **Reuses `INVENTORY_PURCHASE_ORDER_VIEW`/`_MANAGE`** — same reasoning as PO Aging: stays
+   within the one already-permissioned Purchase Order bounded context.
+5. **Also verified, while reviewing the plan, that "Batch/expiry capture on GRN" (a Phase 3
+   checklist line explicitly folded into the GRN slice, not its own ticket) was already fully
+   shipped as part of OC-202** — `GoodsReceiptLine.batchOrSerialNo`/`expiryDate` exist on the
+   entity/DTOs, and the GRN detail screen's "Add Line" form has real Batch/Serial No. and
+   Expiry Date inputs, both rendered as their own table columns. The checkbox had simply never
+   been flipped; no new code was needed, this is a documentation-only correction.
+
+**Impact:** no new tables, no new permissions, no new migration. `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change (Phase 3's GRN checklist item also
+corrected). `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
+before committing.
+
 *Next entry goes here — do not insert above this line.*

@@ -261,6 +261,15 @@ export const routes: Routes = [
         (m) => m.BudgetVsActualReportComponent
       ),
   },
+  // Phase 8 "Reporting & Dashboards" — PO Cycle-Time Report (follow-on to PO Aging/OC-222).
+  {
+    path: 'inventory/reporting/purchase-order-cycle-time',
+    canActivate: withPermission('INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reporting/po-cycle-time/po-cycle-time.component').then(
+        (m) => m.PurchaseOrderCycleTimeReportComponent
+      ),
+  },
   {
     path: 'inventory/stock/balances',
     canActivate: withPermission('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'),

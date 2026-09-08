@@ -39,10 +39,10 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-226** (OC-225 was the last used, Budget vs. Actual Report —
+4. **Next OC ticket number: OC-227** (OC-226 was the last used, PO Cycle-Time Report —
    OC-206 was skipped, see its checklist item above). Increment per slice.
 5. **Next Flyway migration number: V473** (V472 was the last used — none of OC-221 through
-   OC-225 needed a new migration, same as Depreciation/OC-211). Increment per file;
+   OC-226 needed a new migration, same as Depreciation/OC-211). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -95,9 +95,11 @@
       Permissions: `INVENTORY_GRN_VIEW`/`_MANAGE`/`_CONFIRM` (confirm is its own operation —
       it's the action with real stock/financial consequence, mirrors Cycle Count's `_APPROVE`
       split).
-- [ ] **Batch/expiry capture on GRN** (fold into the GRN slice above, not separate). GRN line
-      reuses the existing "batch/serial number + expiry" fields already on the Record Stock
-      Movement form (Phase 1 decision) rather than inventing a second batch-entry UI.
+- [x] **Batch/expiry capture on GRN** (verified 2026-09-09 — was already fully shipped as part
+      of OC-202, checkbox had simply never been flipped). `GoodsReceiptLine.batchOrSerialNo`/
+      `expiryDate` exist on the entity/DTOs, and the GRN detail screen's "Add Line" form has
+      real Batch/Serial No. and Expiry Date inputs, rendered as their own table columns.
+      Documentation-only correction, no code change.
 - [x] **Transfers between locations** (OC-203, shipped 2026-09-08). New `StockTransfer` header + lines (source
       `InventoryLocation` → destination `InventoryLocation`), posts a `TRANSFER`-typed
       movement pair (decrease at source, increase at destination) through
@@ -248,6 +250,12 @@
       the Dashboard's own over-allocated-budgets count already makes. A genuinely period-aware
       version needs a real answer on the deployment's budgeting calendar, still out of reach.
       **This closes Phase 8's entire report backlog and brings R3-M7 to 100%.**
+- [x] **Purchase Order Cycle-Time report** (OC-226, shipped 2026-09-09) — a follow-on, not
+      part of the original six-item breakdown (the PO Aging Report's own decision log,
+      OC-222, explicitly deferred this as "real, separately-scoped work"). Average days from
+      `poDate` to the latest `confirmedAt` among a PO's own confirmed Goods Receipts, only for
+      `COMPLETED` orders, grouped by supplier plus an overall grand average. Reuses
+      `INVENTORY_PURCHASE_ORDER_VIEW`/`_MANAGE`. No new table/permission/migration.
 
 ---
 
@@ -573,3 +581,34 @@ broken/half-done, and any judgment call made that a future session should sanity
   (confirmed-but-unscheduled, not phase-numbered). Every remaining item genuinely needs either
   real product/ops input this session cannot supply, or is dead-end-checked already. This is the
   cleanest stopping point yet under this plan's Standing Rules.
+- **2026-09-09, new session, after OC-226:** re-read this file fully and re-checked `git
+  status` per the standing instructions before touching anything. With Phase 8's original
+  six-item breakdown fully shipped, picked up the one piece of already-flagged, real,
+  separately-scoped work still sitting on the board: **PO Cycle-Time** (explicitly deferred by
+  the PO Aging Report's own OC-222 decision-log entry, not invented fresh). Average days from
+  a PO's `poDate` to the latest `confirmedAt` among its confirmed Goods Receipts, only for
+  `COMPLETED` orders, grouped by supplier plus an overall grand average — one new repository
+  query on the existing `GoodsReceiptRepository` (`findCompletedOrdersForCycleTime`) + its own
+  projection interface, averaging math in a new `PurchaseOrderCycleTimeReportService`, reuses
+  `INVENTORY_PURCHASE_ORDER_VIEW`/`_MANAGE`. No new table/permission/migration. Full frontend
+  (supplier table + overall-average banner, new nav entry next to PO Aging Report).
+  `./gradlew compileJava` and `npx tsc --noEmit` both passed clean.
+  Also, while re-reading the plan top to bottom as instructed, noticed Phase 3's "Batch/expiry
+  capture on GRN" line was still unchecked despite its own text saying "fold into the GRN
+  slice above, not separate" — verified directly against the code
+  (`GoodsReceiptLine.batchOrSerialNo`/`expiryDate` on the entity/DTOs, real Batch/Serial No. +
+  Expiry Date inputs on the GRN detail screen's Add Line form) that this was in fact already
+  fully shipped as part of OC-202 back on 2026-09-08; the checkbox had simply never been
+  flipped. Corrected it — documentation-only, no code change, no new OC number needed since no
+  new work was done.
+  **State of the plan now:** every phase (2 through 8) is fully closed except Phase 4's
+  Auto-restocking (OC-206, still correctly skipped — needs real product-policy input) and
+  Phase 1's deferred `InventoryItem` migration (still correctly blocked — needs real
+  institutional room-assignment data). Both "Also outstanding" items are resolved. Every
+  report this session's own reconsiderations found buildable has been built. What remains is,
+  as of this check, genuinely and entirely real product/ops input this session cannot supply
+  on its own — Library migration/standalone-packaging (confirmed-but-unscheduled, the user's
+  own words defer this explicitly), plus the two already-logged skips above. A future session
+  picking this up should still do one more full top-to-bottom re-read before assuming nothing
+  is left, the same discipline this session applied — but as things stand, there is no more
+  unclaimed product-input-free work on this board.
