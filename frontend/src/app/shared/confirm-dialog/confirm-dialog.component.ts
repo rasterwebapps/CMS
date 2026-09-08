@@ -7,6 +7,10 @@ export interface ConfirmDialogData {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  /** Read-only info popup: renders a single neutral "OK" button instead of Cancel/Confirm — nothing
+   *  to accept or reject, just acknowledge. `confirmText` still overrides that button's label if
+   *  set; `cancelText` is ignored. */
+  alertOnly?: boolean;
 }
 
 @Component({
@@ -19,11 +23,13 @@ export interface ConfirmDialogData {
       <p>{{ data.message }}</p>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-stroked-button (click)="onCancel()">
-        {{ data.cancelText || 'Cancel' }}
-      </button>
-      <button mat-flat-button color="warn" (click)="onConfirm()">
-        {{ data.confirmText || 'Confirm' }}
+      @if (!data.alertOnly) {
+        <button mat-stroked-button (click)="onCancel()">
+          {{ data.cancelText || 'Cancel' }}
+        </button>
+      }
+      <button mat-flat-button [color]="data.alertOnly ? 'primary' : 'warn'" (click)="onConfirm()">
+        {{ data.confirmText || (data.alertOnly ? 'OK' : 'Confirm') }}
       </button>
     </mat-dialog-actions>
   `,

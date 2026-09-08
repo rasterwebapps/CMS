@@ -10,17 +10,35 @@
       <mat-spinner diameter="32" aria-label="Loading checklist"></mat-spinner>
     </div>
   } @else {
+    @if (attentionEntries().length === 0) {
+      <p class="tac-allclear-banner">✓ Nothing needs your attention — every check passed.</p>
+    }
+
     <ul class="tac-checklist">
-      @for (item of items(); track item.label; let i = $index) {
-        <li class="tac-item" [class.tac-item--warn]="item.warn === true">
-          <mat-checkbox [checked]="item.checked" (change)="toggleItem(i)">
-            @if (item.warn === true) { <span class="tac-item__icon">⚠</span> }
-            @if (item.warn === false) { <span class="tac-item__icon">✓</span> }
-            {{ item.label }}
+      @for (entry of attentionEntries(); track entry.index) {
+        <li class="tac-item" [class.tac-item--warn]="entry.item.warn === true">
+          <mat-checkbox [checked]="entry.item.checked" (change)="toggleItem(entry.index)">
+            @if (entry.item.warn === true) { <span class="tac-item__icon">⚠</span> }
+            {{ entry.item.label }}
           </mat-checkbox>
         </li>
       }
     </ul>
+
+    @if (clearEntries().length > 0) {
+      <div class="tac-clear-group">
+        <button type="button" class="tac-clear-group__toggle" (click)="toggleClearGroup()">
+          {{ showAllClear() ? '▾' : '▸' }} All clear ({{ clearEntries().length }})
+        </button>
+        @if (showAllClear()) {
+          <ul class="tac-checklist tac-checklist--clear">
+            @for (entry of clearEntries(); track entry.index) {
+              <li class="tac-clear-item">✓ {{ entry.item.label }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
 
     <div class="tac-ack">
       <mat-checkbox [checked]="acknowledged()" (change)="toggleAcknowledged()">

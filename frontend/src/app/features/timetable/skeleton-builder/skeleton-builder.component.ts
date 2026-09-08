@@ -420,6 +420,14 @@ export class SkeletonBuilderComponent implements OnInit {
     this.reloadSkeleton();
   }
 
+  /** Fires alongside {@link onWorkingSaturdaysSaved} only when the admin picked "Run Automation
+   *  now" on the flyout's post-save follow-up — opens the same Global Auto-Schedule flyout the
+   *  toolbar button does, so they don't have to close this one and go hunt for that button
+   *  themselves. */
+  protected onWorkingSaturdaysRunAutomation(): void {
+    this.openGlobalAutoSchedule();
+  }
+
   ngOnInit(): void {
     this.tourService.register('skeleton-builder', SKELETON_BUILDER_TOUR);
     this.tourService.registerFlowMap('skeleton-builder', SKELETON_BUILDER_FLOW_MAP);

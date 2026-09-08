@@ -11,4 +11,6 @@ public interface ClinicalShiftGroupRepository extends JpaRepository<ClinicalShif
     List<ClinicalShiftGroup> findByCourseOfferingId(Long courseOfferingId);
 
     List<ClinicalShiftGroup> findByTermInstanceIdAndIsActiveTrue(Long termInstanceId);
+
+    boolean existsByCohortSectionId(Long cohortSectionId);
 }

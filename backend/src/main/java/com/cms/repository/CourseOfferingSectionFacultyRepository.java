@@ -13,6 +13,8 @@ public interface CourseOfferingSectionFacultyRepository extends JpaRepository<Co
 
     Optional<CourseOfferingSectionFaculty> findByCourseOfferingIdAndCohortSectionId(Long courseOfferingId, Long cohortSectionId);
 
+    boolean existsByCohortSectionId(Long cohortSectionId);
+
     void deleteByCourseOfferingIdAndCohortSectionId(Long courseOfferingId, Long cohortSectionId);
 
     /** The whole-cohort row (no section split) for this offering+cohort, if one exists. */

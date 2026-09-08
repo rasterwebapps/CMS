@@ -21,6 +21,7 @@ import com.cms.dto.AcademicYearRequest;
 import com.cms.dto.AcademicYearResponse;
 import com.cms.dto.CohortSeatAllocationRequest;
 import com.cms.dto.TermBillingScheduleRequest;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
@@ -28,6 +29,7 @@ import com.cms.model.Course;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.ProgramStatus;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CohortRepository;
@@ -214,6 +216,13 @@ public class AcademicYearService {
         TermInstance even = termInstanceRepository.findByAcademicYearIdAndTermType(id, TermType.EVEN)
             .orElseThrow(() -> new ResourceNotFoundException("EVEN term instance not found for academic year " + id));
 
+        // Same "LOCKED is frozen, full stop" rule every other lifecycle guard in the app already
+        // enforces (TimetableGenerationService, SpecialClassRequestService,
+        // CourseRegistrationServiceImpl) -- this method was the one place that never picked it up,
+        // silently accepting date/billing edits against a term that's supposed to be closed for good.
+        requireNotLocked(odd);
+        requireNotLocked(even);
+
         // Validate the combined target state (new AY bounds + new term bounds together) rather
         // than each piece against the other's not-yet-updated, still-persisted value.
         termInstanceService.assertTermWithinAcademicYear(
@@ -266,6 +275,17 @@ public class AcademicYearService {
                 "Cannot delete academic year because fee structures are associated with it.");
         }
         academicYearRepository.deleteById(id);
+    }
+
+    /** Same blanket rule shared with every other lifecycle guard in the app ({@code
+     *  TimetableGenerationService}, {@code SpecialClassRequestService}, {@code
+     *  CourseRegistrationServiceImpl}) -- a LOCKED term is frozen, full stop. */
+    private void requireNotLocked(TermInstance term) {
+        if (term.getStatus() == TermInstanceStatus.LOCKED) {
+            throw new LifecycleConflictException(
+                "The " + term.getTermType() + " term for this academic year is locked and can no longer be changed.",
+                "ACADEMIC_YEAR_TERM_LOCKED", "TermInstance", term.getId(), null);
+        }
     }
 
     private void validateDateRange(AcademicYearRequest request, Long excludeId) {

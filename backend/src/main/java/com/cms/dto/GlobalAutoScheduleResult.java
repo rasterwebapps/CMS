@@ -38,7 +38,15 @@ import java.util.List;
  *  pairingSkipReasons} names every candidate pair Phase B considered but couldn't actually place
  *  (no shared free day/period found for both labs+all batches+both faculty) — distinct from a pair
  *  simply never being eligible in the first place (mismatched batch counts, different block sizes,
- *  etc.), which is silent by design since that's the normal, expected shape for most offerings. */
+ *  etc.), which is silent by design since that's the normal, expected shape for most offerings.
+ *
+ * <p>{@code facultySubstitutionTips} lists every subject where this run had to place one or more
+ *  sessions with a different, already-eligible faculty member instead of the offering's own bound
+ *  faculty, because that bound faculty was unavailable at every remaining slot (see {@code
+ *  TimetableGlobalAutoScheduleService#recordFacultySubstitutionIfAny}). The substitute sessions are
+ *  already placed and staffed by the time this is reported — purely an actionable tip ("consider
+ *  reassigning this offering") for an admin, never a pending action of its own. Empty on the common
+ *  run where every row's own bound faculty covered everything it needed to. */
 public record GlobalAutoScheduleResult(
     int totalPlaced,
     int totalStaffed,
@@ -50,5 +58,6 @@ public record GlobalAutoScheduleResult(
     List<VenueCapacityGap> venueCapacityGaps,
     List<SkippedPublishedCohort> skippedPublishedCohorts,
     int rotationGroupsCreated,
-    List<String> pairingSkipReasons
+    List<String> pairingSkipReasons,
+    List<FacultySubstitutionTip> facultySubstitutionTips
 ) {}

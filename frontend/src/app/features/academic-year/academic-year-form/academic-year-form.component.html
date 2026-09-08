@@ -46,6 +46,22 @@
       <div class="entry-form-card entry-form-card--sectioned">
         <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
 
+          @if (editingLocked()) {
+            <div class="ayf-locked-banner">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span>
+                {{ oddTermInstance()?.status === 'LOCKED' && evenTermInstance()?.status === 'LOCKED'
+                  ? 'Both terms for this academic year are locked'
+                  : (oddTermInstance()?.status === 'LOCKED' ? 'The ODD term' : 'The EVEN term') + ' for this academic year is locked' }}
+                — dates, billing, and seat counts are frozen and can no longer be edited.
+              </span>
+            </div>
+          }
+
           <!-- ═══ Section 1: Academic Year Info ══════════════════════════════ -->
           <div class="ayf-section">
             <div class="ayf-section__hdr">
@@ -617,7 +633,7 @@
               </a>
             } @else {
               <a class="btn-cancel" routerLink="/academic-years">Cancel</a>
-              <button type="submit" class="btn-submit" [disabled]="saving()">
+              <button type="submit" class="btn-submit" [disabled]="saving() || editingLocked()">
                 @if (saving()) { <span class="btn-spinner"></span> }
                 {{ saving() ? 'Saving…' : (isEditMode() ? 'Update Academic Year' : 'Create Academic Year') }}
               </button>

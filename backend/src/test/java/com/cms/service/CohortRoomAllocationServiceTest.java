@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import com.cms.dto.BatchLifecycleImpactDto;
 import com.cms.dto.CohortRoomAllocationCommitRequest;
 import com.cms.dto.CohortRoomAllocationResponse;
 import com.cms.dto.CohortSectionRequest;
@@ -49,8 +50,10 @@ import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.LabRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
@@ -69,6 +72,9 @@ class CohortRoomAllocationServiceTest {
     @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     @Mock private ClassScheduleRepository classScheduleRepository;
     @Mock private CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
+    @Mock private BatchService batchService;
+    @Mock private ClinicalShiftGroupRepository clinicalShiftGroupRepository;
+    @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
 
     private CohortRoomAllocationService service;
 
@@ -82,7 +88,8 @@ class CohortRoomAllocationServiceTest {
         service = new CohortRoomAllocationService(allocationRepository, cohortSectionRepository, cohortRepository,
             termInstanceRepository, classroomRepository, labRepository, clinicalVenueRepository,
             courseOfferingRepository, batchRepository, studentTermEnrollmentRepository, classScheduleRepository,
-            courseOfferingSectionFacultyRepository);
+            courseOfferingSectionFacultyRepository, batchService, clinicalShiftGroupRepository,
+            sessionOccurrenceRepository);
 
         cohort = new Cohort();
         cohort.setId(1L);
@@ -475,8 +482,11 @@ class CohortRoomAllocationServiceTest {
         verify(batchRepository, never()).save(any());
     }
 
+    /** A batch/section with real downstream history (here: an active rotation assignment) must
+     *  stay soft-deactivated on revert -- never deleted -- both to preserve that history and so a
+     *  later recommit for the same cohort/label can still reuse its id. */
     @Test
-    void shouldDeactivateSectionsAndBatchesOnRevert() {
+    void shouldKeepSectionsAndBatchesSoftDeactivatedOnRevertWhenTheyHaveRealHistory() {
         CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, PlanningBasis.ENROLLED, 60, "admin");
         allocation.setId(100L);
         when(allocationRepository.findById(100L)).thenReturn(Optional.of(allocation));
@@ -488,11 +498,14 @@ class CohortRoomAllocationServiceTest {
         batch2.setId(201L);
         when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(batch1, batch2));
         when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(batchService.getLifecycleImpact(200L)).thenReturn(new BatchLifecycleImpactDto(0, 0, 1, 0, 0));
+        when(batchService.getLifecycleImpact(201L)).thenReturn(new BatchLifecycleImpactDto(0, 0, 1, 0, 0));
 
         CohortSection section = new CohortSection(allocation, term, "Section 1", theoryClassroom, 60);
         section.setId(300L);
         when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(section));
         when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(courseOfferingSectionFacultyRepository.existsByCohortSectionId(300L)).thenReturn(true);
 
         when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(200L, 201L))).thenReturn(List.of());
         when(classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(List.of(300L))).thenReturn(List.of());
@@ -503,10 +516,14 @@ class CohortRoomAllocationServiceTest {
         assertThat(batch1.getIsActive()).isFalse();
         assertThat(batch2.getIsActive()).isFalse();
         assertThat(section.getIsActive()).isFalse();
+        verify(batchService, never()).deleteBatch(any());
+        verify(cohortSectionRepository, never()).delete(any());
     }
 
+    /** A batch/section with zero real downstream history is pure scaffolding from an abandoned
+     *  plan -- revert must delete it for real instead of leaving it as permanent clutter. */
     @Test
-    void shouldDeactivateRidingDraftClassSchedulesOnRevert() {
+    void shouldHardDeleteSectionsAndBatchesOnRevertWhenTheyHaveNoRealHistory() {
         CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, PlanningBasis.ENROLLED, 60, "admin");
         allocation.setId(100L);
         when(allocationRepository.findById(100L)).thenReturn(Optional.of(allocation));
@@ -515,6 +532,38 @@ class CohortRoomAllocationServiceTest {
         Batch batch = new Batch(offering, "Batch A", 30, term);
         batch.setId(200L);
         when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(batch));
+        when(batchService.getLifecycleImpact(200L)).thenReturn(new BatchLifecycleImpactDto(0, 0, 0, 0, 0));
+
+        CohortSection section = new CohortSection(allocation, term, "Section 1", theoryClassroom, 60);
+        section.setId(300L);
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(section));
+        when(courseOfferingSectionFacultyRepository.existsByCohortSectionId(300L)).thenReturn(false);
+        when(clinicalShiftGroupRepository.existsByCohortSectionId(300L)).thenReturn(false);
+        when(sessionOccurrenceRepository.countByCohortSection_IdAndOccurrenceStatusNot(300L, com.cms.model.enums.OccurrenceStatus.CANCELLED))
+            .thenReturn(0L);
+
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(200L))).thenReturn(List.of());
+        when(classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(List.of(300L))).thenReturn(List.of());
+
+        service.revert(100L, "admin");
+
+        verify(batchService).deleteBatch(200L);
+        verify(batchRepository, never()).save(any());
+        verify(cohortSectionRepository).delete(section);
+        verify(cohortSectionRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldDeleteRidingDraftClassSchedulesOnRevert() {
+        CohortRoomAllocation allocation = new CohortRoomAllocation(cohort, term, PlanningBasis.ENROLLED, 60, "admin");
+        allocation.setId(100L);
+        when(allocationRepository.findById(100L)).thenReturn(Optional.of(allocation));
+        when(allocationRepository.save(any(CohortRoomAllocation.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Batch batch = new Batch(offering, "Batch A", 30, term);
+        batch.setId(200L);
+        when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of(batch));
+        when(batchService.getLifecycleImpact(200L)).thenReturn(new BatchLifecycleImpactDto(0, 0, 1, 0, 0));
         when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
         when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
 
@@ -523,13 +572,12 @@ class CohortRoomAllocationServiceTest {
         labCell.setStatus(ClassScheduleStatus.DRAFT);
         labCell.setIsActive(true);
         when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(200L))).thenReturn(List.of(labCell));
-        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.revert(100L, "admin");
 
         assertThat(batch.getIsActive()).isFalse();
-        assertThat(labCell.getIsActive()).isFalse();
-        verify(classScheduleRepository).save(labCell);
+        verify(classScheduleRepository).deleteAll(List.of(labCell));
+        verify(classScheduleRepository, never()).save(any());
     }
 
     @Test
@@ -556,6 +604,7 @@ class CohortRoomAllocationServiceTest {
         assertThat(allocation.getStatus()).isNotEqualTo(CohortRoomAllocationStatus.REVERTED);
         verify(batchRepository, never()).save(any());
         verify(classScheduleRepository, never()).save(any());
+        verify(classScheduleRepository, never()).deleteAll(any());
     }
 
     @Test

@@ -154,6 +154,57 @@
   }
 }
 
+.gas-checklist-allclear-banner {
+  margin: 4px 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-success, #15803d);
+  background: var(--cms-success-light, rgba(21, 128, 61, 0.08));
+  color: var(--cms-success, #15803d);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+}
+
+.gas-checklist-group {
+  margin: 0 0 16px;
+
+  &--clear {
+    margin-top: -8px;
+  }
+}
+
+.gas-checklist-group__toggle {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-muted, rgba(0, 0, 0, 0.03));
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cms-bg-card);
+  }
+}
+
+.gas-checklist--clear {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gas-checklist__clear-item {
+  padding: 4px 10px;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+}
+
 .gas-ack {
   margin: 16px 0;
   padding: 10px 12px;

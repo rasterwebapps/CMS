@@ -18,6 +18,8 @@ public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurr
 
     long countByBatch_IdAndOccurrenceStatusNot(Long batchId, OccurrenceStatus occurrenceStatus);
 
+    long countByCohortSection_IdAndOccurrenceStatusNot(Long cohortSectionId, OccurrenceStatus occurrenceStatus);
+
     List<SessionOccurrence> findByClassSchedule_CourseOffering_Id(Long courseOfferingId);
 
     List<SessionOccurrence> findByClassSchedule_TermInstance_IdAndClassSchedule_Status(

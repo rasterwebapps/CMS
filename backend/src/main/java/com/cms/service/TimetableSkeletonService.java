@@ -811,6 +811,119 @@ public class TimetableSkeletonService {
         return toCellResponse(primary);
     }
 
+    /** {@code REQUIRES_NEW} -- commits {@code block}'s raw multi-period THEORY rows in their own
+     *  transaction before returning, exactly like {@link #placeCell} already does for every other
+     *  placement path. The one caller ({@code TimetableGlobalAutoScheduleService
+     *  #saveIdleBatchSelfStudyCell}) constructs rows directly instead of going through {@link
+     *  #placeCell} specifically to bypass its audience-exclusivity check (a sibling LAB/CLINICAL
+     *  cell already occupies the whole section's audience scope at this exact slot for a different
+     *  batch, even though this idle batch itself is genuinely free) -- but skipping {@code placeCell}
+     *  also skips the {@code REQUIRES_NEW} commit that makes the row visible to a subsequent {@link
+     *  TimetableStaffingService#staffCell} call, which runs in its own separate {@code REQUIRES_NEW}
+     *  transaction/connection and cannot see a row that only exists, uncommitted, in the caller's
+     *  still-open ambient transaction under READ_COMMITTED isolation -- surfacing as a spurious
+     *  "Class schedule not found" the instant the caller tried to staff the row it had just "saved."
+     *  Returns every saved row's id, primary period first. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<Long> saveIdleBatchTheoryCells(CourseOffering offering, TermInstance term, DayOfWeek day,
+            List<Period> block, Batch batch, CohortSection cohortSection) {
+        java.util.UUID sessionGroupId = block.size() > 1 ? java.util.UUID.randomUUID() : null;
+        List<Long> ids = new ArrayList<>();
+        for (Period period : block) {
+            ClassSchedule cs = new ClassSchedule();
+            cs.setSessionType(ClassSessionType.THEORY);
+            cs.setStatus(ClassScheduleStatus.DRAFT);
+            cs.setSubject(offering.getSubject());
+            cs.setDayOfWeek(day);
+            cs.setTermInstance(term);
+            cs.setCourseOffering(offering);
+            cs.setPeriod(period);
+            cs.setBatch(batch);
+            cs.setBatchName(batch.getName());
+            cs.setCohortSection(cohortSection);
+            cs.setIsActive(true);
+            cs.setSessionGroupId(sessionGroupId);
+            ClassSchedule saved = classScheduleRepository.save(cs);
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordPlacement(saved));
+            ids.add(saved.getId());
+        }
+        return ids;
+    }
+
+    /** {@code REQUIRES_NEW} — the LIBRARY-typed twin of {@link #saveIdleBatchTheoryCells} just
+     *  above, for the exact same reason: {@code TimetableGlobalAutoScheduleService
+     *  #saveIdleBatchLibraryCell} used to save these rows directly via a plain {@code
+     *  classScheduleRepository.save(...)} in its own long-lived ambient transaction (the whole
+     *  global-auto-schedule run is one {@code @Transactional} that doesn't commit until the entire
+     *  run finishes), which never made them visible to a LATER {@code REQUIRES_NEW} call on a
+     *  separate connection under READ_COMMITTED isolation — concretely, {@link #forceRemoveCell},
+     *  the very call {@code attemptBacktrack} makes when it later tries to bump one of these idle-
+     *  batch Library placements. That invisibility surfaced as every such placement reporting
+     *  "already missing from the database" the instant a run's own backtrack logic reached it, even
+     *  though the row was sitting right there, just not yet committed. Returns every saved row's
+     *  id, primary period first. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<Long> saveIdleBatchLibraryCells(Subject librarySubject, TermInstance term, DayOfWeek day,
+            List<Period> block, Batch batch, CohortSection cohortSection, Classroom classroom) {
+        java.util.UUID sessionGroupId = block.size() > 1 ? java.util.UUID.randomUUID() : null;
+        List<Long> ids = new ArrayList<>();
+        for (Period period : block) {
+            ClassSchedule cs = new ClassSchedule();
+            cs.setSessionType(ClassSessionType.LIBRARY);
+            cs.setStatus(ClassScheduleStatus.DRAFT);
+            cs.setSubject(librarySubject);
+            cs.setDayOfWeek(day);
+            cs.setTermInstance(term);
+            cs.setCourseOffering(null);
+            cs.setPeriod(period);
+            cs.setClassroom(classroom);
+            cs.setBatch(batch);
+            cs.setBatchName(batch.getName());
+            cs.setCohortSection(cohortSection);
+            cs.setIsActive(true);
+            cs.setSessionGroupId(sessionGroupId);
+            ClassSchedule saved = classScheduleRepository.save(cs);
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordPlacement(saved));
+            ids.add(saved.getId());
+        }
+        return ids;
+    }
+
+    /** {@code REQUIRES_NEW} — the whole-section/whole-cohort twin of {@link
+     *  #saveIdleBatchLibraryCells} (no {@code batch}: {@code TimetableGlobalAutoScheduleService
+     *  #fillLibraryGaps}'s regular Library filler places for a whole audience, not one idle batch),
+     *  same reason: commits before returning so the row is visible to any later {@code REQUIRES_NEW}
+     *  call on a separate connection, instead of sitting invisible in the caller's own long-lived
+     *  ambient transaction under READ_COMMITTED isolation. Not currently reached by a same-run
+     *  backtrack (see that method's own javadoc for the phase ordering that keeps it that way today),
+     *  but kept consistent with every other idle-fill/filler placement path here rather than leaving
+     *  this one as a dormant copy of the exact bug that {@link #saveIdleBatchLibraryCells} fixed.
+     *  Returns every saved row entity, primary period first. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<ClassSchedule> saveLibraryBlockCells(Subject librarySubject, TermInstance term, DayOfWeek day,
+            List<Period> block, CohortSection cohortSection, Classroom classroom) {
+        java.util.UUID sessionGroupId = block.size() > 1 ? java.util.UUID.randomUUID() : null;
+        List<ClassSchedule> saved = new ArrayList<>();
+        for (Period period : block) {
+            ClassSchedule cs = new ClassSchedule();
+            cs.setSessionType(ClassSessionType.LIBRARY);
+            cs.setStatus(ClassScheduleStatus.DRAFT);
+            cs.setSubject(librarySubject);
+            cs.setDayOfWeek(day);
+            cs.setTermInstance(term);
+            cs.setCourseOffering(null);
+            cs.setPeriod(period);
+            cs.setClassroom(classroom);
+            cs.setCohortSection(cohortSection);
+            cs.setIsActive(true);
+            cs.setSessionGroupId(sessionGroupId);
+            ClassSchedule persisted = classScheduleRepository.save(cs);
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordPlacement(persisted));
+            saved.add(persisted);
+        }
+        return saved;
+    }
+
     /** OC-127 periodSpan: resolves {@code primary} + every {@code spanPeriodIds} period into one
      *  periodOrder-sorted list, hard-requiring they form an unbroken consecutive run starting at
      *  {@code primary} -- a gap (e.g. periods 2 and 4 without 3) would silently place a session

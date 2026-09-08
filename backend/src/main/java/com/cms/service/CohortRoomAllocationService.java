@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AllocatedBatchResponse;
+import com.cms.dto.BatchLifecycleImpactDto;
 import com.cms.dto.CohortRoomAllocationCommitRequest;
 import com.cms.dto.CohortRoomAllocationResponse;
 import com.cms.dto.CohortSectionRequest;
@@ -34,10 +35,12 @@ import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.OccurrenceStatus;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
+import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
@@ -45,6 +48,7 @@ import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.LabRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
@@ -53,9 +57,12 @@ import com.cms.repository.TermInstanceRepository;
  * own classroom + headcount, forced into 2+ when no single classroom fits) plus however many
  * Lab/Clinical batches are needed per section, editable-not-forced-even split sizes, capacity-fit
  * validated against each chosen venue. Term-scoped only — no day/period here, that belongs to the
- * later Staffing pass. Reverting never deletes: it flips {@link CohortRoomAllocationStatus} to
- * REVERTED and soft-deactivates the sections/batches this commit created, so roster history
- * survives.
+ * later Staffing pass. Reverting flips {@link CohortRoomAllocationStatus} to REVERTED and hard-
+ * deletes the DRAFT sections/batches/class_schedules this commit created once nothing real still
+ * depends on them (see {@link #revert}) -- a batch/section with genuine history (roster, rotation/
+ * escort assignment, session occurrence, Clinical Shift Group link, or per-section faculty
+ * assignment) stays soft-deactivated instead, exactly as before, both to preserve that history and
+ * so a later recommit for the same cohort/label can still reuse its id.
  */
 @Service
 @Transactional(readOnly = true)
@@ -73,6 +80,9 @@ public class CohortRoomAllocationService {
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     private final ClassScheduleRepository classScheduleRepository;
     private final CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
+    private final BatchService batchService;
+    private final ClinicalShiftGroupRepository clinicalShiftGroupRepository;
+    private final SessionOccurrenceRepository sessionOccurrenceRepository;
 
     public CohortRoomAllocationService(CohortRoomAllocationRepository allocationRepository,
                                         CohortSectionRepository cohortSectionRepository,
@@ -85,7 +95,10 @@ public class CohortRoomAllocationService {
                                         BatchRepository batchRepository,
                                         StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                                         ClassScheduleRepository classScheduleRepository,
-                                        CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository) {
+                                        CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository,
+                                        BatchService batchService,
+                                        ClinicalShiftGroupRepository clinicalShiftGroupRepository,
+                                        SessionOccurrenceRepository sessionOccurrenceRepository) {
         this.allocationRepository = allocationRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.cohortRepository = cohortRepository;
@@ -98,6 +111,9 @@ public class CohortRoomAllocationService {
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.courseOfferingSectionFacultyRepository = courseOfferingSectionFacultyRepository;
+        this.batchService = batchService;
+        this.clinicalShiftGroupRepository = clinicalShiftGroupRepository;
+        this.sessionOccurrenceRepository = sessionOccurrenceRepository;
     }
 
     public CohortRoomAllocationResponse getCurrent(Long cohortId, Long termInstanceId) {
@@ -280,22 +296,52 @@ public class CohortRoomAllocationService {
         allocation.setRevertedAt(java.time.Instant.now());
         allocationRepository.save(allocation);
 
+        // Every riding cell here is guaranteed DRAFT -- the PUBLISHED check above already hard-
+        // blocked otherwise. Global Auto-Schedule always rebuilds the DRAFT grid from scratch on
+        // its next run (never patches/reuses old cells), so nothing of value survives keeping these
+        // around; delete outright instead of the old soft-deactivate-and-abandon, which just left
+        // them as permanent clutter that kept blocking their faculty/room/day/period in every future
+        // conflict check while counting toward nothing.
+        if (!ridingCells.isEmpty()) {
+            classScheduleRepository.deleteAll(ridingCells);
+        }
+
+        // A batch with zero real downstream history (no roster, no rotation/escort assignment, no
+        // session occurrence, no live class schedule -- guaranteed true now) is pure scaffolding
+        // from an abandoned plan; delete it for real via the same hard-gated path Manage Batches
+        // uses. One with any real history stays soft-deactivated exactly as before, both to
+        // preserve that history and so a later recommit for the same cohort/label can still reuse
+        // its id (see reuseOrCreateSection/reuseOrCreateBatch).
+        Set<Long> keptSectionIds = new HashSet<>();
         for (Batch batch : batches) {
-            batch.setIsActive(false);
-            batchRepository.save(batch);
+            BatchLifecycleImpactDto impact = batchService.getLifecycleImpact(batch.getId());
+            if (impact.hasAny()) {
+                batch.setIsActive(false);
+                batchRepository.save(batch);
+                if (batch.getCohortSection() != null) {
+                    keptSectionIds.add(batch.getCohortSection().getId());
+                }
+            } else {
+                batchService.deleteBatch(batch.getId());
+            }
         }
+
+        // A section is only safe to delete once nothing still points to it: no surviving batch
+        // (just decided above), no Clinical Shift Group link, no per-section faculty assignment
+        // (real admin-entered data), no session occurrence of its own (the "reconvened full roster"
+        // case). Anything still referenced stays soft-deactivated, same as before.
         for (CohortSection section : sections) {
-            section.setIsActive(false);
-            cohortSectionRepository.save(section);
-        }
-        // DRAFT cells riding on the now-deactivated batches/sections would otherwise sit orphaned
-        // forever: still isActive=true, so still fully blocking their faculty/room/day/period in
-        // every future conflict check, yet no longer counted anywhere as "placed" since Skeleton
-        // Builder's tally only looks at the currently-active batch/section list. Deactivating them
-        // here frees the slot for re-placement and keeps the tally honest.
-        for (ClassSchedule cell : ridingCells) {
-            cell.setIsActive(false);
-            classScheduleRepository.save(cell);
+            boolean stillReferenced = keptSectionIds.contains(section.getId())
+                || clinicalShiftGroupRepository.existsByCohortSectionId(section.getId())
+                || courseOfferingSectionFacultyRepository.existsByCohortSectionId(section.getId())
+                || sessionOccurrenceRepository.countByCohortSection_IdAndOccurrenceStatusNot(
+                    section.getId(), OccurrenceStatus.CANCELLED) > 0;
+            if (stillReferenced) {
+                section.setIsActive(false);
+                cohortSectionRepository.save(section);
+            } else {
+                cohortSectionRepository.delete(section);
+            }
         }
 
         return toResponse(allocation);

@@ -16,7 +16,8 @@ import { CapacityPlannerService } from '../capacity-planner/capacity-planner.ser
 import { FacultyWorkloadOverviewReport } from '../capacity-planner/capacity-planner.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { TeachingAssignmentDialogComponent, TeachingAssignmentDialogData } from '../../assign-faculty/teaching-assignment-dialog/teaching-assignment-dialog.component';
-import { FacultyOverCapacity, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult, VenueCapacityGap, VenueOverCapacity, VenueTightCapacity } from './skeleton-builder.model';
+import { FacultyOverCapacity, FacultySubstitutionTip, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult, VenueCapacityGap, VenueOverCapacity, VenueTightCapacity } from './skeleton-builder.model';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { SpecialClassRequestFlyoutComponent } from '../special-classes/special-class-request-flyout/special-class-request-flyout.component';
 import { SpecialClassSessionType } from '../special-classes/special-class.model';
@@ -143,6 +144,21 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
   protected readonly checklistItems = signal<ChecklistItem[]>([]);
   protected readonly acknowledged = signal(false);
 
+  /** Items actually worth the admin's attention (warn === true) — the only ones still gated behind
+   *  the open-then-tick flow. Clean items never appear here at all: {@link finishPrerequisiteCheck}
+   *  and the refresh helpers below pre-check them the moment they're known clean, so there's nothing
+   *  left to individually review. */
+  protected readonly attentionItems = computed(() => this.checklistItems().filter((item) => item.warn));
+  /** Clean items, collapsed into one "All clear" summary instead of N individually-opened rows —
+   *  there's genuinely nothing to review on a passing check, so making the admin open each one
+   *  anyway was pure friction, not real diligence. */
+  protected readonly clearItems = computed(() => this.checklistItems().filter((item) => !item.warn));
+  protected readonly showAllClear = signal(false);
+
+  protected toggleClearGroup(): void {
+    this.showAllClear.update((v) => !v);
+  }
+
   /** True the moment any {@code hardBlock} item is still unresolved — Run stays disabled
    *  regardless of ticking, since the server enforces this same gate unconditionally (see {@link
    *  ChecklistItem}). */
@@ -244,6 +260,123 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     return bySubject.size === 1 ? [...bySubject.values()][0] : null;
   });
 
+  /** Which faculty-substitution tips are currently ticked to be made official on Submit — defaults
+   *  to EVERY tip ticked the moment a run finishes (see {@link runGlobalSchedule}), since these are
+   *  the admin's own automation's recommendations, not arbitrary suggestions: the run already
+   *  established the offering's own bound faculty was unavailable at every remaining slot this
+   *  week, so accepting the substitute is the expected outcome and un-ticking is the deliberate
+   *  opt-out, not the other way around. Keyed the same way the template's own `@for` track
+   *  expression identifies a tip (courseOfferingId + originalFacultyId + substituteFacultyId). */
+  protected readonly confirmedTipKeys = signal<Set<string>>(new Set());
+  /** Tips already applied via a successful {@link submitSubstitutions} call — locked (checkbox
+   *  disabled, shown as done) so a second Submit can't re-send them. Cleared only by a fresh run. */
+  protected readonly submittedTipKeys = signal<Set<string>>(new Set());
+  protected readonly submittingSubstitutions = signal(false);
+
+  /** courseOfferingId, not subjectName -- the backend now emits one tip per (offering, original,
+   *  substitute) since the same subject can have a separate CourseOffering row per cohort (see
+   *  backend `TimetableGlobalAutoScheduleService#buildFacultySubstitutionTips`); two such tips can
+   *  share a subject name and would otherwise collide onto the same tracking key. */
+  protected tipKey(tip: FacultySubstitutionTip): string {
+    return `${tip.courseOfferingId}-${tip.originalFacultyId}-${tip.substituteFacultyId}`;
+  }
+
+  protected isTipConfirmed(tip: FacultySubstitutionTip): boolean {
+    return this.confirmedTipKeys().has(this.tipKey(tip));
+  }
+
+  protected isTipSubmitted(tip: FacultySubstitutionTip): boolean {
+    return this.submittedTipKeys().has(this.tipKey(tip));
+  }
+
+  protected toggleTipConfirmed(tip: FacultySubstitutionTip): void {
+    if (this.isTipSubmitted(tip)) return;
+    const key = this.tipKey(tip);
+    this.confirmedTipKeys.update((set) => {
+      const next = new Set(set);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
+  /** Read-only "what does confirming this actually do" popup — deliberately NOT the full merged
+   *  Assign Faculty dialog ({@link onAssignFaculty}'s `suggestion.autoApply` path already covers
+   *  that manual-review route); this is just context to inform the checkbox above, single OK
+   *  button, no save of its own. */
+  protected viewTipDetail(tip: FacultySubstitutionTip): void {
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: tip.subjectName,
+        message: `${tip.substituteFacultyName} covered ${tip.sessionCount} session(s) this run because `
+          + `${tip.originalFacultyName} was unavailable at every remaining slot. Confirming this tick does NOT just `
+          + `credit them for those ${tip.sessionCount} session(s) — it makes ${tip.substituteFacultyName} the `
+          + `official ${this.tipRoleLabel(tip)} for the REST OF THE TERM (100% of this section's remaining hours), `
+          + `in place of ${tip.originalFacultyName}, checked against their full-term capacity — `
+          + `${this.substituteWorkloadText(tip)} Nothing is saved by viewing this — only the Submit button below `
+          + `actually applies it.`,
+        alertOnly: true,
+      },
+    });
+  }
+
+  /** A tip's `affectedSections` carries a `batchId` only for a LAB/CLINICAL substitution (its
+   *  faculty-of-record is a Batch's coordinator, not a Theory row) — used purely to word the detail
+   *  dialog/toasts correctly; confirming itself routes on this same field server-side. */
+  protected tipRoleLabel(tip: FacultySubstitutionTip): string {
+    return tip.affectedSections.some((s) => s.batchId != null) ? 'Lab/Clinical coordinator' : 'Theory faculty';
+  }
+
+  /** At least one un-submitted tip is ticked and nothing else is in flight — same "some progress is
+   *  enough" gate as {@link confirmedTipKeys}'s default-all-ticked framing: there is no requirement
+   *  to review every tip before acting on the ones already decided. */
+  protected readonly canSubmitSubstitutions = computed(() => {
+    if (this.submittingSubstitutions()) return false;
+    const submitted = this.submittedTipKeys();
+    const confirmed = this.confirmedTipKeys();
+    const tips = this.result()?.facultySubstitutionTips ?? [];
+    return tips.some((tip) => confirmed.has(this.tipKey(tip)) && !submitted.has(this.tipKey(tip)));
+  });
+
+  /** Batch-applies every ticked, not-yet-submitted tip in one all-or-nothing call (see backend
+   *  `CourseOfferingSectionFacultyService#confirmSubstitutions`) — a single Submit rather than the
+   *  old per-tip "make it official" dialog+save. On success, those tips lock as submitted; on
+   *  failure NOTHING changed server-side (all-or-nothing), so the ticks stay exactly as the admin
+   *  left them and they can adjust and retry. */
+  protected submitSubstitutions(): void {
+    const submitted = this.submittedTipKeys();
+    const confirmed = this.confirmedTipKeys();
+    const tips = (this.result()?.facultySubstitutionTips ?? [])
+      .filter((tip) => confirmed.has(this.tipKey(tip)) && !submitted.has(this.tipKey(tip)));
+    if (tips.length === 0) return;
+
+    this.submittingSubstitutions.set(true);
+    this.academicYearService.confirmFacultySubstitutions({
+      items: tips.map((tip) => ({
+        courseOfferingId: tip.courseOfferingId,
+        originalFacultyId: tip.originalFacultyId,
+        substituteFacultyId: tip.substituteFacultyId,
+        affectedSections: tip.affectedSections,
+      })),
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
+        this.submittingSubstitutions.set(false);
+        this.submittedTipKeys.update((set) => {
+          const next = new Set(set);
+          for (const tip of tips) next.add(this.tipKey(tip));
+          return next;
+        });
+        const skippedNote = result.sectionsSkipped > 0
+          ? ` (${result.sectionsSkipped} section(s) already reassigned by another tip in this run were left unchanged)`
+          : '';
+        this.toast.success(`Confirmed ${tips.length} substitution(s) as the official faculty assignment for the rest of the term${skippedNote}`);
+      },
+      error: (err) => {
+        this.submittingSubstitutions.set(false);
+        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to confirm substitutions — nothing was changed');
+      },
+    });
+  }
+
   protected readonly showWorkingSaturdaysFlyout = signal(false);
   protected readonly specialClassPrefill = signal<SingleShortfallSubject | null>(null);
 
@@ -320,11 +453,13 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     this.capacityPlannerService.getFacultyWorkloadOverview(this.termInstanceId()).subscribe({
       next: (overview) => {
         this.capacityOverview.set(overview);
+        const warn = overview.totalCurriculumRequiredHours - overview.totalFacultyCapacityHours > 0.001;
         this.checklistItems.update((items) => items.map((item) => item.key !== 'capacity-gap' ? item : {
           ...item,
           label: this.capacityGapChecklistLabel(overview),
-          warn: overview.totalCurriculumRequiredHours - overview.totalFacultyCapacityHours > 0.001,
-          checked: false,
+          warn,
+          checked: !warn,
+          viewed: warn ? item.viewed : true,
         }));
       },
       error: () => this.toast.error('Failed to refresh capacity numbers'),
@@ -389,7 +524,7 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     const tightPeriodDays = prereq.clinicalShiftPeriodAvailability.tightPeriodDays;
     const needingRoom = this.cohortsNeedingRoom();
 
-    this.checklistItems.set([
+    const items: ChecklistItem[] = [
       {
         key: 'faculty',
         label: offeringsWithoutFaculty.length > 0
@@ -493,7 +628,11 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
         viewed: false,
         expanded: false,
       },
-    ]);
+    ];
+    // Clean (non-warn) items are pre-checked/pre-viewed here — there's nothing to review on a
+    // passing check, so they go straight into the collapsed "All clear" group instead of making
+    // the admin open and tick each one individually (see {@link clearItems}).
+    this.checklistItems.set(items.map((item) => item.warn ? item : { ...item, checked: true, viewed: true }));
     this.acknowledged.set(false);
     this.step.set('checklist');
   }
@@ -508,7 +647,11 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  Theory-only CourseOfferingEditDialogComponent it used before the OC-193 merge -- this
    *  checklist's own gate counts each active Lab/Clinical batch's coordinator as part of "expected"
    *  (see CourseOfferingSectionFacultyService#getAssignmentSummaryForTermInstance), so a
-   *  Theory-only dialog could never clear an offering that also needs a coordinator assigned. */
+   *  Theory-only dialog could never clear an offering that also needs a coordinator assigned.
+   *
+   * <p>Only ever called for offerings still missing faculty entirely (the 'faculty' checklist
+   *  item's own "Assign faculty" links) — faculty-substitution tips no longer route through here at
+   *  all, see {@link submitSubstitutions} for that batch-confirm path instead. */
   protected onAssignFaculty(courseOfferingId: number): void {
     this.academicYearService.getCourseOfferingById(courseOfferingId).subscribe({
       next: (offering) => {
@@ -536,13 +679,15 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
       next: (prereq) => {
         this.prerequisites.set(prereq);
         const offeringsWithoutFaculty = prereq.offeringsWithoutFaculty;
+        const warn = offeringsWithoutFaculty.length > 0;
         this.checklistItems.update((items) => items.map((item) => item.key !== 'faculty' ? item : {
           ...item,
-          label: offeringsWithoutFaculty.length > 0
+          label: warn
             ? `${offeringsWithoutFaculty.length} offering(s) have no faculty assigned`
             : 'Every offering has faculty assigned',
-          warn: offeringsWithoutFaculty.length > 0,
-          checked: false,
+          warn,
+          checked: !warn,
+          viewed: warn ? item.viewed : true,
         }));
       },
       error: () => this.toast.error('Failed to refresh faculty assignment status'),
@@ -578,6 +723,8 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
         next: (result) => {
           this.stopElapsedTimer();
           this.result.set(result);
+          this.confirmedTipKeys.set(new Set(result.facultySubstitutionTips.map((tip) => this.tipKey(tip))));
+          this.submittedTipKeys.set(new Set());
           this.step.set('success');
           this.scheduled.emit();
         },
@@ -613,11 +760,29 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     }
   }
 
-  /** No-op while a run is in flight (backdrop click, the panel's own X button, and the footer
-   *  Close button all route here) — closing mid-run is what let a second run stack on top of the
-   *  first; the admin has to wait for 'success'/'run-failed' before this can dismiss. */
+  /** The substitute's own workload, checked BEFORE trusting them as a permanent reassignment — the
+   *  answer to "is this person actually free, or just the least-busy option this run happened to
+   *  reach for." `substituteRemainingHours` is their pre-run baseline (see
+   *  `FacultySubstitutionTip`'s own doc); if they picked up more than this one tip's `sessionCount`
+   *  across other subjects too this run, that's surfaced separately since no single pre-run snapshot
+   *  could have seen it coming. */
+  protected substituteWorkloadText(tip: FacultySubstitutionTip): string {
+    const baseline = tip.substituteCapacityTier === 'NONE' || tip.substituteRemainingHours == null
+      ? 'no capacity cap configured for them'
+      : `${Math.round(tip.substituteRemainingHours * 10) / 10}h free before this run, against ${this.tierLabel(tip.substituteCapacityTier)}`;
+    if (tip.substituteTotalSessionsThisRun > tip.sessionCount) {
+      return `${baseline} — but they also picked up fallback sessions for other subjects this run `
+        + `(${tip.substituteTotalSessionsThisRun} total), so check their overall load before making this permanent.`;
+    }
+    return baseline + '.';
+  }
+
+  /** No-op while a run — or a substitution-confirm submit — is in flight (backdrop click, the
+   *  panel's own X button, and the footer Close button all route here) — closing mid-run is what
+   *  let a second run stack on top of the first; the admin has to wait for it to finish before this
+   *  can dismiss. */
   protected onClose(): void {
-    if (this.step() === 'running') return;
+    if (this.step() === 'running' || this.submittingSubstitutions()) return;
     this.closed.emit();
   }
 

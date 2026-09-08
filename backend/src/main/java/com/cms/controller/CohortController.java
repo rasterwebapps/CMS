@@ -22,18 +22,23 @@ import com.cms.dto.CohortQuotaStatusRequest;
 import com.cms.dto.CohortSeatsRequest;
 import com.cms.dto.CohortSummaryResponse;
 import com.cms.dto.SeatAvailabilityResponse;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
 import com.cms.model.Course;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.ProgramStatus;
+import com.cms.model.enums.TermInstanceStatus;
+import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.repository.TermInstanceRepository;
 
 @RestController
 @RequestMapping("/cohorts")
@@ -43,15 +48,18 @@ public class CohortController {
     private final CourseRepository        courseRepository;
     private final AcademicYearRepository  academicYearRepository;
     private final StudentRepository       studentRepository;
+    private final TermInstanceRepository  termInstanceRepository;
 
     public CohortController(CohortRepository cohortRepository,
                             CourseRepository courseRepository,
                             AcademicYearRepository academicYearRepository,
-                            StudentRepository studentRepository) {
+                            StudentRepository studentRepository,
+                            TermInstanceRepository termInstanceRepository) {
         this.cohortRepository      = cohortRepository;
         this.courseRepository      = courseRepository;
         this.academicYearRepository = academicYearRepository;
         this.studentRepository     = studentRepository;
+        this.termInstanceRepository = termInstanceRepository;
     }
 
     @GetMapping
@@ -188,6 +196,7 @@ public class CohortController {
             @RequestBody CohortSeatsRequest request) {
         Cohort cohort = cohortRepository.findByIdWithCourse(id)
             .orElseThrow(() -> new ResourceNotFoundException("Cohort not found: " + id));
+        requireAdmissionYearNotFullyLocked(cohort);
 
         Integer total = request.totalSeats();
         BigDecimal pct = request.managementPercentage();
@@ -200,6 +209,24 @@ public class CohortController {
             cohort.setCounsellingSeats(total - mgmt);
         }
         return ResponseEntity.ok(toResponse(cohortRepository.save(cohort)));
+    }
+
+    /** Same "LOCKED is frozen, full stop" rule every other lifecycle guard in the app already
+     *  enforces (see {@code AcademicYearService#requireNotLocked}) -- a cohort's sanctioned seat
+     *  count is a decision that belongs to its admission cycle, so it stays editable as long as
+     *  either of that cycle's two terms hasn't been locked yet, and freezes only once the whole
+     *  admission year has run its course (both ODD and EVEN locked). */
+    private void requireAdmissionYearNotFullyLocked(Cohort cohort) {
+        AcademicYear admissionYear = cohort.getAdmissionAcademicYear();
+        if (admissionYear == null) return;
+        List<TermInstance> terms = termInstanceRepository.findByAcademicYearId(admissionYear.getId());
+        boolean fullyLocked = !terms.isEmpty()
+            && terms.stream().allMatch(t -> t.getStatus() == TermInstanceStatus.LOCKED);
+        if (fullyLocked) {
+            throw new LifecycleConflictException(
+                "'" + admissionYear.getName() + "' is fully locked — its cohorts' seat allocations can no longer be changed.",
+                "ACADEMIC_YEAR_TERM_LOCKED", "AcademicYear", admissionYear.getId(), null);
+        }
     }
 
     @PatchMapping("/{id}/quota-status")

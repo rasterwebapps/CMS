@@ -14,6 +14,8 @@ import {
   CohortLapsedSummary,
   CohortSeatsRequest,
   CohortSummary,
+  ConfirmFacultySubstitutionsRequest,
+  ConfirmFacultySubstitutionsResult,
   CourseOffering,
   CourseOfferingFacultySummary,
   CourseOfferingSectionFacultyResponse,
@@ -340,6 +342,13 @@ export class AcademicYearService {
   updateCohortFaculty(offeringId: number, cohortId: number, facultyId: number | null, version: number | null): Observable<SectionFacultyAssignment> {
     return this.http.put<SectionFacultyAssignment>(
       `${environment.apiUrl}/course-offerings/${offeringId}/cohort-faculty/${cohortId}`, { facultyId, version });
+  }
+
+  /** Batch "make it official" for one or more Global Auto-Schedule faculty-substitution tips ticked
+   *  at once — all-or-nothing, see {@link ConfirmFacultySubstitutionsResult}. */
+  confirmFacultySubstitutions(request: ConfirmFacultySubstitutionsRequest): Observable<ConfirmFacultySubstitutionsResult> {
+    return this.http.post<ConfirmFacultySubstitutionsResult>(
+      `${environment.apiUrl}/course-offerings/confirm-faculty-substitutions`, request);
   }
 
   getClassIncharge(termInstanceId: number): Observable<ClassInchargeAssignment[]> {

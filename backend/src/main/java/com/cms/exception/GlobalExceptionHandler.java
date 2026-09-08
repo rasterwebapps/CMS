@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.ErrorResponse;
 import com.cms.dto.LifecycleConflictResponse;
+import com.cms.dto.ModuleNotEnabledResponse;
 import com.cms.dto.TimetableConstraintViolationResponse;
 
 @RestControllerAdvice
@@ -29,6 +30,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
+        // Logged with the full stack trace, not just the message: a 404 thrown mid-orchestration
+        // (e.g. Global Auto-Schedule referencing a stale/already-deleted cell id several calls deep)
+        // is a server-side bug, not a routine "this id doesn't exist" lookup miss -- and without this,
+        // nothing server-side ever recorded which line actually threw, only the bare message the
+        // client saw.
+        log.warn("Resource not found: {}", ex.getMessage(), ex);
         ErrorResponse error = new ErrorResponse(
             HttpStatus.NOT_FOUND.value(),
             ex.getMessage(),
@@ -94,6 +101,18 @@ public class GlobalExceptionHandler {
             Instant.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(ModuleNotEnabledException.class)
+    public ResponseEntity<ModuleNotEnabledResponse> handleModuleNotEnabled(ModuleNotEnabledException ex) {
+        ModuleNotEnabledResponse error = new ModuleNotEnabledResponse(
+            HttpStatus.FORBIDDEN.value(),
+            ex.getMessage(),
+            "MODULE_NOT_ENABLED",
+            ex.getModuleCode(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)

@@ -21,7 +21,12 @@ spring:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 20000
-      leak-detection-threshold: 30000
+      # 30s used to fire on every real "All Cohorts" Global Auto-Schedule run, which is one single
+      # @Transactional documented to legitimately take several minutes -- the connection was always
+      # correctly returned to the pool at the end (confirmed by Hikari's own "was returned to the
+      # pool (unleaked)" follow-up log line), so that was pure noise, not a real leak. 6 minutes
+      # comfortably covers a real multi-cohort run while still catching an actual leak elsewhere.
+      leak-detection-threshold: 360000
 
   # Serialize Instant/Date as ISO-8601 UTC strings (e.g. "2026-04-28T08:30:00Z")
   # so the frontend receives UTC timestamps and converts them to local time.
@@ -56,6 +61,15 @@ server:
 # CORS allowed origins — override per profile or environment variable
 cors:
   allowed-origins: https://localhost:4200,https://localhost:4300,https://172.17.3.133:4200,https://172.17.3.133:4300
+
+# Which feature modules this deployment has enabled (see docs/module-architecture/).
+# Comma-separated module codes, e.g. "CORE_INFRA,INVENTORY" for an inventory-only org.
+# Left empty (the default) means every module is enabled — existing deployments are
+# unaffected unless this is deliberately narrowed. Validated at startup: an unknown code,
+# or a module enabled without a dependency it declares, prevents the app from starting.
+app:
+  modules:
+    enabled: ${APP_MODULES_ENABLED:}
 
 # Seed data is opt-in only. The default local profile must use the actual
 # PostgreSQL data that is already present in the configured database.

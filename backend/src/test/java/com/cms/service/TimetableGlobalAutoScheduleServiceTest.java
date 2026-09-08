@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -908,6 +909,25 @@ class TimetableGlobalAutoScheduleServiceTest {
             cs.setId(800L + idSequence.getAndIncrement());
             return cs;
         });
+        // TimetableSkeletonService#saveLibraryBlockCells now does what this method's own
+        // classScheduleRepository.save loop used to do directly (see that method's REQUIRES_NEW
+        // javadoc) -- mirror the real implementation here so it still routes through the stub above,
+        // keeping every save-count/day assertion below unchanged.
+        when(timetableSkeletonService.saveLibraryBlockCells(any(), any(), any(), any(), any(), any()))
+            .thenAnswer(inv -> {
+                DayOfWeek day = inv.getArgument(2);
+                @SuppressWarnings("unchecked")
+                List<Period> block = (List<Period>) inv.getArgument(3);
+                List<ClassSchedule> saved = new ArrayList<>();
+                for (Period period : block) {
+                    ClassSchedule cs = new ClassSchedule();
+                    cs.setSessionType(ClassSessionType.LIBRARY);
+                    cs.setDayOfWeek(day);
+                    cs.setPeriod(period);
+                    saved.add(classScheduleRepository.save(cs));
+                }
+                return saved;
+            });
 
         // Pre-existing: Monday already has a full 2-period Library block for the whole cohort
         // (cohortSectionId null), PUBLISHED so the rebuild purge correctly leaves it standing.

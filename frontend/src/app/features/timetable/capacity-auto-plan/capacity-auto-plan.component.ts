@@ -282,14 +282,24 @@ export class CapacityAutoPlanComponent implements OnInit {
    *  (see Capacity Planner, which uses the same two-step pattern for this exact object). Reverting
    *  flips the allocation to REVERTED and frees its rooms; the subsequent runOverview() refetch
    *  then finds the cohort not-yet-committed again and rebuilds a fresh editable draft for it from
-   *  real server suggestions, ready for Confirm & Commit. */
+   *  real server suggestions, ready for Confirm & Commit. Server-side ({@code
+   *  CohortRoomAllocationService#revert}), any section/batch/draft session this leaves with zero
+   *  real history (no roster, no rotation/escort assignment, no session occurrence) is now
+   *  permanently DELETED rather than just deactivated -- one with real history still only gets
+   *  soft-deactivated. The dialog copy below says so plainly since that's a bigger, less reversible
+   *  consequence than the old "just frees it up" framing. Already-published sessions still hard-
+   *  block the whole revert with a separate server error, unchanged. */
   protected revertAllocation(row: CohortAutoPlanSummary): void {
     const alloc = this.currentAllocation();
     if (!alloc) return;
     this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Revert Room Allocation',
-        message: `Revert ${row.cohortLabel}'s committed room allocation for this term? This frees its rooms and rebuilds an editable draft you can adjust and re-commit.`,
+        message: `Revert ${row.cohortLabel}'s committed room allocation for this term? This frees its rooms and `
+          + `rebuilds an editable draft you can adjust and re-commit. Any section, batch, or draft session this `
+          + `leaves with no real history (no roster, rotation/escort assignment, or attendance) is permanently `
+          + `deleted, not just deactivated — only ones with real history are kept (deactivated). Already-published `
+          + `sessions are never affected; if any exist, this revert is blocked instead.`,
         confirmText: 'Revert Allocation',
         cancelText: 'Cancel',
       },

@@ -1,3 +1,5 @@
+import { SubstitutionAffectedSection } from '../../academic-year/academic-year.model';
+
 export type SkeletonSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
 export type SkeletonCellStatus = 'DRAFT' | 'PUBLISHED';
 
@@ -339,6 +341,39 @@ export interface GlobalAutoScheduleResult {
    *  found for both labs, all batches, and both faculty) — distinct from a pair simply never being
    *  eligible (mismatched batch counts, different block sizes), which is silent by design. */
   pairingSkipReasons: string[];
+  /** Every subject where this run had to place one or more sessions with a different,
+   *  already-eligible faculty member instead of the offering's own bound faculty, because that bound
+   *  faculty was unavailable at every remaining slot. The substitute sessions are already placed and
+   *  staffed by the time this is reported — purely an actionable "consider reassigning this offering"
+   *  tip, never a pending action. Empty on the common run where every row's own bound faculty covered
+   *  everything it needed to. */
+  facultySubstitutionTips: FacultySubstitutionTip[];
+}
+
+/** One subject this run had to fall back off {@code originalFacultyName} onto {@code
+ *  substituteFacultyName} to actually place {@code sessionCount} session(s) — see {@link
+ *  GlobalAutoScheduleResult.facultySubstitutionTips}. `substituteRemainingHours`/
+ *  `substituteCapacityTier` are the substitute's own term workload BEFORE this run added anything
+ *  to them (null/'NONE' means no cap is configured for them at all — never read null as "no
+ *  capacity left"). `substituteTotalSessionsThisRun` is that same substitute's grand total across
+ *  EVERY subject they picked up as a fallback this run — can exceed this tip's own `sessionCount`
+ *  if they covered more than one subject, and is the number to actually check before trusting them
+ *  as a permanent reassignment. */
+export interface FacultySubstitutionTip {
+  subjectName: string;
+  originalFacultyId: number;
+  originalFacultyName: string;
+  substituteFacultyId: number;
+  substituteFacultyName: string;
+  sessionCount: number;
+  courseOfferingId: number;
+  substituteRemainingHours: number | null;
+  substituteCapacityTier: string;
+  substituteTotalSessionsThisRun: number;
+  /** The exact (cohort, section) rows this tip's own fallback covered — pass through unchanged to
+   *  `ConfirmFacultySubstitutionItem` on Submit so confirming this tip never reassigns a sibling
+   *  section a different, separately-ticked tip already claimed. */
+  affectedSections: SubstitutionAffectedSection[];
 }
 
 /** One cohort excluded from an "All Cohorts" run because this term's timetable is already

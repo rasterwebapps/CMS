@@ -1,6 +1,23 @@
 // academic-year-form — component-specific styles.
 // Layout shell uses global entry-form classes from styles.scss.
 
+// ── Locked-term banner ────────────────────────────────────────────────────────
+.ayf-locked-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: var(--cms-radius-md);
+  border: 1px solid var(--cms-warning);
+  background: var(--cms-warning-light);
+  color: var(--cms-warning);
+  font-size: 13px;
+  font-weight: 500;
+
+  svg { flex-shrink: 0; }
+}
+
 // ── Loading skeleton ──────────────────────────────────────────────────────────
 .ayf-skeleton {
   display: flex;

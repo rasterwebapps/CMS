@@ -447,6 +447,46 @@ export interface CourseOfferingSectionFacultyResponse {
   sections: SectionFacultyAssignment[];
 }
 
+/** One row a faculty-substitution tip actually touched this run. For a THEORY substitution,
+ *  `batchId` is null and `cohortSectionId` null means the whole-cohort (unsplit) Theory row for
+ *  `cohortId`. For a LAB/CLINICAL substitution, `batchId` identifies the exact Batch whose
+ *  coordinator this covers. */
+export interface SubstitutionAffectedSection {
+  cohortId: number;
+  cohortSectionId: number | null;
+  batchId: number | null;
+}
+
+/** One Global Auto-Schedule faculty-substitution tip the admin ticked to confirm as the real,
+ *  permanent Theory assignment — see {@link ConfirmFacultySubstitutionsRequest} and backend
+ *  `CourseOfferingSectionFacultyService#confirmSubstitutions`. Carries no row version: the backend
+ *  re-resolves each row named in `affectedSections` (copied verbatim from the tip that produced this
+ *  item) at request time rather than trusting a version captured back when the run itself finished.
+ *  `affectedSections` scopes this item to exactly the row(s) this tip's own fallback covered — never
+ *  every row in the offering still on `originalFacultyId`, which could also reassign a sibling
+ *  section a different, separately-ticked tip already claimed. */
+export interface ConfirmFacultySubstitutionItem {
+  courseOfferingId: number;
+  originalFacultyId: number;
+  substituteFacultyId: number;
+  affectedSections: SubstitutionAffectedSection[];
+}
+
+export interface ConfirmFacultySubstitutionsRequest {
+  items: ConfirmFacultySubstitutionItem[];
+}
+
+/** A genuine external conflict (stale offering, capacity/eligibility conflict) still rolls back the
+ *  whole batch server-side and comes back as an HTTP error instead. But when one section's sessions
+ *  split across two different substitutes in the same run, both tips list that section — the
+ *  first-ticked tip to reach it wins, and the later tip's claim on that one section is counted in
+ *  `sectionsSkipped` rather than failing the batch. */
+export interface ConfirmFacultySubstitutionsResult {
+  offeringsUpdated: number;
+  rowsReassigned: number;
+  sectionsSkipped: number;
+}
+
 /** One committed CohortSection for a term, with its Class Incharge if assigned — structurally
  *  created in Capacity Planner, staffed here (Assign Faculty), same split as batch coordinators
  *  and Section Faculty. No fallback: a section with facultyId null simply has no incharge yet. */

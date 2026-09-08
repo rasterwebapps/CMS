@@ -237,6 +237,22 @@ public class BatchService {
         batch.setCoordinatorFaculty(faculty);
     }
 
+    /** Narrow single-field counterpart to {@link #updateBatch} for confirming a Global
+     *  Auto-Schedule faculty-substitution tip against a LAB/CLINICAL row (see {@code
+     *  CourseOfferingSectionFacultyService#confirmSubstitutions}) -- reassigns only the
+     *  coordinator, skipping the name/capacity fields and uniqueness check {@link #updateBatch}
+     *  otherwise requires. Same optimistic-lock and subject-eligibility gates as {@link
+     *  #updateBatch} via {@link #applyCoordinator}; unlike the THEORY confirm path this has no
+     *  elective-conflict or capacity/workload check yet -- {@code applyCoordinator} never had one
+     *  even for the existing Manage Batches "reassign coordinator" flow this reuses. */
+    @Transactional
+    public void reassignCoordinator(Long batchId, Long facultyId, Long requestVersion) {
+        Batch batch = getOrThrow(batchId);
+        requireCurrentVersion(batch.getVersion(), requestVersion, batch.getName());
+        applyCoordinator(batch, facultyId);
+        batchRepository.save(batch);
+    }
+
     private Batch getOrThrow(Long id) {
         return batchRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Batch not found with id: " + id));

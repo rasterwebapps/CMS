@@ -51,6 +51,49 @@
   margin-right: 4px;
 }
 
+.tac-allclear-banner {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-success, #10b981);
+  background: var(--cms-success-light, #ecfdf5);
+  color: var(--cms-success, #10b981);
+  font-size: var(--cms-text-sm, 0.875rem);
+  font-weight: 600;
+}
+
+.tac-clear-group {
+  margin-top: 4px;
+}
+
+.tac-clear-group__toggle {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-muted, rgba(0, 0, 0, 0.03));
+  color: var(--cms-text-secondary, var(--mat-sys-on-surface-variant));
+  font-size: var(--cms-text-sm, 0.875rem);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cms-bg-card);
+  }
+}
+
+.tac-checklist--clear {
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.tac-clear-item {
+  padding: 4px 10px;
+  font-size: var(--cms-text-xs, 0.75rem);
+  color: var(--cms-text-secondary, var(--mat-sys-on-surface-variant));
+}
+
 .tac-ack {
   margin-top: 8px;
   padding: 10px 12px;

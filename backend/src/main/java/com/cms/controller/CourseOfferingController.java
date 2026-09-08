@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
 import com.cms.dto.ClinicalShiftConfigUpdateRequest;
+import com.cms.dto.ConfirmFacultySubstitutionsRequest;
+import com.cms.dto.ConfirmFacultySubstitutionsResult;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.CourseOfferingSectionFacultyResponse;
@@ -181,5 +183,15 @@ public class CourseOfferingController {
             @PathVariable Long cohortId,
             @RequestBody SectionFacultyUpsertRequest request) {
         return ResponseEntity.ok(sectionFacultyService.upsertForCohort(id, cohortId, request.facultyId(), request.version()));
+    }
+
+    /** Batch "make it official" for one or more Global Auto-Schedule faculty-substitution tips the
+     *  admin ticked at once (see {@link CourseOfferingSectionFacultyService#confirmSubstitutions}) —
+     *  all-or-nothing; a 200 always means every item in the request actually landed. */
+    @PostMapping("/confirm-faculty-substitutions")
+    @PreAuthorize("@perm.has('SECTION_FACULTY_MANAGE')")
+    public ResponseEntity<ConfirmFacultySubstitutionsResult> confirmFacultySubstitutions(
+            @RequestBody ConfirmFacultySubstitutionsRequest request) {
+        return ResponseEntity.ok(sectionFacultyService.confirmSubstitutions(request.items()));
     }
 }

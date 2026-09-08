@@ -27,6 +27,7 @@ import com.cms.dto.CohortSeatAllocationRequest;
 import com.cms.dto.TermBillingDetailsRequest;
 import com.cms.dto.TermBillingScheduleRequest;
 import com.cms.dto.TermDatesRequest;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
@@ -606,6 +607,41 @@ class AcademicYearServiceTest {
         verify(termInstanceService).assertTermWithinAcademicYear(
             LocalDate.of(2025, 2, 1), LocalDate.of(2025, 6, 30),
             LocalDate.of(2024, 9, 1), LocalDate.of(2025, 6, 30));
+    }
+
+    /** Regression test: LOCKED is the same terminal "frozen, full stop" status every other
+     *  lifecycle guard in the app already enforces (TimetableGenerationService,
+     *  SpecialClassRequestService, CourseRegistrationServiceImpl) -- updateFull must refuse to
+     *  touch a term's dates/billing once it's locked, not silently accept the edit. */
+    @Test
+    void shouldRejectFullUpdateWhenEitherTermIsLocked() {
+        AcademicYear existing = createAcademicYear(1L, "2024-2025",
+            LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), false);
+        TermInstance odd = createTermInstance(1L, existing, TermType.ODD,
+            LocalDate.of(2024, 8, 1), LocalDate.of(2025, 1, 31));
+        odd.setStatus(TermInstanceStatus.LOCKED);
+        TermInstance even = createTermInstance(2L, existing, TermType.EVEN,
+            LocalDate.of(2025, 2, 1), LocalDate.of(2025, 5, 31));
+
+        AcademicYearFullUpdateRequest request = new AcademicYearFullUpdateRequest(
+            "2024-2025",
+            LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), false,
+            new TermDatesRequest(LocalDate.of(2024, 8, 1), LocalDate.of(2025, 1, 31)),
+            new TermDatesRequest(LocalDate.of(2025, 2, 1), LocalDate.of(2025, 5, 31)),
+            new TermBillingDetailsRequest(LocalDate.of(2024, 8, 15), LateFeeType.FLAT, new BigDecimal("500"), 5),
+            new TermBillingDetailsRequest(LocalDate.of(2025, 2, 15), LateFeeType.FLAT, new BigDecimal("500"), 5));
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(academicYearRepository.existsByNameIgnoreCaseAndIdNot("2024-2025", 1L)).thenReturn(false);
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.ODD)).thenReturn(Optional.of(odd));
+        when(termInstanceRepository.findByAcademicYearIdAndTermType(1L, TermType.EVEN)).thenReturn(Optional.of(even));
+
+        assertThatThrownBy(() -> academicYearService.updateFull(1L, request))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("locked");
+
+        verify(termInstanceRepository, org.mockito.Mockito.never()).save(any());
+        verify(academicYearRepository, org.mockito.Mockito.never()).save(any());
     }
 
     @Test

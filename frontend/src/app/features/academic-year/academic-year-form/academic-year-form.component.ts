@@ -101,6 +101,29 @@ export class AcademicYearFormComponent implements OnInit {
   protected readonly oddTermInstance  = computed(() => this.termInstances().find(t => t.termType === 'ODD')  ?? null);
   protected readonly evenTermInstance = computed(() => this.termInstances().find(t => t.termType === 'EVEN') ?? null);
 
+  /** Mirrors `AcademicYearService.updateFull`'s own gate exactly (backend/AcademicYearService.java
+   *  `requireNotLocked` on both odd/even) -- that save is one atomic call touching the AY's own
+   *  dates, both terms' dates, both billing schedules, AND (chained right after) every cohort's
+   *  seat allocation, so EITHER term being LOCKED already fails the whole thing server-side.
+   *  Disabling the form here isn't cosmetic parity -- it's the difference between finding that out
+   *  immediately vs. after filling in a whole form and clicking Update. */
+  protected readonly editingLocked = computed(() =>
+    this.oddTermInstance()?.status === 'LOCKED' || this.evenTermInstance()?.status === 'LOCKED');
+
+  /** Applies/lifts the form-wide disable driven by {@link editingLocked} -- called after every
+   *  point where `termInstances` (and therefore `editingLocked`) can change: initial load, the
+   *  seat-allocation FormArray being rebuilt from scratch (which would otherwise re-create its rows
+   *  enabled even while the rest of the form is disabled), and a term status advance while this
+   *  form is still open. */
+  private applyLockedFormState(): void {
+    if (this.isViewMode()) return;
+    if (this.editingLocked()) {
+      this.form.disable({ emitEvent: false });
+    } else {
+      this.form.enable({ emitEvent: false });
+    }
+  }
+
   // Counselling toggle
   protected readonly togglingCounsellingId = signal<number | null>(null);
 
@@ -246,6 +269,7 @@ export class AcademicYearFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
+    if (this.editingLocked()) return;
     if (this.form.invalid) {
       scrollToFirstInvalid(this.form);
       return;
@@ -607,6 +631,7 @@ export class AcademicYearFormComponent implements OnInit {
 
         const sorted = courses.slice().sort((a, b) => a.name.localeCompare(b.name));
         this.setSeatAllocationRows(sorted, cohorts);
+        this.applyLockedFormState();
         this.loading.set(false);
       },
       error: () => {
@@ -619,7 +644,10 @@ export class AcademicYearFormComponent implements OnInit {
   private reloadTermInstances(): void {
     if (!this.academicYearId) return;
     this.academicYearService.getTermInstancesByAcademicYear(this.academicYearId).subscribe({
-      next: (terms) => this.termInstances.set(terms),
+      next: (terms) => {
+        this.termInstances.set(terms);
+        this.applyLockedFormState();
+      },
     });
   }
 

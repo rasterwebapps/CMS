@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -48,6 +48,21 @@ export class TermAdvanceChecklistDialogComponent implements OnInit {
   protected readonly items = signal<ChecklistItem[]>([]);
   protected readonly acknowledged = signal(false);
 
+  /** Items worth the admin's attention (warn true or null/self-attested) paired with their real
+   *  index into {@link items}, so {@link toggleItem} keeps working against the underlying flat
+   *  array while the template renders two grouped lists instead of one long one. */
+  protected readonly attentionEntries = computed(() =>
+    this.items().map((item, index) => ({ item, index })).filter(({ item }) => item.warn !== false));
+  /** Clean (warn === false) items — pre-checked by {@link finalizeItems}, so this group is purely
+   *  informational and collapsed by default instead of forcing the admin to scan past them. */
+  protected readonly clearEntries = computed(() =>
+    this.items().map((item, index) => ({ item, index })).filter(({ item }) => item.warn === false));
+  protected readonly showAllClear = signal(false);
+
+  protected toggleClearGroup(): void {
+    this.showAllClear.update((v) => !v);
+  }
+
   protected readonly title = this.data.targetStatus === 'OPEN' ? 'Open Term' : 'Lock Term';
 
   protected readonly introLines: string[] = this.buildIntroLines();
@@ -55,7 +70,7 @@ export class TermAdvanceChecklistDialogComponent implements OnInit {
   ngOnInit(): void {
     this.academicYearService.getTermAdvanceChecklist(this.data.termInstanceId, this.data.targetStatus).subscribe({
       next: (checklist) => {
-        this.items.set(this.buildItems(checklist));
+        this.items.set(this.finalizeItems(this.buildItems(checklist)));
         this.loading.set(false);
       },
       error: (err) => {
@@ -102,6 +117,14 @@ export class TermAdvanceChecklistDialogComponent implements OnInit {
     // term -- self-attested rather than pretending it's verified.
     items.push({ label: 'Exam results are published and finalized for this term', warn: null, checked: false });
     return items;
+  }
+
+  /** Pre-checks every clean (warn === false) item — there's nothing to review on a passing check,
+   *  so it goes straight into the collapsed "All clear" group instead of requiring an explicit
+   *  tick. Warn (true) and self-attested (null) items are untouched — those still need the admin's
+   *  own affirmative click. */
+  private finalizeItems(items: ChecklistItem[]): ChecklistItem[] {
+    return items.map((item) => item.warn === false ? { ...item, checked: true } : item);
   }
 
   protected toggleItem(index: number): void {

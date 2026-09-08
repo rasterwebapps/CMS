@@ -56,6 +56,7 @@ class CourseOfferingSectionFacultyServiceTest {
     @Mock private BatchRepository batchRepository;
     @Mock private TimetableSkeletonService timetableSkeletonService;
     @Mock private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
+    @Mock private BatchService batchService;
 
     private CourseOfferingSectionFacultyService service;
 
@@ -69,7 +70,7 @@ class CourseOfferingSectionFacultyServiceTest {
     void setUp() {
         service = new CourseOfferingSectionFacultyService(courseOfferingRepository, sectionFacultyRepository,
             cohortRepository, studentTermEnrollmentRepository, facultyRepository, batchRepository,
-            timetableSkeletonService, timetableGlobalAutoScheduleService);
+            timetableSkeletonService, timetableGlobalAutoScheduleService, batchService);
 
         program = new Program("BSc Nursing", "BSCN", 4);
         program.setId(1L);
@@ -187,7 +188,6 @@ class CourseOfferingSectionFacultyServiceTest {
     @Test
     void getAssignmentSummaryForTermInstance_notApplicableWhenNothingToAssign() {
         when(courseOfferingRepository.findByTermInstanceId(10L)).thenReturn(List.of(offering));
-        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of());
         when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(Set.of());
@@ -212,7 +212,6 @@ class CourseOfferingSectionFacultyServiceTest {
 
         when(courseOfferingRepository.findByTermInstanceId(10L)).thenReturn(List.of(offering));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
-        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of(theoryRow));
         when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(batch));
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(Set.of(1L));
@@ -241,7 +240,6 @@ class CourseOfferingSectionFacultyServiceTest {
 
         when(courseOfferingRepository.findByTermInstanceId(10L)).thenReturn(List.of(offering));
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
-        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of(theoryRow));
         when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(unassignedBatch));
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(Set.of(1L));
@@ -255,6 +253,42 @@ class CourseOfferingSectionFacultyServiceTest {
 
         assertThat(summaries).hasSize(1);
         assertThat(summaries.get(0).assignmentStatus()).isEqualTo(com.cms.model.enums.OfferingAssignmentStatus.PARTIAL);
+    }
+
+    /** Regression test for the Assign Faculty list showing a real name in the FACULTY column next
+     *  to a red "Unassigned" badge: a {@link CourseOfferingSectionFaculty} row can outlive the
+     *  section it names (the section gets deactivated/relabeled on a Capacity Auto-Plan recommit,
+     *  or a cohort's split status changes) with nothing ever deleting it. {@code
+     *  assignedFacultyNames} must come from the same live-resolved {@link #getForOffering} view
+     *  {@code assignmentStatus} already uses, not the raw persisted row -- so a stale row pointing
+     *  at a since-deactivated section must not surface its faculty name here even though the row
+     *  itself is still sitting in the table. */
+    @Test
+    void getAssignmentSummaryForTermInstance_omitsFacultyNameFromAStaleRowPointingAtADeactivatedSection() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        CohortSection currentlyActiveSection = section(201L, matchingCohort, "A");
+        CohortSection staleDeactivatedSection = section(999L, matchingCohort, "A");
+        Faculty theoryFaculty = faculty(7L, subject.getSpeciality());
+        // The persisted row still points at the OLD section id -- simulating a recommit that
+        // replaced/deactivated it without cleaning up this row.
+        CourseOfferingSectionFaculty staleRow = new CourseOfferingSectionFaculty(offering, staleDeactivatedSection, theoryFaculty);
+
+        when(courseOfferingRepository.findByTermInstanceId(10L)).thenReturn(List.of(offering));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(matchingCohort));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(10L, 1L))
+            .thenReturn(List.of(enrollmentAtSemester(3)));
+        when(sectionFacultyRepository.findByCourseOfferingId(100L)).thenReturn(List.of(staleRow));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(currentlyActiveSection));
+
+        List<com.cms.dto.CourseOfferingFacultySummaryDto> summaries = service.getAssignmentSummaryForTermInstance(10L);
+
+        assertThat(summaries).hasSize(1);
+        assertThat(summaries.get(0).assignedFacultyNames()).isEmpty();
+        assertThat(summaries.get(0).assignmentStatus()).isEqualTo(com.cms.model.enums.OfferingAssignmentStatus.NONE);
     }
 
     @Test
@@ -409,6 +443,88 @@ class CourseOfferingSectionFacultyServiceTest {
         assertThatThrownBy(() -> service.upsert(100L, 201L, 6L, null))
             .isInstanceOf(com.cms.exception.TimetableConstraintViolationException.class);
 
+        verify(sectionFacultyRepository, never()).save(any());
+    }
+
+    /** Regression test for the confirm-substitutions "changed by someone else" false positive: a
+     *  section's own sessions can split across two different substitutes within one Global
+     *  Auto-Schedule run (each session retries the fallback list independently against that day's
+     *  availability), producing two tips that both list the same (cohortId, cohortSectionId) row.
+     *  Confirming both in one batch must not roll back on the second tip just because the first tip
+     *  (in the same call) already moved that row off the original faculty -- the first-ticked tip
+     *  wins the row and the second tip's claim on it is skipped, not treated as an external conflict. */
+    @Test
+    void confirmSubstitutions_skipsASectionAlreadyWonByAnEarlierTipInTheSameBatchInsteadOfFailingTheWholeBatch() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        CohortSection targetSection = section(201L, matchingCohort, "A");
+
+        Faculty originalFaculty = faculty(9L, subject.getSpeciality());
+        Faculty substituteA = faculty(6L, subject.getSpeciality());
+        CourseOfferingSectionFaculty rowOnOriginal = new CourseOfferingSectionFaculty(offering, targetSection, originalFaculty);
+        CourseOfferingSectionFaculty rowOnSubstituteA = new CourseOfferingSectionFaculty(offering, targetSection, substituteA);
+
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(matchingCohort));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(10L, 1L))
+            .thenReturn(List.of(enrollmentAtSemester(3)));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(targetSection));
+
+        // getForOffering is re-read at the top of each item's loop iteration -- the second read must
+        // see the first item's own write already applied (that's what makes this an in-batch, not an
+        // external, conflict).
+        when(sectionFacultyRepository.findByCourseOfferingId(100L))
+            .thenReturn(List.of(rowOnOriginal), List.of(rowOnSubstituteA));
+        when(sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 201L))
+            .thenReturn(Optional.of(rowOnOriginal));
+        when(facultyRepository.findById(6L)).thenReturn(Optional.of(substituteA));
+        when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L)).thenReturn(fitsWithinCapacity());
+
+        com.cms.dto.SubstitutionAffectedSection affected = new com.cms.dto.SubstitutionAffectedSection(1L, 201L, null);
+        com.cms.dto.ConfirmFacultySubstitutionItem tipToSubstituteA =
+            new com.cms.dto.ConfirmFacultySubstitutionItem(100L, 9L, 6L, List.of(affected));
+        com.cms.dto.ConfirmFacultySubstitutionItem tipToSubstituteB =
+            new com.cms.dto.ConfirmFacultySubstitutionItem(100L, 9L, 7L, List.of(affected));
+
+        com.cms.dto.ConfirmFacultySubstitutionsResult result =
+            service.confirmSubstitutions(List.of(tipToSubstituteA, tipToSubstituteB));
+
+        assertThat(result.rowsReassigned()).isEqualTo(1);
+        assertThat(result.sectionsSkipped()).isEqualTo(1);
+        assertThat(result.offeringsUpdated()).isEqualTo(1);
+        verify(facultyRepository, never()).findById(7L);
+    }
+
+    /** Regression test: a LAB/CLINICAL substitution tip's `originalFacultyId` comes from {@code
+     *  Batch#coordinatorFaculty}, never from {@code CourseOfferingSectionFaculty} (the Theory-only
+     *  table). Before the `batchId` field existed on {@code SubstitutionAffectedSection}, confirming
+     *  one of these always fell through to the Theory row lookup, found no match (or a mismatched
+     *  faculty), and threw "changed by someone else" -- even though nothing was ever wrong. Confirming
+     *  must instead route a `batchId`-carrying affected section straight to {@link
+     *  BatchService#reassignCoordinator}. */
+    @Test
+    void confirmSubstitutions_reassignsBatchCoordinatorForALabClinicalTip() {
+        com.cms.model.Batch batch = new com.cms.model.Batch(offering, "Clinical - Section 1", 20, termInstance);
+        batch.setId(501L);
+        Faculty originalCoordinator = faculty(31L, subject.getSpeciality());
+        Faculty substituteCoordinator = faculty(33L, subject.getSpeciality());
+        batch.setCoordinatorFaculty(originalCoordinator);
+        batch.setVersion(0L);
+
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(batchRepository.findById(501L)).thenReturn(Optional.of(batch));
+
+        com.cms.dto.SubstitutionAffectedSection affected = new com.cms.dto.SubstitutionAffectedSection(1L, null, 501L);
+        com.cms.dto.ConfirmFacultySubstitutionItem tip =
+            new com.cms.dto.ConfirmFacultySubstitutionItem(100L, 31L, 33L, List.of(affected));
+
+        com.cms.dto.ConfirmFacultySubstitutionsResult result = service.confirmSubstitutions(List.of(tip));
+
+        assertThat(result.rowsReassigned()).isEqualTo(1);
+        assertThat(result.sectionsSkipped()).isEqualTo(0);
+        verify(batchService).reassignCoordinator(501L, 33L, 0L);
         verify(sectionFacultyRepository, never()).save(any());
     }
 

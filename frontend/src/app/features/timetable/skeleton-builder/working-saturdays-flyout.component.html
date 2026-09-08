@@ -14,16 +14,29 @@
       <div class="wsat-options">
         @for (week of weeks; track week.value) {
           <label class="wsat-option">
-            <input type="checkbox" [checked]="week.checked" (change)="toggle(week)" />
+            <input type="checkbox" [checked]="week.checked" [disabled]="saveSucceeded()" (change)="toggle(week)" />
             {{ week.label }}
           </label>
         }
       </div>
+      @if (saveSucceeded()) {
+        <p class="field-hint">
+          Saved. @if (canRunAutomation()) { Run Automation now to use this pattern right away, or close
+          and run it later from the toolbar. } @else { Automation will use this pattern next time it runs. }
+        </p>
+      }
     }
   </div>
 
   <div flyoutFooter>
-    <button type="button" class="btn-cancel" [disabled]="saving()" (click)="closed.emit()">Close</button>
-    <button type="button" class="btn-primary" [disabled]="loading() || saving()" (click)="save()">Save</button>
+    @if (saveSucceeded()) {
+      <button type="button" class="btn-cancel" (click)="finish()">Close</button>
+      @if (canRunAutomation()) {
+        <button type="button" class="btn-primary" (click)="runNow()">Run Automation now</button>
+      }
+    } @else {
+      <button type="button" class="btn-cancel" [disabled]="saving()" (click)="closed.emit()">Close</button>
+      <button type="button" class="btn-primary" [disabled]="loading() || saving()" (click)="save()">Save</button>
+    }
   </div>
 </cms-flyout-panel>

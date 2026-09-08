@@ -619,7 +619,10 @@ export class CapacityPlannerComponent implements OnInit {
     this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Revert Room Allocation',
-        message: `Revert this committed allocation for ${allocation.cohortLabel}? The sections/batches it created will be deactivated (not deleted) and the rooms freed for another cohort.`,
+        message: `Revert this committed allocation for ${allocation.cohortLabel}? The rooms are freed for another `
+          + `cohort. Any section or batch this leaves with no real history (no roster, rotation/escort assignment, `
+          + `or attendance) is permanently deleted, not just deactivated — only ones with real history are kept `
+          + `(deactivated). Already-published sessions are never affected; if any exist, this revert is blocked instead.`,
         confirmText: 'Revert',
         cancelText: 'Cancel',
       },

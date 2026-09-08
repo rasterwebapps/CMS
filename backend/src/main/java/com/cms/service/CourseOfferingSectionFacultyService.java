@@ -1,19 +1,25 @@
 package com.cms.service;
 
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ConfirmFacultySubstitutionItem;
+import com.cms.dto.ConfirmFacultySubstitutionsResult;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.CourseOfferingSectionFacultyResponse;
 import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.SectionFacultyAssignment;
+import com.cms.dto.SubstitutionAffectedSection;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Batch;
@@ -52,6 +58,7 @@ public class CourseOfferingSectionFacultyService {
     private final BatchRepository batchRepository;
     private final TimetableSkeletonService timetableSkeletonService;
     private final TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
+    private final BatchService batchService;
 
     public CourseOfferingSectionFacultyService(CourseOfferingRepository courseOfferingRepository,
                                                 CourseOfferingSectionFacultyRepository sectionFacultyRepository,
@@ -60,7 +67,9 @@ public class CourseOfferingSectionFacultyService {
                                                 FacultyRepository facultyRepository,
                                                 BatchRepository batchRepository,
                                                 TimetableSkeletonService timetableSkeletonService,
-                                                TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService) {
+                                                TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService,
+                                                BatchService batchService) {
+        this.batchService = batchService;
         this.courseOfferingRepository = courseOfferingRepository;
         this.sectionFacultyRepository = sectionFacultyRepository;
         this.cohortRepository = cohortRepository;
@@ -125,30 +134,39 @@ public class CourseOfferingSectionFacultyService {
      *  with at least one row" grouping, every offering is now represented so {@link
      *  OfferingAssignmentStatus} can tell "nothing assigned yet" (NONE) apart from "nothing to
      *  assign" (NOT_APPLICABLE), which a bare absence from the list couldn't. {@code
-     *  assignedFacultyNames} stays Theory-only (deduplicated, sorted) -- unchanged from before.
-     *  {@code assignmentStatus} additionally covers every active Lab/Clinical {@link Batch}'s
-     *  coordinator, comparing each offering's *expected* row/batch count (a full {@link
-     *  #getForOffering} resolution, not just what's persisted) against how many are actually
-     *  filled -- backs both the Assign Faculty list table's status column and {@code
-     *  TimetableGenerationService#approve}'s Publish gate. */
+     *  assignedFacultyNames} stays Theory-only (deduplicated, sorted). {@code assignmentStatus}
+     *  additionally covers every active Lab/Clinical {@link Batch}'s coordinator, comparing each
+     *  offering's *expected* row/batch count (a full {@link #getForOffering} resolution, not just
+     *  what's persisted) against how many are actually filled -- backs both the Assign Faculty list
+     *  table's status column and {@code TimetableGenerationService#approve}'s Publish gate.
+     *
+     * <p>{@code assignedFacultyNames} is built from that same {@link #getForOffering} live-resolved
+     *  view, not from raw {@link CourseOfferingSectionFaculty} rows -- a row can outlive the section
+     *  it names (a cohort's split status changes, a section gets relabeled/deactivated on a Capacity
+     *  Auto-Plan recommit) with nothing ever deleting it, since {@code
+     *  CourseOfferingSectionFacultyRepository#deleteByCourseOfferingIdAndCohortSectionId}/{@code
+     *  deleteByCourseOfferingIdAndCohortIdAndCohortSectionIdIsNull} only run when an admin
+     *  explicitly clears an assignment, not when a section's own liveness changes underneath it.
+     *  Reading raw rows here would show that stale row's faculty name in the list while {@code
+     *  assignmentStatus} (and the edit dialog, which also calls {@link #getForOffering}) correctly
+     *  call the same section "Unassigned" -- i.e. exactly the bug this fixes, not a display quirk. */
     @Transactional(readOnly = true)
     public List<CourseOfferingFacultySummaryDto> getAssignmentSummaryForTermInstance(Long termInstanceId) {
         List<CourseOffering> offerings = courseOfferingRepository.findByTermInstanceId(termInstanceId);
-        Map<Long, List<CourseOfferingSectionFaculty>> rowsByOffering = sectionFacultyRepository
-            .findByCourseOffering_TermInstanceId(termInstanceId).stream()
-            .collect(Collectors.groupingBy(sf -> sf.getCourseOffering().getId()));
         Map<Long, List<Batch>> batchesByOffering = batchRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
             .collect(Collectors.groupingBy(b -> b.getCourseOffering().getId()));
 
         List<CourseOfferingFacultySummaryDto> result = new java.util.ArrayList<>();
         for (CourseOffering offering : offerings) {
-            List<CourseOfferingSectionFaculty> rows = rowsByOffering.getOrDefault(offering.getId(), List.of());
-            List<String> names = rows.stream().map(sf -> sf.getFaculty().getFullName()).distinct().sorted().toList();
-
+            List<String> names = List.of();
             int expected = 0;
             int assigned = 0;
             if (!resolveCohorts(offering).isEmpty()) {
                 CourseOfferingSectionFacultyResponse resp = getForOffering(offering.getId());
+                names = resp.sections().stream()
+                    .map(SectionFacultyAssignment::facultyName)
+                    .filter(java.util.Objects::nonNull)
+                    .distinct().sorted().toList();
                 expected += resp.sections().size();
                 assigned += (int) resp.sections().stream().filter(s -> s.facultyId() != null).count();
             }
@@ -211,6 +229,113 @@ public class CourseOfferingSectionFacultyService {
         sectionFacultyRepository.save(row);
 
         return new SectionFacultyAssignment(cohort.getId(), cohortSectionId, cohortName, section.getSectionLabel(), faculty.getId(), faculty.getFullName(), row.getVersion());
+    }
+
+    /** Batch-applies every {@link ConfirmFacultySubstitutionItem} the admin ticked on a Global
+     *  Auto-Schedule run's faculty-substitution tips (see {@code
+     *  GlobalAutoScheduleResult#facultySubstitutionTips}) as real, permanent reassignments — a
+     *  Theory row's {@link #upsert}/{@link #upsertForCohort} for a {@code cohortSectionId}-only
+     *  affected entry, or {@link BatchService#reassignCoordinator} for a {@code batchId} affected
+     *  entry (a LAB/CLINICAL row, whose faculty-of-record lives on {@code Batch#coordinatorFaculty},
+     *  not {@code CourseOfferingSectionFaculty} — confirming one of these against the Theory table
+     *  could never find a matching row and would always look like an external conflict). Any row
+     *  whose current state no longer matches what the tip captured for a reason *outside* this batch
+     *  (someone reassigned it manually since the run finished, or any of {@link #upsert}'s own
+     *  eligibility/capacity/elective-conflict gates reject it) throws and rolls back everything
+     *  already applied earlier in this same call — never a partial batch against a genuine external
+     *  conflict.
+     *
+     * <p>Only reassigns the exact rows/batches named in {@code item.affectedSections()} — never
+     *  every row in the offering still on {@code originalFacultyId}. Two sibling sections of the
+     *  same offering can independently fall back off the same original faculty onto two *different*
+     *  substitutes in one run, producing two separate tips; reassigning "every row still on the
+     *  original" would let the first confirmed tip sweep up the second tip's row too, then wrongly
+     *  report the second tip as externally stale when it finds nothing left. Re-resolves each
+     *  row's/batch's CURRENT faculty live (via {@link #getForOffering} for Theory, {@link
+     *  #batchRepository} for Lab/Clinical) rather than trusting any version captured back when the
+     *  run itself finished (real time passes between a run finishing and the admin clicking Submit)
+     *  — a named row no longer held by {@code originalFacultyId} is treated as a genuine external
+     *  conflict and rejected outright, since applying it blind could silently reassign a row someone
+     *  already deliberately moved elsewhere.
+     *
+     * <p>One row/batch CAN legitimately appear in two different tips' {@code affectedSections}
+     *  within a single run: a section's own sessions can split across two different substitutes
+     *  because each session retries the fallback candidates independently against that day's
+     *  availability (e.g. Monday's session lands on substitute X, Wednesday's on substitute Y, both
+     *  because the original faculty was unavailable both times). A row/batch can only ever hold one
+     *  permanent faculty-of-record, so at most one of those two tips can win it. {@code appliedRows}/
+     *  {@code appliedBatches} track every row/batch this call itself has already reassigned; when a
+     *  later tip in the same batch reaches one already in that map, that's this batch's own earlier
+     *  write, not an external conflict — the first-ticked tip to reach it wins, and the later tip's
+     *  claim on that one row/batch is skipped (counted in {@code sectionsSkipped}) rather than
+     *  throwing and rolling back the whole batch. */
+    @Transactional
+    public ConfirmFacultySubstitutionsResult confirmSubstitutions(List<ConfirmFacultySubstitutionItem> items) {
+        int rowsReassigned = 0;
+        int sectionsSkipped = 0;
+        Map<String, Long> appliedRows = new HashMap<>();
+        Map<Long, Long> appliedBatches = new HashMap<>();
+        Set<Long> offeringIdsTouched = new LinkedHashSet<>();
+        for (ConfirmFacultySubstitutionItem item : items) {
+            CourseOffering offering = courseOfferingRepository.findById(item.courseOfferingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + item.courseOfferingId()));
+
+            Map<String, SectionFacultyAssignment> byRowKey = getForOffering(item.courseOfferingId()).sections().stream()
+                .collect(Collectors.toMap(CourseOfferingSectionFacultyService::rowKey, s -> s, (a, b) -> a));
+
+            for (SubstitutionAffectedSection affected : item.affectedSections()) {
+                if (affected.batchId() != null) {
+                    Batch batch = batchRepository.findById(affected.batchId()).orElse(null);
+                    Long currentCoordinatorId = batch != null && batch.getCoordinatorFaculty() != null
+                        ? batch.getCoordinatorFaculty().getId() : null;
+                    boolean matchesOriginal = batch != null && item.originalFacultyId().equals(currentCoordinatorId);
+                    if (!matchesOriginal) {
+                        Long alreadyAppliedTo = appliedBatches.get(affected.batchId());
+                        if (batch != null && alreadyAppliedTo != null && alreadyAppliedTo.equals(currentCoordinatorId)) {
+                            sectionsSkipped++;
+                            continue;
+                        }
+                        throw new IllegalStateException(offering.getSubject().getName()
+                            + "'s Lab/Clinical coordinator was already changed by someone else since this run finished — reload and check the current assignment.");
+                    }
+                    batchService.reassignCoordinator(affected.batchId(), item.substituteFacultyId(), batch.getVersion());
+                    appliedBatches.put(affected.batchId(), item.substituteFacultyId());
+                    offeringIdsTouched.add(item.courseOfferingId());
+                    rowsReassigned++;
+                    continue;
+                }
+
+                String key = rowKey(affected.cohortId(), affected.cohortSectionId());
+                SectionFacultyAssignment row = byRowKey.get(key);
+                boolean matchesOriginal = row != null && item.originalFacultyId().equals(row.facultyId());
+                if (!matchesOriginal) {
+                    Long alreadyAppliedTo = appliedRows.get(key);
+                    if (row != null && alreadyAppliedTo != null && alreadyAppliedTo.equals(row.facultyId())) {
+                        sectionsSkipped++;
+                        continue;
+                    }
+                    throw new IllegalStateException(offering.getSubject().getName()
+                        + "'s Theory faculty was already changed by someone else since this run finished — reload and check the current assignment.");
+                }
+                if (row.cohortSectionId() != null) {
+                    upsert(item.courseOfferingId(), row.cohortSectionId(), item.substituteFacultyId(), row.version());
+                } else {
+                    upsertForCohort(item.courseOfferingId(), row.cohortId(), item.substituteFacultyId(), row.version());
+                }
+                appliedRows.put(key, item.substituteFacultyId());
+                offeringIdsTouched.add(item.courseOfferingId());
+                rowsReassigned++;
+            }
+        }
+        return new ConfirmFacultySubstitutionsResult(offeringIdsTouched.size(), rowsReassigned, sectionsSkipped);
+    }
+
+    private static String rowKey(SectionFacultyAssignment s) {
+        return rowKey(s.cohortId(), s.cohortSectionId());
+    }
+
+    private static String rowKey(Long cohortId, Long cohortSectionId) {
+        return cohortId + "|" + cohortSectionId;
     }
 
     /** Same optimistic-lock check {@link com.cms.service.BatchService} uses -- rejects a stale

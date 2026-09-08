@@ -32,8 +32,10 @@
   @if (showWorkingSaturdays() && selectedTermInstanceId) {
     <app-working-saturdays-flyout
       [termInstanceId]="selectedTermInstanceId"
+      [canRunAutomation]="canGlobalAutoPlace() && !!selectedCohortId && !allCohortsSelected()"
       (closed)="onWorkingSaturdaysClosed()"
-      (saved)="onWorkingSaturdaysSaved()">
+      (saved)="onWorkingSaturdaysSaved()"
+      (runAutomation)="onWorkingSaturdaysRunAutomation()">
     </app-working-saturdays-flyout>
   }
 

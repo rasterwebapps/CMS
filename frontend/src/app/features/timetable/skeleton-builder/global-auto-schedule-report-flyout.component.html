@@ -8,10 +8,6 @@
       }
 
       @case ('checklist') {
-        <p class="field-hint">
-          Tick every milestone below to confirm you've reviewed it, then acknowledge to enable Run.
-          Nothing is placed until you do.
-        </p>
         <p class="field-hint gas-warning">
           This rebuilds the draft timetable from scratch: every existing draft session for the
           cohorts in scope is cleared first, then the whole week is re-packed with Lab/Clinical
@@ -19,21 +15,25 @@
           replaced. Approved (published) timetables are never touched.
         </p>
 
+        @if (attentionItems().length === 0) {
+          <p class="gas-checklist-allclear-banner">✓ Nothing needs your attention — every check passed.</p>
+        }
+
         <ul class="gas-checklist">
-          @for (item of checklistItems(); track item.key) {
-            <li class="gas-checklist__item" [class.gas-checklist__item--warn]="item.warn">
+          @for (item of attentionItems(); track item.key) {
+            <li class="gas-checklist__item gas-checklist__item--warn">
               <div class="gas-checklist__row">
-                <mat-checkbox [checked]="item.checked" [disabled]="!item.viewed || (item.hardBlock && item.warn)"
+                <mat-checkbox [checked]="item.checked" [disabled]="!item.viewed || item.hardBlock"
                   (change)="toggleChecklistItem(item.key)">
-                  @if (item.warn) { <span class="gas-checklist__icon">⚠</span> } @else { <span class="gas-checklist__icon">✓</span> }
+                  <span class="gas-checklist__icon">⚠</span>
                   {{ item.label }}
                 </mat-checkbox>
                 <button type="button" class="btn-secondary gas-checklist__view" [class.gas-checklist__view--expanded]="item.expanded"
                   (click)="toggleChecklistDetail(item.key)">
-                  {{ item.expanded ? '▾ Hide' : (item.viewed ? '▸ View again' : '▸ Open to review') }}
+                  {{ item.expanded ? 'Hide ▾' : 'View & fix ▸' }}
                 </button>
               </div>
-              @if (item.hardBlock && item.warn && item.viewed) {
+              @if (item.hardBlock && item.viewed) {
                 <p class="field-hint gas-checklist__blocked-hint">
                   This blocks Run until it's resolved — fix it above, then Re-check.
                 </p>
@@ -274,6 +274,21 @@
           }
         </ul>
 
+        @if (clearItems().length > 0) {
+          <div class="gas-checklist-group gas-checklist-group--clear">
+            <button type="button" class="gas-checklist-group__toggle" (click)="toggleClearGroup()">
+              {{ showAllClear() ? '▾' : '▸' }} All clear ({{ clearItems().length }})
+            </button>
+            @if (showAllClear()) {
+              <ul class="gas-checklist gas-checklist--clear">
+                @for (item of clearItems(); track item.key) {
+                  <li class="gas-checklist__clear-item">✓ {{ item.label }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
         <div class="gas-ack">
           <mat-checkbox [checked]="acknowledged()" (change)="toggleAcknowledged()">
             I've reviewed every milestone above and understand what running now will (and won't) place.
@@ -308,6 +323,48 @@
                   <li class="gas-warning">{{ reason }}</li>
                 }
               </ul>
+            </div>
+          }
+          @if (r.facultySubstitutionTips.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Tip — a different faculty covered some sessions</div>
+              <p class="field-hint">
+                These sessions are already placed and staffed — nothing here needs action to finish this run.
+                Each row below is where the offering's own bound faculty was unavailable at every remaining
+                Monday-Friday slot this run, so a fallback faculty member made the timetable possible instead.
+              </p>
+              <p class="gas-warning">
+                <strong>Submitting a tip is bigger than it looks:</strong> it doesn't just credit the substitute
+                for the session(s) they covered — it makes them the section's official teacher for
+                <strong>the rest of the term</strong> (100% of its remaining hours), checked against their full-term
+                capacity. Untick any tip you don't want handled this way; leaving it unticked skips it and you can
+                still fix it manually later via Assign Faculty.
+              </p>
+              @for (tip of r.facultySubstitutionTips; track tipKey(tip)) {
+                <div class="gas-faculty-card">
+                  <mat-checkbox [checked]="isTipConfirmed(tip)" [disabled]="isTipSubmitted(tip)" (change)="toggleTipConfirmed(tip)">
+                    <span class="gas-faculty-card__name">{{ tip.subjectName }}</span>
+                  </mat-checkbox>
+                  <div class="gas-faculty-card__stat">
+                    <strong>{{ tip.substituteFacultyName }}</strong> made this timetable possible — {{ tip.sessionCount }}
+                    session(s) placed with them instead of <strong>{{ tip.originalFacultyName }}</strong>, who was
+                    unavailable at every remaining slot this run. Submitting this tip hands them the section's
+                    <strong>whole remaining term</strong>, not just these {{ tip.sessionCount }} session(s).
+                  </div>
+                  <div class="gas-shortfall__actions">
+                    @if (isTipSubmitted(tip)) {
+                      <span class="field-hint">✓ Confirmed — {{ tip.substituteFacultyName }} is now the official {{ tipRoleLabel(tip) }} for the rest of the term.</span>
+                    } @else {
+                      <button type="button" class="btn-secondary" (click)="viewTipDetail(tip)">View details</button>
+                    }
+                  </div>
+                </div>
+              }
+              <div class="gas-shortfall__actions">
+                <button type="button" class="btn-primary" [disabled]="!canSubmitSubstitutions()" (click)="submitSubstitutions()">
+                  @if (submittingSubstitutions()) { Confirming… } @else { Confirm ticked substitution(s) }
+                </button>
+              </div>
             </div>
           }
           @if (r.skippedPublishedCohorts.length > 0) {
