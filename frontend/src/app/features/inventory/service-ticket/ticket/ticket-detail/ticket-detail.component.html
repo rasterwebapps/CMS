@@ -1,0 +1,118 @@
+@if (loading()) {
+  <div class="st-detail-loading"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (ticket(); as t) {
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/ticket/tickets" aria-label="Back to service tickets">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">Ticket <em>#{{ t.id }}</em></h1>
+        <cms-status-badge [status]="t.status" />
+      </div>
+      <p class="page-subtitle">{{ t.categoryName }} · {{ t.locationVirtualName }} — requested by {{ t.requestedBy }}</p>
+    </div>
+  </div>
+
+  <div class="st-detail-layout">
+
+    <div class="entry-form-card entry-form-card--sectioned st-summary-card">
+      <div class="entry-form-card__body st-summary-grid">
+        <div class="st-summary-item st-summary-item--full">
+          <span class="st-summary-label">Description</span>
+          <span class="st-summary-value">{{ t.description }}</span>
+        </div>
+        <div class="st-summary-item">
+          <span class="st-summary-label">Priority</span>
+          <span class="st-summary-value">{{ t.priority }}</span>
+        </div>
+        <div class="st-summary-item">
+          <span class="st-summary-label">Raised</span>
+          <span class="st-summary-value">{{ t.createdBy || '—' }} · {{ t.createdAt | date: 'medium' }}</span>
+        </div>
+        @if (t.assignedTo) {
+          <div class="st-summary-item">
+            <span class="st-summary-label">Assigned To</span>
+            <span class="st-summary-value">{{ t.assignedTo }} · {{ t.assignedAt | date: 'medium' }}</span>
+          </div>
+        }
+        @if (t.resolutionNotes) {
+          <div class="st-summary-item st-summary-item--full">
+            <span class="st-summary-label">Resolution</span>
+            <span class="st-summary-value">{{ t.resolutionNotes }} — {{ t.resolvedBy || '—' }} · {{ t.resolutionDate | date: 'mediumDate' }}</span>
+          </div>
+        }
+        @if (t.closedAt) {
+          <div class="st-summary-item">
+            <span class="st-summary-label">Closed</span>
+            <span class="st-summary-value">{{ t.closedBy || '—' }} · {{ t.closedAt | date: 'medium' }}{{ t.feedbackRating ? ' — Rated ' + t.feedbackRating + '/5' : '' }}</span>
+          </div>
+        }
+        @if (t.cancelledAt) {
+          <div class="st-summary-item st-summary-item--full">
+            <span class="st-summary-label">Cancelled</span>
+            <span class="st-summary-value">{{ t.cancelledBy || '—' }} · {{ t.cancelledAt | date: 'medium' }} — {{ t.cancellationReason }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (t.status === 'OPEN' && canAssign()) {
+      <div class="entry-form-card entry-form-card--sectioned st-action-card">
+        <div class="entry-form-card__body st-action-row">
+          <input class="field-input st-action-input" [(ngModel)]="assignedTo" placeholder="Assign to..." />
+          <button class="btn-primary" [disabled]="busy()" (click)="assign()">
+            @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+            Assign
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (t.status === 'IN_PROGRESS' && canResolve()) {
+      <div class="entry-form-card entry-form-card--sectioned st-action-card">
+        <div class="entry-form-card__body st-action-row">
+          <input class="field-input st-action-input" [(ngModel)]="resolutionNotes" placeholder="Resolution notes..." />
+          <button class="btn-primary" [disabled]="busy()" (click)="resolve()">
+            @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+            Resolve
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (t.status === 'RESOLVED' && canClose()) {
+      <div class="entry-form-card entry-form-card--sectioned st-action-card">
+        <div class="entry-form-card__body st-action-row">
+          <select class="field-select st-rating-select" [(ngModel)]="feedbackRating" aria-label="Feedback rating">
+            <option [ngValue]="null">No rating</option>
+            <option [ngValue]="1">1 — Poor</option>
+            <option [ngValue]="2">2</option>
+            <option [ngValue]="3">3</option>
+            <option [ngValue]="4">4</option>
+            <option [ngValue]="5">5 — Excellent</option>
+          </select>
+          <button class="btn-primary" [disabled]="busy()" (click)="close()">
+            @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+            Close Ticket
+          </button>
+        </div>
+      </div>
+    }
+
+    @if ((t.status === 'OPEN' || t.status === 'IN_PROGRESS') && canManage()) {
+      <div class="entry-form-card entry-form-card--sectioned st-action-card st-cancel-card">
+        <div class="entry-form-card__body st-action-row">
+          <input class="field-input st-action-input" [(ngModel)]="cancelReason" placeholder="Cancellation reason..." />
+          <button class="btn-secondary st-cancel-btn" [disabled]="busy()" (click)="cancel()">Cancel Ticket</button>
+        </div>
+      </div>
+    }
+
+  </div>
+
+</div>
+}

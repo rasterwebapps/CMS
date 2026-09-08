@@ -25,7 +25,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 4 | Requests, Issues &amp; Returns | 🟡 In Progress (auto-restocking deliberately deferred — needs real product-policy input) |
 | 5 | Equipment &amp; Asset Management | ✅ Done |
 | 6 | Budgets &amp; Approvals | ✅ Done |
-| 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | 🟡 In Progress |
+| 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ✅ Done |
 | 8 | Reporting &amp; Dashboards | ⬜ Not Started |
 
 **Status legend:** ⬜ Not Started · 🟡 In Progress · ✅ Done
@@ -147,16 +147,16 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 7 — Gate Pass, Vendor-Owned Stock & Service Requests
 
-**Status: 🟡 In Progress**
+**Status: ✅ Done**
 
 **Covers:** Tracking items and equipment physically leaving or entering a premises (for repair, loan, or disposal), managing stock that a supplier owns but keeps on-site until it's used, and a general internal service/complaint ticketing capability.
 
-**Doing now:** A gate pass can be raised for a product or an asset moving in or out of a location, approved, then physically verified at the gate by security — always two distinct steps, even when the same person can do both. A non-returnable pass closes as soon as it's verified; a returnable one (the common repair/loan send-out case) stays open, with overdue tracking, until marked returned. Separately, an agreement can be set up with a supplier for stock they keep on-site without the business owning it — receiving that stock makes it immediately usable, and recording how much has actually been consumed is a separate step that transfers ownership for billing purposes without moving any physical stock a second time.
+**Shipped:** A gate pass can be raised for a product or an asset moving in or out of a location, approved, then physically verified at the gate by security — always two distinct steps, even when the same person can do both. A non-returnable pass closes as soon as it's verified; a returnable one (the common repair/loan send-out case) stays open, with overdue tracking, until marked returned. An agreement can be set up with a supplier for stock they keep on-site without the business owning it — receiving that stock makes it immediately usable, and recording how much has actually been consumed is a separate step that transfers ownership for billing purposes without moving any physical stock a second time. A general complaint/service-request ticket can be raised at a location against a configurable category, then assigned, resolved, and closed (with an optional feedback rating) — each stage its own permission, independent of any product or asset.
 
 **Todo:**
 - Outward/inward gate pass tracking, including overdue alerts for items that should have come back — ✅ done
 - Vendor-owned ("consignment") stock tracking, with a billing-cycle term captured on the agreement — ✅ done (an actual periodic invoice/billing-run engine is not built in this slice — see the decision log)
-- Internal service ticketing
+- Internal service ticketing — ✅ done
 
 ---
 

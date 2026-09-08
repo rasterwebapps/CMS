@@ -58,7 +58,7 @@ Derived from `docs/inventory-management/CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md` �
 | R3-M3: GRN & Stock Control | ✅ Done — Goods Receipt, Stock Transfer, and Return to Supplier all shipped | 100% |
 | R3-M4: Requisition & Issue | 🟡 In Progress — Stock Issue Request, Internal Return, and Loanable Item Issue all shipped; auto-restocking deliberately deferred pending real product-policy input (see DECISION_LOG.md) | 75% |
 | R3-M5: Asset Management | ✅ Done — Asset register, Maintenance/Service Contracts, straight-line Depreciation, and Disposal all shipped | 100% |
-| R3-M6: Approvals & Gate Pass | 🟡 In Progress — Budget allocation/tracking, Multi-level approval routing, Exception handling, Outward/inward Gate Pass, and Vendor-owned (consignment) stock tracking all shipped; internal service ticketing still to come | 80% |
+| R3-M6: Approvals & Gate Pass | ✅ Done — Budget allocation/tracking, Multi-level approval routing, Exception handling, Outward/inward Gate Pass, Vendor-owned (consignment) stock tracking, and internal Service Ticketing all shipped | 100% |
 | R3-M7: Reporting | ⬜ Not Started | 0% |
 | R3-M8: InventoryItem migration | ⬜ Not Started | 0% |
 | R3-M9: Standalone deployability | ⬜ Not Started — open technical questions unresolved | 0% |

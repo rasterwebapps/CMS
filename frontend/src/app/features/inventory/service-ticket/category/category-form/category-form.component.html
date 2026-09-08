@@ -1,0 +1,66 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/ticket/categories" aria-label="Back to service ticket categories">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Category</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the category details below.' : 'A configurable label for grouping service tickets — no fixed list is hard-coded.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container"><mat-spinner diameter="48"></mat-spinner></div>
+  } @else {
+    <div class="cat-standalone-layout">
+
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Category Details</div>
+            <div class="entry-form-card__hdr-sub">Name and optional description</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label for="cat-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="cat-name" class="field-input" formControlName="name" placeholder="e.g., Electrical, Plumbing, IT Support" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="cat-desc" class="field-label">Description</label>
+              <textarea id="cat-desc" class="field-textarea" formControlName="description" placeholder="Optional description" rows="3"></textarea>
+            </div>
+
+            <div class="entry-form-card__footer">
+              <a routerLink="/inventory/ticket/categories" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) { <mat-spinner diameter="16"></mat-spinner> }
+                {{ isEditMode() ? 'Update' : 'Save' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+    </div>
+  }
+
+</div>

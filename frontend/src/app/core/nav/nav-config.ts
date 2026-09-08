@@ -289,6 +289,8 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Gate Passes', icon: 'local_shipping', route: '/inventory/gate-pass/gate-passes', permissions: ['INVENTORY_GATE_PASS_VIEW', 'INVENTORY_GATE_PASS_MANAGE', 'INVENTORY_GATE_PASS_APPROVE', 'INVENTORY_GATE_PASS_VERIFY', 'INVENTORY_GATE_PASS_RETURN'] },
       { label: 'Consignment Agreements', icon: 'handshake', route: '/inventory/consignment/agreements', permissions: ['INVENTORY_CONSIGNMENT_VIEW', 'INVENTORY_CONSIGNMENT_MANAGE', 'INVENTORY_CONSIGNMENT_CONVERT'] },
       { label: 'Consignment Stock', icon: 'inventory_2', route: '/inventory/consignment/stock-lines', permissions: ['INVENTORY_CONSIGNMENT_VIEW', 'INVENTORY_CONSIGNMENT_MANAGE', 'INVENTORY_CONSIGNMENT_CONVERT'] },
+      { label: 'Service Tickets', icon: 'support_agent', route: '/inventory/ticket/tickets', permissions: ['INVENTORY_SERVICE_TICKET_VIEW', 'INVENTORY_SERVICE_TICKET_MANAGE', 'INVENTORY_SERVICE_TICKET_ASSIGN', 'INVENTORY_SERVICE_TICKET_RESOLVE', 'INVENTORY_SERVICE_TICKET_CLOSE'] },
+      { label: 'Ticket Categories', icon: 'sell', route: '/inventory/ticket/categories', permissions: ['INVENTORY_SERVICE_TICKET_CATEGORY_VIEW', 'INVENTORY_SERVICE_TICKET_CATEGORY_MANAGE'] },
     ],
   },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)

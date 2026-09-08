@@ -1,0 +1,106 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="st-pg-title">Service <em>Tickets</em></h1>
+      </div>
+      <p class="st-pg-sub">General complaint/service-request tracking, independent of any product or asset.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToNew()" aria-label="Raise a new service ticket">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Ticket
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select st-filter" [(ngModel)]="locationFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+    <select class="field-select st-filter" [(ngModel)]="categoryFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by category">
+      <option [ngValue]="null">All Categories</option>
+      @for (c of categories(); track c.id) {
+        <option [ngValue]="c.id">{{ c.name }}</option>
+      }
+    </select>
+    <select class="field-select st-filter" [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by status">
+      <option [ngValue]="null">All Statuses</option>
+      <option value="OPEN">Open</option>
+      <option value="IN_PROGRESS">In Progress</option>
+      <option value="RESOLVED">Resolved</option>
+      <option value="CLOSED">Closed</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+    <select class="field-select st-filter" [(ngModel)]="priorityFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by priority">
+      <option [ngValue]="null">All Priorities</option>
+      <option value="LOW">Low</option>
+      <option value="MEDIUM">Medium</option>
+      <option value="HIGH">High</option>
+      <option value="URGENT">Urgent</option>
+    </select>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="st-table">
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Ticket</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="st-desc">{{ row.description }}</div>
+          <div class="st-requester">Requested by {{ row.requestedBy }}</div>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="categoryName">
+        <th mat-header-cell *matHeaderCellDef>Category</th>
+        <td mat-cell *matCellDef="let row">{{ row.categoryName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="locationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let row">{{ row.locationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="priority">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Priority</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center" [class.st-priority-urgent]="row.priority === 'URGENT'">{{ row.priority }}</td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center">
+          <cms-status-badge [status]="row.status" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-actions">
+            <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Open" ariaLabel="Open service ticket" (clicked)="openTicket(row)">
+              <cms-icon-view [size]="14" />
+            </cms-row-action-btn>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="openTicket(row)" class="st-row"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="support_agent"
+            title="No service tickets yet"
+            subtitle="Raise a ticket to track a complaint or service request."
+            actionLabel="New Ticket"
+            (actionClick)="goToNew()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>

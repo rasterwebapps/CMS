@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-218** (OC-217 was the last used, Vendor-owned consignment
-   stock — OC-206 was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V468** (V467 was the last used). Increment per file;
+4. **Next OC ticket number: OC-219** (OC-218 was the last used, Internal Service Ticketing —
+   OC-206 was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V470** (V469 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -199,8 +199,11 @@
       ownership-transfer reconciliation that does not move stock a second time and does not
       auto-generate a Purchase/GRN — see the decision log for why. No periodic billing engine
       built (billing-cycle is a captured term only).
-- [ ] **Internal service ticketing** (OC-218) — general complaint/service-request tracking,
-      independent of phase order, can be built any time.
+- [x] **Internal service ticketing** (OC-218, shipped 2026-09-08) — a configurable
+      `ServiceTicketCategory` lookup master (shaped like `Uom` minus code) plus `ServiceTicket`
+      itself, entirely independent of Product/Asset, scoped only to a location. Four separate
+      permissions for the lifecycle (`Assign`/`Resolve`/`Close`, plus `Manage` for create+
+      cancel). **This closes Phase 7 in full, and brings R3-M6 to 100%.**
 
 ## Phase 8 — Reporting & Dashboards
 
@@ -373,3 +376,21 @@ broken/half-done, and any judgment call made that a future session should sanity
   the decision log. Migrations V466/V467. Full frontend (agreement list/form, stock-line list
   with Receive/Consume dialogs, nav entries). `./gradlew compileJava` and `npx tsc --noEmit` both
   passed clean. Next: Internal service ticketing (OC-218), the last Phase 7 slice.
+- **2026-09-08, same session, after OC-218:** Internal Service Ticketing shipped — **closing
+  Phase 7 in full** and bringing R3-M6 ("Approvals & Gate Pass") to 100%. New
+  `com.cms.inventory.ticket` package: `ServiceTicketCategory` (a configurable lookup master,
+  shaped like `Uom` minus its `code` field, with the mandatory uniqueness validator/`/name-exists`
+  endpoint) and `ServiceTicket` itself (no separate stored ticket number/date — `id`/`createdAt`
+  serve that role, same posture as every other business document in this app). Entirely
+  independent of Product/Asset, scoped only to a location. Four separate permissions
+  (`Manage`/`Assign`/`Resolve`/`Close`) drive `OPEN → IN_PROGRESS → RESOLVED → CLOSED`, with
+  `CANCELLED` reachable only from `OPEN`/`IN_PROGRESS`. Migrations V468/V469. Full frontend
+  (category list/form, ticket list/new/detail with permission-gated stage actions, nav entries,
+  `RESOLVED` added to the shared status-badge resolver). `./gradlew compileJava` and
+  `npx tsc --noEmit` both passed clean.
+  **Phase 7 is now fully closed (Gate Pass, Consignment Stock, Service Ticket — OC-216/217/218).**
+  Next per the plan: Phase 8 (Reporting & Dashboards) explicitly requires breaking its checklist
+  down into concrete slices first (its own text says "do not start speculatively ahead of
+  dependencies") — that breakdown, or picking up one of the "Also outstanding" items
+  (`InventoryItem` migration re-check, Product photo upload), is the next unit of work for
+  whichever session picks this up.

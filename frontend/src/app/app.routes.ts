@@ -727,6 +727,56 @@ export const routes: Routes = [
         (m) => m.ConsignmentStockLineListComponent
       ),
   },
+  // Phase 7 "Gate Pass, Vendor-Owned Stock & Service Requests" — Service Ticket (third and
+  // final slice, closes Phase 7).
+  {
+    path: 'inventory/ticket/categories',
+    canActivate: withPermission('INVENTORY_SERVICE_TICKET_CATEGORY_VIEW', 'INVENTORY_SERVICE_TICKET_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/service-ticket/category/category-list/category-list.component').then(
+        (m) => m.ServiceTicketCategoryListComponent
+      ),
+  },
+  {
+    path: 'inventory/ticket/categories/new',
+    canActivate: withPermission('INVENTORY_SERVICE_TICKET_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/service-ticket/category/category-form/category-form.component').then(
+        (m) => m.ServiceTicketCategoryFormComponent
+      ),
+  },
+  {
+    path: 'inventory/ticket/categories/:id/edit',
+    canActivate: withPermission('INVENTORY_SERVICE_TICKET_CATEGORY_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/service-ticket/category/category-form/category-form.component').then(
+        (m) => m.ServiceTicketCategoryFormComponent
+      ),
+  },
+  {
+    path: 'inventory/ticket/tickets',
+    canActivate: withPermission('INVENTORY_SERVICE_TICKET_VIEW', 'INVENTORY_SERVICE_TICKET_MANAGE', 'INVENTORY_SERVICE_TICKET_ASSIGN', 'INVENTORY_SERVICE_TICKET_RESOLVE', 'INVENTORY_SERVICE_TICKET_CLOSE'),
+    loadComponent: () =>
+      import('./features/inventory/service-ticket/ticket/ticket-list/ticket-list.component').then(
+        (m) => m.ServiceTicketListComponent
+      ),
+  },
+  {
+    path: 'inventory/ticket/tickets/new',
+    canActivate: withPermission('INVENTORY_SERVICE_TICKET_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/service-ticket/ticket/ticket-new/ticket-new.component').then(
+        (m) => m.ServiceTicketNewComponent
+      ),
+  },
+  {
+    path: 'inventory/ticket/tickets/:id',
+    canActivate: withPermission('INVENTORY_SERVICE_TICKET_VIEW', 'INVENTORY_SERVICE_TICKET_MANAGE', 'INVENTORY_SERVICE_TICKET_ASSIGN', 'INVENTORY_SERVICE_TICKET_RESOLVE', 'INVENTORY_SERVICE_TICKET_CLOSE'),
+    loadComponent: () =>
+      import('./features/inventory/service-ticket/ticket/ticket-detail/ticket-detail.component').then(
+        (m) => m.ServiceTicketDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

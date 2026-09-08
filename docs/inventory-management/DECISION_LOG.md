@@ -971,4 +971,45 @@ SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with the catch-all sync block (V467). `MILESTO
 `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and
 `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-08 — Service Ticket slice (OC-218)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Adds Phase 7's third and final slice — a general internal complaint/service-request ticket,
+closing Phase 7 ("Gate Pass, Vendor-Owned Stock & Service Requests") in full and R3-M6 ("Approvals
+& Gate Pass") to 100%.
+
+1. **`ServiceTicketCategory` is a simple master shaped like the already-shipped `Uom` minus its
+   `code` field** — a category only ever needs a unique display name, per the reference
+   architecture's own "no hospital/college-specific category hard-coded; Category is a
+   configurable lookup" instruction. It follows the module's mandatory master-screen uniqueness
+   pattern (`uniqueFieldValidator` + `/name-exists`) exactly like every other master.
+2. **No separate stored `TicketNumber`/`TicketDate` field**, a deliberate divergence from the ER
+   doc's original field list — `id`/`createdAt` already serve that role, consistent with how
+   every other business document in this app (Purchase Order, Gate Pass, Consignment Agreement)
+   displays "#{id}" rather than maintaining a second generated number requiring a double-save.
+3. **`ServiceTicket` is entirely independent of `Product`/`Asset`** — "something is wrong here,
+   please come look at it" is a standalone request scoped only to a location, not itself a stock
+   or asset transaction. This keeps it a clean, minimal, genuinely generic capability rather than
+   forcing it to reference an item it may not need.
+4. **Four separately-permissioned lifecycle stages** (`Assign`/`Resolve`/`Close`, plus
+   `Manage` for create+cancel), per the operation-wise permission mapping rule — a coordinator
+   typically assigns, a technician resolves, and closing (with an optional feedback rating) is
+   often a different actor again, e.g. the original requester or a supervisor confirming.
+   `OPEN → IN_PROGRESS → RESOLVED → CLOSED`, with `CANCELLED` reachable only from `OPEN`/
+   `IN_PROGRESS` — the same "cancel only from an early state" shape as `CycleCount`'s own
+   `CANCELLED`-only-from-`DRAFT` gate.
+5. **Category master screen scoped to table view only, no card view/column sorting/query-param
+   persistence** — a deliberate simplification versus `Uom`'s fuller dual-view master screen
+   (this session's own Standing Rules call for moving through remaining slices rather than
+   gold-plating a small lookup master); the same simpler shape already used for `Budget`,
+   `GatePass`, and `ConsignmentAgreement` this session.
+
+**Impact:** new tables `service_ticket_categories`, `service_tickets` (V468); new permissions
+`INVENTORY_SERVICE_TICKET_VIEW` / `_MANAGE` / `_ASSIGN` / `_RESOLVE` / `_CLOSE` /
+`_CATEGORY_VIEW` / `_CATEGORY_MANAGE` seeded to DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN with
+the catch-all sync block (V469). `MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the
+same change — this closes Phase 7 end-to-end and brings R3-M6 to 100%. `./gradlew compileJava`
+and `npx tsc -p tsconfig.app.json --noEmit` both run clean before committing.
+
 *Next entry goes here — do not insert above this line.*
