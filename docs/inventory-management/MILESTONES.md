@@ -20,7 +20,7 @@ Inventory Management is a new, standalone module being built for the platform �
 |---|---|---|
 | 0 | Discovery &amp; Design | 🟡 In Progress |
 | 1 | Foundation — Catalog, Stock Tracking &amp; Locations | 🟡 In Progress |
-| 2 | Purchasing &amp; Suppliers | ⬜ Not Started |
+| 2 | Purchasing &amp; Suppliers | 🟡 In Progress |
 | 3 | Receiving &amp; Stock Movement | ⬜ Not Started |
 | 4 | Requests, Issues &amp; Returns | ⬜ Not Started |
 | 5 | Equipment &amp; Asset Management | ⬜ Not Started |
@@ -69,14 +69,16 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 2 — Purchasing & Suppliers
 
-**Status: ⬜ Not Started**
+**Status: 🟡 In Progress**
 
 **Covers:** Raising a request for items, getting and comparing quotes, issuing purchase orders, and registering and managing the suppliers those orders go to (including their approved rates and any standing rate agreements).
 
+**Doing now:** Suppliers can now be registered, approved, and managed, with a standing rate agreement (Rate Contract) tracked per supplier, and a small named-tax-rate list (Tax Rule) purchase orders will use later. Next up: linking a product to a supplier with its own rate (needed before "price comparison" becomes meaningful), then the actual Purchase Requisition → Purchase Order flow.
+
 **Todo:**
 - Purchase request → purchase order flow
-- Supplier registration, approval, and rate management
-- Price comparison and rate-contract support
+- Supplier registration, approval, and rate management — ✅ done (Suppliers and Rate Contracts, each with their own screen; approving a supplier is a distinct step from editing one)
+- Price comparison and rate-contract support — Rate Contracts done; price comparison itself waits on linking products to supplier rates (next), and stays a simple rate lookup rather than a dedicated compare-quotes tool this phase
 
 ---
 

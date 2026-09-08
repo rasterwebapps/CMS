@@ -1,0 +1,86 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="rc-pg-title">Rate <em>Contracts</em></h1>
+      </div>
+      <p class="rc-pg-sub">Standing agreements with a supplier — value caps, terms, and renewal reminders.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToNew()" aria-label="Add new rate contract">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Rate Contract
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select rc-filter" [(ngModel)]="supplierFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by supplier">
+      <option [ngValue]="null">All Suppliers</option>
+      @for (s of suppliers(); track s.id) {
+        <option [ngValue]="s.id">{{ s.supplierName }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="rc-table">
+      <ng-container matColumnDef="supplierName">
+        <th mat-header-cell *matHeaderCellDef>Supplier</th>
+        <td mat-cell *matCellDef="let row">{{ row.supplierName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="startDate">
+        <th mat-header-cell *matHeaderCellDef>Start Date</th>
+        <td mat-cell *matCellDef="let row">{{ row.startDate | date: 'mediumDate' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="endDate">
+        <th mat-header-cell *matHeaderCellDef>End Date</th>
+        <td mat-cell *matCellDef="let row">{{ row.endDate ? (row.endDate | date: 'mediumDate') : '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="contractValueCap">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Value Cap</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.contractValueCap != null ? (row.contractValueCap | number: '1.2-2') : '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="isActive">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center">
+          <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-actions">
+            <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="toggleStatus(row)"
+                    [tooltip]="row.isActive ? 'Deactivate' : 'Activate'" ariaLabel="Toggle rate contract status">
+              <cms-icon-toggle-status [active]="row.isActive" [size]="14" />
+            </cms-row-action-btn>
+            <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editContract(row)">
+              <cms-icon-edit [size]="14" />
+            </cms-row-action-btn>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="handshake"
+            title="No rate contracts yet"
+            subtitle="Add a standing rate agreement with a supplier to see it here."
+            actionLabel="Add Rate Contract"
+            (actionClick)="handleEmptyAction()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>

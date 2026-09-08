@@ -1,0 +1,25 @@
+// Local (not global) — Angular's emulated ViewEncapsulation does not let a class defined in one
+// component's SCSS style another component's template.
+
+.sup-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+// .checkbox-label is global (styles.scss) but only supplies flex/padding — it documents itself as
+// "wraps a mat-checkbox", so a bare native <input type="checkbox"> needs its own sizing here.
+// Several existing forms (product-form, classroom-form) reference a "field-checkbox" class with
+// no definition anywhere and render an unstyled native checkbox as a result — not repeating that
+// here; curriculum-version-form.component.scss is the one place that already defines it correctly.
+.checkbox-label {
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.field-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

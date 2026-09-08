@@ -183,6 +183,18 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Locations',         icon: 'store',       route: '/inventory/locations',  permissions: ['INVENTORY_LOCATION_VIEW', 'INVENTORY_LOCATION_MANAGE'] },
     ],
   },
+  // 8c. Purchasing & Suppliers — Phase 2 of the Inventory Management module. Its own top-level
+  // group, per the same "new Inventory nav/menus get their own entry" convention Stock Management
+  // above followed. See docs/inventory-management/DECISION_LOG.md's "Phase 2 kickoff" entry.
+  {
+    label: 'Purchasing & Suppliers',
+    icon: 'shopping_cart',
+    items: [
+      { label: 'Suppliers',         icon: 'storefront',  route: '/inventory/procurement/suppliers',      permissions: ['INVENTORY_SUPPLIER_VIEW', 'INVENTORY_SUPPLIER_MANAGE', 'INVENTORY_SUPPLIER_APPROVE'] },
+      { label: 'Rate Contracts',    icon: 'handshake',   route: '/inventory/procurement/rate-contracts', permissions: ['INVENTORY_RATE_CONTRACT_VIEW', 'INVENTORY_RATE_CONTRACT_MANAGE'] },
+      { label: 'Tax Rules',         icon: 'percent',     route: '/inventory/procurement/tax-rules',      permissions: ['INVENTORY_TAX_RULE_VIEW', 'INVENTORY_TAX_RULE_MANAGE'] },
+    ],
+  },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
   {
     label: 'Hostel Management',

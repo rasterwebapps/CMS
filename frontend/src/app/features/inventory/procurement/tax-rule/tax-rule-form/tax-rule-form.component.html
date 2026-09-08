@@ -1,0 +1,74 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/procurement/tax-rules" aria-label="Back to tax rules">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Tax Rule</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the tax rate below.' : 'Fill in the details below to register a new tax rate.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="tr-standalone-layout">
+
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Tax Rule Details</div>
+            <div class="entry-form-card__hdr-sub">Name and rate</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label for="tr-name" class="field-label">Name <span class="required-star">*</span></label>
+              <input id="tr-name" class="field-input" formControlName="name" placeholder="e.g., GST 18%" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="tr-rate" class="field-label">Rate (%) <span class="required-star">*</span></label>
+              <input id="tr-rate" type="number" step="0.01" min="0" class="field-input" formControlName="ratePercent" placeholder="e.g., 18"
+                [class.field-input--error]="form.get('ratePercent')?.invalid && form.get('ratePercent')?.touched" />
+              @if (form.get('ratePercent')?.invalid && form.get('ratePercent')?.touched) {
+                <p class="field-error">{{ getErrorMessage('ratePercent') }}</p>
+              }
+            </div>
+
+            <div class="entry-form-card__footer">
+              <a routerLink="/inventory/procurement/tax-rules" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Save Changes' : 'Add Tax Rule' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+    </div>
+  }
+
+</div>

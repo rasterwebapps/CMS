@@ -1,0 +1,183 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/procurement/suppliers" aria-label="Back to suppliers">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Supplier</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the supplier details below.' : 'Fill in the details below to register a new supplier.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="entry-form-sections">
+
+        <!-- ── Basic Information ───────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V7l8-4 8 4v14"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M14 9h1"/><path d="M14 13h1"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Basic Information</div>
+              <div class="entry-form-card__hdr-sub">Identity and contact details</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+
+            <div class="sup-form-grid">
+              <div class="field-group">
+                <label for="sup-code" class="field-label">Supplier Code <span class="required-star">*</span></label>
+                <input id="sup-code" class="field-input" formControlName="supplierCode" placeholder="e.g., SUP-0001"
+                  autocomplete="off" (input)="onCodeInput($event)"
+                  [class.field-input--error]="form.get('supplierCode')?.invalid && form.get('supplierCode')?.touched" />
+                @if (form.get('supplierCode')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('supplierCode')?.invalid && form.get('supplierCode')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('supplierCode') }}</p>
+                } @else {
+                  <p class="field-hint">Uppercase, no spaces · must be unique</p>
+                }
+              </div>
+
+              <div class="field-group">
+                <label for="sup-name" class="field-label">Supplier Name <span class="required-star">*</span></label>
+                <input id="sup-name" class="field-input" formControlName="supplierName" placeholder="e.g., Acme Medical Supplies"
+                  autocomplete="off" [class.field-input--error]="form.get('supplierName')?.invalid && form.get('supplierName')?.touched" />
+                @if (form.get('supplierName')?.invalid && form.get('supplierName')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('supplierName') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="sup-form-grid">
+              <div class="field-group">
+                <label for="sup-contact" class="field-label">Contact Person</label>
+                <input id="sup-contact" class="field-input" formControlName="contactPerson" placeholder="Optional" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="sup-phone" class="field-label">Phone</label>
+                <input id="sup-phone" class="field-input" formControlName="phone" placeholder="Optional" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="sup-email" class="field-label">Email</label>
+              <input id="sup-email" type="email" class="field-input" formControlName="email" placeholder="Optional"
+                [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
+              @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                <p class="field-error">{{ getErrorMessage('email') }}</p>
+              }
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── Tax & Legal ──────────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Tax &amp; Legal</div>
+              <div class="entry-form-card__hdr-sub">Registration references (e.g. GSTIN/PAN or your country's equivalent)</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+            <div class="sup-form-grid">
+              <div class="field-group">
+                <label for="sup-tax-reg" class="field-label">Tax Registration Id</label>
+                <input id="sup-tax-reg" class="field-input" formControlName="taxRegistrationId" placeholder="Optional" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="sup-legal-reg" class="field-label">Legal Registration No.</label>
+                <input id="sup-legal-reg" class="field-input" formControlName="legalRegistrationNo" placeholder="Optional" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Bank Details ─────────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="5 6 12 3 19 6"/><line x1="4" y1="10" x2="4" y2="21"/><line x1="20" y1="10" x2="20" y2="21"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Bank Details</div>
+              <div class="entry-form-card__hdr-sub">Shown in full only to users who can Manage suppliers — masked to view-only users elsewhere in the app</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+            <div class="sup-form-grid">
+              <div class="field-group">
+                <label for="sup-bank-acct" class="field-label">Account Number</label>
+                <input id="sup-bank-acct" class="field-input" formControlName="bankAccountNumber" placeholder="Optional" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="sup-bank-ifsc" class="field-label">IFSC / Routing Code</label>
+                <input id="sup-bank-ifsc" class="field-input" formControlName="bankIfscCode" placeholder="Optional" autocomplete="off" />
+              </div>
+            </div>
+            <div class="sup-form-grid">
+              <div class="field-group">
+                <label for="sup-bank-name" class="field-label">Bank Name</label>
+                <input id="sup-bank-name" class="field-input" formControlName="bankName" placeholder="Optional" autocomplete="off" />
+              </div>
+              <div class="field-group">
+                <label for="sup-bank-holder" class="field-label">Account Holder Name</label>
+                <input id="sup-bank-holder" class="field-input" formControlName="bankAccountHolder" placeholder="Optional" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Portal (reserved) ────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Portal Access</div>
+              <div class="entry-form-card__hdr-sub">Reserved for a future vendor self-service login — not yet built</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+            <label class="checkbox-label"><input type="checkbox" formControlName="portalAccessEnabled" class="field-checkbox" /> Portal access enabled</label>
+          </div>
+        </section>
+
+        <!-- ── Sticky save/cancel footer ─────────────────────────── -->
+        <div class="entry-form-sticky-footer">
+          <span class="entry-form-sticky-footer__hint">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            A new supplier still needs approving (from the Suppliers list) before it can be used in purchasing.
+          </span>
+          <button type="button" class="btn-cancel" routerLink="/inventory/procurement/suppliers">Cancel</button>
+          <button type="submit" class="btn-submit" [disabled]="saving() || form.invalid">
+            @if (saving()) {
+              <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+            } @else {
+              {{ isEditMode() ? 'Update Supplier' : 'Create Supplier' }}
+            }
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  }
+
+</div>

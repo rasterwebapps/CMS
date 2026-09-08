@@ -1,0 +1,6 @@
+// Short form (2 fields) — no side preview panel, just a centered standalone card, same reasoning
+// as stock-movement-form.component.scss / cycle-count-new.component.scss.
+.tr-standalone-layout {
+  display: flex;
+  justify-content: center;
+}

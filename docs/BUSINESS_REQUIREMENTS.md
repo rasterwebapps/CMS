@@ -64,6 +64,7 @@
 - [BR-57: Timetable Lifecycle, Audit Trail & Post-Publish Adjustments](#br-57-timetable-lifecycle-audit-trail--post-publish-adjustments)
 - [BR-58: Portion-Completion Tracking & Holiday-Driven Session Scheduling](#br-58-portion-completion-tracking--holiday-driven-session-scheduling)
 - [BR-59: Academic Calendar — Base Module (Events, Year View, Progress, Print/Export)](#br-59-academic-calendar--base-module-events-year-view-progress-printexport)
+- [BR-61: Inventory Management — Standalone Module (see dedicated docs)](#br-61-inventory-management--standalone-module-see-dedicated-docs)
 - [Enquiry-to-Admission Lifecycle (End-to-End)](#-enquiry-to-admission-lifecycle-end-to-end)
 - [Change Log](#-change-log)
 
@@ -3163,6 +3164,22 @@ No new permission codes for Branch-level diagrams or the wider link types — sa
 - **Backend scoping for the Equipment/InventoryItem picker.** The link picker on a Floor diagram lists *all* Equipment/InventoryItem rows (client-side searchable), not just ones whose Lab happens to be on that floor — that would need a new backend join query (`Equipment`/`InventoryItem` → `Lab` → `Room` → `Floor`). Same trust model as the pre-existing Room picker.
 - **Physical-coordinate endpoints.** `SpatialTransform.physicalToSvg`/`svgToPhysical` remain unit-tested but uncalled — every DTO/endpoint still works purely in SVG-space.
 - **No automatic Room/Zone/Block layout.** These entities carry no coordinate/dimension data at all (confirmed while scoping this round) — every marker, including Room/Zone/Block ones, is still placed by hand once.
+
+---
+
+## BR-61: Inventory Management — Standalone Module (see dedicated docs)
+
+Inventory Management is a new, standalone, industry-agnostic module (procurement, vendor management, stock ledger, GRN, requisition & issue, asset lifecycle, approvals, gate pass — no BOM/manufacturing, no outbound/sales) planned to reuse the existing Campus Infrastructure hierarchy (`Organization → Branch → Block → Floor → Zone → Room`, see BR-60) for its locations, and designed to eventually be built and deployed standalone (frontend + backend) alongside just the Infra module, independent of the rest of SKSCMS.
+
+Given the scale of this initiative (gap analysis against a 197-page source SRS, an evolving data model, and a running decision log), its full detail is **not** duplicated here — it's tracked in its own dedicated folder to keep this document from being overwhelmed by one module's churn:
+
+- **[`docs/inventory-management/README.md`](inventory-management/README.md)** — document index
+- **[`docs/inventory-management/CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md`](inventory-management/CORE_REQUIREMENTS_AND_GAP_ANALYSIS.md)** — full requirements, gap list, data model, architecture principles
+- **[`docs/inventory-management/DECISION_LOG.md`](inventory-management/DECISION_LOG.md)** — chronological record of every scope/architecture decision
+- **[`docs/RELEASE_3_MILESTONES.md`](RELEASE_3_MILESTONES.md)** — phase/task tracking now that implementation has begun
+- **[`docs/manual-test-cases/inventory-catalog-category-uom.md`](manual-test-cases/inventory-catalog-category-uom.md)** / **[`inventory-catalog-product.md`](manual-test-cases/inventory-catalog-product.md)** / **[`inventory-stock-tracking.md`](manual-test-cases/inventory-stock-tracking.md)** — manual test cases for the shipped slices
+
+Status as of 2026-09-07: core ER diagram and module boundaries drafted; Phase 1 (Foundation)'s item-catalog and core-stock-tracking todos are both done. Categories (with per-category custom attributes), Units of Measure, Products (with alternate names), Inventory Locations (wrapping existing campus rooms), and a Stock Balance/Record Movement flow (Receipt/Adjustment/Disposal, with a weighted-average cost on decreases) are built under the "Stock Management" nav group. Product photos, Issue/Transfer/Return movement types, and real FIFO/FEFO valuation are explicitly deferred to later phases. Physical Counts (reconciliation) is next; the `InventoryItem` migration remains explicitly deferred. **Do not implement against this module without reading the dedicated docs above first** — this entry is a pointer, not a substitute.
 
 ---
 

@@ -11,10 +11,12 @@ Welcome to the College Management System documentation. This directory contains 
 | [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) | Master development plan — all phases and milestones |
 | [RELEASE_1_MILESTONES.md](RELEASE_1_MILESTONES.md) | Release 1 milestone tracker — Phases 0–5 (scaffolding, auth, academic, logistics, finance, assessment) |
 | [RELEASE_2_MILESTONES.md](RELEASE_2_MILESTONES.md) | Release 2 milestone tracker — Phase 6 (library, hostel, transport, LMS, placement, etc.) |
+| [RELEASE_3_MILESTONES.md](RELEASE_3_MILESTONES.md) | Release 3 milestone tracker — Inventory Management (standalone, industry-agnostic module) |
 | [BUSINESS_REQUIREMENTS.md](BUSINESS_REQUIREMENTS.md) | Business rules, workflow definitions, and functional requirements — must be updated for any business/workflow changes |
 | [TECHNICAL_STANDARDS.md](TECHNICAL_STANDARDS.md) | Technical standards & architecture guide — frontend, backend, UI/UX, security, database, testing, AI code generation quality |
 | [skills/](skills/) | Copilot skill templates for code generation (Angular, Spring Boot, Flyway, Keycloak) |
 | [manual-test-cases/](manual-test-cases/) | Manual test case templates and completed test documentation |
+| [inventory-management/](inventory-management/) | Standalone, industry-agnostic Inventory Management module — core requirements, gap analysis vs. the business team's SRS, decision log, and (as work progresses) ER diagram, milestones, and test cases |
 
 ---
 

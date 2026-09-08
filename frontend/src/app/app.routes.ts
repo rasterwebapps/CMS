@@ -243,6 +243,79 @@ export const routes: Routes = [
         (m) => m.CycleCountDetailComponent
       ),
   },
+  // Phase 2 "Purchasing & Suppliers" — Tax Rule, Supplier, Rate Contract (first slice).
+  {
+    path: 'inventory/procurement/tax-rules',
+    canActivate: withPermission('INVENTORY_TAX_RULE_VIEW', 'INVENTORY_TAX_RULE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/tax-rule/tax-rule-list/tax-rule-list.component').then(
+        (m) => m.TaxRuleListComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/tax-rules/new',
+    canActivate: withPermission('INVENTORY_TAX_RULE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/tax-rule/tax-rule-form/tax-rule-form.component').then(
+        (m) => m.TaxRuleFormComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/tax-rules/:id/edit',
+    canActivate: withPermission('INVENTORY_TAX_RULE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/tax-rule/tax-rule-form/tax-rule-form.component').then(
+        (m) => m.TaxRuleFormComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/suppliers',
+    canActivate: withPermission('INVENTORY_SUPPLIER_VIEW', 'INVENTORY_SUPPLIER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/supplier/supplier-list/supplier-list.component').then(
+        (m) => m.SupplierListComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/suppliers/new',
+    canActivate: withPermission('INVENTORY_SUPPLIER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/supplier/supplier-form/supplier-form.component').then(
+        (m) => m.SupplierFormComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/suppliers/:id/edit',
+    canActivate: withPermission('INVENTORY_SUPPLIER_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/supplier/supplier-form/supplier-form.component').then(
+        (m) => m.SupplierFormComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/rate-contracts',
+    canActivate: withPermission('INVENTORY_RATE_CONTRACT_VIEW', 'INVENTORY_RATE_CONTRACT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/rate-contract/rate-contract-list/rate-contract-list.component').then(
+        (m) => m.RateContractListComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/rate-contracts/new',
+    canActivate: withPermission('INVENTORY_RATE_CONTRACT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/rate-contract/rate-contract-form/rate-contract-form.component').then(
+        (m) => m.RateContractFormComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/rate-contracts/:id/edit',
+    canActivate: withPermission('INVENTORY_RATE_CONTRACT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/rate-contract/rate-contract-form/rate-contract-form.component').then(
+        (m) => m.RateContractFormComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),
