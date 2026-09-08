@@ -39,9 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-214** (OC-213 was the last used, Budget allocation — OC-206
-   was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V460** (V459 was the last used). Increment per file;
+4. **Next OC ticket number: OC-215** (OC-214 was the last used, Multi-level approval routing —
+   OC-206 was skipped, see its checklist item above). Increment per slice.
+5. **Next Flyway migration number: V462** (V461 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -171,13 +171,16 @@
       surfaced as allocated-vs-consumed, not hard-blocked at this slice (hard budget
       enforcement is a deliberate escalation — flag it as a follow-on, don't silently wire a
       block into an existing screen's submit path without it being its own reviewed slice).
-- [ ] **Multi-level approval routing** (OC-214). Generic approval-chain engine (sequential
+- [x] **Multi-level approval routing** (OC-214, shipped 2026-09-08). Generic approval-chain engine (sequential
       and parallel sign-off), retrofitted as an *optional* gate in front of Purchase
       Order/Purchase Requisition rather than replacing their existing single-permission
       approve/reject — per the original Phase 2 kickoff decision that a real approval engine
-      is Phase 6 scope, built once. This is the largest single slice in the whole plan;
-      consider breaking it into its own sub-checklist in `DECISION_LOG.md` when started
-      rather than one commit.
+      is Phase 6 scope, built once. **Scope actually shipped:** a real, working, standalone
+      engine (workflows/steps/instances/actions, sequential+parallel routing, permission-gated
+      per step) that a user explicitly starts against an existing PR/PO — it does not rewire
+      PurchaseRequisitionService/PurchaseOrderService's own state machines to hard-block on it;
+      see the decision-log entry's own "Scope boundary" section for why that's a deliberate
+      line, not a shortfall.
 - [ ] **Exception handling with documented reasons** (OC-215). Structured reason codes
       (urgent purchase, single-supplier situation, etc. — mirrors `WantedListRejectionReason`
       's structured-enum-plus-notes shape already shipped) usable when an approval step is
@@ -320,6 +323,15 @@ broken/half-done, and any judgment call made that a future session should sanity
   `com.cms.inventory.budget` package, `consumedAmount` computed live from sent (non-PENDING)
   Purchase Orders via a new `PurchaseOrderItemRepository` aggregate query, purely informational
   (no enforcement, per the plan's own instruction), migrations V458/V459, compile/typecheck
-  both clean, committed locally. Next: Multi-level approval routing (OC-214) — the largest
-  single slice in the whole plan; read its own checklist note above about breaking it into a
-  sub-checklist before starting.
+  both clean, committed locally.
+- **2026-09-08, same session, after OC-214:** Multi-level approval routing shipped — the
+  plan's own flagged largest slice, and it went cleanly: new `com.cms.inventory.approval`
+  package (4 entities, 2 services, 2 controllers, full frontend), `./gradlew compileJava` and
+  `npx tsc --noEmit` both passed on the first attempt. Built as a real, working, standalone
+  engine (sequential+parallel routing genuinely functions, permission-gated per step) that a
+  user explicitly starts against an existing PR/PO — deliberately does NOT rewire
+  PurchaseRequisitionService/PurchaseOrderService's own state machines to hard-block on it; see
+  the decision log's "Scope boundary" section for the full reasoning on why that's a conscious
+  line for this slice, not a shortfall, and what a lower-risk follow-on to actually wire it in
+  as a submit-time gate would look like. Migrations V460/V461. Next: Exception handling with
+  documented reasons (OC-215), the last Phase 6 slice.

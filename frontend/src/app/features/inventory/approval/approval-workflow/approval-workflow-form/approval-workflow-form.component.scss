@@ -1,0 +1,51 @@
+.aw-standalone-layout {
+  display: flex;
+  justify-content: center;
+}
+
+.aw-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.aw-form-full {
+  grid-column: 1 / -1;
+}
+
+.aw-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.aw-step-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding: 10px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 10px;
+  background: var(--cms-bg-subtle);
+}
+
+.aw-step-order {
+  width: 90px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.aw-step-name {
+  flex: 1;
+  min-width: 180px;
+  margin: 0;
+}
+
+.aw-step-permission {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
+}

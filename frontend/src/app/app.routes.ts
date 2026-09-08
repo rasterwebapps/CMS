@@ -628,6 +628,47 @@ export const routes: Routes = [
         (m) => m.BudgetFormComponent
       ),
   },
+  // Phase 6 "Budgets & Approvals" — Multi-level approval routing (second slice).
+  {
+    path: 'inventory/approval/workflows',
+    canActivate: withPermission('INVENTORY_APPROVAL_WORKFLOW_VIEW', 'INVENTORY_APPROVAL_WORKFLOW_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/approval/approval-workflow/approval-workflow-list/approval-workflow-list.component').then(
+        (m) => m.ApprovalWorkflowListComponent
+      ),
+  },
+  {
+    path: 'inventory/approval/workflows/new',
+    canActivate: withPermission('INVENTORY_APPROVAL_WORKFLOW_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/approval/approval-workflow/approval-workflow-form/approval-workflow-form.component').then(
+        (m) => m.ApprovalWorkflowFormComponent
+      ),
+  },
+  {
+    path: 'inventory/approval/workflows/:id/edit',
+    canActivate: withPermission('INVENTORY_APPROVAL_WORKFLOW_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/approval/approval-workflow/approval-workflow-form/approval-workflow-form.component').then(
+        (m) => m.ApprovalWorkflowFormComponent
+      ),
+  },
+  {
+    path: 'inventory/approval/instances',
+    canActivate: withPermission('INVENTORY_APPROVAL_VIEW', 'INVENTORY_APPROVAL_ACT'),
+    loadComponent: () =>
+      import('./features/inventory/approval/approval-instance/approval-instance-list/approval-instance-list.component').then(
+        (m) => m.ApprovalInstanceListComponent
+      ),
+  },
+  {
+    path: 'inventory/approval/instances/:id',
+    canActivate: withPermission('INVENTORY_APPROVAL_VIEW', 'INVENTORY_APPROVAL_ACT'),
+    loadComponent: () =>
+      import('./features/inventory/approval/approval-instance/approval-instance-detail/approval-instance-detail.component').then(
+        (m) => m.ApprovalInstanceDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

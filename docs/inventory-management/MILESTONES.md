@@ -136,11 +136,11 @@ Inventory Management is a new, standalone module being built for the platform �
 
 **Covers:** Setting spending limits per location or area, and the multi-level sign-off process a purchase or request goes through before it's approved — including handling exceptions (urgent purchases, single-supplier situations) with a documented reason.
 
-**Doing now:** A spending budget can be allocated to a location over a period, with committed spend (every sent Purchase Order in that window) computed live and shown as allocated-vs-consumed. This is informational only in this pass — nothing blocks a purchase from exceeding its budget yet; real hard enforcement is a deliberate future step, not silently built into this slice.
+**Doing now:** A spending budget can be allocated to a location over a period, with committed spend (every sent Purchase Order in that window) computed live and shown as allocated-vs-consumed. This is informational only in this pass — nothing blocks a purchase from exceeding its budget yet; real hard enforcement is a deliberate future step, not silently built into this slice. A generic, reusable approval-chain engine can now be defined (sequential and/or parallel sign-off stages, each requiring a specific permission) and started, as an optional step, against an existing Purchase Requisition or Purchase Order — without changing how those two screens already work on their own.
 
 **Todo:**
 - Budget allocation and tracking — ✅ done
-- Multi-level approval routing, including parallel sign-off where more than one person needs to weigh in at once — still to come
+- Multi-level approval routing, including parallel sign-off where more than one person needs to weigh in at once — ✅ done
 - Exception handling with documented reasons — still to come
 
 ---

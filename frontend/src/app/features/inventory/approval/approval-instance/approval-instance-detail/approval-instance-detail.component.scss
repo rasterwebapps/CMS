@@ -1,0 +1,118 @@
+.ai-detail-loading {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.ai-detail-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-completed-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.ai-table-card {
+  flex: 1;
+}
+
+.ai-line-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--cms-text-table-header);
+    background: var(--cms-bg-subtle);
+    border-bottom: 1px solid var(--cms-border-default);
+    padding: 10px 14px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--cms-border-light);
+    color: var(--cms-text-primary);
+    font-size: 0.875rem;
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  .cell-align-right { text-align: right; }
+  .cell-align-center { text-align: center; }
+}
+
+.ai-current-stage {
+  background: var(--cms-bg-subtle);
+}
+
+.ai-step-name {
+  font-weight: 600;
+}
+
+.ai-notes-input {
+  width: 100%;
+  min-width: 160px;
+}
+
+.ai-muted {
+  color: var(--cms-text-muted);
+  font-size: 0.8125rem;
+}
+
+.ai-resolution-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-approve-btn,
+.ai-reject-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.ai-approve-btn {
+  color: var(--cms-success);
+  border-color: var(--cms-success);
+  background: var(--cms-success-light);
+
+  &:hover:not(:disabled) {
+    background: var(--cms-success);
+    color: #fff;
+  }
+}
+
+.ai-reject-btn {
+  color: var(--cms-danger);
+  border-color: var(--cms-danger);
+  background: var(--cms-danger-light);
+
+  &:hover:not(:disabled) {
+    background: var(--cms-danger);
+    color: #fff;
+  }
+}

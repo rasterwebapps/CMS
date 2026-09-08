@@ -1,0 +1,82 @@
+@if (loading()) {
+  <div class="ai-detail-loading"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (instance(); as i) {
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/approval/instances" aria-label="Back to approvals">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ i.workflowName }}</h1>
+        <cms-status-badge [status]="i.status" />
+      </div>
+      <p class="page-subtitle">
+        {{ i.documentType === 'PURCHASE_REQUISITION' ? 'Purchase Requisition' : 'Purchase Order' }}
+        #{{ i.purchaseRequisitionId || i.purchaseOrderId }} — initiated by {{ i.initiatedBy || '—' }} on {{ i.initiatedAt | date: 'medium' }}
+      </p>
+    </div>
+  </div>
+
+  <div class="ai-detail-layout">
+
+    @if (i.completedAt) {
+      <div class="entry-form-card entry-form-card--sectioned ai-summary-card">
+        <div class="entry-form-card__body">
+          <span class="ai-completed-label">Completed {{ i.completedAt | date: 'medium' }}</span>
+        </div>
+      </div>
+    }
+
+    <!-- ── Steps ──────────────────────────────────────────────── -->
+    <div class="content-card ai-table-card">
+      <div class="table-wrapper">
+        <table class="ai-line-table">
+          <thead>
+            <tr>
+              <th class="cell-align-right">Order</th>
+              <th>Step</th>
+              <th>Required Permission</th>
+              <th class="cell-align-center">Status</th>
+              <th>Resolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (action of i.actions; track action.id) {
+              <tr [class.ai-current-stage]="action.stepOrder === i.currentStepOrder && i.status === 'IN_PROGRESS'">
+                <td class="cell-align-right">{{ action.stepOrder }}</td>
+                <td>
+                  <div class="ai-step-name">{{ action.stepName }}</div>
+                </td>
+                <td>{{ action.requiredPermissionDisplayName }}</td>
+                <td class="cell-align-center"><cms-status-badge [status]="action.status" /></td>
+                <td>
+                  @if (action.actionableByCurrentUser) {
+                    <div class="ai-resolution-row">
+                      <input class="field-input ai-notes-input" [(ngModel)]="notesByAction[action.id]" placeholder="Note (optional)" aria-label="Resolution note" />
+                      <button class="ai-approve-btn" [disabled]="busy()" (click)="approveAction(action)">Approve</button>
+                      <button class="ai-reject-btn" [disabled]="busy()" (click)="rejectAction(action)">Reject</button>
+                    </div>
+                  } @else if (action.status === 'PENDING' && action.stepOrder === i.currentStepOrder) {
+                    <span class="ai-muted">Awaiting a holder of this permission</span>
+                  } @else if (action.status === 'PENDING') {
+                    <span class="ai-muted">Not yet at this stage</span>
+                  } @else if (action.actedBy) {
+                    <span class="ai-muted">{{ action.actedBy }} · {{ action.actedAt | date: 'short' }}{{ action.notes ? ' — ' + action.notes : '' }}</span>
+                  } @else {
+                    <span class="ai-muted">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+}

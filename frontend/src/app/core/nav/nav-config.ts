@@ -274,6 +274,8 @@ export const NAV_ENTRIES: NavEntry[] = [
     modules: ['INVENTORY'],
     items: [
       { label: 'Budgets', icon: 'account_balance_wallet', route: '/inventory/budget/budgets', permissions: ['INVENTORY_BUDGET_VIEW', 'INVENTORY_BUDGET_MANAGE'] },
+      { label: 'Approval Workflows', icon: 'rule', route: '/inventory/approval/workflows', permissions: ['INVENTORY_APPROVAL_WORKFLOW_VIEW', 'INVENTORY_APPROVAL_WORKFLOW_MANAGE'] },
+      { label: 'Approvals', icon: 'fact_check', route: '/inventory/approval/instances', permissions: ['INVENTORY_APPROVAL_VIEW', 'INVENTORY_APPROVAL_ACT'] },
     ],
   },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
