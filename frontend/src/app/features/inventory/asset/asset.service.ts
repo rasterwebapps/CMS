@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
-import { Asset, AssetRequest, AssetStatusUpdateRequest, Page } from './asset.model';
+import { Asset, AssetDisposalRequest, AssetRequest, AssetStatusUpdateRequest, Page } from './asset.model';
 
 @Injectable({ providedIn: 'root' })
 export class AssetService {
@@ -31,6 +31,10 @@ export class AssetService {
 
   updateStatus(id: number, request: AssetStatusUpdateRequest): Observable<Asset> {
     return this.http.patch<Asset>(`${this.baseUrl}/${id}/status`, request);
+  }
+
+  dispose(id: number, request: AssetDisposalRequest): Observable<Asset> {
+    return this.http.post<Asset>(`${this.baseUrl}/${id}/dispose`, request);
   }
 
   assetTagExists(value: string, excludeId?: number): Observable<boolean> {

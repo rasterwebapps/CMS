@@ -17,10 +17,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.inventory.asset.dto.AssetDisposalRequest;
 import com.cms.inventory.asset.dto.AssetRequest;
 import com.cms.inventory.asset.dto.AssetResponse;
 import com.cms.inventory.asset.dto.AssetStatusUpdateRequest;
 import com.cms.inventory.asset.service.AssetService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import jakarta.validation.Valid;
 
@@ -74,5 +77,15 @@ public class AssetController {
     @PreAuthorize("@perm.has('INVENTORY_ASSET_MANAGE')")
     public ResponseEntity<Boolean> assetTagExists(@RequestParam String value, @RequestParam(required = false) Long excludeId) {
         return ResponseEntity.ok(assetService.assetTagExists(value, excludeId));
+    }
+
+    @PostMapping("/{id}/dispose")
+    @PreAuthorize("@perm.has('INVENTORY_ASSET_DISPOSE')")
+    public ResponseEntity<AssetResponse> dispose(@PathVariable Long id, @Valid @RequestBody AssetDisposalRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(assetService.dispose(id, request, username(jwt)));
+    }
+
+    private String username(Jwt jwt) {
+        return jwt != null ? jwt.getClaimAsString("preferred_username") : "system";
     }
 }

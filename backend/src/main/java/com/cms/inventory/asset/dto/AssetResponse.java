@@ -22,6 +22,11 @@ public record AssetResponse(
     boolean depreciationApplicable,
     BigDecimal accumulatedDepreciation,
     BigDecimal currentBookValue,
+    String disposalReason,
+    BigDecimal disposalValue,
+    LocalDate disposalDate,
+    String disposedBy,
+    Instant disposedAt,
     String notes,
     Instant createdAt,
     Instant updatedAt

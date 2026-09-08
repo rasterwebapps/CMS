@@ -28,6 +28,12 @@ export interface AssetStatusUpdateRequest {
   notes?: string;
 }
 
+export interface AssetDisposalRequest {
+  disposalDate?: string;
+  disposalValue?: number;
+  reason: string;
+}
+
 export interface Asset {
   id: number;
   productId: number;
@@ -46,6 +52,11 @@ export interface Asset {
   depreciationApplicable: boolean;
   accumulatedDepreciation: number | null;
   currentBookValue: number | null;
+  disposalReason: string | null;
+  disposalValue: number | null;
+  disposalDate: string | null;
+  disposedBy: string | null;
+  disposedAt: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

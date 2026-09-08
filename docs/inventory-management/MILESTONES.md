@@ -23,7 +23,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 2 | Purchasing &amp; Suppliers | ✅ Done |
 | 3 | Receiving &amp; Stock Movement | ✅ Done |
 | 4 | Requests, Issues &amp; Returns | 🟡 In Progress (auto-restocking deliberately deferred — needs real product-policy input) |
-| 5 | Equipment &amp; Asset Management | 🟡 In Progress |
+| 5 | Equipment &amp; Asset Management | ✅ Done |
 | 6 | Budgets &amp; Approvals | ⬜ Not Started |
 | 7 | Gate Pass, Vendor-Owned Stock &amp; Service Requests | ⬜ Not Started |
 | 8 | Reporting &amp; Dashboards | ⬜ Not Started |
@@ -116,17 +116,17 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 5 — Equipment & Asset Management
 
-**Status: 🟡 In Progress**
+**Status: ✅ Done**
 
 **Covers:** Tracking equipment and other owned assets through their full life — from purchase, through maintenance schedules and service contracts, to eventual retirement or disposal — including the standard depreciation calculations finance needs.
 
-**Doing now:** Individual physical units of a product (a specific laptop, a specific microscope — distinct from the catalog/stock-ledger's aggregate quantity tracking) can now be registered with a unique asset tag, optionally traced back to the delivery they were received against, and moved through an open-ended status lifecycle (Available/In Use/Under Maintenance/Retired/Disposed) as real-world use isn't a strict linear workflow.
+**Shipped:** Individual physical units of a product (a specific laptop, a specific microscope — distinct from the catalog/stock-ledger's aggregate quantity tracking) can be registered with a unique asset tag, optionally traced back to the delivery they were received against, and moved through an open-ended status lifecycle (Available/In Use/Under Maintenance/Retired) as real-world use isn't a strict linear workflow. Recurring or one-off maintenance visits are tracked with live overdue flagging, and vendor service contracts reuse the existing Supplier master. Book value is computed live using standard straight-line depreciation. Disposing an asset requires a documented reason, and writes off any remaining on-hand stock for its product at its location.
 
 **Todo:**
 - Asset register and lifecycle tracking — ✅ done
 - Maintenance scheduling and service contracts — ✅ done (recurring or one-off maintenance visits with live overdue tracking; vendor service contracts reusing the existing Supplier master)
 - Depreciation — ✅ done (standard straight-line, computed live from an asset's own purchase value/date/useful life/salvage value — no new screen, the Asset Register list gained a Book Value column)
-- Disposal/write-off workflow — still to come
+- Disposal/write-off workflow — ✅ done
 
 ---
 

@@ -672,4 +672,38 @@ unattended, no-confirmation build session as the entries above.
 .md` and `RELEASE_3_MILESTONES.md` updated in the same change. `./gradlew compileJava` and `npx
 tsc -p tsconfig.app.json --noEmit` both run clean before committing.
 
+## 2026-09-08 — Disposal slice: closes Phase 5, made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the entries above.
+**Decisions:**
+1. **Disposal fields added directly to `assets`** (new columns via a forward migration on the
+   already-shipped V452 table, not a new child table) — disposal is a single terminal action on
+   the asset itself, not its own multi-line document, matching how Stock Issue Request's Internal
+   Return needed only a running-total column rather than a new entity.
+2. **Writes off one unit of on-hand stock for the asset's product at its location, if any exists**
+   — reading "posts a corresponding stock write-off if the asset still carries on-hand stock qty"
+   from the plan's own text as: a `Product` can be both individually asset-tracked (this register)
+   and separately bulk stock-tracked (`StockBalance`, if it was ever received through a GRN) at
+   the same time, and disposing one physical asset unit should decrement that bulk count by
+   exactly one if it's there. Uses the existing `DISPOSAL` stock movement through
+   `StockMovementService` (no new movement type). Unbatched balance only, same simplification
+   precedent this module has used repeatedly (`CycleCount`, `StockTransfer`). Silently a no-op
+   (not an error) when there's nothing on hand to write off — a purely asset-tracked product with
+   no bulk balance is a completely normal case, not a data problem.
+3. **Disposal forced through a dedicated dialog/endpoint, not the generic inline status select** —
+   the frontend's status dropdown for a non-disposed asset never offers `DISPOSED` as an option;
+   only the separate "Dispose" action (its own confirmation dialog requiring a reason) can reach
+   that state, since disposal has a real, non-reversible side effect (the stock write-off) a bare
+   status flip shouldn't trigger silently.
+4. **`INVENTORY_ASSET_DISPOSE` created now**, exactly as reserved/flagged in the "Asset register
+   slice" entry — its own permission, separate from `_MANAGE`, per the operation-wise mapping
+   rule, same reasoning as Purchase Order's force-close and Goods Receipt's confirm.
+**Impact:** new columns on `assets` (`disposal_reason`/`disposal_value`/`disposal_date`/
+`disposed_by`/`disposed_at`, V456); new permission (V457). `MILESTONES.md` and
+`RELEASE_3_MILESTONES.md` updated in the same change — **this closes Phase 5 ("Equipment & Asset
+Management") in full**. See `AUTONOMOUS_OVERNIGHT_PLAN.md` for what's next (Phase 6 — Budgets &
+Approvals). `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
+before committing.
+
 *Next entry goes here — do not insert above this line.*

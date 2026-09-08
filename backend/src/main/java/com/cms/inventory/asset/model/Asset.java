@@ -80,6 +80,21 @@ public class Asset {
     @Column(name = "salvage_value", precision = 14, scale = 2)
     private BigDecimal salvageValue;
 
+    @Column(name = "disposal_reason", length = 500)
+    private String disposalReason;
+
+    @Column(name = "disposal_value", precision = 14, scale = 2)
+    private BigDecimal disposalValue;
+
+    @Column(name = "disposal_date")
+    private LocalDate disposalDate;
+
+    @Column(name = "disposed_by", length = 255)
+    private String disposedBy;
+
+    @Column(name = "disposed_at")
+    private Instant disposedAt;
+
     @Column(length = 500)
     private String notes;
 
@@ -123,6 +138,21 @@ public class Asset {
 
     public BigDecimal getSalvageValue() { return salvageValue; }
     public void setSalvageValue(BigDecimal salvageValue) { this.salvageValue = salvageValue; }
+
+    public String getDisposalReason() { return disposalReason; }
+    public void setDisposalReason(String disposalReason) { this.disposalReason = disposalReason; }
+
+    public BigDecimal getDisposalValue() { return disposalValue; }
+    public void setDisposalValue(BigDecimal disposalValue) { this.disposalValue = disposalValue; }
+
+    public LocalDate getDisposalDate() { return disposalDate; }
+    public void setDisposalDate(LocalDate disposalDate) { this.disposalDate = disposalDate; }
+
+    public String getDisposedBy() { return disposedBy; }
+    public void setDisposedBy(String disposedBy) { this.disposedBy = disposedBy; }
+
+    public Instant getDisposedAt() { return disposedAt; }
+    public void setDisposedAt(Instant disposedAt) { this.disposedAt = disposedAt; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

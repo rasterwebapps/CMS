@@ -4,9 +4,11 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject, Subscription } from 'rxjs';
 import { AssetService } from '../asset.service';
 import { Asset, AssetStatus } from '../asset.model';
+import { AssetDisposeDialogComponent, AssetDisposeDialogResult } from '../asset-dispose-dialog/asset-dispose-dialog.component';
 import { InventoryLocationService } from '../../location/inventory-location.service';
 import { InventoryLocation } from '../../location/inventory-location.model';
 import { CmsEmptyStateComponent } from '../../../../shared/empty-state/empty-state.component';
@@ -15,6 +17,10 @@ import { CmsIconEditComponent } from '../../../../shared/icons';
 import { ToastService } from '../../../../core/toast/toast.service';
 
 const STATUS_OPTIONS: AssetStatus[] = ['AVAILABLE', 'IN_USE', 'UNDER_MAINTENANCE', 'RETIRED', 'DISPOSED'];
+// DISPOSED is deliberately excluded from the inline edit-select — disposal must go through the
+// dedicated dialog/endpoint (writes off remaining stock, requires a reason), never a bare status
+// flip. See the "Disposal slice" decision-log entry.
+const EDITABLE_STATUS_OPTIONS: AssetStatus[] = ['AVAILABLE', 'IN_USE', 'UNDER_MAINTENANCE', 'RETIRED'];
 
 @Component({
   selector: 'app-asset-list',
@@ -25,6 +31,7 @@ const STATUS_OPTIONS: AssetStatus[] = ['AVAILABLE', 'IN_USE', 'UNDER_MAINTENANCE
     DecimalPipe,
     MatTableModule,
     MatPaginatorModule,
+    MatDialogModule,
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
@@ -37,6 +44,7 @@ export class AssetListComponent implements OnInit, OnDestroy {
   private readonly locationService = inject(InventoryLocationService);
   private readonly router          = inject(Router);
   private readonly toast           = inject(ToastService);
+  private readonly dialog          = inject(MatDialog);
 
   private readonly destroy$ = new Subject<void>();
   private _paginator?: MatPaginator;
@@ -56,6 +64,7 @@ export class AssetListComponent implements OnInit, OnDestroy {
   }
 
   protected readonly statusOptions = STATUS_OPTIONS;
+  protected readonly editableStatusOptions = EDITABLE_STATUS_OPTIONS;
   protected readonly displayedColumns = ['assetTag', 'productName', 'locationVirtualName', 'status', 'purchaseDate', 'currentBookValue', 'actions'];
   protected readonly dataSource = new MatTableDataSource<Asset>([]);
   protected readonly loading = signal(false);
@@ -99,6 +108,23 @@ export class AssetListComponent implements OnInit, OnDestroy {
         this.toast.success('Asset status updated');
       },
       error: (err) => this.toast.error(err?.error?.message ?? 'Failed to update asset status'),
+    });
+  }
+
+  protected disposeAsset(item: Asset, event: Event): void {
+    event.stopPropagation();
+    this.dialog.open<AssetDisposeDialogComponent, unknown, AssetDisposeDialogResult | null>(AssetDisposeDialogComponent, {
+      data: { assetTag: item.assetTag },
+    }).afterClosed().subscribe((result) => {
+      if (!result) return;
+      this.assetService.dispose(item.id, {
+        reason: result.reason,
+        disposalValue: result.disposalValue,
+        disposalDate: result.disposalDate,
+      }).subscribe({
+        next: () => { this.toast.success('Asset disposed'); this.loadPage(); },
+        error: (err) => this.toast.error(err?.error?.message ?? 'Failed to dispose asset'),
+      });
     });
   }
 

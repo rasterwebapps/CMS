@@ -54,11 +54,15 @@
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
         <td mat-cell *matCellDef="let row" class="cell-align-center" (click)="$event.stopPropagation()">
-          <select class="field-select as-status-select" [ngModel]="row.status" (ngModelChange)="onStatusChange(row, $event)">
-            @for (s of statusOptions; track s) {
-              <option [value]="s">{{ s }}</option>
-            }
-          </select>
+          @if (row.status === 'DISPOSED') {
+            <span class="as-disposed-label">DISPOSED</span>
+          } @else {
+            <select class="field-select as-status-select" [ngModel]="row.status" (ngModelChange)="onStatusChange(row, $event)">
+              @for (s of editableStatusOptions; track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+          }
         </td>
       </ng-container>
       <ng-container matColumnDef="purchaseDate">
@@ -78,6 +82,11 @@
             <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit asset" (clicked)="editAsset(row)">
               <cms-icon-edit [size]="14" />
             </cms-row-action-btn>
+            @if (row.status !== 'DISPOSED') {
+              <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Dispose" ariaLabel="Dispose asset" (clicked)="disposeAsset(row, $event)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </cms-row-action-btn>
+            }
           </div>
         </td>
       </ng-container>

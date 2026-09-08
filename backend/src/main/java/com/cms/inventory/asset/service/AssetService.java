@@ -2,6 +2,7 @@ package com.cms.inventory.asset.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.Locale;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.inventory.asset.dto.AssetDisposalRequest;
 import com.cms.inventory.asset.dto.AssetRequest;
 import com.cms.inventory.asset.dto.AssetResponse;
 import com.cms.inventory.asset.dto.AssetStatusUpdateRequest;
@@ -23,8 +25,12 @@ import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.receiving.model.GoodsReceiptLine;
 import com.cms.inventory.receiving.repository.GoodsReceiptLineRepository;
+import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.model.InventoryLocation;
+import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
+import com.cms.inventory.stock.repository.StockBalanceRepository;
+import com.cms.inventory.stock.service.StockMovementService;
 
 /**
  * Owns the Asset register — Phase 5's ("Equipment & Asset Management") first slice. Status
@@ -40,6 +46,12 @@ import com.cms.inventory.stock.repository.InventoryLocationRepository;
  * decision from Phase 1). {@code depreciationApplicable} is {@code false} whenever any of those
  * four inputs is missing, so the frontend can show "not enough data" rather than a misleading
  * zero. See the "Depreciation slice" decision-log entry.
+ *
+ * <p>{@link #dispose} (Phase 5's fourth and final slice) moves an asset to {@code DISPOSED}
+ * with a reason/value/date, and — if the asset's own product still shows on-hand quantity at
+ * the asset's location — posts a one-unit {@code DISPOSAL} stock movement through the existing
+ * {@code StockMovementService} to write that unit off, since a Product can be both individually
+ * asset-tracked and bulk stock-tracked at once. See the "Disposal slice" decision-log entry.
  */
 @Service
 @Transactional(readOnly = true)
@@ -49,15 +61,21 @@ public class AssetService {
     private final ProductRepository productRepository;
     private final InventoryLocationRepository locationRepository;
     private final GoodsReceiptLineRepository goodsReceiptLineRepository;
+    private final StockBalanceRepository stockBalanceRepository;
+    private final StockMovementService stockMovementService;
 
     public AssetService(AssetRepository assetRepository,
                          ProductRepository productRepository,
                          InventoryLocationRepository locationRepository,
-                         GoodsReceiptLineRepository goodsReceiptLineRepository) {
+                         GoodsReceiptLineRepository goodsReceiptLineRepository,
+                         StockBalanceRepository stockBalanceRepository,
+                         StockMovementService stockMovementService) {
         this.assetRepository = assetRepository;
         this.productRepository = productRepository;
         this.locationRepository = locationRepository;
         this.goodsReceiptLineRepository = goodsReceiptLineRepository;
+        this.stockBalanceRepository = stockBalanceRepository;
+        this.stockMovementService = stockMovementService;
     }
 
     @Transactional
@@ -101,6 +119,40 @@ public class AssetService {
         if (request.notes() != null && !request.notes().isBlank()) {
             asset.setNotes(asset.getNotes() != null ? asset.getNotes() + " | " + request.notes().trim() : request.notes().trim());
         }
+        return toResponse(assetRepository.save(asset));
+    }
+
+    /**
+     * Disposes the asset: marks it {@code DISPOSED} with a reason/value/date, and writes off one
+     * unit of on-hand stock for its product at its location if any is currently on hand
+     * (unbatched balance only — same simplification precedent {@code CycleCount}'s own posting
+     * step already established). A product with no on-hand balance there (or never bulk
+     * stock-tracked at all) simply has nothing written off — not an error.
+     */
+    @Transactional
+    public AssetResponse dispose(Long id, AssetDisposalRequest request, String actor) {
+        Asset asset = findOrThrow(id);
+        if (asset.getStatus() == AssetStatus.DISPOSED) {
+            throw new IllegalArgumentException("This asset has already been disposed");
+        }
+
+        StockBalance balance = stockBalanceRepository
+            .findByProductIdAndLocationIdAndBatchIsNull(asset.getProduct().getId(), asset.getLocation().getId())
+            .orElse(null);
+        if (balance != null && balance.getQtyOnHand().signum() > 0) {
+            stockMovementService.recordMovement(new StockMovementRequest(
+                asset.getProduct().getId(), asset.getLocation().getId(), null, null,
+                "DISPOSAL", null, BigDecimal.ONE, null,
+                "Asset disposal — " + asset.getAssetTag() + (request.reason() != null ? " — " + request.reason() : "")
+            ), actor);
+        }
+
+        asset.setStatus(AssetStatus.DISPOSED);
+        asset.setDisposalReason(request.reason().trim());
+        asset.setDisposalValue(request.disposalValue());
+        asset.setDisposalDate(request.disposalDate() != null ? request.disposalDate() : LocalDate.now());
+        asset.setDisposedBy(actor);
+        asset.setDisposedAt(Instant.now());
         return toResponse(assetRepository.save(asset));
     }
 
@@ -188,6 +240,7 @@ public class AssetService {
             asset.getGoodsReceiptLine() != null ? asset.getGoodsReceiptLine().getId() : null,
             asset.getPurchaseValue(), asset.getPurchaseDate(), asset.getUsefulLifeMonths(), asset.getSalvageValue(),
             depreciationApplicable, accumulatedDepreciation, currentBookValue,
+            asset.getDisposalReason(), asset.getDisposalValue(), asset.getDisposalDate(), asset.getDisposedBy(), asset.getDisposedAt(),
             asset.getNotes(), asset.getCreatedAt(), asset.getUpdatedAt());
     }
 

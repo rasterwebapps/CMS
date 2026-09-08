@@ -39,10 +39,9 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-212** (OC-211 was the last used, Depreciation — OC-206
+4. **Next OC ticket number: OC-213** (OC-212 was the last used, Disposal — OC-206
    was skipped, see its checklist item above). Increment per slice.
-5. **Next Flyway migration number: V456** (V455 was the last used — OC-211 needed no
-   migration at all, added no new table). Increment per file;
+5. **Next Flyway migration number: V458** (V457 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -160,7 +159,7 @@
       `usefulLifeMonths`/`salvageValue`, exposed as a read-only computed current book value —
       no GL posting/connector work (that's the already-deferred ledger connector from Phase
       1's Backend Architect decision).
-- [ ] **Disposal/write-off workflow** (OC-212). Moves an `Asset` to `DISPOSED` with a reason,
+- [x] **Disposal/write-off workflow** (OC-212, shipped 2026-09-08). Moves an `Asset` to `DISPOSED` with a reason,
       approver, and disposal value/date; posts a corresponding stock write-off if the asset
       still carries on-hand stock qty. Permission: `INVENTORY_ASSET_DISPOSE`.
 
@@ -308,5 +307,12 @@ broken/half-done, and any judgment call made that a future session should sanity
   `AssetService.toResponse` now computes standard straight-line depreciation live from the
   asset's own already-captured purchase fields (`depreciationApplicable`/
   `accumulatedDepreciation`/`currentBookValue` added to `AssetResponse`); Asset Register list
-  gained a "Book Value" column. Compile/typecheck both clean, committed locally. Next: Disposal
-  (OC-212), the last Phase 5 slice.
+  gained a "Book Value" column. Compile/typecheck both clean, committed locally.
+- **2026-09-08, same session, after OC-212:** Disposal shipped, **closing Phase 5 in full**
+  (Asset register + Maintenance/Service Contracts + Depreciation + Disposal). New disposal
+  columns on `assets` (V456), new `INVENTORY_ASSET_DISPOSE` permission (V457), disposal writes
+  off one unit of on-hand stock for the asset's product/location if any exists (existing
+  DISPOSAL movement, no new type), forced through a dedicated dialog rather than the inline
+  status select. Compile/typecheck both clean, committed locally. Next: Phase 6 (Budgets &
+  Approvals) — the largest remaining phase; note its Multi-level approval routing item is
+  explicitly flagged in the plan below as the largest single slice in the whole plan.
