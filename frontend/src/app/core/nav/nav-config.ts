@@ -227,6 +227,17 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Tax Rules',         icon: 'percent',     route: '/inventory/procurement/tax-rules',      permissions: ['INVENTORY_TAX_RULE_VIEW', 'INVENTORY_TAX_RULE_MANAGE'] },
     ],
   },
+  // 8d. Receiving & Stock Movement — Phase 3 of the Inventory Management module. Own top-level
+  // group, same "new Inventory sub-area gets its own entry" convention. See docs/inventory-
+  // management/DECISION_LOG.md's "Goods Receipt slice" entry.
+  {
+    label: 'Receiving & Stock Movement',
+    icon: 'move_to_inbox',
+    modules: ['INVENTORY'],
+    items: [
+      { label: 'Goods Receipts', icon: 'move_to_inbox', route: '/inventory/receiving/goods-receipts', permissions: ['INVENTORY_GRN_VIEW', 'INVENTORY_GRN_MANAGE', 'INVENTORY_GRN_CONFIRM'] },
+    ],
+  },
   // 9. Hostel Management — hostel-only operational screens (building/room masters live under Core Infrastructure)
   {
     label: 'Hostel Management',

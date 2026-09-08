@@ -305,4 +305,51 @@ Phase 2 ("Purchasing & Suppliers") in full** — `MILESTONES.md` and `RELEASE_3_
 updated in the same change. See `AUTONOMOUS_OVERNIGHT_PLAN.md` for what's next (Phase 3 —
 Receiving & Stock Movement).
 
+## 2026-09-08 — Goods Receipt slice: Phase 3 kickoff, made autonomously overnight
+
+**Made autonomously overnight — flag for morning review if this reads wrong.** Continues the same
+unattended, no-confirmation build session as the "Purchase Order slice" entry above.
+**Decisions:**
+1. **Two-step save (`DRAFT`) → confirm (`CONFIRMED`)**, matching IHMS's own `Purchase`/
+   `PurchaseItem` draft→confirm shape (per the "Reference architecture pivot" entry) rather than
+   posting stock immediately on line-add. Only `confirm` posts anything.
+2. **Every write to `StockLedger`/`StockBalance` still goes exclusively through
+   `StockMovementService.recordMovement`** — confirming a receipt line calls it with `txnType:
+   RECEIPT` rather than writing the ledger/balance tables directly, preserving that class's own
+   "sole owner of every stock write" invariant from the Phase 1 "Stock Tracking slice" entry.
+3. **Over-receipt is blocked outright, 0% tolerance** — not allowed-with-a-warning as the
+   Autonomous Overnight Plan's own draft wording had first suggested. A real delivery running over
+   what was ordered is common in practice, but without a documented tolerance policy to implement
+   correctly, blocking is the safer default; a configurable tolerance is real, separately-scoped
+   work to revisit if asked, not something to half-implement here.
+4. **A receipt line always requires an existing `PurchaseOrderItem`** — no direct receipt with no
+   PO in this slice (matches the plan's own scope; GAP-style "unplanned receipt" flows are not
+   part of Phase 3's Goods Receipt as scoped).
+5. **`PurchaseOrderItem.receivedQty` is updated directly by `GoodsReceiptService.confirm`**, and
+   the PO's own status recompute is delegated to a new `PurchaseOrderService
+   .recalculateReceiptProgress` method rather than `GoodsReceiptService` writing to `PurchaseOrder`
+   itself — keeps "one service owns every write to its own aggregate" consistent
+   (`StockMovementService` for the ledger, `PurchaseOrderService` for the order).
+6. **Known, documented limitation:** blocking over-receipt while still `DRAFT` only checks this
+   receipt's own draft lines against the PO line's confirmed `receivedQty` — it does not see
+   quantity sitting in a *different* still-open DRAFT receipt against the same PO line. The real
+   guard is the fresh re-check `confirm` performs against the PO line's live `receivedQty` at
+   confirm time, which always holds regardless of how many drafts raced to get there — so no stock
+   can ever actually over-post, but a draft can show a quantity that turns out invalid once another
+   draft confirms first, surfaced as a clear error naming the now-current open quantity.
+7. **Batch/serial number and expiry stay on the receipt line itself**, reusing the same optional
+   fields the Phase 1 "Record Stock Movement" form already exposes — no second batch-entry UI, per
+   that phase's own "batch fields live on the movement, not a dedicated screen" precedent.
+8. **New package `com.cms.inventory.receiving`** (its own bounded context, matching the ER
+   diagram's 12-context boundary list) rather than folding Goods Receipt into `.procurement` —
+   Receiving is a distinct phase/bounded context from Procurement even though it reads
+   `PurchaseOrder`/`PurchaseOrderItem` directly.
+9. **Permissions:** `INVENTORY_GRN_VIEW`/`_MANAGE`/`_CONFIRM` — confirm is its own permission per
+   the operation-wise mapping rule (it's the action with real stock/financial consequence), same
+   pattern as every other approve/confirm split in this module so far.
+**Impact:** new tables `goods_receipts`, `goods_receipt_lines` (V440); new permissions (V441).
+`MILESTONES.md` and `RELEASE_3_MILESTONES.md` updated in the same change — Phase 3 / R3-M3 now in
+progress. `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
+before committing.
+
 *Next entry goes here — do not insert above this line.*

@@ -404,6 +404,31 @@ export const routes: Routes = [
         (m) => m.PurchaseOrderDetailComponent
       ),
   },
+  // Phase 3 "Receiving & Stock Movement" — Goods Receipt (first slice).
+  {
+    path: 'inventory/receiving/goods-receipts',
+    canActivate: withPermission('INVENTORY_GRN_VIEW', 'INVENTORY_GRN_MANAGE', 'INVENTORY_GRN_CONFIRM'),
+    loadComponent: () =>
+      import('./features/inventory/receiving/goods-receipt/goods-receipt-list/goods-receipt-list.component').then(
+        (m) => m.GoodsReceiptListComponent
+      ),
+  },
+  {
+    path: 'inventory/receiving/goods-receipts/new',
+    canActivate: withPermission('INVENTORY_GRN_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/receiving/goods-receipt/goods-receipt-new/goods-receipt-new.component').then(
+        (m) => m.GoodsReceiptNewComponent
+      ),
+  },
+  {
+    path: 'inventory/receiving/goods-receipts/:id',
+    canActivate: withPermission('INVENTORY_GRN_VIEW', 'INVENTORY_GRN_MANAGE', 'INVENTORY_GRN_CONFIRM'),
+    loadComponent: () =>
+      import('./features/inventory/receiving/goods-receipt/goods-receipt-detail/goods-receipt-detail.component').then(
+        (m) => m.GoodsReceiptDetailComponent
+      ),
+  },
   {
     path: 'floor-plans',
     canActivate: withPermission('SPATIAL_FLOOR_PLAN_VIEW', 'SPATIAL_FLOOR_PLAN_MANAGE'),

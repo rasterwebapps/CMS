@@ -1,0 +1,164 @@
+.gr-detail-loading {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.gr-detail-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ── Summary card ──────────────────────────────────────────────────
+.gr-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 20px;
+}
+
+.gr-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.gr-summary-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cms-text-muted);
+}
+
+.gr-summary-value {
+  font-size: 0.875rem;
+  color: var(--cms-text-primary);
+}
+
+// ── Add-line row (DRAFT only) ────────────────────────────────────
+.gr-add-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.gr-add-line {
+  flex: 2;
+  min-width: 240px;
+  margin: 0;
+}
+
+.gr-add-qty,
+.gr-add-cost {
+  flex: 1;
+  min-width: 110px;
+  margin: 0;
+}
+
+.gr-add-batch {
+  flex: 1;
+  min-width: 140px;
+  margin: 0;
+}
+
+.gr-add-expiry {
+  flex: 1;
+  min-width: 140px;
+  margin: 0;
+}
+
+.gr-no-lines-hint {
+  margin: 10px 0 0;
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+// ── Receipt sheet table ─────────────────────────────────────────────
+.gr-table-card {
+  flex: 1;
+}
+
+.gr-line-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--cms-text-table-header);
+    background: var(--cms-bg-subtle);
+    border-bottom: 1px solid var(--cms-border-default);
+    padding: 10px 14px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--cms-border-light);
+    color: var(--cms-text-primary);
+    font-size: 0.875rem;
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  .cell-align-right { text-align: right; }
+  .cell-align-center { text-align: center; }
+}
+
+.gr-product-name {
+  font-weight: 600;
+}
+
+.gr-product-code {
+  font-size: 0.75rem;
+  color: var(--cms-text-muted);
+}
+
+.gr-empty-row {
+  text-align: center;
+  padding: 32px 14px;
+  color: var(--cms-text-muted);
+}
+
+.gr-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+  color: var(--cms-danger);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--cms-danger-light);
+    border-color: var(--cms-danger);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ── Footer actions ──────────────────────────────────────────────
+.gr-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

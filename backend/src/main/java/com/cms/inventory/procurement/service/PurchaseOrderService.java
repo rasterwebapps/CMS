@@ -237,6 +237,50 @@ public class PurchaseOrderService {
         return toResponse(order);
     }
 
+    /**
+     * Recomputes {@code IN_PROGRESS}/{@code PARTIALLY_COMPLETED}/{@code COMPLETED} from every
+     * line's {@code receivedQty} vs. {@code orderedQty} — called by {@code GoodsReceiptService}
+     * after it posts a confirmed receipt's stock movements and updates each line's received
+     * quantity, keeping "PurchaseOrderService owns every write to PurchaseOrder" true the same
+     * way {@code StockMovementService} owns every write to the stock ledger. A no-op once the
+     * order is {@code COMPLETED} or {@code FORCE_CLOSED} (terminal), and leaves the order at
+     * {@code ORDERED} if nothing has been received yet. See the "Goods Receipt slice"
+     * decision-log entry.
+     */
+    @Transactional
+    public void recalculateReceiptProgress(Long orderId) {
+        PurchaseOrder order = requireOrder(orderId);
+        if (order.getStatus() == PurchaseOrderStatus.COMPLETED || order.getStatus() == PurchaseOrderStatus.FORCE_CLOSED) {
+            return;
+        }
+        List<PurchaseOrderItem> lines = itemRepository.findByPurchaseOrderIdOrderByIdAsc(orderId);
+        if (lines.isEmpty()) return;
+
+        long fullyReceived = lines.stream().filter(l -> l.getReceivedQty().compareTo(l.getOrderedQty()) >= 0).count();
+        long anyReceived = lines.stream().filter(l -> l.getReceivedQty().signum() > 0).count();
+
+        PurchaseOrderStatus next;
+        if (fullyReceived == lines.size()) {
+            next = PurchaseOrderStatus.COMPLETED;
+        } else if (fullyReceived > 0) {
+            next = PurchaseOrderStatus.PARTIALLY_COMPLETED;
+        } else if (anyReceived > 0) {
+            next = PurchaseOrderStatus.IN_PROGRESS;
+        } else {
+            return;
+        }
+        if (order.getStatus() != next) {
+            order.setStatus(next);
+            order.setUpdatedAt(Instant.now());
+            orderRepository.save(order);
+        }
+    }
+
+    /** Read-only access for {@code GoodsReceiptService} — validating a receipt is raised against a real, receivable order. */
+    public PurchaseOrder requireOrderEntity(Long id) {
+        return requireOrder(id);
+    }
+
     private PurchaseOrder requireOrder(Long id) {
         return orderRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found with id: " + id));

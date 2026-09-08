@@ -39,8 +39,8 @@
    **Never touch/stage/commit files outside `docs/inventory-management/`, backend inventory
    packages/tests, frontend inventory feature folders, and shared nav/routing entries this
    work itself adds** — the rest of the dirty tree belongs to other concurrent work.
-4. **Next OC ticket number: OC-202** (OC-201 was the last used, Purchase Order). Increment per slice.
-5. **Next Flyway migration number: V440** (V439 was the last used). Increment per file;
+4. **Next OC ticket number: OC-203** (OC-202 was the last used, Goods Receipt). Increment per slice.
+5. **Next Flyway migration number: V442** (V441 was the last used). Increment per file;
    grep the migrations directory yourself before writing a number in case a session already
    claimed the next one after this doc was last saved.
 6. After every slice: update this file's checkbox, `MILESTONES.md`'s relevant phase status/
@@ -79,7 +79,7 @@
 
 ## Phase 3 — Receiving & Stock Movement
 
-- [ ] **Goods Receipt Note (GRN)** (OC-202). `GoodsReceipt` header + `GoodsReceiptLine`,
+- [x] **Goods Receipt Note (GRN)** (OC-202, shipped 2026-09-08). `GoodsReceipt` header + `GoodsReceiptLine`,
       raised against one `PurchaseOrder`, two-step save (DRAFT, editable) → confirm
       (CONFIRMED, posts stock) matching IHMS's `Purchase`/`PurchaseItem` draft→confirm shape
       (`DECISION_LOG.md` "Reference architecture pivot" entry). Confirming a line posts a
@@ -221,5 +221,10 @@ broken/half-done, and any judgment call made that a future session should sanity
   migrations V438/V439 + docs), `./gradlew compileJava` and `npx tsc --noEmit` both clean,
   committed locally. **Phase 2 is now fully closed.** User mid-session extended the horizon:
   keep working autonomously (no confirmation stops) until they return "tomorrow at 3pm"
-  (~2026-09-09 15:00 IST), not just overnight — see the header note. Moving on to Phase 3's
-  first slice (Goods Receipt Note, OC-202) next.
+  (~2026-09-09 15:00 IST), not just overnight — see the header note.
+- **2026-09-08, same session, after OC-202:** Goods Receipt shipped (new
+  `com.cms.inventory.receiving` package: backend + frontend + migrations V440/V441 + docs),
+  compile/typecheck both clean, committed locally. User asked mid-session about token/context
+  hygiene for this long session — answered, and a memory was saved reinforcing that all real
+  progress state lives in this file (not conversation history), so `/clear`/`/compact` are
+  always safe. Moving on to Phase 3's next slice (Transfers between locations, OC-203) next.

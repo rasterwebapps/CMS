@@ -1,0 +1,139 @@
+@if (loading()) {
+  <div class="gr-detail-loading"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (receipt(); as r) {
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/receiving/goods-receipts" aria-label="Back to goods receipts">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">Goods Receipt <em>#{{ r.id }}</em></h1>
+        <cms-status-badge [status]="r.status" />
+      </div>
+      <p class="page-subtitle">Order #{{ r.purchaseOrderId }} · {{ r.supplierName }} · {{ r.locationVirtualName }} — {{ r.receiptDate | date: 'mediumDate' }}</p>
+    </div>
+  </div>
+
+  <div class="gr-detail-layout">
+
+    <!-- ── Summary card ──────────────────────────────────────── -->
+    <div class="entry-form-card entry-form-card--sectioned gr-summary-card">
+      <div class="entry-form-card__body gr-summary-grid">
+        <div class="gr-summary-item">
+          <span class="gr-summary-label">Created</span>
+          <span class="gr-summary-value">{{ r.createdBy || '—' }} · {{ r.createdAt | date: 'medium' }}</span>
+        </div>
+        @if (r.confirmedAt) {
+          <div class="gr-summary-item">
+            <span class="gr-summary-label">Confirmed</span>
+            <span class="gr-summary-value">{{ r.confirmedBy || '—' }} · {{ r.confirmedAt | date: 'medium' }}</span>
+          </div>
+        }
+        @if (r.notes) {
+          <div class="gr-summary-item gr-summary-item--full">
+            <span class="gr-summary-label">Notes</span>
+            <span class="gr-summary-value">{{ r.notes }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── DRAFT: add-line row ────────────────────────────────── -->
+    @if (r.status === 'DRAFT') {
+      <div class="entry-form-card entry-form-card--sectioned gr-add-card">
+        <div class="entry-form-card__body gr-add-row">
+          <div class="field-group gr-add-line">
+            <label class="field-label">Open Order Line</label>
+            <select class="field-select" [(ngModel)]="addPoItemId" (ngModelChange)="onPoItemChange()">
+              <option [ngValue]="null" disabled>Select a line</option>
+              @for (l of receivableLines(); track l.id) {
+                <option [ngValue]="l.id">{{ l.productName }} ({{ l.productCode }}) — {{ l.openQty }} of {{ l.orderedQty }} {{ l.uomCode }} open</option>
+              }
+            </select>
+          </div>
+          <div class="field-group gr-add-qty">
+            <label class="field-label">Received Qty</label>
+            <input type="number" step="0.001" min="0" class="field-input" [(ngModel)]="addQty" placeholder="0.000" />
+          </div>
+          <div class="field-group gr-add-cost">
+            <label class="field-label">Unit Cost</label>
+            <input type="number" step="0.01" min="0" class="field-input" [(ngModel)]="addUnitCost" placeholder="From order line" />
+          </div>
+          <div class="field-group gr-add-batch">
+            <label class="field-label">Batch / Serial No.</label>
+            <input type="text" class="field-input" [(ngModel)]="addBatchOrSerialNo" placeholder="Optional" />
+          </div>
+          <div class="field-group gr-add-expiry">
+            <label class="field-label">Expiry Date</label>
+            <input type="date" class="field-input" [(ngModel)]="addExpiryDate" />
+          </div>
+          <button class="btn-secondary" [disabled]="addPoItemId == null || !addQty || busy()" (click)="addLine()">Add Line</button>
+        </div>
+        @if (!receivableLines().length) {
+          <p class="gr-no-lines-hint">Every line on this order has already been fully received.</p>
+        }
+      </div>
+    }
+
+    <!-- ── Receipt sheet ──────────────────────────────────────── -->
+    <div class="content-card gr-table-card">
+      <div class="table-wrapper">
+        <table class="gr-line-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>UOM</th>
+              <th class="cell-align-right">Received Qty</th>
+              <th class="cell-align-right">Unit Cost</th>
+              <th>Batch / Serial</th>
+              <th>Expiry</th>
+              @if (r.status === 'DRAFT') {
+                <th class="actions-header"></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of r.lines ?? []; track line.id) {
+              <tr>
+                <td>
+                  <div class="gr-product-name">{{ line.productName }}</div>
+                  <div class="gr-product-code">{{ line.productCode }}</div>
+                </td>
+                <td>{{ line.uomCode || '—' }}</td>
+                <td class="cell-align-right">{{ line.receivedQty }}</td>
+                <td class="cell-align-right">{{ line.unitCost != null ? (line.unitCost | number: '1.2-2') : '—' }}</td>
+                <td>{{ line.batchOrSerialNo || '—' }}</td>
+                <td>{{ line.expiryDate ? (line.expiryDate | date: 'mediumDate') : '—' }}</td>
+                @if (r.status === 'DRAFT') {
+                  <td>
+                    <button class="gr-remove-btn" (click)="removeLine(line)" [disabled]="busy()" aria-label="Remove line">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="gr-empty-row">No lines on this receipt yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Footer actions ────────────────────────────────────── -->
+    @if (r.status === 'DRAFT') {
+      <div class="gr-footer-actions">
+        <button class="btn-primary" [disabled]="busy() || !(r.lines ?? []).length" (click)="confirmReceipt()">
+          @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+          Confirm Receipt
+        </button>
+      </div>
+    }
+
+  </div>
+
+</div>
+}

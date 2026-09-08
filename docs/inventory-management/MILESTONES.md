@@ -21,7 +21,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | 0 | Discovery &amp; Design | 🟡 In Progress |
 | 1 | Foundation — Catalog, Stock Tracking &amp; Locations | 🟡 In Progress |
 | 2 | Purchasing &amp; Suppliers | ✅ Done |
-| 3 | Receiving &amp; Stock Movement | ⬜ Not Started |
+| 3 | Receiving &amp; Stock Movement | 🟡 In Progress |
 | 4 | Requests, Issues &amp; Returns | ⬜ Not Started |
 | 5 | Equipment &amp; Asset Management | ⬜ Not Started |
 | 6 | Budgets &amp; Approvals | ⬜ Not Started |
@@ -84,15 +84,17 @@ Inventory Management is a new, standalone module being built for the platform �
 
 ## Phase 3 — Receiving & Stock Movement
 
-**Status: ⬜ Not Started**
+**Status: 🟡 In Progress**
 
 **Covers:** Recording deliveries against purchase orders, checking quantities and prices match what was ordered, tracking batches and expiry where relevant, and moving stock between locations.
 
+**Doing now:** A delivery can be recorded against a sent purchase order — built up as a draft sheet against the order's still-open lines (over-receipt is blocked, not just warned about), then confirmed, which posts the received quantity to stock and rolls the order's own status forward (Ordered → In Progress/Partially Completed → Completed) as its lines get received. Batch/serial number and expiry are captured on the receipt line itself, reusing the same optional fields the stock-movement form already has.
+
 **Todo:**
-- Goods-receipt recording and matching against orders
-- Batch/expiry tracking
-- Transfers between locations
-- Returning defective or incorrect deliveries to the supplier
+- Goods-receipt recording and matching against orders — ✅ done
+- Batch/expiry tracking — ✅ done (captured on the receipt line, posted the same way Record Stock Movement already does)
+- Transfers between locations — still to come
+- Returning defective or incorrect deliveries to the supplier — still to come
 
 ---
 
