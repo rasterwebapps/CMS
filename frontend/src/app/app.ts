@@ -15,6 +15,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { filter } from 'rxjs';
 import { AuthService } from './core/auth/auth.service';
 import { PermissionService } from './core/permissions/permission.service';
+import { ModuleService } from './core/modules/module.service';
 import { LayoutService } from './core/layout/layout.service';
 import { ResponsiveService } from './core/layout/responsive.service';
 import { KeyboardShortcutsService } from './core/shortcuts/keyboard-shortcuts.service';
@@ -60,6 +61,7 @@ function stripQueryAndFragment(url: string): string {
 export class App implements OnInit, AfterViewInit {
   protected readonly authService = inject(AuthService);
   protected readonly permissionService = inject(PermissionService);
+  protected readonly moduleService = inject(ModuleService);
   protected readonly profileService = inject(ProfileService);
   private readonly layoutService = inject(LayoutService);
   protected readonly responsiveService = inject(ResponsiveService);
@@ -131,6 +133,11 @@ export class App implements OnInit, AfterViewInit {
     return this.navEntries
       .map((entry) => {
         if (isNavGroup(entry)) {
+          // Module gate always wins (checked first, ANDed with permission): a group tagged with
+          // a disabled module is hidden entirely, even for a user who holds the permission.
+          if (!this.moduleAllows(entry.modules)) {
+            return null;
+          }
           // Check if user has access to the group itself (group-level permission guard)
           if (entry.permissions && entry.permissions.length > 0) {
             if (!this.permissionService.hasAny(...entry.permissions)) {
@@ -139,6 +146,9 @@ export class App implements OnInit, AfterViewInit {
           }
 
           let filteredItems = entry.items.filter((item) => {
+            if (!this.moduleAllows(item.modules)) {
+              return false;
+            }
             if (!item.permissions || item.permissions.length === 0) {
               return true;
             }
@@ -157,6 +167,7 @@ export class App implements OnInit, AfterViewInit {
           }
           return { ...entry, items: filteredItems };
         }
+        if (!this.moduleAllows(entry.modules)) return null;
         if (!entry.permissions || entry.permissions.length === 0) {
           if (search && !entry.label.toLowerCase().includes(search)) return null;
           return entry;
@@ -167,6 +178,21 @@ export class App implements OnInit, AfterViewInit {
       })
       .filter((entry): entry is NavEntry => entry !== null);
   });
+
+  /**
+   * True if this deployment has enabled at least one of `modules`, or `modules` is unset (core).
+   * A platform system-role user (DEV_ADMIN, SUPPORT_ADMIN) always sees every module, mirroring
+   * the backend's PermSecurityBean exemption — see the module-architecture decision log.
+   */
+  private moduleAllows(modules?: string[]): boolean {
+    if (!modules || modules.length === 0) {
+      return true;
+    }
+    if (this.permissionService.isDevAdmin() || this.permissionService.isSupportAdmin()) {
+      return true;
+    }
+    return this.moduleService.hasAny(...modules);
+  }
 
   /**
    * The permission-filtered NavGroup to display in the desktop second tray.
@@ -214,10 +240,19 @@ export class App implements OnInit, AfterViewInit {
    * reflects exactly where the user is.
    */
   private syncExpandedGroupToRoute(url: string): void {
+    if (App.NAV_PREFIX_MATCH_EXCLUDED_ROUTES.has(url)) return;
+    // Prefix match only when the URL has no dedicated exact nav entry of its own — same rule
+    // isGroupActive/isNavItemActive already apply when painting the sidenav rows. Without this
+    // guard, a group whose item route is a path-prefix of another group's exact route (e.g.
+    // Inventory Management's "/inventory" vs. Stock Management's "/inventory/stock/balances")
+    // would win here by appearing first in NAV_ENTRIES, even though the URL exactly belongs to
+    // the later group — leaving the rail icon/expanded submenu pointing at the wrong group while
+    // the routed page and the highlighted row are correct.
+    const exact = this.hasExactNavMatch(url);
     for (const entry of this.navEntries) {
       if (!isNavGroup(entry)) continue;
       const ownsRoute = entry.items.some(
-        (item) => url === item.route || url.startsWith(item.route + '/'),
+        (item) => url === item.route || (!exact && url.startsWith(item.route + '/')),
       );
       if (ownsRoute) {
         const next: Record<string, boolean> = {};

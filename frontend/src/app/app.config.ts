@@ -17,8 +17,10 @@ import { MAT_ICON_DEFAULT_OPTIONS } from '@angular/material/icon';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { moduleNotEnabledInterceptor } from './core/interceptors/module-not-enabled.interceptor';
 import { AuthService } from './core/auth/auth.service';
 import { PermissionService } from './core/permissions/permission.service';
+import { ModuleService } from './core/modules/module.service';
 import { ThemeService } from './core/theme/theme.service';
 
 // Register Indian locale so all Angular pipes (number, date, currency) use
@@ -29,7 +31,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withViewTransitions()),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, moduleNotEnabledInterceptor])),
     { provide: LOCALE_ID, useValue: 'en-IN' },
     {
       provide: MAT_DIALOG_DEFAULT_OPTIONS,
@@ -42,6 +44,7 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(async () => {
       const authService = inject(AuthService);
       const permissionService = inject(PermissionService);
+      const moduleService = inject(ModuleService);
 
       const authenticated = await authService.init();
 
@@ -52,13 +55,14 @@ export const appConfig: ApplicationConfig = {
         return; // browser will navigate away; stop initialisation here
       }
 
-      await permissionService.load();
+      await Promise.all([permissionService.load(), moduleService.load()]);
 
       // Note: if permissionService.loaded() is still false here, the backend returned
       // an error (unreachable, 401 issuer mismatch, user not in app_users). We do NOT
       // call login() in this path — doing so while a stale #code/state hash is in the
       // URL would bake those params into the redirect_uri and cause an infinite loop.
       // The user will land on the app with no permissions; role-guards will redirect to /dashboard.
+      // Same applies to moduleService.loaded() and the module-aware guards/nav filtering.
     }),
     provideAppInitializer(() => {
       inject(ThemeService).init();

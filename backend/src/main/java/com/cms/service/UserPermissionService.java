@@ -47,6 +47,21 @@ public class UserPermissionService {
             .orElse(new HashSet<>());
     }
 
+    /**
+     * True if the given user's role is a platform system role ({@code is_system_role = TRUE} —
+     * currently DEV_ADMIN and SUPPORT_ADMIN, see V123/V125/V172). These roles are guaranteed to
+     * hold every permission that exists via the mandatory DEV_ADMIN/SUPPORT_ADMIN catch-all sync
+     * block every permission-adding migration ends with (see V129 for the canonical example) —
+     * {@link com.cms.config.PermSecurityBean} extends that same guarantee to module gating, so a
+     * system-role user is never blocked by a disabled module either.
+     */
+    public boolean isSystemRole(String keycloakUsername) {
+        return appUserRepository.findByKeycloakUsername(keycloakUsername)
+            .map(AppUser::getAppRole)
+            .map(role -> role != null && role.isSystemRole())
+            .orElse(false);
+    }
+
     private static Set<String> expandManage(Set<String> stored) {
         Set<String> expanded = new HashSet<>(stored);
         for (String code : stored) {

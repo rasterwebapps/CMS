@@ -3183,4 +3183,19 @@ Status as of 2026-09-07: core ER diagram and module boundaries drafted; Phase 1 
 
 ---
 
+## BR-62: Module-Based Menu/Screen Configuration (see dedicated docs)
+
+Every screen/menu in the app is grouped into one of nine toggleable feature modules (`ADMISSIONS`, `STUDENT_MGMT`, `FINANCE`, `ACADEMICS`, `LIBRARY`, `CORE_INFRA`, `INVENTORY`, `HOSTEL`, `REPORTS`), plus a "core" set (Overview, User Management, shared Preferences masters) that's always available. A deployment (one org = one deployment, per the existing single-tenant architecture, BR-61) is configured with an explicit list of enabled module codes via `app.modules.enabled` in `application.yml` — e.g. SKSCON runs with every module enabled; a non-college org can run with only `CORE_INFRA,INVENTORY`. A disabled module is hidden from nav, blocked at the route level, and blocked at the API level (`PermSecurityBean` throws a distinct `MODULE_NOT_ENABLED` error rather than a generic 403) — module enablement always overrides an individual permission grant.
+
+Full detail is tracked in its own dedicated folder, mirroring the Inventory Management convention above:
+
+- **[`docs/module-architecture/README.md`](module-architecture/README.md)** — document index
+- **[`docs/module-architecture/MODULE_REGISTRY.md`](module-architecture/MODULE_REGISTRY.md)** — the full module ⇄ nav-group ⇄ permission-code-prefix table
+- **[`docs/module-architecture/DECISION_LOG.md`](module-architecture/DECISION_LOG.md)** — chronological record of every scope/architecture decision, including the @Partner specialist round this was built from
+- **[`docs/module-architecture/OPS_CONFIG_GUIDE.md`](module-architecture/OPS_CONFIG_GUIDE.md)** — how to configure a new deployment's module set, with a worked example
+
+Status as of 2026-09-08: implemented and shipped — backend module registry, config, and API-level enforcement (`backend/src/main/java/com/cms/module/`, `ModuleConfig`, extended `PermSecurityBean`); frontend nav/route gating (`ModuleService`, `nav-config.ts`'s `modules` tags, `requiresEnabledModule()` guard). Deliberately **not** built in this pass: true build-time bundle exclusion (a per-org frontend build artifact that physically omits a disabled module's code, rather than only hiding it at runtime) — see the decision log's "Bundle exclusion vs. backend-served config" entry; the runtime gating shipped is fully functional on its own. **Do not implement against this system without reading the dedicated docs above first** — this entry is a pointer, not a substitute.
+
+---
+
 > **⚠️ Documentation Policy:** Any changes to business rules, workflows, status transitions, fee logic, or operational processes described in this document must be reflected here **before** the corresponding code change is merged. This document, along with the milestone trackers and manual test cases, must always remain in sync with the implementation.
