@@ -1343,4 +1343,66 @@ already captures" pattern as the rest of Phase 8.
 corrected). `./gradlew compileJava` and `npx tsc -p tsconfig.app.json --noEmit` both run clean
 before committing.
 
+---
+
+## 2026-09-09 — Lab room-assignment migration (V473)
+
+**Prompted by:** the user, in an interactive session (not the autonomous overnight run), supplying
+real room-assignment input for the 6 of 7 labs that had it and explicitly authorizing the backfill
+("Yes, go ahead, work on and complete all room assignments and fix capacity issues") — the exact
+real institutional data this migration has been blocked on since 2026-09-07.
+
+**What was actually supplied:** not a fresh room-by-room mapping typed out from scratch, but
+confirmation to derive it from data that already existed — each lab's own legacy `building`/
+`room_number` free-text fields (`Lab.building`/`Lab.roomNumber`, pre-dating the `Room` FK), which
+were never guessed at, just never linked. 6 of 7 labs had this data (`Main Block` + a `G-`/`F1-`/
+`F2-` prefixed code); `Computer lab` had none recorded at all and was explicitly left unassigned
+rather than guessed.
+
+**Decisions made while building `V473__assign_rooms_to_labs.sql`:**
+1. **Floor-prefix mapping**: `G-` → existing "Ground Floor", `F1-` → existing "First Floor",
+   `F2-` → a brand-new "Second Floor" (Main Block only had Ground/First Floor + 3 Basements before
+   this). Presented to the user as a concrete proposal before running, since creating a new Floor
+   is a standing addition to the campus hierarchy, not just linking existing data — approved.
+2. **New Rooms, not reused existing ones.** The existing Main Block rooms closest in naming
+   (G-101, F-101, etc.) have mismatched room numbers and far larger capacities (80–200 vs. every
+   one of these labs' 30) — reusing them would have been a materially wrong physical-room
+   assignment. Each lab instead got its own new `Room`, `room_number` and `capacity` taken
+   directly from the lab's own already-recorded data, so no capacity mismatch exists between a
+   `Lab` and the `Room` it now points at ("fix capacity issues" in the user's own request — there
+   was no separate sync mechanism to build; creating correctly-sized rooms in the first place was
+   the fix).
+3. **`purpose_category` = "Academic"** (looked up by name, not hardcoded id). **`sub_type_id` left
+   NULL** — none of the existing `room_sub_types` (Physics Lab, Computer Lab, Classroom, etc.) is a
+   real fit for a nursing lab specifically, and forcing a wrong one would be worse than leaving it
+   unset, same spirit as CLAUDE.md's badge-consistency guidance against coercing a bad fit into an
+   existing bucket.
+4. **Migration written idempotently throughout** (`NOT EXISTS` guards on every insert, re-derived
+   join conditions on the `UPDATE`) so it is safe against any environment's actual Core
+   Infrastructure data — one without this exact Main Block/Floor/Zone shape simply sees the
+   relevant statements find no matching parent and no-op, rather than guessing or corrupting
+   anything. Applied to the local dev DB only (via a `./gradlew bootRun`, matching how every other
+   migration in this app is normally applied) — not pushed, not deployed, consistent with the rest
+   of this module's local-only commit discipline.
+5. **This is the architecture that was independently, extensively re-derived and confirmed correct
+   the same day** (see the "physical-location-binding-is-mandatory" reasoning the user walked
+   through and asked to be remembered): every location that holds physical stock — including
+   vendor consignment stock, and including the transient space stock occupies while being moved —
+   genuinely has a real physical footprint on the org's premises, so `InventoryLocation.room`
+   staying non-nullable is correct, and the fix for a blocked lab was always to supply the real
+   room, never to loosen the schema.
+
+**Verified after migration:** `SELECT count(*) FILTER (WHERE room_id IS NULL) FROM labs` now
+returns **1** (`Computer lab` only, down from 7). Each of the other 6 labs' new `Room.capacity`
+exactly matches its own `Lab.capacity` (30/30 in every case) — confirmed by direct query, not
+assumed.
+
+**Impact:** `V473__assign_rooms_to_labs.sql` only — no Java/TypeScript code changed, no new
+permission. **This resolves the precondition, not the migration itself.** The real
+`InventoryItem` → `Product`/`StockBalance`/`InventoryLocation` data migration (Category tree,
+one `InventoryLocation` per lab, moving each `InventoryItem` row across, eventually retiring the
+legacy "Lab Consumables" screen) is still real, unscoped, un-started work — do not begin it
+without asking the user first. `Computer lab` remains unassigned and outside this migration's
+reach until someone supplies a real room for it.
+
 *Next entry goes here — do not insert above this line.*

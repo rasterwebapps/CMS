@@ -261,11 +261,18 @@
 
 ## Also outstanding (not phase-numbered, pick up opportunistically)
 
-- [ ] `InventoryItem` (legacy lab-consumables) migration — still deferred per standing
-      decision. **Re-checked 2026-09-08: still 7/7 labs with `room_id IS NULL`, unchanged from
-      2026-09-07.** This is real institutional data (which physical room each lab occupies) no
-      ERP-standard default can supply — do not attempt a backfill without asking the user first;
-      re-read `DECISION_LOG.md`'s full thread on this before touching it again.
+- [ ] `InventoryItem` (legacy lab-consumables) migration — still deferred, but its precondition
+      is now resolved. **2026-09-09: the user supplied real room assignments** (via each lab's
+      own already-recorded legacy `building`/`room_number` text) for 6 of the 7 labs; V473
+      created the missing "Second Floor" under Main Block plus 6 new Rooms sized to each lab's
+      own capacity, and linked `labs.room_id` accordingly — see `DECISION_LOG.md`'s
+      "Lab room-assignment migration (V473)" entry. `Computer lab` still has no building/room
+      recorded at all and remains unassigned (`room_id IS NULL`) — needs real input if it's ever
+      to be included. **The InventoryItem -> Product/StockBalance data migration itself is still
+      not built** — this only unblocked the precondition; the actual migration (Category tree,
+      InventoryLocation per lab, moving InventoryItem rows to Product+StockBalance, retiring the
+      legacy screen) is a separate, real, not-yet-scoped piece of work — do not start it without
+      asking the user first.
 - [x] **Product photo upload** (OC-220, shipped 2026-09-08) — `ProductImage` + MinIO plumbing,
       following the `FloorPlanService`/`MinioStorageService` precedent exactly. First photo
       uploaded auto-becomes primary; deleting the primary auto-promotes the oldest remaining
