@@ -1345,19 +1345,23 @@ before committing.
 
 ---
 
-## 2026-09-09 — Lab room-assignment migration (V473)
+## 2026-09-09 — Lab room-assignment migration (V473/V474)
 
 **Prompted by:** the user, in an interactive session (not the autonomous overnight run), supplying
 real room-assignment input for the 6 of 7 labs that had it and explicitly authorizing the backfill
 ("Yes, go ahead, work on and complete all room assignments and fix capacity issues") — the exact
-real institutional data this migration has been blocked on since 2026-09-07.
+real institutional data this migration has been blocked on since 2026-09-07. Then, once told
+`Computer lab` (the one lab with no data at all) still had no room, the user separately
+authorized a placeholder for it too: **"Assign computer lab to any physical location."**
 
 **What was actually supplied:** not a fresh room-by-room mapping typed out from scratch, but
 confirmation to derive it from data that already existed — each lab's own legacy `building`/
 `room_number` free-text fields (`Lab.building`/`Lab.roomNumber`, pre-dating the `Room` FK), which
 were never guessed at, just never linked. 6 of 7 labs had this data (`Main Block` + a `G-`/`F1-`/
-`F2-` prefixed code); `Computer lab` had none recorded at all and was explicitly left unassigned
-rather than guessed.
+`F2-` prefixed code) and were handled by `V473`. `Computer lab` had none recorded at all — for
+that one the user explicitly waived the "never guess real institutional data" caution and asked
+for an arbitrary placeholder instead, handled separately by `V474` so the two kinds of data
+(real vs. placeholder) are never mixed into one migration file.
 
 **Decisions made while building `V473__assign_rooms_to_labs.sql`:**
 1. **Floor-prefix mapping**: `G-` → existing "Ground Floor", `F1-` → existing "First Floor",
@@ -1391,18 +1395,25 @@ rather than guessed.
    genuinely has a real physical footprint on the org's premises, so `InventoryLocation.room`
    staying non-nullable is correct, and the fix for a blocked lab was always to supply the real
    room, never to loosen the schema.
+6. **`V474__assign_placeholder_room_to_computer_lab.sql`** gave `Computer lab` a new Room (Main
+   Block, Ground Floor, Main Zone, `room_number` "G-03", `sub_type` = "Computer Lab" — unlike the
+   6 nursing labs, this sub-type genuinely fits). **This Room is explicitly NOT a real
+   institutional record** — its own `description` column and migration comment both say so in
+   plain text, specifically so a future session (or a person looking at Core Infrastructure data)
+   doesn't mistake a placeholder for a verified fact. Correct it via the normal Campus
+   Infrastructure/Labs screens the moment a real room becomes known.
 
 **Verified after migration:** `SELECT count(*) FILTER (WHERE room_id IS NULL) FROM labs` now
-returns **1** (`Computer lab` only, down from 7). Each of the other 6 labs' new `Room.capacity`
-exactly matches its own `Lab.capacity` (30/30 in every case) — confirmed by direct query, not
-assumed.
+returns **0** (was 7 before V473, 1 before V474). Each of the 7 labs' new `Room.capacity` exactly
+matches its own `Lab.capacity` (30/30 in every case) — confirmed by direct query, not assumed.
 
-**Impact:** `V473__assign_rooms_to_labs.sql` only — no Java/TypeScript code changed, no new
-permission. **This resolves the precondition, not the migration itself.** The real
-`InventoryItem` → `Product`/`StockBalance`/`InventoryLocation` data migration (Category tree,
-one `InventoryLocation` per lab, moving each `InventoryItem` row across, eventually retiring the
-legacy "Lab Consumables" screen) is still real, unscoped, un-started work — do not begin it
-without asking the user first. `Computer lab` remains unassigned and outside this migration's
-reach until someone supplies a real room for it.
+**Impact:** `V473__assign_rooms_to_labs.sql` + `V474__assign_placeholder_room_to_computer_lab.sql`
+only — no Java/TypeScript code changed, no new permission. **This resolves the precondition, not
+the migration itself.** The real `InventoryItem` → `Product`/`StockBalance`/`InventoryLocation`
+data migration (Category tree, one `InventoryLocation` per lab, moving each `InventoryItem` row
+across, eventually retiring the legacy "Lab Consumables" screen) is still real, unscoped,
+un-started work — do not begin it without asking the user first. Separately, `Computer lab`'s
+Room specifically should be revisited and corrected the moment real data for it exists — it's
+usable, not authoritative.
 
 *Next entry goes here — do not insert above this line.*
