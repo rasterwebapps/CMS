@@ -194,23 +194,44 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Maintenance Requests', icon: 'build', route: '/maintenance', permissions: ['MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_EDIT', 'MAINTENANCE_DELETE', 'MAINTENANCE_EXPORT', 'MAINTENANCE_MANAGE'] },
     ],
   },
-  // 8b. Stock Management — the new Release 3 Inventory Management module (Catalog, Stock,
-  // Procurement, Assets, …, built out phase by phase). Deliberately a separate top-level group
-  // from "Inventory Management" above rather than folding in — that label already belongs to the
-  // legacy feature this module eventually retires. Both share the one toggleable INVENTORY module.
+  // 8b. Stock Management — merges what were originally three separate top-level groups (Stock
+  // Management, Receiving & Stock Movement, Requests/Issues & Returns), each of which only ever
+  // existed as its own group because it shipped as its own build phase (Phase 1/3/4) under the
+  // "new Inventory sub-area gets its own entry" convention — never a deliberate information-
+  // architecture call. Merged 2026-09-09 once that was recognized: all three operate on the same
+  // Product/InventoryLocation/StockBalance core and are really just different StockTxnTypes
+  // hitting the same stock ledger (receiving, transferring, issuing), unlike Purchasing &
+  // Suppliers (vendor/contract domain), Equipment & Asset Management (asset lifecycle), Budgets &
+  // Approvals (financial control), or Gate Pass & Service Requests (ops/security) — those stay
+  // separate; they're genuinely different domains, not artificially split ones. 13 items renders
+  // as one flat list (this nav has no visual sub-headers), matching the precedent Preferences
+  // already sets with 26 items — items below are ordered/commented in four clusters (masters,
+  // stock visibility, inbound/lateral movement, outbound movement) for maintainers only.
+  // Deliberately a separate top-level group from "Inventory Management" above rather than folding
+  // in — that label already belongs to the legacy feature this module retired (see
+  // docs/inventory-management/DECISION_LOG.md's "Legacy InventoryItem retirement" entry).
   {
     label: 'Stock Management',
     icon: 'warehouse',
     modules: ['INVENTORY'],
     items: [
       { label: 'Dashboard',         icon: 'dashboard',   route: '/inventory/dashboard', permissions: ['INVENTORY_DASHBOARD_VIEW'] },
-      { label: 'Stock Valuation',   icon: 'paid',        route: '/inventory/reporting/stock-valuation', permissions: ['INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'] },
-      { label: 'Stock Balance',     icon: 'inventory',   route: '/inventory/stock/balances', permissions: ['INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'] },
-      { label: 'Cycle Counts',      icon: 'fact_check',  route: '/inventory/stock/cycle-counts', permissions: ['INVENTORY_CYCLE_COUNT_VIEW', 'INVENTORY_CYCLE_COUNT_MANAGE', 'INVENTORY_CYCLE_COUNT_APPROVE'] },
+      // -- Masters --
       { label: 'Products',          icon: 'inventory_2', route: '/inventory/products',   permissions: ['INVENTORY_PRODUCT_VIEW', 'INVENTORY_PRODUCT_MANAGE'] },
       { label: 'Categories',        icon: 'category',   route: '/inventory/categories', permissions: ['INVENTORY_CATEGORY_VIEW', 'INVENTORY_CATEGORY_MANAGE'] },
       { label: 'Units of Measure',  icon: 'straighten', route: '/inventory/uoms',        permissions: ['INVENTORY_UOM_VIEW', 'INVENTORY_UOM_MANAGE'] },
       { label: 'Locations',         icon: 'store',       route: '/inventory/locations',  permissions: ['INVENTORY_LOCATION_VIEW', 'INVENTORY_LOCATION_MANAGE'] },
+      // -- Stock visibility --
+      { label: 'Stock Balance',     icon: 'inventory',   route: '/inventory/stock/balances', permissions: ['INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'] },
+      { label: 'Cycle Counts',      icon: 'fact_check',  route: '/inventory/stock/cycle-counts', permissions: ['INVENTORY_CYCLE_COUNT_VIEW', 'INVENTORY_CYCLE_COUNT_MANAGE', 'INVENTORY_CYCLE_COUNT_APPROVE'] },
+      { label: 'Stock Valuation',   icon: 'paid',        route: '/inventory/reporting/stock-valuation', permissions: ['INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'] },
+      // -- Inbound / lateral movement (was "Receiving & Stock Movement") --
+      { label: 'Goods Receipts',    icon: 'move_to_inbox', route: '/inventory/receiving/goods-receipts', permissions: ['INVENTORY_GRN_VIEW', 'INVENTORY_GRN_MANAGE', 'INVENTORY_GRN_CONFIRM'] },
+      { label: 'Stock Transfers',   icon: 'sync_alt', route: '/inventory/stock/transfers', permissions: ['INVENTORY_STOCK_TRANSFER_VIEW', 'INVENTORY_STOCK_TRANSFER_MANAGE'] },
+      { label: 'Supplier Returns',  icon: 'keyboard_return', route: '/inventory/receiving/supplier-returns', permissions: ['INVENTORY_SUPPLIER_RETURN_VIEW', 'INVENTORY_SUPPLIER_RETURN_MANAGE'] },
+      // -- Outbound movement (was "Requests, Issues & Returns") --
+      { label: 'Stock Issue Requests', icon: 'outbound', route: '/inventory/issue/stock-issue-requests', permissions: ['INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'] },
+      { label: 'Loanable Item Issues', icon: 'assignment_return', route: '/inventory/issue/loanable-item-issues', permissions: ['INVENTORY_LOAN_ISSUE_VIEW', 'INVENTORY_LOAN_ISSUE_MANAGE', 'INVENTORY_LOAN_ISSUE_RETURN'] },
     ],
   },
   // 8c. Purchasing & Suppliers — Phase 2 of the Inventory Management module. Its own top-level
@@ -232,31 +253,6 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'PO Aging Report',   icon: 'schedule',    route: '/inventory/reporting/purchase-order-aging', permissions: ['INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE'] },
       { label: 'PO Cycle-Time Report', icon: 'timer',    route: '/inventory/reporting/purchase-order-cycle-time', permissions: ['INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE'] },
       { label: 'Tax Rules',         icon: 'percent',     route: '/inventory/procurement/tax-rules',      permissions: ['INVENTORY_TAX_RULE_VIEW', 'INVENTORY_TAX_RULE_MANAGE'] },
-    ],
-  },
-  // 8d. Receiving & Stock Movement — Phase 3 of the Inventory Management module. Own top-level
-  // group, same "new Inventory sub-area gets its own entry" convention. See docs/inventory-
-  // management/DECISION_LOG.md's "Goods Receipt slice" entry.
-  {
-    label: 'Receiving & Stock Movement',
-    icon: 'move_to_inbox',
-    modules: ['INVENTORY'],
-    items: [
-      { label: 'Goods Receipts', icon: 'move_to_inbox', route: '/inventory/receiving/goods-receipts', permissions: ['INVENTORY_GRN_VIEW', 'INVENTORY_GRN_MANAGE', 'INVENTORY_GRN_CONFIRM'] },
-      { label: 'Stock Transfers', icon: 'sync_alt', route: '/inventory/stock/transfers', permissions: ['INVENTORY_STOCK_TRANSFER_VIEW', 'INVENTORY_STOCK_TRANSFER_MANAGE'] },
-      { label: 'Supplier Returns', icon: 'keyboard_return', route: '/inventory/receiving/supplier-returns', permissions: ['INVENTORY_SUPPLIER_RETURN_VIEW', 'INVENTORY_SUPPLIER_RETURN_MANAGE'] },
-    ],
-  },
-  // 8e. Requests, Issues & Returns — Phase 4 of the Inventory Management module. Own top-level
-  // group, same "new Inventory sub-area gets its own entry" convention. See docs/inventory-
-  // management/DECISION_LOG.md's "Stock Issue Request slice" entry.
-  {
-    label: 'Requests, Issues & Returns',
-    icon: 'outbound',
-    modules: ['INVENTORY'],
-    items: [
-      { label: 'Stock Issue Requests', icon: 'outbound', route: '/inventory/issue/stock-issue-requests', permissions: ['INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'] },
-      { label: 'Loanable Item Issues', icon: 'assignment_return', route: '/inventory/issue/loanable-item-issues', permissions: ['INVENTORY_LOAN_ISSUE_VIEW', 'INVENTORY_LOAN_ISSUE_MANAGE', 'INVENTORY_LOAN_ISSUE_RETURN'] },
     ],
   },
   // 8f. Equipment & Asset Management — Phase 5 of the Inventory Management module. Own

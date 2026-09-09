@@ -1481,4 +1481,41 @@ module built out over 2026-09-08/09 is now the only inventory system in the app.
 placeholder Room (V474) is unaffected by this — that's Core Infrastructure data, not part of what
 was retired.
 
+---
+
+## 2026-09-09 — Merged Stock Management / Receiving & Stock Movement / Requests, Issues & Returns
+
+**Prompted by:** the user asking why these three were separate top-level nav groups and whether
+they should be one "Stock Management" menu.
+
+**Finding:** the split was never a deliberate information-architecture decision — checked against
+`MILESTONES.md`'s own phase breakdown and each group's own introducing comment in `nav-config.ts`
+("own top-level group, same 'new Inventory sub-area gets its own entry' convention Stock
+Management above followed"). Each nav group was simply a 1:1 mechanical mirror of a build phase
+(Phase 1 → Stock Management, Phase 3 → Receiving & Stock Movement, Phase 4 → Requests/Issues &
+Returns) — nobody had asked whether they should be one menu or three.
+
+**Decision:** merged into one "Stock Management" group. Justification specific to these three (not
+a general "fewer menus" preference): all three operate on the same `Product`/`InventoryLocation`/
+`StockBalance` core and are really just different `StockTxnType`s hitting the same stock ledger
+(receiving, transferring, issuing) — unlike Purchasing & Suppliers (vendor/contract domain),
+Equipment & Asset Management (asset lifecycle), Budgets & Approvals (financial control), or Gate
+Pass & Service Requests (ops/security), which stay separate because they're genuinely different
+domains, not artificially split ones. The merged group has 13 items, rendered as one flat list —
+`app.ts`/`app.html` have no visual sub-header support in this nav — but that's not a new problem:
+Preferences already sets the precedent at 26 items. Ordered/commented in four maintainer-facing
+clusters (masters, stock visibility, inbound/lateral movement, outbound movement) even though
+nothing renders those divisions visually.
+
+**Verified:** no other file hardcodes the two removed group labels (`grep`'d the whole frontend).
+`npx tsc -p tsconfig.app.json --noEmit` and `ng build --configuration production` both clean.
+`docs/module-architecture/MODULE_REGISTRY.md`'s `INVENTORY` row updated in the same change to
+list the current real nav-group set — it had also drifted stale from the InventoryItem retirement
+a few commits earlier (still said "legacy asset tracking"), corrected here too rather than left
+wrong for a future reader.
+
+**Impact:** `frontend/src/app/core/nav/nav-config.ts` only (no route/permission/backend change —
+this is nav-grouping only, every route/permission stays exactly as it was).
+`docs/module-architecture/MODULE_REGISTRY.md`.
+
 *Next entry goes here — do not insert above this line.*
