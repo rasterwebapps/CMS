@@ -9,7 +9,6 @@ import {
   PolygonGeometry,
   RectangleGeometry,
   SpatialEquipmentSummary,
-  SpatialInventoryItemSummary,
   VirtualLocation,
 } from '../spatial.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -91,9 +90,8 @@ export class VirtualLocationCanvasComponent implements OnInit, OnDestroy {
     return key ? { [key]: plan.entityId } : null;
   });
 
-  /** Live status/quantity for markers linked to Equipment/InventoryItem, keyed by VirtualLocation.id. */
+  /** Live status for markers linked to Equipment, keyed by VirtualLocation.id. */
   protected readonly equipmentByLocation = signal<Map<number, SpatialEquipmentSummary>>(new Map());
-  protected readonly inventoryByLocation = signal<Map<number, SpatialInventoryItemSummary>>(new Map());
 
   protected readonly showFormFlyout = signal(false);
   protected editingLocation: VirtualLocation | null = null;
@@ -308,7 +306,7 @@ export class VirtualLocationCanvasComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Equipment: color by status. InventoryItem: red when low stock, green otherwise. */
+  /** Equipment: color by status. */
   protected statusDotColorClass(loc: VirtualLocation): string {
     const equipment = this.equipmentByLocation().get(loc.id);
     if (equipment) {
@@ -320,13 +318,11 @@ export class VirtualLocationCanvasComponent implements OnInit, OnDestroy {
         default: return 'sp-dot--gray';
       }
     }
-    const item = this.inventoryByLocation().get(loc.id);
-    if (item) return item.lowStock ? 'sp-dot--red' : 'sp-dot--green';
     return '';
   }
 
   protected hasStatusDot(loc: VirtualLocation): boolean {
-    return this.equipmentByLocation().has(loc.id) || this.inventoryByLocation().has(loc.id);
+    return this.equipmentByLocation().has(loc.id);
   }
 
   private performDelete(loc: VirtualLocation): void {
@@ -387,7 +383,6 @@ export class VirtualLocationCanvasComponent implements OnInit, OnDestroy {
 
   private loadStatusBadges(locs: VirtualLocation[]): void {
     const equipmentMap = new Map<number, SpatialEquipmentSummary>();
-    const inventoryMap = new Map<number, SpatialInventoryItemSummary>();
 
     for (const loc of locs) {
       if (loc.entityType === 'EQUIPMENT' && loc.entityId != null) {
@@ -395,13 +390,6 @@ export class VirtualLocationCanvasComponent implements OnInit, OnDestroy {
           next: (eq) => {
             equipmentMap.set(loc.id, eq);
             this.equipmentByLocation.set(new Map(equipmentMap));
-          },
-        });
-      } else if (loc.entityType === 'INVENTORY_ITEM' && loc.entityId != null) {
-        this.spatialService.getInventoryItemSummaryById(loc.entityId).subscribe({
-          next: (item) => {
-            inventoryMap.set(loc.id, item);
-            this.inventoryByLocation.set(new Map(inventoryMap));
           },
         });
       }

@@ -41,7 +41,6 @@ public class LocalDataSeeder {
             StudentRepository studentRepo,
             LabRepository labRepo,
             EquipmentRepository equipmentRepo,
-            InventoryItemRepository inventoryRepo,
             MaintenanceRequestRepository maintenanceRepo,
             ExaminationRepository examRepo,
             ExamResultRepository examResultRepo,
@@ -200,20 +199,6 @@ public class LocalDataSeeder {
             Equipment eq10 = equipmentRepo.save(createEquipment("Pulse Oximeter", "EQ-POX001", EquipmentCategory.ELECTRONIC, lab3, EquipmentStatus.OUT_OF_ORDER, "Nellcor", "PM10N"));
             log.info("✓ Created 10 equipment items");
 
-            // ═══════════════════════════════════════════════════════════════
-            // 10. INVENTORY ITEMS
-            // ═══════════════════════════════════════════════════════════════
-            inventoryRepo.save(createInventory("Disposable Syringes (5ml)", "INV-SYR5ML", lab1, 500, 100, "pieces"));
-            inventoryRepo.save(createInventory("Disposable Gloves (Box of 100)", "INV-GLV001", lab1, 50, 10, "boxes"));
-            inventoryRepo.save(createInventory("Gauze Rolls", "INV-GAU001", lab3, 200, 40, "rolls"));
-            inventoryRepo.save(createInventory("Bandages (Assorted)", "INV-BND001", lab1, 150, 30, "pieces"));
-            inventoryRepo.save(createInventory("Cotton Swabs (Box)", "INV-CSW001", lab3, 80, 20, "boxes"));
-            inventoryRepo.save(createInventory("Stethoscope", "INV-STH001", lab1, 25, 5, "pieces"));
-            inventoryRepo.save(createInventory("Thermometer Digital", "INV-THM001", lab1, 30, 6, "pieces"));
-            inventoryRepo.save(createInventory("Glass Slides (Box of 50)", "INV-GLS001", lab9, 40, 10, "boxes"));
-            inventoryRepo.save(createInventory("IV Cannula (Various Sizes)", "INV-IVC001", lab3, 300, 50, "pieces"));
-            inventoryRepo.save(createInventory("Betadine Solution (500ml)", "INV-BET001", lab3, 25, 5, "bottles"));
-            log.info("✓ Created 10 inventory items");
 
             // ═══════════════════════════════════════════════════════════════
             // 11. MAINTENANCE REQUESTS
@@ -438,17 +423,6 @@ public class LocalDataSeeder {
         e.setModel(model);
         e.setPurchaseDate(LocalDate.of(2023, 1, 15));
         return e;
-    }
-
-    private InventoryItem createInventory(String name, String code, Lab lab, int qty, int minQty, String unit) {
-        InventoryItem i = new InventoryItem();
-        i.setName(name);
-        i.setItemCode(code);
-        i.setLab(lab);
-        i.setQuantity(qty);
-        i.setMinimumQuantity(minQty);
-        i.setUnit(unit);
-        return i;
     }
 
     private MaintenanceRequest createMaintenance(String title, String desc, Equipment eq, MaintenanceType type, MaintenanceStatus status, MaintenancePriority priority) {

@@ -1429,30 +1429,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'inventory',
-    canActivate: withPermission('INVENTORY_VIEW', 'INVENTORY_MANAGE'),
-    loadComponent: () =>
-      import('./features/inventory/inventory-list/inventory-list.component').then(
-        (m) => m.InventoryListComponent
-      ),
-  },
-  {
-    path: 'inventory/new',
-    canActivate: withPermission('INVENTORY_MANAGE'),
-    loadComponent: () =>
-      import('./features/inventory/inventory-form/inventory-form.component').then(
-        (m) => m.InventoryFormComponent
-      ),
-  },
-  {
-    path: 'inventory/:id/edit',
-    canActivate: withPermission('INVENTORY_MANAGE'),
-    loadComponent: () =>
-      import('./features/inventory/inventory-form/inventory-form.component').then(
-        (m) => m.InventoryFormComponent
-      ),
-  },
-  {
     path: 'maintenance',
     canActivate: withPermission('MAINTENANCE_VIEW', 'MAINTENANCE_MANAGE'),
     loadComponent: () =>

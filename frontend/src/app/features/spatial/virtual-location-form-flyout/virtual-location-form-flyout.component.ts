@@ -11,7 +11,6 @@ import {
   PolygonGeometry,
   ShapeType,
   SpatialEquipmentSummary,
-  SpatialInventoryItemSummary,
   SpatialLinkType,
   VirtualLocation,
   VirtualLocationRequest,
@@ -41,7 +40,7 @@ export class VirtualLocationFormFlyoutComponent implements OnInit {
   /** Only used in create mode — the canvas click that started this placement. */
   @Input() pendingPoint: { x: number; y: number } | null = null;
   /** Which entity kinds can be linked — BRANCH diagrams offer Block; FLOOR diagrams offer
-   *  Zone/Room/Equipment/InventoryItem. See spatial.model.ts's LINK_TYPES_BY_LEVEL. */
+   *  Zone/Room/Equipment. See spatial.model.ts's LINK_TYPES_BY_LEVEL. */
   @Input() diagramLevel: DiagramLevel = 'FLOOR';
   /** The Branch or Floor id this diagram belongs to — used to fetch picker lists. */
   @Input({ required: true }) diagramEntityId!: number;
@@ -80,9 +79,8 @@ export class VirtualLocationFormFlyoutComponent implements OnInit {
   });
 
   /** Live-fetched read-only context shown when editing a marker already linked to an
-   *  Equipment/InventoryItem row — confirms the link points at the right thing. */
+   *  Equipment row — confirms the link points at the right thing. */
   protected readonly liveEquipment = signal<SpatialEquipmentSummary | null>(null);
-  protected readonly liveInventoryItem = signal<SpatialInventoryItemSummary | null>(null);
 
   protected pointX = 0;
   protected pointY = 0;
@@ -96,7 +94,6 @@ export class VirtualLocationFormFlyoutComponent implements OnInit {
   private zones: Zone[] = [];
   private roomsList: Room[] = [];
   private equipmentList: SpatialEquipmentSummary[] = [];
-  private inventoryList: SpatialInventoryItemSummary[] = [];
 
   ngOnInit(): void {
     if (this.location) {
@@ -137,7 +134,6 @@ export class VirtualLocationFormFlyoutComponent implements OnInit {
     this.linkedEntityId = null;
     this.linkSearch = '';
     this.liveEquipment.set(null);
-    this.liveInventoryItem.set(null);
     this.linkOptions.set(this.optionsForLinkType(this.linkType));
   }
 
@@ -225,12 +221,10 @@ export class VirtualLocationFormFlyoutComponent implements OnInit {
     forkJoin({
       zones: this.campusService.getZonesByFloor(this.diagramEntityId, true).pipe(catchError(() => of<Zone[]>([]))),
       equipment: this.spatialService.getEquipmentSummaries().pipe(catchError(() => of<SpatialEquipmentSummary[]>([]))),
-      inventory: this.spatialService.getInventoryItemSummaries().pipe(catchError(() => of<SpatialInventoryItemSummary[]>([]))),
     }).subscribe({
-      next: ({ zones, equipment, inventory }) => {
+      next: ({ zones, equipment }) => {
         this.zones = zones;
         this.equipmentList = equipment;
-        this.inventoryList = inventory;
 
         if (zones.length === 0) {
           this.finishRoomLoad([]);
@@ -255,18 +249,14 @@ export class VirtualLocationFormFlyoutComponent implements OnInit {
       case 'ZONE': return this.zones.map((z) => ({ id: z.id, label: z.name }));
       case 'ROOM': return this.roomsList.map((r) => ({ id: r.id, label: r.roomNumber }));
       case 'EQUIPMENT': return this.equipmentList.map((e) => ({ id: e.id, label: `${e.name} (${e.assetCode})` }));
-      case 'INVENTORY_ITEM': return this.inventoryList.map((i) => ({ id: i.id, label: `${i.name} (${i.itemCode})` }));
       default: return [];
     }
   }
 
   private loadLiveContext(linkType: SpatialLinkType, entityId: number): void {
     this.liveEquipment.set(null);
-    this.liveInventoryItem.set(null);
     if (linkType === 'EQUIPMENT') {
       this.spatialService.getEquipmentSummaryById(entityId).subscribe({ next: (e) => this.liveEquipment.set(e) });
-    } else if (linkType === 'INVENTORY_ITEM') {
-      this.spatialService.getInventoryItemSummaryById(entityId).subscribe({ next: (i) => this.liveInventoryItem.set(i) });
     }
   }
 

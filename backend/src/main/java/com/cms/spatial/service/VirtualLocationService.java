@@ -88,15 +88,16 @@ public class VirtualLocationService {
     /**
      * A marker's own {@code SPATIAL_VIRTUAL_LOCATION_MANAGE} permission only covers placing/moving
      * the marker itself — it says nothing about whether the caller may link to the specific
-     * Equipment/InventoryItem catalog row being pointed at. Block/Zone/Room links don't need an
-     * extra check here: those go through {@code CampusInfrastructureController}'s own
+     * Equipment catalog row being pointed at. Block/Zone/Room links don't need an extra check
+     * here: those go through {@code CampusInfrastructureController}'s own
      * {@code CAMPUS_INFRASTRUCTURE_MANAGE} gate first when created via the normal flows.
+     * ("INVENTORY_ITEM" was a third link kind here, removed along with the rest of the legacy
+     * InventoryItem feature it pointed at — see the 2026-09-09 decision-log entry.)
      */
     private void requireLinkPermission(String entityType) {
         String requiredPermission = switch (entityType) {
             case null -> null;
             case "EQUIPMENT" -> "EQUIPMENT_MANAGE";
-            case "INVENTORY_ITEM" -> "INVENTORY_MANAGE";
             default -> null;
         };
         if (requiredPermission != null && !permSecurityBean.has(requiredPermission)) {

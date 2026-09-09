@@ -179,17 +179,19 @@ export const NAV_ENTRIES: NavEntry[] = [
       // entity's own "Import Floor Plan" button inside Campus Setup now, never as standalone nav items.
     ],
   },
-  // 8. Inventory Management — physical asset/equipment tracking (legacy lab-consumables feature;
-  // stays as-is until its own migration onto Stock Management below is scheduled — see
-  // docs/inventory-management/DECISION_LOG.md). Unified with Stock Management and Purchasing &
-  // Suppliers below under the one toggleable INVENTORY module — see docs/module-architecture/.
+  // 8a. Maintenance — legacy ad-hoc equipment repair tickets (MaintenanceRequest, against the
+  // legacy Equipment entity). NOT a duplicate of Equipment & Asset Management's "Maintenance
+  // Schedules" below: that's preventive/recurring scheduling against the new Asset entity with
+  // no ticket workflow; this is reactive repair-ticket tracking (priority, assignee, cost,
+  // resolution notes) with no scheduling concept. Kept as its own group, deliberately separate
+  // from Equipment & Asset Management, so the two aren't confused. Shares the one toggleable
+  // INVENTORY module (MAINTENANCE_ prefix, ModuleRegistry.java) — see docs/module-architecture/.
   {
-    label: 'Inventory Management',
-    icon: 'construction',
+    label: 'Maintenance',
+    icon: 'build',
     modules: ['INVENTORY'],
     items: [
-      { label: 'Inventory',   icon: 'inventory_2', route: '/inventory',   permissions: ['INVENTORY_VIEW', 'INVENTORY_CREATE', 'INVENTORY_EDIT', 'INVENTORY_DELETE', 'INVENTORY_EXPORT', 'INVENTORY_MANAGE'] },
-      { label: 'Maintenance', icon: 'build',       route: '/maintenance', permissions: ['MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_EDIT', 'MAINTENANCE_DELETE', 'MAINTENANCE_EXPORT', 'MAINTENANCE_MANAGE'] },
+      { label: 'Maintenance Requests', icon: 'build', route: '/maintenance', permissions: ['MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_EDIT', 'MAINTENANCE_DELETE', 'MAINTENANCE_EXPORT', 'MAINTENANCE_MANAGE'] },
     ],
   },
   // 8b. Stock Management — the new Release 3 Inventory Management module (Catalog, Stock,

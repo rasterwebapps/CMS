@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Observable, switchMap } from 'rxjs';
 import { CmsFlyoutPanelComponent } from '../../../shared/flyout-panel/flyout-panel.component';
 import { SpatialService } from '../spatial.service';
-import { DetectedShapeCandidate, DiagramLevel, PolygonGeometry, SpatialEquipmentSummary, SpatialInventoryItemSummary, VirtualLocation } from '../spatial.model';
+import { DetectedShapeCandidate, DiagramLevel, PolygonGeometry, SpatialEquipmentSummary, VirtualLocation } from '../spatial.model';
 import { CampusInfrastructureService } from '../../hostel/campus-infrastructure/campus-infrastructure.service';
 import { GenderRestriction } from '../../hostel/campus-infrastructure/campus-infrastructure.model';
 import { RoomPurposeCategoryService } from '../../hostel/room-purpose-category/room-purpose-category.service';
@@ -14,9 +14,11 @@ import { ToastService } from '../../../core/toast/toast.service';
 
 /** What a confirmed row at each diagram level actually becomes — matches BR-60's extension:
  *  BRANCH derives Blocks, FLOOR derives Zones, ZONE derives Rooms; ROOM has nothing left to
- *  create underneath it (a Room is a leaf), so it links an existing Equipment/InventoryItem
- *  catalog row instead. */
-type EquipmentLinkKind = 'EQUIPMENT' | 'INVENTORY_ITEM';
+ *  create underneath it (a Room is a leaf), so it links an existing Equipment catalog row
+ *  instead. (A second link kind, "INVENTORY_ITEM", existed here until 2026-09-09 — removed
+ *  along with the rest of the legacy InventoryItem feature; see
+ *  docs/inventory-management/DECISION_LOG.md.) */
+type EquipmentLinkKind = 'EQUIPMENT';
 
 /** An already-existing Block/Zone/Room under the same parent — Room's "name" here is its
  *  roomNumber. Used to auto-suggest linking a detected shape to a manually-created sibling instead
@@ -39,7 +41,7 @@ interface ReviewRow {
   purposeCategoryId: number | null;
   subTypeId: number | null;
   subTypes: RoomSubType[];
-  // ROOM level → existing Equipment/InventoryItem link (null linkKind = skip this row)
+  // ROOM level → existing Equipment link (null linkKind = skip this row)
   linkKind: EquipmentLinkKind | null;
   linkedEntityId: number | null;
   // BRANCH/FLOOR/ZONE level → an existing sibling this row's name matched. Non-null id means
@@ -58,7 +60,7 @@ const codeSuggestionFrom = (name: string): string =>
 /**
  * Staged review for candidate sub-components detected from a DXF/PDF import (BR-60 extension) —
  * nothing here is ever auto-committed. The admin edits/confirms each row before it becomes a real
- * Block/Zone/Room row (or an Equipment/InventoryItem link) plus a placed VirtualLocation marker,
+ * Block/Zone/Room row (or an Equipment link) plus a placed VirtualLocation marker,
  * using the exact same create endpoints the manual Campus Setup builder and manual marker
  * placement already use. Rejecting a row (unchecking it, or just never confirming) makes no calls
  * at all.
@@ -92,7 +94,6 @@ export class DetectedShapesReviewFlyoutComponent implements OnInit {
 
   protected readonly purposeCategories = signal<RoomPurposeCategory[]>([]);
   protected readonly equipmentList = signal<SpatialEquipmentSummary[]>([]);
-  protected readonly inventoryList = signal<SpatialInventoryItemSummary[]>([]);
   /** Existing Blocks/Zones/Rooms already under this diagram's parent entity — fetched once so every
    *  row can be matched against it without a per-row request. Empty (and irrelevant) at ROOM level. */
   private existingSiblings: ExistingSibling[] = [];
@@ -121,7 +122,6 @@ export class DetectedShapesReviewFlyoutComponent implements OnInit {
       this.categoryService.getAll(true).subscribe({ next: (categories) => this.purposeCategories.set(categories) });
     } else if (this.diagramLevel === 'ROOM') {
       this.spatialService.getEquipmentSummaries().subscribe({ next: (list) => this.equipmentList.set(list) });
-      this.spatialService.getInventoryItemSummaries().subscribe({ next: (list) => this.inventoryList.set(list) });
     }
 
     if (this.diagramLevel === 'BRANCH') {
@@ -268,7 +268,7 @@ export class DetectedShapesReviewFlyoutComponent implements OnInit {
 
   /** Creates the real Block/Zone/Room row, then places a VirtualLocation marker pointing at it —
    *  the same two calls the manual Campus Setup + manual marker flows already make, just chained
-   *  together. Skipped in two cases: ROOM level (only links an existing Equipment/InventoryItem)
+   *  together. Skipped in two cases: ROOM level (only links an existing Equipment row)
    *  and any row the admin chose to link to an already-existing sibling instead of creating one
    *  (see `linkToExistingId` / the "link to existing" auto-match toggle) — both go straight to
    *  placing the marker on the already-real entity. */

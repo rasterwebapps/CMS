@@ -1416,4 +1416,69 @@ un-started work — do not begin it without asking the user first. Separately, `
 Room specifically should be revisited and corrected the moment real data for it exists — it's
 usable, not authoritative.
 
+---
+
+## 2026-09-09 — Legacy InventoryItem retirement (V476)
+
+**Prompted by:** the user asking to scope the `InventoryItem` → `Product`/`StockBalance`
+migration, then, mid-discussion, clarifying the real situation: **"there are no existing
+inventory data present in this db, it is just a planned screen, never completely developed and
+no data exists."** That reframes the whole task — with nothing to move, "migrate" collapses to
+"retire the unused legacy feature and rely on the new Stock Management system," which the user
+then explicitly confirmed, including removing the orphaned permissions.
+
+**Verified before touching anything** (per this module's own migration-precondition discipline):
+`SELECT count(*) FROM inventory_items` → **0**. `SELECT entity_type, count(*) FROM
+virtual_locations GROUP BY entity_type` → only `EQUIPMENT` (1 row) — **zero** rows of
+`entityType = 'INVENTORY_ITEM'`, so the Tour/Flowmap "real dependency" flagged in an earlier
+nav-restructuring round (`nav-config.ts`'s now-removed "Lab Consumables" comment) was real only
+in the sense that the code path existed and worked — nobody had ever actually used it. Both
+findings are reflected in the removed code's own commit message, not asserted from memory.
+
+**What was removed, given there was nothing to preserve:**
+1. **Backend**: `InventoryItem`/`InventoryItemController`/`InventoryItemService`/
+   `InventoryItemRepository`/`InventoryItemRequest`/`InventoryItemResponse`, their seed data in
+   `LocalDataSeeder`/`DataLoader`, and their two test classes. `VirtualLocationService`'s
+   `requireLinkPermission` lost its `"INVENTORY_ITEM" -> "INVENTORY_MANAGE"` case.
+   `WidgetDataController`'s `/equipment-status` endpoint dropped the now-meaningless
+   `'INVENTORY_VIEW'` half of its `hasAny('EQUIPMENT_MANAGE','INVENTORY_VIEW')` gate — the
+   endpoint is about Equipment; `EQUIPMENT_MANAGE` alone is the correct, sufficient permission.
+2. **Frontend**: `features/inventory/inventory-list`/`inventory-form` (+ the legacy
+   `inventory.model.ts`/`inventory.service.ts`), the `/inventory`, `/inventory/new`,
+   `/inventory/:id/edit` routes, and the "Lab Consumables" nav group added a few turns earlier in
+   this same session (now dead — nothing left to show). Tour/Flowmap's `spatial.model.ts` lost
+   the `INVENTORY_ITEM` link kind entirely (`SpatialLinkType`, `LINK_TYPES_BY_LEVEL`,
+   `LINK_TYPE_LABELS`, `SpatialInventoryItemSummary`), with matching cleanup in
+   `spatial.service.ts`, `virtual-location-canvas`, `virtual-location-form-flyout`, and
+   `detected-shapes-review-flyout` (its own `EquipmentLinkKind` union narrowed to just
+   `'EQUIPMENT'`).
+3. **Database (`V476__retire_legacy_inventory_item.sql`)**: `DROP TABLE IF EXISTS
+   inventory_items` (confirmed nothing has an inbound FK to it — it only ever had an outbound FK
+   to `labs`), plus the 6 now-orphaned permissions (`INVENTORY_VIEW`/`_CREATE`/`_EDIT`/`_DELETE`/
+   `_EXPORT`/`_MANAGE`) and their `role_permissions` rows (12 rows), per the user's explicit
+   instruction to remove them too. Checked first that no `approval_workflow_steps` row references
+   any of the 6 codes (0 found), so the `DELETE FROM permissions` couldn't hit a second FK.
+   **Numbering note:** this migration was originally written as V475, but a concurrent session
+   (working on faculty seed data in the same shared local dev DB) claimed V475 first
+   (`V475__seed_faculty_to_reach_13.sql`) — caught via Flyway's own "Found more than one
+   migration with version 475" startup error, not by re-grepping beforehand, since the file was
+   written before that concurrent commit landed. Renumbered to V476 and re-applied cleanly. A
+   future session should still grep the migrations directory immediately before picking a number,
+   per this repo's standing hard gate — this is exactly the race that gate exists to catch.
+
+**Verified after:** `to_regclass('public.inventory_items')` → null (table gone).
+`SELECT code FROM permissions WHERE code IN (...)` for the 6 codes → 0 rows. Full backend test
+suite run: 2424 tests, 7 failures — all 7 in `SpecialClassRequestServiceTest`, all a pre-existing,
+unrelated date-drift bug (`"Special class date must be today or a future date"` firing against a
+hardcoded past test fixture date, nothing to do with this change) — confirmed by reading the
+actual failure output, not assumed from the filename. `./gradlew compileJava compileTestJava`,
+`npx tsc -p tsconfig.app.json --noEmit`, and `ng build --configuration production` all clean.
+
+**Impact:** `V476__retire_legacy_inventory_item.sql`; the backend/frontend files listed above.
+**This closes the "Lab Consumables"/legacy-Inventory thread opened a few turns earlier in this
+same session** — there is no more standalone legacy Inventory feature, and the Stock Management
+module built out over 2026-09-08/09 is now the only inventory system in the app. `Computer lab`'s
+placeholder Room (V474) is unaffected by this — that's Core Infrastructure data, not part of what
+was retired.
+
 *Next entry goes here — do not insert above this line.*

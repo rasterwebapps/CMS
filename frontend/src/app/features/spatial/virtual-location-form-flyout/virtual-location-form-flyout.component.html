@@ -41,12 +41,6 @@
           <span>{{ eq.labName }}</span>
         </div>
       }
-      @if (liveInventoryItem(); as item) {
-        <div class="sp-live-context">
-          <span class="prev-pill" [class.prev-pill--red]="item.lowStock" [class.prev-pill--green]="!item.lowStock">{{ item.quantity }} {{ item.unit }}{{ item.lowStock ? ' — low stock' : '' }}</span>
-          <span>{{ item.labName }}</span>
-        </div>
-      }
     }
 
     <div class="field-group">

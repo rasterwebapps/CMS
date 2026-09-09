@@ -74,17 +74,11 @@
                 <select class="field-select" [ngModel]="row.linkKind" (ngModelChange)="onLinkKindChange(row, $event)">
                   <option [ngValue]="null">Skip (no link)</option>
                   <option value="EQUIPMENT">Equipment</option>
-                  <option value="INVENTORY_ITEM">Inventory Item</option>
                 </select>
                 @if (row.linkKind === 'EQUIPMENT') {
                   <select class="field-select" [(ngModel)]="row.linkedEntityId">
                     <option [ngValue]="null">Select Equipment</option>
                     @for (e of equipmentList(); track e.id) { <option [ngValue]="e.id">{{ e.name }} ({{ e.assetCode }})</option> }
-                  </select>
-                } @else if (row.linkKind === 'INVENTORY_ITEM') {
-                  <select class="field-select" [(ngModel)]="row.linkedEntityId">
-                    <option [ngValue]="null">Select Inventory Item</option>
-                    @for (i of inventoryList(); track i.id) { <option [ngValue]="i.id">{{ i.name }} ({{ i.itemCode }})</option> }
                   </select>
                 }
               }

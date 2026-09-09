@@ -550,7 +550,7 @@ public class WidgetDataController {
      * Equipment status breakdown as labelled progress rows.
      */
     @GetMapping("/equipment-status")
-    @PreAuthorize("@perm.hasAny('EQUIPMENT_MANAGE','INVENTORY_VIEW')")
+    @PreAuthorize("@perm.has('EQUIPMENT_MANAGE')")
     public ResponseEntity<List<EquipmentStatusRow>> getEquipmentStatus() {
         DashboardSummaryResponse s = dashboardService.getSummary();
         Map<String, Long> buckets = s.equipmentByStatus();

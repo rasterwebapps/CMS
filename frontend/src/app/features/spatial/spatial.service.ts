@@ -7,7 +7,6 @@ import {
   FloorPlanCalibrationRequest,
   FloorPlanMetadataFields,
   SpatialEquipmentSummary,
-  SpatialInventoryItemSummary,
   VirtualLocation,
   VirtualLocationRequest,
 } from './spatial.model';
@@ -18,7 +17,6 @@ export class SpatialService {
   private readonly floorPlansUrl = `${environment.apiUrl}/spatial/floor-plans`;
   private readonly virtualLocationsUrl = `${environment.apiUrl}/spatial/virtual-locations`;
   private readonly equipmentUrl = `${environment.apiUrl}/equipment`;
-  private readonly inventoryUrl = `${environment.apiUrl}/inventory`;
 
   // ─── Floor Plans ─────────────────────────────────────────────────────────
 
@@ -90,9 +88,9 @@ export class SpatialService {
     return this.http.delete<void>(`${this.virtualLocationsUrl}/${id}`);
   }
 
-  // ─── Equipment / Inventory summaries (for marker linking + status badges) ──
-  // Hit these endpoints directly rather than reusing features/equipment or
-  // features/inventory's services/models — see SpatialEquipmentSummary's doc comment.
+  // ─── Equipment summaries (for marker linking + status badges) ──────────────
+  // Hit this endpoint directly rather than reusing features/equipment's service/model —
+  // see SpatialEquipmentSummary's doc comment.
 
   getEquipmentSummaries(): Observable<SpatialEquipmentSummary[]> {
     return this.http.get<SpatialEquipmentSummary[]>(this.equipmentUrl);
@@ -100,14 +98,6 @@ export class SpatialService {
 
   getEquipmentSummaryById(id: number): Observable<SpatialEquipmentSummary> {
     return this.http.get<SpatialEquipmentSummary>(`${this.equipmentUrl}/${id}`);
-  }
-
-  getInventoryItemSummaries(): Observable<SpatialInventoryItemSummary[]> {
-    return this.http.get<SpatialInventoryItemSummary[]>(this.inventoryUrl);
-  }
-
-  getInventoryItemSummaryById(id: number): Observable<SpatialInventoryItemSummary> {
-    return this.http.get<SpatialInventoryItemSummary>(`${this.inventoryUrl}/${id}`);
   }
 
   private buildMetadataFormData(fields: FloorPlanMetadataFields): FormData {

@@ -28,7 +28,6 @@ import com.cms.model.Examination;
 import com.cms.model.ExamResult;
 import com.cms.model.Experiment;
 import com.cms.model.Faculty;
-import com.cms.model.InventoryItem;
 import com.cms.model.Lab;
 import com.cms.model.LabCurriculumMapping;
 import com.cms.model.LabInChargeAssignment;
@@ -87,7 +86,6 @@ import com.cms.repository.DesignationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
-import com.cms.repository.InventoryItemRepository;
 import com.cms.repository.LabCurriculumMappingRepository;
 import com.cms.repository.LabInChargeAssignmentRepository;
 import com.cms.repository.LabRepository;
@@ -127,7 +125,6 @@ public class DataLoader implements CommandLineRunner {
     private final ReferralTypeRepository referralTypeRepository;
     private final EnquiryRepository enquiryRepository;
     private final EquipmentRepository equipmentRepository;
-    private final InventoryItemRepository inventoryItemRepository;
     private final MaintenanceRequestRepository maintenanceRequestRepository;
     private final ExaminationRepository examinationRepository;
     private final ExamResultRepository examResultRepository;
@@ -158,7 +155,6 @@ public class DataLoader implements CommandLineRunner {
                       ReferralTypeRepository referralTypeRepository,
                       EnquiryRepository enquiryRepository,
                       EquipmentRepository equipmentRepository,
-                      InventoryItemRepository inventoryItemRepository,
                       MaintenanceRequestRepository maintenanceRequestRepository,
                       ExaminationRepository examinationRepository,
                       ExamResultRepository examResultRepository,
@@ -188,7 +184,6 @@ public class DataLoader implements CommandLineRunner {
         this.referralTypeRepository = referralTypeRepository;
         this.enquiryRepository = enquiryRepository;
         this.equipmentRepository = equipmentRepository;
-        this.inventoryItemRepository = inventoryItemRepository;
         this.maintenanceRequestRepository = maintenanceRequestRepository;
         this.examinationRepository = examinationRepository;
         this.examResultRepository = examResultRepository;
@@ -380,27 +375,6 @@ public class DataLoader implements CommandLineRunner {
         Equipment eq3 = equipmentRepository.save(new Equipment("Stethoscope Set",      "ASSET003", EquipmentCategory.MECHANICAL,  nfLab2,   EquipmentStatus.IN_USE));
         Equipment eq4 = equipmentRepository.save(new Equipment("Blood Pressure Monitor","ASSET004", EquipmentCategory.ELECTRONIC, nfLab2,   EquipmentStatus.AVAILABLE));
         Equipment eq5 = equipmentRepository.save(new Equipment("Projector System",     "ASSET005", EquipmentCategory.ELECTRONIC,  compLab,  EquipmentStatus.UNDER_MAINTENANCE));
-
-        // ── 20. Inventory Items ──────────────────────────────────────────────
-        InventoryItem inv1 = new InventoryItem("Surgical Gloves",   "INV001", nfLab2,  200);
-        inv1.setMinimumQuantity(50); inv1.setUnit("Pairs"); inv1.setLastRestocked(LocalDate.of(2024, 10, 1));
-        inventoryItemRepository.save(inv1);
-
-        InventoryItem inv2 = new InventoryItem("Cotton Rolls",      "INV002", nfLab2,  15);
-        inv2.setMinimumQuantity(5); inv2.setUnit("Rolls"); inv2.setLastRestocked(LocalDate.of(2024, 10, 1));
-        inventoryItemRepository.save(inv2);
-
-        InventoryItem inv3 = new InventoryItem("Bandages Box",      "INV003", nfLab2,  30);
-        inv3.setMinimumQuantity(10); inv3.setUnit("Boxes"); inv3.setLastRestocked(LocalDate.of(2024, 10, 5));
-        inventoryItemRepository.save(inv3);
-
-        InventoryItem inv4 = new InventoryItem("Printing Paper",    "INV004", compLab, 20);
-        inv4.setMinimumQuantity(5); inv4.setUnit("Reams"); inv4.setLastRestocked(LocalDate.of(2024, 11, 1));
-        inventoryItemRepository.save(inv4);
-
-        InventoryItem inv5 = new InventoryItem("Hand Sanitizer",    "INV005", compLab, 10);
-        inv5.setMinimumQuantity(3); inv5.setUnit("Bottles"); inv5.setLastRestocked(LocalDate.of(2024, 11, 1));
-        inventoryItemRepository.save(inv5);
 
         // ── 21. Maintenance Requests ─────────────────────────────────────────
         MaintenanceRequest mr1 = new MaintenanceRequest(eq5, "Projector Lamp Replacement",
