@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductUomChainVersion;
 import com.cms.inventory.catalog.repository.ProductRepository;
+import com.cms.inventory.catalog.repository.ProductUomChainVersionRepository;
 import com.cms.inventory.stock.dto.StockBalanceResponse;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockMovementResponse;
@@ -52,17 +54,20 @@ public class StockMovementService {
     private final StockBatchRepository batchRepository;
     private final StockLedgerRepository ledgerRepository;
     private final StockBalanceRepository balanceRepository;
+    private final ProductUomChainVersionRepository uomChainVersionRepository;
 
     public StockMovementService(ProductRepository productRepository,
                                  InventoryLocationRepository locationRepository,
                                  StockBatchRepository batchRepository,
                                  StockLedgerRepository ledgerRepository,
-                                 StockBalanceRepository balanceRepository) {
+                                 StockBalanceRepository balanceRepository,
+                                 ProductUomChainVersionRepository uomChainVersionRepository) {
         this.productRepository = productRepository;
         this.locationRepository = locationRepository;
         this.batchRepository = batchRepository;
         this.ledgerRepository = ledgerRepository;
         this.balanceRepository = balanceRepository;
+        this.uomChainVersionRepository = uomChainVersionRepository;
     }
 
     @Transactional
@@ -155,6 +160,13 @@ public class StockMovementService {
                 batch.setProduct(product);
                 batch.setBatchOrSerialNo(trimmed);
                 batch.setExpiryDate(expiryDate);
+                // Permanently stamped with whichever chain version is active right now — never
+                // re-stamped later, so this batch keeps resolving through today's pack sizes even
+                // after the product's active version changes (e.g. a future repack). Null when
+                // the product has no chain configured yet.
+                ProductUomChainVersion activeVersion =
+                    uomChainVersionRepository.findByProductIdAndIsActiveTrue(product.getId()).orElse(null);
+                batch.setChainVersion(activeVersion);
                 return batchRepository.save(batch);
             });
     }

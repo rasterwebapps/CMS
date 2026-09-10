@@ -8,6 +8,8 @@ import { PurchaseOrderService } from '../purchase-order.service';
 import { AvailableRequisitionLine, PurchaseOrder, PurchaseOrderItem } from '../purchase-order.model';
 import { TaxRuleService } from '../../tax-rule/tax-rule.service';
 import { TaxRule } from '../../tax-rule/tax-rule.model';
+import { ProductService } from '../../../product/product.service';
+import { ProductUomLevel } from '../../../product/product.model';
 import { ConfirmDialogComponent } from '../../../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
@@ -32,6 +34,7 @@ export class PurchaseOrderDetailComponent implements OnInit {
   private readonly router        = inject(Router);
   private readonly orderService  = inject(PurchaseOrderService);
   private readonly taxRuleService = inject(TaxRuleService);
+  private readonly productService = inject(ProductService);
   private readonly dialog        = inject(MatDialog);
   private readonly toast         = inject(ToastService);
 
@@ -40,9 +43,14 @@ export class PurchaseOrderDetailComponent implements OnInit {
   protected readonly order           = signal<PurchaseOrder | null>(null);
   protected readonly availableLines  = signal<AvailableRequisitionLine[]>([]);
   protected readonly taxRules        = signal<TaxRule[]>([]);
+  // Non-base levels of the selected line's product's active unit-of-measure chain — the unit
+  // picker's pool. Empty means the product has no hierarchy configured; it can only be ordered
+  // in its base unit.
+  protected readonly uomLevels       = signal<ProductUomLevel[]>([]);
 
   protected addRequisitionItemId: number | null = null;
   protected addQty: number | null = null;
+  protected addUomLevelId: number | null = null;
   protected addUnitPrice: number | null = null;
   protected addTaxRuleId: number | null = null;
   protected forceCloseReason = '';
@@ -80,14 +88,17 @@ export class PurchaseOrderDetailComponent implements OnInit {
     this.orderService.addLine(this.orderId, {
       purchaseRequisitionItemId: this.addRequisitionItemId,
       orderedQty: this.addQty ?? undefined,
+      uomLevelId: this.addUomLevelId ?? undefined,
       unitPrice: this.addUnitPrice ?? undefined,
       taxRuleId: this.addTaxRuleId ?? undefined,
     }).subscribe({
       next: () => {
         this.addRequisitionItemId = null;
         this.addQty = null;
+        this.addUomLevelId = null;
         this.addUnitPrice = null;
         this.addTaxRuleId = null;
+        this.uomLevels.set([]);
         this.toast.success('Line added to the order');
         this.busy.set(false);
         this.load();
@@ -137,6 +148,24 @@ export class PurchaseOrderDetailComponent implements OnInit {
   protected onRequisitionLineChange(): void {
     const line = this.availableLines().find((l) => l.id === this.addRequisitionItemId);
     this.addQty = line ? line.requestedQty : null;
+    this.addUomLevelId = null;
+    this.uomLevels.set([]);
+    if (!line) return;
+    this.productService.getActiveUomChain(line.productId).subscribe({
+      next: (chain) => {
+        const levels = (chain?.levels ?? []).filter(l => l.levelRank > 0);
+        this.uomLevels.set(levels);
+        const defaultLevel = levels.find(l => l.isDefaultPurchase);
+        if (defaultLevel) this.addUomLevelId = defaultLevel.id;
+      },
+      error: () => { /* no hierarchy configured for this product — base unit only, not an error */ },
+    });
+  }
+
+  protected onUomLevelChange(): void {
+    // Quantity was typed against the previous unit's scale — clearing it avoids silently
+    // treating, say, "5 Cartons" as "5 Boxes" after switching the unit.
+    this.addQty = null;
   }
 
   protected goBack(): void {

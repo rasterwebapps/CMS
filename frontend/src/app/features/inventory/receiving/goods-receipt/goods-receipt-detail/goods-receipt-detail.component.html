@@ -54,6 +54,17 @@
               }
             </select>
           </div>
+          @if (uomLevels().length > 0) {
+            <div class="field-group gr-add-uom">
+              <label class="field-label">Unit</label>
+              <select class="field-select" [(ngModel)]="addUomLevelId" (ngModelChange)="onUomLevelChange()">
+                <option [ngValue]="null">Base unit</option>
+                @for (lvl of uomLevels(); track lvl.id) {
+                  <option [ngValue]="lvl.id">{{ lvl.uomName }} ({{ lvl.uomCode }}) = {{ lvl.factorToBase }} base</option>
+                }
+              </select>
+            </div>
+          }
           <div class="field-group gr-add-qty">
             <label class="field-label">Received Qty</label>
             <input type="number" step="0.001" min="0" class="field-input" [(ngModel)]="addQty" placeholder="0.000" />
@@ -103,7 +114,12 @@
                   <div class="gr-product-code">{{ line.productCode }}</div>
                 </td>
                 <td>{{ line.uomCode || '—' }}</td>
-                <td class="cell-align-right">{{ line.receivedQty }}</td>
+                <td class="cell-align-right">
+                  {{ line.receivedQty }}
+                  @if (line.enteredQty != null) {
+                    <div class="gr-entered-qty">({{ line.enteredQty }} {{ line.enteredUomCode }})</div>
+                  }
+                </td>
                 <td class="cell-align-right">{{ line.unitCost != null ? (line.unitCost | number: '1.2-2') : '—' }}</td>
                 <td>{{ line.batchOrSerialNo || '—' }}</td>
                 <td>{{ line.expiryDate ? (line.expiryDate | date: 'mediumDate') : '—' }}</td>

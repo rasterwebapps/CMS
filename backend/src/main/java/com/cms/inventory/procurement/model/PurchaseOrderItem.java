@@ -3,6 +3,7 @@ package com.cms.inventory.procurement.model;
 import java.math.BigDecimal;
 
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductUomLevel;
 import com.cms.inventory.procurement.model.enums.JurisdictionMode;
 
 import jakarta.persistence.Column;
@@ -53,8 +54,26 @@ public class PurchaseOrderItem {
     @JoinColumn(name = "purchase_requisition_item_id")
     private PurchaseRequisitionItem purchaseRequisitionItem;
 
+    /** Always the base-unit quantity — every open-qty/received-progress comparison in {@code
+     * PurchaseOrderService}/{@code GoodsReceiptService} relies on that being true regardless of
+     * which unit was actually chosen at entry. */
     @Column(name = "ordered_qty", nullable = false, precision = 14, scale = 3)
     private BigDecimal orderedQty;
+
+    /** The unit-of-measure level chosen when this line was entered (e.g. "Box"), from the
+     * product's active {@code ProductUomChainVersion} — null when entered directly in the base
+     * unit (including every line created before this slice). Display/audit only; never used in
+     * quantity math, which always operates on {@code orderedQty}/{@code receivedQty} in base
+     * units. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uom_level_id")
+    private ProductUomLevel uomLevel;
+
+    /** The raw quantity as typed in {@code uomLevel} (e.g. "5" when uomLevel = Box) — {@code
+     * orderedQty} is this multiplied by the level's {@code factorToBase}. Null when {@code
+     * uomLevel} is null. */
+    @Column(name = "entered_qty", precision = 14, scale = 3)
+    private BigDecimal enteredQty;
 
     @Column(name = "unit_price", nullable = false, precision = 14, scale = 2)
     private BigDecimal unitPrice;
@@ -90,6 +109,12 @@ public class PurchaseOrderItem {
 
     public BigDecimal getOrderedQty() { return orderedQty; }
     public void setOrderedQty(BigDecimal orderedQty) { this.orderedQty = orderedQty; }
+
+    public ProductUomLevel getUomLevel() { return uomLevel; }
+    public void setUomLevel(ProductUomLevel uomLevel) { this.uomLevel = uomLevel; }
+
+    public BigDecimal getEnteredQty() { return enteredQty; }
+    public void setEnteredQty(BigDecimal enteredQty) { this.enteredQty = enteredQty; }
 
     public BigDecimal getUnitPrice() { return unitPrice; }
     public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }

@@ -76,3 +76,36 @@ export interface ProductStatusUpdateResponse {
   isActive: boolean;
   updatedAt: string;
 }
+
+/** One level of a product's unit-of-measure chain (e.g. "Strip", factor 10 -> the base unit).
+ * levelRank 0 is always the product's base unit (factorToBase 1). factorToBase multiplies
+ * directly to the base unit, not to the next level down. */
+export interface ProductUomLevel {
+  id: number;
+  uomId: number;
+  uomCode: string;
+  uomName: string;
+  levelRank: number;
+  factorToBase: number;
+  isDefaultPurchase: boolean;
+}
+
+export interface ProductUomChainVersion {
+  id: number;
+  versionNo: number;
+  isActive: boolean;
+  createdBy?: string | null;
+  createdAt: string;
+  levels: ProductUomLevel[];
+}
+
+export interface ProductUomLevelRequest {
+  uomId: number;
+  levelRank: number;
+  factorToBase: number;
+  isDefaultPurchase?: boolean;
+}
+
+export interface ProductUomChainSaveRequest {
+  levels: ProductUomLevelRequest[];
+}

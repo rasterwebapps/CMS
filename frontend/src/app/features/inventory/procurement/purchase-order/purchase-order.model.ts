@@ -22,7 +22,11 @@ export interface PurchaseOrderCreateRequest {
 
 export interface PurchaseOrderAddLineRequest {
   purchaseRequisitionItemId: number;
+  /** When uomLevelId is set, this is the quantity *as typed in that unit* (e.g. "5" Cartons) —
+   * converted to base units server-side. Otherwise it's the base-unit quantity, as before. */
   orderedQty?: number;
+  /** A level from the product's active unit-of-measure chain (ProductService.getActiveUomChain) to order in instead of the base unit. */
+  uomLevelId?: number;
   unitPrice?: number;
   taxRuleId?: number;
 }
@@ -39,6 +43,9 @@ export interface PurchaseOrderItem {
   uomCode: string | null;
   purchaseRequisitionItemId: number | null;
   orderedQty: number;
+  uomLevelId: number | null;
+  enteredUomCode: string | null;
+  enteredQty: number | null;
   unitPrice: number;
   taxRuleId: number | null;
   taxRuleName: string | null;

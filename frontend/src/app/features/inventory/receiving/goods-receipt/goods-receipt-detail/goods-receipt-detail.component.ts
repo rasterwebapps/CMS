@@ -9,6 +9,8 @@ import { GoodsReceipt, GoodsReceiptLine, ReceivablePurchaseOrderLine } from '../
 import { ConfirmDialogComponent } from '../../../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
+import { ProductService } from '../../../product/product.service';
+import { ProductUomLevel } from '../../../product/product.model';
 
 @Component({
   selector: 'app-goods-receipt-detail',
@@ -31,14 +33,19 @@ export class GoodsReceiptDetailComponent implements OnInit {
   private readonly receiptService = inject(GoodsReceiptService);
   private readonly dialog         = inject(MatDialog);
   private readonly toast          = inject(ToastService);
+  private readonly productService = inject(ProductService);
 
   protected readonly loading          = signal(false);
   protected readonly busy             = signal(false);
   protected readonly receipt          = signal<GoodsReceipt | null>(null);
   protected readonly receivableLines  = signal<ReceivablePurchaseOrderLine[]>([]);
+  // Non-base levels of the selected line's product's active unit-of-measure chain — need not
+  // match the unit the PO line was ordered in (a line can be split across several units).
+  protected readonly uomLevels        = signal<ProductUomLevel[]>([]);
 
   protected addPoItemId: number | null = null;
   protected addQty: number | null = null;
+  protected addUomLevelId: number | null = null;
   protected addUnitCost: number | null = null;
   protected addBatchOrSerialNo = '';
   protected addExpiryDate = '';
@@ -73,6 +80,19 @@ export class GoodsReceiptDetailComponent implements OnInit {
     const line = this.receivableLines().find((l) => l.id === this.addPoItemId);
     this.addQty = line ? line.openQty : null;
     this.addUnitCost = line ? line.unitPrice : null;
+    this.addUomLevelId = null;
+    this.uomLevels.set([]);
+    if (!line) return;
+    this.productService.getActiveUomChain(line.productId).subscribe({
+      next: (chain) => this.uomLevels.set((chain?.levels ?? []).filter(l => l.levelRank > 0)),
+      error: () => { /* no hierarchy configured for this product — base unit only, not an error */ },
+    });
+  }
+
+  protected onUomLevelChange(): void {
+    // Open qty is shown/defaulted in base units — once a unit is picked the number on screen no
+    // longer means the same thing, so clear it rather than silently misinterpreting it.
+    this.addQty = null;
   }
 
   protected addLine(): void {
@@ -81,6 +101,7 @@ export class GoodsReceiptDetailComponent implements OnInit {
     this.receiptService.addLine(this.receiptId, {
       purchaseOrderItemId: this.addPoItemId,
       receivedQty: this.addQty,
+      uomLevelId: this.addUomLevelId ?? undefined,
       unitCost: this.addUnitCost ?? undefined,
       batchOrSerialNo: this.addBatchOrSerialNo.trim() || undefined,
       expiryDate: this.addExpiryDate || undefined,
@@ -88,9 +109,11 @@ export class GoodsReceiptDetailComponent implements OnInit {
       next: () => {
         this.addPoItemId = null;
         this.addQty = null;
+        this.addUomLevelId = null;
         this.addUnitCost = null;
         this.addBatchOrSerialNo = '';
         this.addExpiryDate = '';
+        this.uomLevels.set([]);
         this.toast.success('Line added to the receipt');
         this.busy.set(false);
         this.load();

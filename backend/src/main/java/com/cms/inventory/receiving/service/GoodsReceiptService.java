@@ -1,6 +1,7 @@
 package com.cms.inventory.receiving.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -14,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductUomLevel;
+import com.cms.inventory.catalog.service.ProductUomChainService;
 import com.cms.inventory.procurement.model.PurchaseOrder;
 import com.cms.inventory.procurement.model.PurchaseOrderItem;
 import com.cms.inventory.procurement.model.enums.PurchaseOrderStatus;
@@ -57,17 +60,20 @@ public class GoodsReceiptService {
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final PurchaseOrderService purchaseOrderService;
     private final StockMovementService stockMovementService;
+    private final ProductUomChainService uomChainService;
 
     public GoodsReceiptService(GoodsReceiptRepository receiptRepository,
                                 GoodsReceiptLineRepository lineRepository,
                                 PurchaseOrderItemRepository purchaseOrderItemRepository,
                                 PurchaseOrderService purchaseOrderService,
-                                StockMovementService stockMovementService) {
+                                StockMovementService stockMovementService,
+                                ProductUomChainService uomChainService) {
         this.receiptRepository = receiptRepository;
         this.lineRepository = lineRepository;
         this.purchaseOrderItemRepository = purchaseOrderItemRepository;
         this.purchaseOrderService = purchaseOrderService;
         this.stockMovementService = stockMovementService;
+        this.uomChainService = uomChainService;
     }
 
     @Transactional
@@ -129,17 +135,31 @@ public class GoodsReceiptService {
             throw new IllegalArgumentException("This purchase order line does not belong to this receipt's order");
         }
 
+        // uomLevel is the unit this line is actually being received in — need not match the unit
+        // the PO line was ordered in; receivedQty stays base-unit-only regardless (see the
+        // GoodsReceiptLine field docs), so this open-qty check keeps comparing like with like no
+        // matter which unit each individual line used.
+        ProductUomLevel uomLevel = request.uomLevelId() != null
+            ? uomChainService.requireActiveLevel(poItem.getProduct().getId(), request.uomLevelId())
+            : null;
+        BigDecimal enteredQty = request.receivedQty();
+        BigDecimal receivedQty = uomLevel != null
+            ? enteredQty.multiply(uomLevel.getFactorToBase()).setScale(3, RoundingMode.HALF_UP)
+            : enteredQty;
+
         BigDecimal alreadyInThisDraft = lineRepository.sumReceivedQtyInReceiptForItem(receiptId, poItem.getId());
         BigDecimal openQty = poItem.getOrderedQty().subtract(poItem.getReceivedQty()).subtract(alreadyInThisDraft);
-        if (request.receivedQty().compareTo(openQty) > 0) {
+        if (receivedQty.compareTo(openQty) > 0) {
             throw new IllegalArgumentException(
-                "Received quantity (" + request.receivedQty() + ") exceeds what's still open on this order line (" + openQty + ")");
+                "Received quantity (" + receivedQty + ") exceeds what's still open on this order line (" + openQty + ")");
         }
 
         GoodsReceiptLine line = new GoodsReceiptLine();
         line.setGoodsReceipt(receipt);
         line.setPurchaseOrderItem(poItem);
-        line.setReceivedQty(request.receivedQty());
+        line.setReceivedQty(receivedQty);
+        line.setUomLevel(uomLevel);
+        line.setEnteredQty(uomLevel != null ? enteredQty : null);
         line.setUnitCost(request.unitCost() != null ? request.unitCost() : poItem.getUnitPrice());
         line.setBatchOrSerialNo(trim(request.batchOrSerialNo()));
         line.setExpiryDate(request.expiryDate());
@@ -258,10 +278,14 @@ public class GoodsReceiptService {
     private GoodsReceiptLineResponse toLineResponse(GoodsReceiptLine line) {
         PurchaseOrderItem poItem = line.getPurchaseOrderItem();
         Product product = poItem.getProduct();
+        ProductUomLevel uomLevel = line.getUomLevel();
         return new GoodsReceiptLineResponse(
             line.getId(), poItem.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
             poItem.getOrderedQty(), poItem.getReceivedQty(), line.getReceivedQty(),
+            uomLevel != null ? uomLevel.getId() : null,
+            uomLevel != null ? uomLevel.getUom().getCode() : null,
+            line.getEnteredQty(),
             line.getUnitCost(), line.getBatchOrSerialNo(), line.getExpiryDate(), line.getNotes());
     }
 }

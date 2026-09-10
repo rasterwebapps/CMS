@@ -54,11 +54,23 @@
   margin: 0;
 }
 
+.gr-add-uom {
+  flex: 1;
+  min-width: 160px;
+  margin: 0;
+}
+
 .gr-add-qty,
 .gr-add-cost {
   flex: 1;
   min-width: 110px;
   margin: 0;
+}
+
+.gr-entered-qty {
+  font-size: 12px;
+  opacity: 0.65;
+  font-weight: 400;
 }
 
 .gr-add-batch {

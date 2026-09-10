@@ -179,6 +179,88 @@
           </div>
         </section>
 
+        <!-- ── Unit Hierarchy ────────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Unit Hierarchy</div>
+              <div class="entry-form-card__hdr-sub">Purchase in a bigger unit than you stock/issue it in (e.g. Strip → Box → Carton)</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+
+            @if (!savedProductId()) {
+              <p class="field-hint">Save the product first — the unit hierarchy is configured after it exists.</p>
+            } @else if (chainLoading()) {
+              <p class="field-hint">Loading…</p>
+            } @else {
+
+              <div class="uom-level-row uom-level-row--base">
+                <span class="uom-level-badge">Level 0 · Base</span>
+                <span class="uom-level-name">{{ uomName(form.value.baseUomId) || '—' }}</span>
+                <span class="uom-level-factor">factor 1 (fixed)</span>
+              </div>
+
+              @if (uomLevels.length > 0) {
+                @for (levelCtrl of uomLevels.controls; track $index; let i = $index) {
+                  <div class="uom-level-row" [formGroup]="$any(levelCtrl)">
+                    <span class="uom-level-badge">Level {{ i + 1 }}</span>
+                    <select class="field-select" formControlName="uomId">
+                      <option [ngValue]="null" disabled>Select a unit</option>
+                      @for (u of uoms(); track u.id) {
+                        <option [ngValue]="u.id">{{ u.name }} ({{ u.code }})</option>
+                      }
+                    </select>
+                    <span class="uom-level-eq">=</span>
+                    <input type="number" step="0.000001" min="0.000001" class="field-input uom-level-factor-input"
+                      formControlName="factorToBase" placeholder="e.g., 10" />
+                    <span class="uom-level-eq">× base unit</span>
+                    <label class="checkbox-label uom-level-default">
+                      <input type="checkbox" class="field-checkbox" formControlName="isDefaultPurchase" /> Default purchase unit
+                    </label>
+                    <button type="button" class="btn-secondary" (click)="removeUomLevel(i)" aria-label="Remove level">Remove</button>
+                  </div>
+                }
+              } @else {
+                <p class="field-hint">No levels above the base unit yet — this product is tracked/purchased only in {{ uomName(form.value.baseUomId) }}.</p>
+              }
+
+              <button type="button" class="btn-secondary" (click)="addUomLevel()">+ Add Level</button>
+
+              <div class="uom-chain-actions">
+                <button type="button" class="btn-submit" [disabled]="chainSaving() || uomLevels.invalid" (click)="saveUomChain()">
+                  @if (chainSaving()) {
+                    <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+                  } @else {
+                    Save Unit Hierarchy
+                  }
+                </button>
+                @if (activeChain(); as chain) {
+                  <span class="field-hint">Active: version {{ chain.versionNo }}</span>
+                }
+                <button type="button" class="btn-secondary" (click)="loadUomChainVersions()">View version history</button>
+              </div>
+
+              @if (showVersionHistory()) {
+                <div class="uom-version-history">
+                  @for (v of chainVersions(); track v.id) {
+                    <div class="uom-version-row" [class.uom-version-row--active]="v.isActive">
+                      <span>Version {{ v.versionNo }}</span>
+                      <span>{{ v.isActive ? 'Active' : 'Retired' }}</span>
+                      <span>{{ v.levels.length }} level(s)</span>
+                    </div>
+                  }
+                </div>
+              }
+
+            }
+
+          </div>
+        </section>
+
         <!-- ── Category Attributes ──────────────────────────────── -->
         @if (form.value.categoryId) {
           <section class="entry-form-card entry-form-card--sectioned">

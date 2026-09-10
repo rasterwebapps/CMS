@@ -7,6 +7,8 @@ import {
   ProductRequest,
   ProductStatusUpdateRequest,
   ProductStatusUpdateResponse,
+  ProductUomChainSaveRequest,
+  ProductUomChainVersion,
   Page,
 } from './product.model';
 
@@ -54,5 +56,18 @@ export class ProductService {
     if (categoryId != null) params = params.set('categoryId', categoryId);
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
     return this.http.get<boolean>(`${this.baseUrl}/name-exists`, { params });
+  }
+
+  /** Null when the product has no unit hierarchy configured yet (base unit only). */
+  getActiveUomChain(productId: number): Observable<ProductUomChainVersion | null> {
+    return this.http.get<ProductUomChainVersion | null>(`${this.baseUrl}/${productId}/uom-chain/active`);
+  }
+
+  getUomChainVersions(productId: number): Observable<ProductUomChainVersion[]> {
+    return this.http.get<ProductUomChainVersion[]>(`${this.baseUrl}/${productId}/uom-chain/versions`);
+  }
+
+  saveUomChainVersion(productId: number, request: ProductUomChainSaveRequest): Observable<ProductUomChainVersion> {
+    return this.http.post<ProductUomChainVersion>(`${this.baseUrl}/${productId}/uom-chain/versions`, request);
   }
 }

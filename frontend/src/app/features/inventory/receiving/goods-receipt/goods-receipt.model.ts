@@ -18,7 +18,12 @@ export interface GoodsReceiptCreateRequest {
 
 export interface GoodsReceiptAddLineRequest {
   purchaseOrderItemId: number;
+  /** When uomLevelId is set, this is the quantity *as typed in that unit* (e.g. "3" Cartons) —
+   * converted to base units server-side. A single PO line can be received across several
+   * lines/receipts in different units. Otherwise it's the base-unit quantity, as before. */
   receivedQty: number;
+  /** A level from the receiving product's active unit-of-measure chain to receive in instead of the base unit. */
+  uomLevelId?: number;
   unitCost?: number;
   batchOrSerialNo?: string;
   expiryDate?: string;
@@ -35,6 +40,9 @@ export interface GoodsReceiptLine {
   orderedQty: number;
   alreadyReceivedQty: number;
   receivedQty: number;
+  uomLevelId: number | null;
+  enteredUomCode: string | null;
+  enteredQty: number | null;
   unitCost: number | null;
   batchOrSerialNo: string | null;
   expiryDate: string | null;

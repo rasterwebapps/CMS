@@ -9,7 +9,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CmsPreviewCardComponent } from '../../../../shared/preview-card/preview-card.component';
 import { ProductImagesComponent } from '../product-images/product-images.component';
 import { ProductService } from '../product.service';
-import { Product, ProductAttributeValueRequest, ProductRequest } from '../product.model';
+import {
+  Product,
+  ProductAttributeValueRequest,
+  ProductRequest,
+  ProductUomChainVersion,
+  ProductUomLevelRequest,
+} from '../product.model';
 import { CategoryService } from '../../category/category.service';
 import { Category } from '../../category/category.model';
 import { CategoryAttributeService } from '../../category/category-attribute.service';
@@ -57,6 +63,14 @@ export class ProductFormComponent implements OnInit {
   protected readonly uoms       = signal<Uom[]>([]);
   protected readonly categoryAttributes = signal<CategoryAttribute[]>([]);
   protected readonly attributesLoading  = signal(false);
+
+  // ── Unit Hierarchy (only meaningful once the product has an id — see savedProductId) ─────
+  protected readonly activeChain    = signal<ProductUomChainVersion | null>(null);
+  protected readonly chainVersions  = signal<ProductUomChainVersion[]>([]);
+  protected readonly chainLoading   = signal(false);
+  protected readonly chainSaving    = signal(false);
+  protected readonly showVersionHistory = signal(false);
+  protected readonly uomLevels: FormArray = this.fb.array([] as FormGroup[]);
 
   protected readonly previewCode = signal('');
   protected readonly previewName = signal('');
@@ -118,6 +132,7 @@ export class ProductFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Product');
       this.loadProduct();
+      this.loadUomChain();
     }
     this.setupUniquenessValidators();
 
@@ -212,6 +227,92 @@ export class ProductFormComponent implements OnInit {
 
   protected attributeOptions(attr: CategoryAttribute): string[] {
     return (attr.enumOptions ?? '').split(',').map(s => s.trim()).filter(Boolean);
+  }
+
+  // ── Unit Hierarchy ──────────────────────────────────────────────────────
+  private newUomLevelGroup(uomId: number | null = null, factorToBase: number | null = null, isDefaultPurchase = false): FormGroup {
+    return this.fb.group({
+      uomId: [uomId as number | null, [Validators.required]],
+      factorToBase: [factorToBase as number | null, [Validators.required, Validators.min(0.000001)]],
+      isDefaultPurchase: [isDefaultPurchase],
+    });
+  }
+
+  protected addUomLevel(): void {
+    this.uomLevels.push(this.newUomLevelGroup());
+  }
+
+  protected removeUomLevel(index: number): void {
+    this.uomLevels.removeAt(index);
+  }
+
+  /** A level above the base is only removable/reorderable through this form — level 0 (the
+   * product's base unit) is always implied and never part of this editable array. */
+  private loadUomChain(): void {
+    if (!this.productId) return;
+    this.chainLoading.set(true);
+    this.productService.getActiveUomChain(this.productId).subscribe({
+      next: (chain) => {
+        this.activeChain.set(chain);
+        this.uomLevels.clear();
+        const aboveBase = (chain?.levels ?? []).filter(l => l.levelRank > 0).sort((a, b) => a.levelRank - b.levelRank);
+        for (const level of aboveBase) {
+          this.uomLevels.push(this.newUomLevelGroup(level.uomId, level.factorToBase, level.isDefaultPurchase));
+        }
+        this.chainLoading.set(false);
+      },
+      error: () => { this.toast.error('Failed to load unit hierarchy'); this.chainLoading.set(false); },
+    });
+  }
+
+  protected loadUomChainVersions(): void {
+    if (!this.productId) return;
+    this.showVersionHistory.set(true);
+    this.productService.getUomChainVersions(this.productId).subscribe({
+      next: (versions) => this.chainVersions.set(versions),
+      error: () => this.toast.error('Failed to load version history'),
+    });
+  }
+
+  protected saveUomChain(): void {
+    if (!this.productId) return;
+    if (this.uomLevels.invalid) {
+      this.uomLevels.markAllAsTouched();
+      return;
+    }
+    const baseUomId = this.form.value.baseUomId;
+    if (!baseUomId) {
+      this.toast.error('Select a base unit of measure above before saving the unit hierarchy');
+      return;
+    }
+
+    const levels: ProductUomLevelRequest[] = [
+      { uomId: baseUomId, levelRank: 0, factorToBase: 1, isDefaultPurchase: false },
+      ...this.uomLevels.controls.map((g, i) => ({
+        uomId: g.value.uomId,
+        levelRank: i + 1,
+        factorToBase: g.value.factorToBase,
+        isDefaultPurchase: !!g.value.isDefaultPurchase,
+      })),
+    ];
+
+    this.chainSaving.set(true);
+    this.productService.saveUomChainVersion(this.productId, { levels }).subscribe({
+      next: (version) => {
+        this.activeChain.set(version);
+        this.chainSaving.set(false);
+        this.toast.success('Unit hierarchy saved');
+        if (this.showVersionHistory()) this.loadUomChainVersions();
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to save unit hierarchy');
+        this.chainSaving.set(false);
+      },
+    });
+  }
+
+  protected uomName(uomId: number): string {
+    return this.uoms().find(u => u.id === uomId)?.name ?? '—';
   }
 
   protected onSubmit(): void {

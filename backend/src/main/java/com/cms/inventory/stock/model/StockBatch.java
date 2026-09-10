@@ -7,6 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductUomChainVersion;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,6 +48,17 @@ public class StockBatch {
     @Column(name = "is_consignment", nullable = false)
     private Boolean isConsignment = false;
 
+    /**
+     * The product's active {@link ProductUomChainVersion} at the moment this batch was received
+     * — permanently stamped so dispensing/issuing against this specific batch always resolves
+     * through the pack sizes that were true at the time, even after the product's active version
+     * later changes (e.g. a repack from 10-tablet to 15-tablet strips). Nullable: a batch created
+     * before this slice, or for a product with no chain defined yet, simply has none.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chain_version_id")
+    private ProductUomChainVersion chainVersion;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -65,6 +77,9 @@ public class StockBatch {
 
     public Boolean getIsConsignment() { return isConsignment; }
     public void setIsConsignment(Boolean isConsignment) { this.isConsignment = isConsignment; }
+
+    public ProductUomChainVersion getChainVersion() { return chainVersion; }
+    public void setChainVersion(ProductUomChainVersion chainVersion) { this.chainVersion = chainVersion; }
 
     public Instant getCreatedAt() { return createdAt; }
 }

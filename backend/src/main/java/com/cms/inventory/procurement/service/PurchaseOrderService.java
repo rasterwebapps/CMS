@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductUomLevel;
+import com.cms.inventory.catalog.service.ProductUomChainService;
 import com.cms.inventory.procurement.dto.PurchaseOrderAddLineRequest;
 import com.cms.inventory.procurement.dto.PurchaseOrderCreateRequest;
 import com.cms.inventory.procurement.dto.PurchaseOrderForceCloseRequest;
@@ -67,6 +69,7 @@ public class PurchaseOrderService {
     private final JurisdictionService jurisdictionService;
     private final TaxSubTypeService taxSubTypeService;
     private final PurchaseOrderItemTaxComponentRepository taxComponentRepository;
+    private final ProductUomChainService uomChainService;
 
     public PurchaseOrderService(PurchaseOrderRepository orderRepository,
                                  PurchaseOrderItemRepository itemRepository,
@@ -77,7 +80,8 @@ public class PurchaseOrderService {
                                  VendorProductMappingService vendorProductMappingService,
                                  JurisdictionService jurisdictionService,
                                  TaxSubTypeService taxSubTypeService,
-                                 PurchaseOrderItemTaxComponentRepository taxComponentRepository) {
+                                 PurchaseOrderItemTaxComponentRepository taxComponentRepository,
+                                 ProductUomChainService uomChainService) {
         this.orderRepository = orderRepository;
         this.itemRepository = itemRepository;
         this.requisitionItemRepository = requisitionItemRepository;
@@ -88,6 +92,7 @@ public class PurchaseOrderService {
         this.jurisdictionService = jurisdictionService;
         this.taxSubTypeService = taxSubTypeService;
         this.taxComponentRepository = taxComponentRepository;
+        this.uomChainService = uomChainService;
     }
 
     @Transactional
@@ -153,13 +158,29 @@ public class PurchaseOrderService {
         }
 
         Product product = requisitionItem.getProduct();
-        BigDecimal orderedQty = request.orderedQty() != null ? request.orderedQty() : requisitionItem.getRequestedQty();
-        if (orderedQty == null || orderedQty.compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal enteredQty = request.orderedQty() != null ? request.orderedQty() : requisitionItem.getRequestedQty();
+        if (enteredQty == null || enteredQty.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Ordered quantity must be greater than zero");
         }
 
+        // uomLevel is the unit this line is actually being ordered in (must be on the product's
+        // *active* chain — see ProductUomChainService). orderedQty always stays base-unit-only
+        // (every open-qty/received-progress comparison elsewhere depends on that); enteredQty is
+        // the raw as-typed number, kept for display/audit. No level chosen -> unchanged from
+        // before this slice: the entered quantity already *is* the base-unit quantity.
+        ProductUomLevel uomLevel = request.uomLevelId() != null
+            ? uomChainService.requireActiveLevel(product.getId(), request.uomLevelId())
+            : null;
+        BigDecimal orderedQty = uomLevel != null
+            ? enteredQty.multiply(uomLevel.getFactorToBase()).setScale(3, RoundingMode.HALF_UP)
+            : enteredQty;
+
         BigDecimal unitPrice = request.unitPrice();
         if (unitPrice == null) {
+            // Note: the resolved rate isn't unit-aware yet (VendorProductMapping.uomId is still a
+            // display-only label, not wired into conversion) — it's assumed quoted for whichever
+            // unit was actually picked here. Fine while a supplier only ever quotes one way; a
+            // future slice should make the rate lookup unit-specific once mappings need it.
             VendorProductMappingService.EffectiveRate rate =
                 vendorProductMappingService.resolveEffectiveRate(order.getSupplier().getId(), product.getId());
             unitPrice = rate != null ? rate.unitPrice() : null;
@@ -175,7 +196,9 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Tax rule not found with id: " + request.taxRuleId()));
         }
 
-        BigDecimal subtotal = unitPrice.multiply(orderedQty).setScale(2, RoundingMode.HALF_UP);
+        // unitPrice prices one of whatever unit was entered (a carton's price, not one base-unit
+        // item's) — so cost math uses enteredQty, never the base-converted orderedQty.
+        BigDecimal subtotal = unitPrice.multiply(enteredQty).setScale(2, RoundingMode.HALF_UP);
         BigDecimal taxAmount = taxRule != null
             ? subtotal.multiply(taxRule.getRatePercent()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
@@ -194,6 +217,8 @@ public class PurchaseOrderService {
         item.setProduct(product);
         item.setPurchaseRequisitionItem(requisitionItem);
         item.setOrderedQty(orderedQty);
+        item.setUomLevel(uomLevel);
+        item.setEnteredQty(uomLevel != null ? enteredQty : null);
         item.setUnitPrice(unitPrice);
         item.setTaxRule(taxRule);
         item.setTaxAmount(taxAmount);
@@ -405,11 +430,16 @@ public class PurchaseOrderService {
             .stream()
             .map(c -> new TaxComponentResponse(c.getComponentName(), c.getSplitPercentApplied(), c.getComponentAmount()))
             .toList();
+        ProductUomLevel uomLevel = item.getUomLevel();
         return new PurchaseOrderItemResponse(
             item.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
             item.getPurchaseRequisitionItem() != null ? item.getPurchaseRequisitionItem().getId() : null,
-            item.getOrderedQty(), item.getUnitPrice(),
+            item.getOrderedQty(),
+            uomLevel != null ? uomLevel.getId() : null,
+            uomLevel != null ? uomLevel.getUom().getCode() : null,
+            item.getEnteredQty(),
+            item.getUnitPrice(),
             taxRule != null ? taxRule.getId() : null, taxRule != null ? taxRule.getName() : null,
             item.getTaxAmount(), item.getJurisdictionMode() != null ? item.getJurisdictionMode().name() : null,
             components, item.getLineTotal(), item.getReceivedQty());
