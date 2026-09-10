@@ -16,7 +16,7 @@ import { CapacityPlannerService } from '../capacity-planner/capacity-planner.ser
 import { FacultyWorkloadOverviewReport } from '../capacity-planner/capacity-planner.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { TeachingAssignmentDialogComponent, TeachingAssignmentDialogData } from '../../assign-faculty/teaching-assignment-dialog/teaching-assignment-dialog.component';
-import { FacultyOverCapacity, FacultySubstitutionTip, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult, VenueCapacityGap, VenueOverCapacity, VenueTightCapacity } from './skeleton-builder.model';
+import { ClinicalShiftDayShortfall, FacultyOverCapacity, FacultySubstitutionTip, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult, VenueCapacityGap, VenueOverCapacity, VenueTightCapacity } from './skeleton-builder.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { SpecialClassRequestFlyoutComponent } from '../special-classes/special-class-request-flyout/special-class-request-flyout.component';
@@ -205,6 +205,18 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  post-hoc {@link hasVenueCapacityGap} card, so the two can never disagree. */
   protected readonly overCapacityVenues = computed<VenueOverCapacity[]>(() => this.prerequisites()?.labClinicalVenueCapacity.overCapacityVenues ?? []);
   protected readonly tightCapacityVenues = computed<VenueTightCapacity[]>(() => this.prerequisites()?.labClinicalVenueCapacity.tightCapacityVenues ?? []);
+
+  /** Backs the checklist's `clinical-shift-zero-periods`/`clinical-shift-tight-periods` detail
+   *  panels. Both lists were already computed and shipped by the backend and already drove their
+   *  checklist labels — they just had no `@case` in the template, so "View & fix" opened an empty
+   *  box on both, including on the hard-blocking zero-period one. */
+  protected readonly zeroPeriodDays = computed<ClinicalShiftDayShortfall[]>(() => this.prerequisites()?.clinicalShiftPeriodAvailability.zeroPeriodDays ?? []);
+  protected readonly tightPeriodDays = computed<ClinicalShiftDayShortfall[]>(() => this.prerequisites()?.clinicalShiftPeriodAvailability.tightPeriodDays ?? []);
+
+  /** Title-cases the backend `DayOfWeek` enum for display (`WEDNESDAY` → `Wednesday`). */
+  protected dayLabel(day: string): string {
+    return day.charAt(0) + day.slice(1).toLowerCase();
+  }
 
   /** Gates the venue links below on the same permission the target route itself requires
    *  (`LAB_MANAGE`/`CLINICAL_VENUE_MANAGE`) — mirrors `canManageFaculty`/`canManageWorkloadRules`

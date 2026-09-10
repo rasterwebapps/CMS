@@ -42,6 +42,30 @@
   margin-bottom: 4px;
 }
 
+// Label + trailing action button (e.g. "Assign faculty"): the button must stay pinned on the
+// same line regardless of label length, never pushed onto its own line just because the label
+// is long -- `min-width: 0` on the label is what lets it wrap/truncate instead of forcing the
+// row to overflow or fight the button for space. Qualified as `.gas-contributors li.gas-…` (not
+// just the bare class) so its specificity beats `.gas-contributors li` above -- a bare class
+// selector loses to that element+class selector and silently keeps the old wrap/gap values.
+.gas-contributors li.gas-contributors__assign-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.gas-contributors__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gas-contributors__action {
+  flex: 0 0 auto;
+}
+
 .gas-faculty-card {
   display: flex;
   flex-direction: column;

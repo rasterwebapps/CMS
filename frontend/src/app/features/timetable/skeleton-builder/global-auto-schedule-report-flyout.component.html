@@ -9,10 +9,8 @@
 
       @case ('checklist') {
         <p class="field-hint gas-warning">
-          This rebuilds the draft timetable from scratch: every existing draft session for the
-          cohorts in scope is cleared first, then the whole week is re-packed with Lab/Clinical
-          blocks placed before Theory. Any manual drag-moves you've made in the draft will be
-          replaced. Approved (published) timetables are never touched.
+          This rebuilds the draft from scratch, replacing any manual moves. Approved (published)
+          timetables are never touched.
         </p>
 
         @if (attentionItems().length === 0) {
@@ -46,9 +44,9 @@
                       @if ((prerequisites()?.offeringsWithoutFaculty ?? []).length > 0) {
                         <ul class="gas-contributors">
                           @for (o of prerequisites()!.offeringsWithoutFaculty; track o.courseOfferingId) {
-                            <li>
-                              {{ o.subjectName }}{{ o.cohortName ? ' (' + o.cohortName + ')' : '' }}
-                              <button type="button" class="btn-secondary" (click)="onAssignFaculty(o.courseOfferingId)">Assign faculty</button>
+                            <li class="gas-contributors__assign-row">
+                              <span class="gas-contributors__label">{{ o.subjectName }}{{ o.cohortName ? ' (' + o.cohortName + ')' : '' }}</span>
+                              <button type="button" class="btn-secondary gas-contributors__action" (click)="onAssignFaculty(o.courseOfferingId)">Assign faculty</button>
                             </li>
                           }
                         </ul>
@@ -160,6 +158,54 @@
                         }
                       } @else {
                         <p class="field-hint">No Lab/Clinical venue is at zero-slack weekly capacity.</p>
+                      }
+                    }
+
+                    @case ('clinical-shift-zero-periods') {
+                      @if (zeroPeriodDays().length > 0) {
+                        @for (d of zeroPeriodDays(); track d.cohortId + '-' + d.dayOfWeek) {
+                          <div class="gas-faculty-card">
+                            <div class="gas-faculty-card__name">{{ d.cohortDisplayName }} — {{ dayLabel(d.dayOfWeek) }} has no free period at all</div>
+                            <div class="gas-faculty-card__stat">
+                              {{ d.affectedShiftLabels.join(', ') }} blocks all {{ d.periodsBlockedByShift }} of the day's
+                              {{ d.totalActivePeriods }} periods once bus travel buffer is counted, so no Theory or Lab can be
+                              placed on this day. Shorten the shift's duration or travel buffer, or move its start time so the
+                              window clears at least one whole period — the buffer counts, so a start time only just outside a
+                              period still blocks it.
+                            </div>
+                            <div class="gas-shortfall__actions">
+                              @if (canManageWorkingSaturdays()) {
+                                <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                              }
+                            </div>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">Every Clinical-Shift cohort has at least one free period on every day.</p>
+                      }
+                    }
+
+                    @case ('clinical-shift-tight-periods') {
+                      @if (tightPeriodDays().length > 0) {
+                        @for (d of tightPeriodDays(); track d.cohortId + '-' + d.dayOfWeek) {
+                          <div class="gas-faculty-card gas-faculty-card--tight">
+                            <div class="gas-faculty-card__name">{{ d.cohortDisplayName }} — {{ dayLabel(d.dayOfWeek) }} is down to 1 free period</div>
+                            <div class="gas-faculty-card__stat">
+                              {{ d.affectedShiftLabels.join(', ') }} blocks {{ d.periodsBlockedByShift }} of the day's
+                              {{ d.totalActivePeriods }} periods once bus travel buffer is counted, leaving
+                              {{ d.periodsFreeForTheoryLab }} for Theory/Lab. The run will still place what fits, but this day
+                              contributes almost nothing to the week's teaching capacity — an afternoon shift start typically
+                              costs more periods than a morning one, because the pre-duty buffer eats into the morning as well.
+                            </div>
+                            <div class="gas-shortfall__actions">
+                              @if (canManageWorkingSaturdays()) {
+                                <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                              }
+                            </div>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No Clinical-Shift cohort/day is down to one period.</p>
                       }
                     }
 
