@@ -79,7 +79,7 @@ class SpecialClassRequestServiceTest {
     /** A Sunday -- the simplest legitimate special-class date, needing no CalendarEventRepository
      *  stubbing (see SpecialClassRequestService#requireNonInstructionDay), so tests unrelated to
      *  the date/holiday rule itself don't need to set that up. */
-    private static final LocalDate SUNDAY = LocalDate.of(2026, 9, 6);
+    private static final LocalDate SUNDAY = LocalDate.of(2026, 9, 6).plusWeeks(4);
 
     @BeforeEach
     void setUp() {
@@ -278,7 +278,7 @@ class SpecialClassRequestServiceTest {
         term.setAcademicYear(academicYear);
         when(calendarEventRepository.findOverlapping(eq(5L), eq(com.cms.model.enums.CalendarEventType.HOLIDAY), any(), any()))
             .thenReturn(List.of());
-        LocalDate monday = LocalDate.of(2026, 9, 7);
+        LocalDate monday = LocalDate.of(2026, 9, 7).plusWeeks(4);
 
         assertThatThrownBy(() -> service.requestSingleSubject(requestOn(monday, List.of(10L)), 100L, "faculty"))
             .isInstanceOf(IllegalArgumentException.class)
@@ -291,7 +291,7 @@ class SpecialClassRequestServiceTest {
         com.cms.model.AcademicYear academicYear = new com.cms.model.AcademicYear();
         academicYear.setId(5L);
         term.setAcademicYear(academicYear);
-        LocalDate holidayMonday = LocalDate.of(2026, 9, 7);
+        LocalDate holidayMonday = LocalDate.of(2026, 9, 7).plusWeeks(4);
         when(calendarEventRepository.findOverlapping(eq(5L), eq(com.cms.model.enums.CalendarEventType.HOLIDAY),
             eq(holidayMonday), eq(holidayMonday))).thenReturn(List.of(new com.cms.model.CalendarEvent()));
         stubSaveAllAssignsIds();
