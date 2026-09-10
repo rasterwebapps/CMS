@@ -331,6 +331,10 @@ export class SkeletonBuilderComponent implements OnInit {
     return this.permissionService.has('TIMETABLE_SKELETON_MOVE');
   }
 
+  protected canPin(): boolean {
+    return this.permissionService.has('TIMETABLE_SKELETON_PIN');
+  }
+
   protected canPlaceElectiveGroup(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_ELECTIVE_PLACE');
   }
@@ -687,6 +691,24 @@ export class SkeletonBuilderComponent implements OnInit {
       return;
     }
     this.confirmRemove(cell);
+  }
+
+  /** Pin/unpin from the cell's own badge. Stops propagation so it never falls through to
+   *  {@link onCellChipClick}, which would try to REMOVE the session instead — the pin control sits
+   *  inside the cell button, so without this a pin click would delete the very cell being pinned. */
+  protected onTogglePin(event: Event, cell: SkeletonCell): void {
+    event.stopPropagation();
+    if (!this.canPin()) return;
+    const next = !cell.pinned;
+    this.skeletonService.setCellPinned(cell.id, next).subscribe({
+      next: () => {
+        this.toast.success(next
+          ? 'Pinned — Run Automation will keep this session and schedule around it.'
+          : 'Unpinned — Run Automation may now move or replace this session.');
+        this.reloadSkeleton();
+      },
+      error: (err) => this.toast.error(err?.error?.message ?? 'Failed to update pin'),
+    });
   }
 
   private previewKey(day: string, periodId: number): string {

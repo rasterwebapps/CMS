@@ -310,7 +310,10 @@
         @if (result(); as r) {
           <p class="field-hint">Placed and staffed {{ r.totalPlaced }} session(s) across {{ r.cohortSummaries.length }} cohort(s).</p>
           @if (r.staleDraftsCleared > 0) {
-            <p class="field-hint">Rebuilt from scratch — cleared {{ r.staleDraftsCleared }} existing draft session(s) first, so the week is re-packed with Lab/Clinical blocks placed before Theory and filler. Any manual drag-moves in the draft were replaced.</p>
+            <p class="field-hint">Rebuilt from scratch — cleared {{ r.staleDraftsCleared }} existing draft session(s) first, so the week is re-packed with Lab/Clinical blocks placed before Theory and filler. Unpinned manual drag-moves were replaced.</p>
+          }
+          @if (r.pinnedCellsPreserved > 0) {
+            <p class="field-hint">Kept {{ r.pinnedCellsPreserved }} pinned session(s) exactly where you put them — the rest of the week was packed around them.</p>
           }
           @if (r.rotationGroupsCreated > 0) {
             <p class="field-hint">Created {{ r.rotationGroupsCreated }} cross-offering Lab rotation(s) — two offerings sharing a cohort section, each split into 2 batches, now alternate Labs week-to-week instead of one batch sitting idle during the other's turn.</p>

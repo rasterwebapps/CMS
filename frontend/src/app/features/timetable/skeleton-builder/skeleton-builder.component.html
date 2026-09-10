@@ -279,6 +279,23 @@
                               <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
                             }
                             @if (cell.isStaffed) { <span class="cms-badge cms-badge--green">staffed</span> }
+                            @if (cell.pinned) { <span class="cms-badge cms-badge--amber">pinned</span> }
+                            @if (canPin() && cell.status === 'DRAFT') {
+                              <span class="skeleton-cell__pin"
+                                [class.skeleton-cell__pin--on]="cell.pinned"
+                                role="button"
+                                tabindex="0"
+                                [attr.aria-pressed]="cell.pinned"
+                                [attr.aria-label]="cell.pinned
+                                  ? 'Unpin this session — Run Automation may then move or replace it'
+                                  : 'Pin this session — Run Automation will keep it and schedule around it'"
+                                [title]="cell.pinned
+                                  ? 'Pinned. Run Automation keeps this session and schedules around it. Click to unpin.'
+                                  : 'Pin this session so Run Automation keeps it instead of replacing it.'"
+                                (click)="onTogglePin($event, cell)"
+                                (keydown.enter)="onTogglePin($event, cell)"
+                                (keydown.space)="onTogglePin($event, cell)"></span>
+                            }
                             @if (!cell.isStaffed && canManage() && !cell.sessionGroupId && cell.sessionType !== 'LIBRARY') {
                               <span class="skeleton-cell__resize-handle" title="Drag to extend into the next period(s)"
                                 (mousedown)="onResizeHandleMouseDown($event, cell)" (click)="$event.stopPropagation()"></span>

@@ -303,6 +303,50 @@
   }
 }
 
+// Pin toggle. Sits top-left so it never collides with .skeleton-cell__resize-handle on the right
+// edge. Drawn as a filled dot rather than an icon glyph: the cell is only ~90px wide at the
+// grid's smallest column, where a glyph either overflows or renders too small to hit reliably.
+// Colours come from --cms-* tokens so both themes resolve from one definition.
+.skeleton-cell__pin {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1.5px solid var(--cms-text-muted);
+  background: transparent;
+  opacity: 0.45;
+  transition: opacity 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    border-color: var(--cms-warning);
+  }
+
+  // Keyboard focus must stay visible — the control has no text to fall back on.
+  &:focus-visible {
+    outline: 2px solid var(--cms-primary);
+    outline-offset: 2px;
+  }
+
+  // Pinned: solid, full-opacity, and always visible rather than hover-revealed, so "this cell
+  // survives the next run" reads at a glance across the whole grid.
+  &--on {
+    opacity: 1;
+    background: var(--cms-warning);
+    border-color: var(--cms-warning);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-cell__pin {
+    transition: none;
+  }
+}
+
 .skeleton-cell__subject {
   font-size: 0.6rem;
   font-weight: 600;
