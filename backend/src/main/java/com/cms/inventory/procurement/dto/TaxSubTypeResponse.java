@@ -3,12 +3,13 @@ package com.cms.inventory.procurement.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-public record TaxRuleResponse(
+public record TaxSubTypeResponse(
     Long id,
-    Long taxTypeId,
-    String taxTypeName,
-    String name,
-    BigDecimal ratePercent,
+    Long taxRuleId,
+    String taxRuleName,
+    String jurisdictionMode,
+    String componentName,
+    BigDecimal splitPercent,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

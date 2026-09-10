@@ -14,6 +14,10 @@ public record SupplierRequest(
     @Size(max = 200, message = "Name must not exceed 200 characters")
     String supplierName,
 
+    @NotBlank(message = "State is required")
+    @Size(max = 100, message = "State must not exceed 100 characters")
+    String state,
+
     @Size(max = 50, message = "Tax registration id must not exceed 50 characters")
     String taxRegistrationId,
 

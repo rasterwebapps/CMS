@@ -1,6 +1,5 @@
 package com.cms.inventory.procurement.model;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 
 import org.springframework.data.annotation.CreatedDate;
@@ -10,40 +9,30 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * A named tax rate (e.g. "GST 18%", "VAT 20%") a {@code PoLineItem} can reference — the "Tax" tier
- * of the TaxType -> Tax -> TaxSubType hierarchy picked up for GAP-02 (originally deliberately
- * minimal per the 2026-09-08 "Phase 2 kickoff" entry; the full pluggable engine — {@code taxType}
- * plus {@link TaxSubType} components — was built out per the 2026-09-09 "GAP-02 pickup" entry).
- * This is still the same {@code tax_rules} table/entity from that first slice, extended in place
- * rather than replaced.
+ * A tax regime (GST, VAT, Sales Tax, ...) that groups {@link TaxRule} rows. Top tier of the
+ * TaxType -> Tax(=TaxRule) -> TaxSubType hierarchy picked up for GAP-02 — see the "GAP-02 pickup"
+ * decision-log entry.
  */
 @Entity
-@Table(name = "tax_rules")
+@Table(name = "tax_types")
 @EntityListeners(AuditingEntityListener.class)
-public class TaxRule {
+public class TaxType {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tax_type_id", nullable = false)
-    private TaxType taxType;
-
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(name = "rate_percent", nullable = false, precision = 5, scale = 2)
-    private BigDecimal ratePercent;
+    @Column(length = 500)
+    private String description;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
@@ -59,14 +48,11 @@ public class TaxRule {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public TaxType getTaxType() { return taxType; }
-    public void setTaxType(TaxType taxType) { this.taxType = taxType; }
-
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public BigDecimal getRatePercent() { return ratePercent; }
-    public void setRatePercent(BigDecimal ratePercent) { this.ratePercent = ratePercent; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }

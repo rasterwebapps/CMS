@@ -13,6 +13,7 @@ public record SupplierResponse(
     Long id,
     String supplierCode,
     String supplierName,
+    String state,
     String taxRegistrationId,
     String legalRegistrationNo,
     String bankAccountNumber,

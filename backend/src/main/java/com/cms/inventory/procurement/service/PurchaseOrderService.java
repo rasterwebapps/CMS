@@ -21,14 +21,19 @@ import com.cms.inventory.procurement.dto.PurchaseOrderForceCloseRequest;
 import com.cms.inventory.procurement.dto.PurchaseOrderItemResponse;
 import com.cms.inventory.procurement.dto.PurchaseOrderResponse;
 import com.cms.inventory.procurement.dto.PurchaseRequisitionItemResponse;
+import com.cms.inventory.procurement.dto.TaxComponentResponse;
 import com.cms.inventory.procurement.model.PurchaseOrder;
 import com.cms.inventory.procurement.model.PurchaseOrderItem;
+import com.cms.inventory.procurement.model.PurchaseOrderItemTaxComponent;
 import com.cms.inventory.procurement.model.PurchaseRequisitionItem;
 import com.cms.inventory.procurement.model.Supplier;
 import com.cms.inventory.procurement.model.TaxRule;
+import com.cms.inventory.procurement.model.TaxSubType;
+import com.cms.inventory.procurement.model.enums.JurisdictionMode;
 import com.cms.inventory.procurement.model.enums.PurchaseOrderStatus;
 import com.cms.inventory.procurement.model.enums.PurchaseRequisitionItemStatus;
 import com.cms.inventory.procurement.repository.PurchaseOrderItemRepository;
+import com.cms.inventory.procurement.repository.PurchaseOrderItemTaxComponentRepository;
 import com.cms.inventory.procurement.repository.PurchaseOrderRepository;
 import com.cms.inventory.procurement.repository.PurchaseRequisitionItemRepository;
 import com.cms.inventory.procurement.repository.SupplierRepository;
@@ -59,6 +64,9 @@ public class PurchaseOrderService {
     private final InventoryLocationRepository locationRepository;
     private final TaxRuleRepository taxRuleRepository;
     private final VendorProductMappingService vendorProductMappingService;
+    private final JurisdictionService jurisdictionService;
+    private final TaxSubTypeService taxSubTypeService;
+    private final PurchaseOrderItemTaxComponentRepository taxComponentRepository;
 
     public PurchaseOrderService(PurchaseOrderRepository orderRepository,
                                  PurchaseOrderItemRepository itemRepository,
@@ -66,7 +74,10 @@ public class PurchaseOrderService {
                                  SupplierRepository supplierRepository,
                                  InventoryLocationRepository locationRepository,
                                  TaxRuleRepository taxRuleRepository,
-                                 VendorProductMappingService vendorProductMappingService) {
+                                 VendorProductMappingService vendorProductMappingService,
+                                 JurisdictionService jurisdictionService,
+                                 TaxSubTypeService taxSubTypeService,
+                                 PurchaseOrderItemTaxComponentRepository taxComponentRepository) {
         this.orderRepository = orderRepository;
         this.itemRepository = itemRepository;
         this.requisitionItemRepository = requisitionItemRepository;
@@ -74,6 +85,9 @@ public class PurchaseOrderService {
         this.locationRepository = locationRepository;
         this.taxRuleRepository = taxRuleRepository;
         this.vendorProductMappingService = vendorProductMappingService;
+        this.jurisdictionService = jurisdictionService;
+        this.taxSubTypeService = taxSubTypeService;
+        this.taxComponentRepository = taxComponentRepository;
     }
 
     @Transactional
@@ -166,6 +180,15 @@ public class PurchaseOrderService {
             ? subtotal.multiply(taxRule.getRatePercent()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
 
+        // Resolving jurisdiction and splitting into components only matters once a tax is
+        // actually selected — a no-tax line stays exactly as before.
+        JurisdictionMode jurisdictionMode = null;
+        List<TaxSubType> components = List.of();
+        if (taxRule != null) {
+            jurisdictionMode = jurisdictionService.resolve(order.getSupplier());
+            components = taxSubTypeService.requireCompleteSplit(taxRule.getId(), jurisdictionMode);
+        }
+
         PurchaseOrderItem item = new PurchaseOrderItem();
         item.setPurchaseOrder(order);
         item.setProduct(product);
@@ -174,8 +197,11 @@ public class PurchaseOrderService {
         item.setUnitPrice(unitPrice);
         item.setTaxRule(taxRule);
         item.setTaxAmount(taxAmount);
+        item.setJurisdictionMode(jurisdictionMode);
         item.setLineTotal(subtotal.add(taxAmount));
         item = itemRepository.save(item);
+
+        saveTaxComponents(item, components, taxAmount);
 
         requisitionItem.setStatus(PurchaseRequisitionItemStatus.ORDERED);
         requisitionItemRepository.save(requisitionItem);
@@ -183,6 +209,33 @@ public class PurchaseOrderService {
         order.setUpdatedAt(Instant.now());
         orderRepository.save(order);
         return toItemResponse(item);
+    }
+
+    /**
+     * Splits {@code taxAmount} across {@code components} in proportion to each one's {@code
+     * splitPercent}, rounding every component but the last to 2dp and letting the last one absorb
+     * the rounding remainder — guarantees the snapshotted component amounts always sum to exactly
+     * {@code taxAmount}, never a cent more or less.
+     */
+    private void saveTaxComponents(PurchaseOrderItem item, List<TaxSubType> components, BigDecimal taxAmount) {
+        if (components.isEmpty()) return;
+        BigDecimal remaining = taxAmount;
+        for (int i = 0; i < components.size(); i++) {
+            TaxSubType subType = components.get(i);
+            boolean isLast = i == components.size() - 1;
+            BigDecimal amount = isLast
+                ? remaining
+                : taxAmount.multiply(subType.getSplitPercent()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            remaining = remaining.subtract(amount);
+
+            PurchaseOrderItemTaxComponent component = new PurchaseOrderItemTaxComponent();
+            component.setPurchaseOrderItem(item);
+            component.setTaxSubType(subType);
+            component.setComponentName(subType.getComponentName());
+            component.setSplitPercentApplied(subType.getSplitPercent());
+            component.setComponentAmount(amount);
+            taxComponentRepository.save(component);
+        }
     }
 
     @Transactional
@@ -347,13 +400,19 @@ public class PurchaseOrderService {
     private PurchaseOrderItemResponse toItemResponse(PurchaseOrderItem item) {
         Product product = item.getProduct();
         TaxRule taxRule = item.getTaxRule();
+        List<TaxComponentResponse> components = taxComponentRepository
+            .findByPurchaseOrderItem_IdOrderByIdAsc(item.getId())
+            .stream()
+            .map(c -> new TaxComponentResponse(c.getComponentName(), c.getSplitPercentApplied(), c.getComponentAmount()))
+            .toList();
         return new PurchaseOrderItemResponse(
             item.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
             item.getPurchaseRequisitionItem() != null ? item.getPurchaseRequisitionItem().getId() : null,
             item.getOrderedQty(), item.getUnitPrice(),
             taxRule != null ? taxRule.getId() : null, taxRule != null ? taxRule.getName() : null,
-            item.getTaxAmount(), item.getLineTotal(), item.getReceivedQty());
+            item.getTaxAmount(), item.getJurisdictionMode() != null ? item.getJurisdictionMode().name() : null,
+            components, item.getLineTotal(), item.getReceivedQty());
     }
 
     private PurchaseRequisitionItemResponse toRequisitionLineResponse(PurchaseRequisitionItem line) {

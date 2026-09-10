@@ -129,6 +129,7 @@ public class SupplierService {
 
     private void applyFields(Supplier supplier, String name, SupplierRequest request) {
         supplier.setSupplierName(name);
+        supplier.setState(requireTrimmed(request.state(), "State is required"));
         supplier.setTaxRegistrationId(trim(request.taxRegistrationId()));
         supplier.setLegalRegistrationNo(trim(request.legalRegistrationNo()));
         supplier.setBankAccountNumber(trim(request.bankAccountNumber()));
@@ -145,7 +146,7 @@ public class SupplierService {
     private SupplierResponse toResponse(Supplier s) {
         boolean canSeeFull = perm.has("INVENTORY_SUPPLIER_MANAGE");
         return new SupplierResponse(
-            s.getId(), s.getSupplierCode(), s.getSupplierName(),
+            s.getId(), s.getSupplierCode(), s.getSupplierName(), s.getState(),
             canSeeFull ? s.getTaxRegistrationId() : maskTail(s.getTaxRegistrationId()),
             canSeeFull ? s.getLegalRegistrationNo() : maskTail(s.getLegalRegistrationNo()),
             canSeeFull ? s.getBankAccountNumber() : maskTail(s.getBankAccountNumber()),

@@ -42,6 +42,12 @@ public class Supplier {
     @Column(name = "supplier_name", nullable = false, length = 200)
     private String supplierName;
 
+    /** Required for GST jurisdiction resolution — compared against {@code
+     * InventoryTaxJurisdictionSetting.homeState} to auto-pick INTERSTATE vs INTRASTATE on each PO
+     * line. See the "GAP-02 pickup" decision-log entry. */
+    @Column(name = "state", nullable = false, length = 100)
+    private String state;
+
     @Column(name = "tax_registration_id", length = 50)
     private String taxRegistrationId;
 
@@ -97,6 +103,9 @@ public class Supplier {
 
     public String getSupplierName() { return supplierName; }
     public void setSupplierName(String supplierName) { this.supplierName = supplierName; }
+
+    public String getState() { return state; }
+    public void setState(String state) { this.state = state; }
 
     public String getTaxRegistrationId() { return taxRegistrationId; }
     public void setTaxRegistrationId(String taxRegistrationId) { this.taxRegistrationId = taxRegistrationId; }

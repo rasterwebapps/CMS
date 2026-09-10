@@ -3,9 +3,12 @@ package com.cms.inventory.procurement.model;
 import java.math.BigDecimal;
 
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.procurement.model.enums.JurisdictionMode;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -23,8 +26,12 @@ import jakarta.persistence.Table;
  * exists now so this entity doesn't need an ALTER once that slice lands. {@code taxAmount}/{@code
  * lineTotal} are computed and stored at line-creation time (not recomputed live), same snapshot
  * spirit as {@code CycleCountLine.systemQtySnapshot} — a line stays self-explanatory even if the
- * referenced {@code TaxRule}'s rate changes later. See the "Purchase Order slice" decision-log
- * entry.
+ * referenced {@code TaxRule}'s rate changes later. {@code jurisdictionMode} is the mode resolved
+ * at line-creation time (supplier state vs. the institution's home state) that decided which
+ * {@code TaxSubType} components applied — null whenever no tax was selected for the line. The
+ * per-component breakdown itself lives in {@code PurchaseOrderItemTaxComponent}, snapshotted the
+ * same way rather than mapped as a collection here, keeping this entity's fetch graph simple; see
+ * the "GAP-02 pickup" decision-log entry. See also the "Purchase Order slice" decision-log entry.
  */
 @Entity
 @Table(name = "purchase_order_items")
@@ -59,6 +66,10 @@ public class PurchaseOrderItem {
     @Column(name = "tax_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal taxAmount = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "jurisdiction_mode", length = 20)
+    private JurisdictionMode jurisdictionMode;
+
     @Column(name = "line_total", nullable = false, precision = 14, scale = 2)
     private BigDecimal lineTotal;
 
@@ -88,6 +99,9 @@ public class PurchaseOrderItem {
 
     public BigDecimal getTaxAmount() { return taxAmount; }
     public void setTaxAmount(BigDecimal taxAmount) { this.taxAmount = taxAmount; }
+
+    public JurisdictionMode getJurisdictionMode() { return jurisdictionMode; }
+    public void setJurisdictionMode(JurisdictionMode jurisdictionMode) { this.jurisdictionMode = jurisdictionMode; }
 
     public BigDecimal getLineTotal() { return lineTotal; }
     public void setLineTotal(BigDecimal lineTotal) { this.lineTotal = lineTotal; }

@@ -1,14 +1,11 @@
 package com.cms.inventory.procurement.dto;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 
-public record TaxRuleResponse(
+public record TaxTypeResponse(
     Long id,
-    Long taxTypeId,
-    String taxTypeName,
     String name,
-    BigDecimal ratePercent,
+    String description,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

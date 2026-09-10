@@ -14,16 +14,20 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.procurement.dto.TaxRuleRequest;
 import com.cms.inventory.procurement.dto.TaxRuleResponse;
 import com.cms.inventory.procurement.model.TaxRule;
+import com.cms.inventory.procurement.model.TaxType;
 import com.cms.inventory.procurement.repository.TaxRuleRepository;
+import com.cms.inventory.procurement.repository.TaxTypeRepository;
 
 @Service
 @Transactional(readOnly = true)
 public class TaxRuleService {
 
     private final TaxRuleRepository taxRuleRepository;
+    private final TaxTypeRepository taxTypeRepository;
 
-    public TaxRuleService(TaxRuleRepository taxRuleRepository) {
+    public TaxRuleService(TaxRuleRepository taxRuleRepository, TaxTypeRepository taxTypeRepository) {
         this.taxRuleRepository = taxRuleRepository;
+        this.taxTypeRepository = taxTypeRepository;
     }
 
     @Transactional
@@ -32,8 +36,10 @@ public class TaxRuleService {
         if (taxRuleRepository.existsByNameIgnoreCase(name)) {
             throw new IllegalArgumentException("A tax rule named '" + name + "' already exists");
         }
+        TaxType taxType = requireTaxType(request.taxTypeId());
 
         TaxRule taxRule = new TaxRule();
+        taxRule.setTaxType(taxType);
         taxRule.setName(name);
         taxRule.setRatePercent(request.ratePercent());
         if (request.isActive() != null) taxRule.setIsActive(request.isActive());
@@ -64,11 +70,18 @@ public class TaxRuleService {
         if (taxRuleRepository.existsByNameIgnoreCaseAndIdNot(name, id)) {
             throw new IllegalArgumentException("A tax rule named '" + name + "' already exists");
         }
+        TaxType taxType = requireTaxType(request.taxTypeId());
 
+        taxRule.setTaxType(taxType);
         taxRule.setName(name);
         taxRule.setRatePercent(request.ratePercent());
         if (request.isActive() != null) taxRule.setIsActive(request.isActive());
         return toResponse(taxRuleRepository.save(taxRule));
+    }
+
+    private TaxType requireTaxType(Long id) {
+        return taxTypeRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Tax type not found with id: " + id));
     }
 
     @Transactional
@@ -100,7 +113,10 @@ public class TaxRuleService {
     }
 
     private TaxRuleResponse toResponse(TaxRule t) {
-        return new TaxRuleResponse(t.getId(), t.getName(), t.getRatePercent(), t.getIsActive(), t.getCreatedAt(), t.getUpdatedAt());
+        TaxType taxType = t.getTaxType();
+        return new TaxRuleResponse(
+            t.getId(), taxType.getId(), taxType.getName(), t.getName(), t.getRatePercent(), t.getIsActive(),
+            t.getCreatedAt(), t.getUpdatedAt());
     }
 
     private static String trim(String s) {

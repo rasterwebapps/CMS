@@ -1,6 +1,7 @@
 package com.cms.inventory.procurement.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record PurchaseOrderItemResponse(
     Long id,
@@ -14,6 +15,8 @@ public record PurchaseOrderItemResponse(
     Long taxRuleId,
     String taxRuleName,
     BigDecimal taxAmount,
+    String jurisdictionMode,
+    List<TaxComponentResponse> taxComponents,
     BigDecimal lineTotal,
     BigDecimal receivedQty
 ) {}
