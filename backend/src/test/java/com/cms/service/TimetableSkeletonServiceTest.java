@@ -812,6 +812,45 @@ class TimetableSkeletonServiceTest {
         verify(classScheduleRepository, never()).save(any());
     }
 
+    /** Counterpart to the test above, and a regression for a long-lived silent defect: {@code
+     *  placeCell(request, enforceBudgetCap)} accepted the flag and documented that {@code false}
+     *  skips the budget cap, but never actually read it -- {@code checkBudgetNotExceeded} ran
+     *  unconditionally. Its one caller, the Self-Study/gap-fill pass, exists precisely to place
+     *  filler BEYOND a subject's curriculum quota to soak up otherwise-empty periods, so the
+     *  un-bypassed cap silently capped gap-fill at the ordinary weekly quota and left every further
+     *  free period blank in the grid (reported, if at all, as SKELETON_CELL_BUDGET_EXCEEDED). Same
+     *  over-budget fixture as above; the only difference is the bypass flag, which must now let the
+     *  4th session through. */
+    @Test
+    void shouldAllowPlacementPastTheWeeklyBudget_whenBudgetCapIsExplicitlyBypassed() {
+        ClassSchedule s1 = existingRow(ClassSessionType.THEORY, null, false);
+        s1.setDayOfWeek(DayOfWeek.MONDAY);
+        ClassSchedule s2 = existingRow(ClassSessionType.THEORY, null, false);
+        s2.setDayOfWeek(DayOfWeek.TUESDAY);
+        ClassSchedule s3 = existingRow(ClassSessionType.THEORY, null, false);
+        s3.setDayOfWeek(DayOfWeek.WEDNESDAY);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.THEORY, DayOfWeek.THURSDAY, 1L, null, 5L, null, null);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        // No findByIsActiveTrueOrderByPeriodOrderAsc stub here, unlike the enforced-cap test above:
+        // that lookup happens only inside checkBudgetNotExceeded, which this path must now skip
+        // entirely -- Mockito flagging it as an unnecessary stubbing is itself part of the proof.
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(s1, s2, s3));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> {
+            ClassSchedule saved = inv.getArgument(0);
+            saved.setId(4242L);
+            return saved;
+        });
+
+        SkeletonCellResponse response = service.placeCell(request, false);
+
+        assertThat(response).isNotNull();
+        assertThat(response.dayOfWeek()).isEqualTo(DayOfWeek.THURSDAY);
+        verify(classScheduleRepository).save(any(ClassSchedule.class));
+    }
+
     @Test
     void shouldBlockTheoryPlacementWhenAnotherSubjectAlreadyOccupiesThatCohortSlot() {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
@@ -1250,6 +1289,41 @@ class TimetableSkeletonServiceTest {
         assertThat(response.periodId()).isEqualTo(2L);
         assertThat(cs.getDayOfWeek()).isEqualTo(DayOfWeek.TUESDAY);
         assertThat(cs.getPeriod()).isEqualTo(period2);
+        // A drag-move is a deliberate human decision, so it pins: the next Global Auto-Schedule
+        // rebuild must pack the week around this cell instead of clearing it. Without this the
+        // admin's manual arrangement is silently destroyed by the very next run.
+        assertThat(cs.isPinned()).isTrue();
+        assertThat(response.pinned()).isTrue();
+    }
+
+    @Test
+    void shouldPinAndUnpinADraftCell() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(100L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThat(service.setPinned(100L, true).pinned()).isTrue();
+        assertThat(cs.isPinned()).isTrue();
+
+        // Unpinning hands the cell back to automation -- a real, separate decision, not a no-op.
+        assertThat(service.setPinned(100L, false).pinned()).isFalse();
+        assertThat(cs.isPinned()).isFalse();
+    }
+
+    @Test
+    void shouldRejectPinningAPublishedCell() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(100L);
+        cs.setStatus(ClassScheduleStatus.PUBLISHED);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+
+        // A published session is already immutable, so pinning it is meaningless rather than
+        // harmless -- rejecting keeps "pinned" meaning exactly one thing: protected from rebuild.
+        assertThatThrownBy(() -> service.setPinned(100L, true))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("Only a draft skeleton cell can be pinned");
+        verify(classScheduleRepository, never()).save(any());
     }
 
     @Test

@@ -687,7 +687,8 @@ public class TimetableSkeletonService {
             cs.getSubject() != null ? cs.getSubject().getCode() : null,
             electiveGroup != null ? electiveGroup.getId() : null,
             electiveGroup != null ? electiveGroup.getGroupName() : null,
-            cs.getSessionGroupId()
+            cs.getSessionGroupId(),
+            cs.isPinned()
         );
     }
 
@@ -707,6 +708,39 @@ public class TimetableSkeletonService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public SkeletonCellResponse placeCell(SkeletonCellPlacementRequest request) {
         return placeCell(request, true);
+    }
+
+    /** Manual placement from the Skeleton Builder — {@link #placeCell(SkeletonCellPlacementRequest)}
+     *  plus a pin, so a cell an admin positioned by hand survives the next Global Auto-Schedule
+     *  rebuild. Exists as its own method rather than a flag on {@code placeCell} because automation
+     *  calls that same method thousands of times per run and must never pin anything; keeping the
+     *  two entry points separate makes it impossible to confuse them. */
+    @Transactional
+    public SkeletonCellResponse placeCellManually(SkeletonCellPlacementRequest request) {
+        SkeletonCellResponse placed = placeCell(request);
+        return setPinned(placed.id(), true);
+    }
+
+    /** Pin or unpin a DRAFT cell. Unpinning is deliberately a real, separate decision: it hands the
+     *  cell back to automation, so the next run may move or clear it. Applies to every row sharing
+     *  the cell's {@code sessionGroupId}, since a multi-period session is one atomic unit — pinning
+     *  only its first period would let a rebuild clear the rest and leave a truncated block. */
+    @Transactional
+    public SkeletonCellResponse setPinned(Long classScheduleId, boolean pinned) {
+        ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
+        if (cs.getStatus() != ClassScheduleStatus.DRAFT) {
+            throw new LifecycleConflictException(
+                "Only a draft skeleton cell can be pinned — a published session is already immutable.",
+                "SKELETON_CELL_NOT_DRAFT", "ClassSchedule", classScheduleId, null);
+        }
+        List<ClassSchedule> group = cs.getSessionGroupId() == null ? List.of(cs)
+            : classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(cs.getSessionGroupId());
+        for (ClassSchedule row : group) {
+            row.setPinned(pinned);
+            classScheduleRepository.save(row);
+        }
+        return toCellResponse(cs);
     }
 
     /** {@code enforceBudgetCap=false} skips {@link #checkBudgetNotExceeded} only — every other
@@ -775,8 +809,17 @@ public class TimetableSkeletonService {
             checkClinicalShiftBlocked(request.cohortId(), request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
         }
 
-        checkBudgetNotExceeded(offering, request.sessionType(), batch, cohortSection)
-            .ifPresent(violations::add);
+        // enforceBudgetCap was accepted, documented, and then never actually read here -- the cap ran
+        // unconditionally, so the ONE caller that passes false (the Self-Study/gap-fill pass, whose
+        // entire purpose is to place filler BEYOND the curriculum quota) was capped by the very budget
+        // it asks to bypass. Effect: gap-fill could only ever place as many sessions as the subject's
+        // ordinary weekly quota, and every genuinely free period past that was rejected with
+        // SKELETON_CELL_BUDGET_EXCEEDED and left blank in the grid -- the long-running "empty periods
+        // the report can't explain" symptom.
+        if (enforceBudgetCap) {
+            checkBudgetNotExceeded(offering, request.sessionType(), batch, cohortSection)
+                .ifPresent(violations::add);
+        }
 
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
@@ -1062,6 +1105,12 @@ public class TimetableSkeletonService {
 
         cs.setDayOfWeek(request.dayOfWeek());
         cs.setPeriod(targetPeriod);
+        // A drag-move is a deliberate human decision, so it pins: the next Global Auto-Schedule
+        // rebuild will pack the week around this cell instead of clearing it. Only this method and
+        // #swapCells reach here (both are controller-only -- automation repositions cells through
+        // forceRemoveCell + placeCell, never through a move), so pinning here can never mark an
+        // automation-produced cell.
+        cs.setPinned(true);
         return toCellResponse(classScheduleRepository.save(cs));
     }
 
@@ -1151,6 +1200,10 @@ public class TimetableSkeletonService {
         csA.setPeriod(periodB);
         csB.setDayOfWeek(dayA);
         csB.setPeriod(periodA);
+        // Both sides of a swap are deliberate placements -- pinning only the dragged one would let
+        // the next rebuild clear its partner and silently undo half the admin's decision.
+        csA.setPinned(true);
+        csB.setPinned(true);
         ClassSchedule savedA = classScheduleRepository.save(csA);
         ClassSchedule savedB = classScheduleRepository.save(csB);
         return List.of(toCellResponse(savedA), toCellResponse(savedB));

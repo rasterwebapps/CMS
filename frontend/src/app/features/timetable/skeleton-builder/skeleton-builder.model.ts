@@ -61,6 +61,10 @@ export interface SkeletonCell {
   /** Non-null only for a cell that's part of a multi-period session (periodSpan) — every sibling
    *  cell sharing this id was placed/staffed/removed together as one atomic unit. */
   sessionGroupId: string | null;
+  /** True when a human positioned this cell on purpose (manual place, drag-move, swap, or an
+   *  explicit pin). A pinned cell survives the next Global Auto-Schedule rebuild — automation packs
+   *  the rest of the week around it instead of clearing it. */
+  pinned: boolean;
 }
 
 export interface SkeletonBatchOption {
@@ -315,6 +319,10 @@ export interface GlobalAutoScheduleResult {
    *  TEMPORARY backend safety net (see `TimetableGlobalAutoScheduleService#purgeStaleOverBudgetDrafts`).
    *  Always shown when nonzero — never a silent cleanup. */
   staleDraftsCleared: number;
+  /** How many DRAFT sessions the rebuild deliberately LEFT standing because they were pinned.
+   *  Surfaced alongside `staleDraftsCleared` so a run is explicit about both halves of what it did
+   *  to the existing grid — kept vs cleared. */
+  pinnedCellsPreserved: number;
   /** This run's real, exact "still couldn't fill it after trying every eligible faculty" hours —
    *  distinct from `FacultyWorkloadOverviewReport.recommendedAdditionalFacultyCount`'s pre-run
    *  whole-pool estimate, which never reflects real day/period feasibility. 0 when nothing was

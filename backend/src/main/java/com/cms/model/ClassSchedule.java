@@ -74,6 +74,14 @@ public class ClassSchedule {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    /** True when a human positioned this cell on purpose (a manual place, drag-move or swap, or an
+     *  explicit pin). {@code TimetableGlobalAutoScheduleService#purgeDraftCellsForRebuild} leaves a
+     *  pinned DRAFT cell standing instead of clearing it, so automation re-packs the week AROUND
+     *  the admin's own decisions rather than discarding them. Primitive-defaulted to false so a row
+     *  created by automation is unpinned unless something explicitly says otherwise. */
+    @Column(name = "is_pinned", nullable = false)
+    private boolean pinned = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "session_type", nullable = false)
     private ClassSessionType sessionType = ClassSessionType.LAB;
@@ -215,6 +223,14 @@ public class ClassSchedule {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
     }
 
     public ClassSessionType getSessionType() {

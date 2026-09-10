@@ -38,5 +38,10 @@ public record SkeletonCellResponse(
 
     /** OC-127 periodSpan: non-null only for a cell that's part of a multi-period session — every
      *  sibling row sharing this id is placed/staffed/removed together as one atomic unit. */
-    UUID sessionGroupId
+    UUID sessionGroupId,
+
+    /** True when a human positioned this cell on purpose, which makes it survive the next
+     *  Global Auto-Schedule rebuild instead of being cleared with the rest of the DRAFT grid.
+     *  Drives the pin affordance and badge in the Skeleton Builder. */
+    boolean pinned
 ) {}

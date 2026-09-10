@@ -51,6 +51,14 @@ export class SkeletonBuilderService {
     return this.http.put<SkeletonCell>(`${this.baseUrl}/cells/${id}/move`, request);
   }
 
+  /** Pin a cell so the next Run Automation packs the week around it, or unpin it to hand it back
+   *  to automation. Applies to every period of a multi-period session server-side. */
+  setCellPinned(id: number, pinned: boolean): Observable<SkeletonCell> {
+    return this.http.put<SkeletonCell>(`${this.baseUrl}/cells/${id}/pin`, null, {
+      params: { pinned },
+    });
+  }
+
   swapCells(id: number, request: SkeletonCellSwapRequest): Observable<SkeletonCell[]> {
     return this.http.put<SkeletonCell[]>(`${this.baseUrl}/cells/${id}/swap`, request);
   }

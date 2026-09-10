@@ -62,10 +62,21 @@ public class TimetableSkeletonController {
         return ResponseEntity.ok(timetableSkeletonService.suggestCandidates(courseOfferingId, sessionType, batchId, cohortSectionId));
     }
 
+    /** Manual placement pins the new cell (see {@code placeCellManually}), so the next Global
+     *  Auto-Schedule rebuild packs the week around it rather than clearing it. */
     @PostMapping("/cells")
     @PreAuthorize("@perm.has('TIMETABLE_SKELETON_MANAGE')")
     public ResponseEntity<SkeletonCellResponse> placeCell(@Valid @RequestBody SkeletonCellPlacementRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(timetableSkeletonService.placeCell(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(timetableSkeletonService.placeCellManually(request));
+    }
+
+    /** Pin a draft cell so automation works around it, or unpin it to hand it back to automation.
+     *  Its own permission rather than a free rider on MOVE: unpinning re-exposes the cell to being
+     *  overwritten by the next run, a materially different consequence from repositioning it. */
+    @PutMapping("/cells/{id}/pin")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_PIN')")
+    public ResponseEntity<SkeletonCellResponse> setPinned(@PathVariable Long id, @RequestParam boolean pinned) {
+        return ResponseEntity.ok(timetableSkeletonService.setPinned(id, pinned));
     }
 
     @DeleteMapping("/cells/{id}")

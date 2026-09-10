@@ -53,6 +53,13 @@ public record GlobalAutoScheduleResult(
     List<CohortPlacementSummary> cohortSummaries,
     List<AutoPlaceUnplacedItem> electiveUnplaced,
     int staleDraftsCleared,
+
+    /** How many DRAFT sessions the rebuild deliberately LEFT standing because an admin had pinned
+     *  them (manual place, drag-move, swap, or explicit pin). Reported alongside {@code
+     *  staleDraftsCleared} so a run is explicit about both halves of what it did to the existing
+     *  grid — kept vs cleared — rather than silently preserving cells and leaving the admin to
+     *  work out why the week did not fully rebuild. */
+    int pinnedCellsPreserved,
     double capacityCausedGapHours,
     int recommendedAdditionalFacultyCount,
     List<VenueCapacityGap> venueCapacityGaps,
