@@ -1891,4 +1891,64 @@ only). Two new nav entries (Currency Settings, Currency Exchange Rates) and rout
 `vendor-product-mapping.model.ts`/`vendor-product-mapping-list.component.html/scss`,
 `app.routes.ts`, `nav-config.ts`.
 
+---
+
+## 2026-09-11 — Barcode/GTIN (capture + lookup + label printing)
+
+**Prompted by:** Phase 3 item #10 of the approved Product/Inventory extension program.
+
+**Found a proven, already-shipped reference implementation and deliberately didn't reuse it
+directly:** `com.cms.service.LibraryBarcodeService` already renders Code128 barcodes (PNG/PDF
+sheets/ZPL) for library books, using openpdf's `Barcode128` (already a backend dependency). It
+wasn't extracted into a shared cross-module utility for two reasons: (1) it's hospital/college-
+branded (a hardcoded `"SKSCON"` institution tag) and configured through `LibrarySetting` — reusing
+it would either leak that branding into Inventory or require threading Library's settings model
+through a module that must stay industry-agnostic (the "no vertical branding" standing decision);
+(2) it has no dependency Inventory should take on — `com.cms.service`/`com.cms.model` sit outside
+the `com.cms.inventory.*` package namespace this module's own boundary discipline keeps to (see
+the "HSN/SAC + default TaxRule" entry for the same reasoning applied to `TaxRule`). Built a new,
+standalone `InventoryBarcodeService` instead — same core technique (openpdf's `Barcode128`,
+AWT `Graphics2D` canvas, `MediaTracker`-synced `BufferedImage` conversion — code comments
+cross-reference `LibraryBarcodeService.renderRawBarcode` as the origin of that technique), but
+PNG-only, fixed canvas, no settings table, no PDF label sheets, and no ZPL/thermal-printer
+integration. Those are real capabilities `LibraryBarcodeService` already proves work — deliberately
+deferred rather than reinvented now, since nothing in this item asked for batch/thermal printing
+and `LibraryBarcodeService`'s own shape is exactly what a future slice would extend this
+service to match, if a real need shows up.
+
+**Capture:** `Product.barcode` (V494) — optional, unique when present via a partial index (`WHERE
+barcode IS NOT NULL`), same pattern as `uq_vendor_product_mappings_active_pair`. Validated the
+same way `productCode`/`productName` already are in `ProductService.applyRequest`.
+
+**Lookup:** two paths, both backed by the same data. `GET /inventory/products/by-barcode` — exact
+match, for future scan-driven integrations (e.g. a Stock Movement "scan to select product" flow —
+not built in this slice, just enabled). And `ProductService.findPage`'s existing search predicate
+now also matches `barcode` (`LOWER(NULL)` is `NULL`, so this is a safe no-op for the many products
+with none captured yet) — so scanning or typing a GTIN into the existing product list search
+already surfaces the match, no new screen needed for that half.
+
+**Label printing:** `GET /inventory/products/{id}/barcode.png` renders the captured barcode if
+present, else falls back to the product's own `productCode` (every product can get a printable
+label immediately, not just ones with a captured GTIN). Frontend: `ProductBarcodePreviewDialogComponent`
+mirrors `LibraryBarcodePreviewDialogComponent`'s exact fetch-blob/object-URL/`PrintService.printElement`
+pattern (the shared `PrintService` already documents blob-URL barcode images as a first-class use
+case), just without the printer-mode/ZPL-transport branch — browser print only. Wired as a new row
+action ("Print barcode label") on the Product list, both card and table views.
+
+**Verified:** 6 new `ProductServiceTest` cases (store/trim barcode, blank stays null, duplicate
+rejected, `findByBarcode` found/not-found) and a 2-case `InventoryBarcodeServiceTest` smoke test
+(decodable PNG, expected canvas size) — matching this codebase's own precedent of not asserting on
+barcode PNG pixels (`LibraryBarcodeServiceTest` doesn't either; the ZPL string generation is what's
+deterministic and worth testing there, and `InventoryBarcodeService` has no ZPL). Full backend
+suite green. `npx tsc -p tsconfig.app.json --noEmit` and `ng build --configuration production`
+both clean (pre-existing unrelated warnings only).
+
+**Impact:** `V494__add_barcode_to_products.sql`; `Product.java`; `ProductRequest`/`Response.java`;
+`ProductRepository.java`; `ProductService.java`; `ProductController.java`; new
+`InventoryBarcodeService.java`; new `ProductServiceTest` cases; new
+`InventoryBarcodeServiceTest.java`; frontend `product.model.ts`, `product.service.ts`,
+`product-form.component.ts/html` (Barcode/GTIN field), new
+`product-barcode-preview-dialog/` (mirrors Library's own dialog), `product-list.component.ts/html`
+(Print barcode label row action, search placeholder).
+
 *Next entry goes here — do not insert above this line.*

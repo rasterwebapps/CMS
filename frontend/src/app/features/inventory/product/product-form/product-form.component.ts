@@ -102,6 +102,7 @@ export class ProductFormComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     productCode:  ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
     productName:  ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(200), noConsecutiveSpaces()]],
+    barcode:      ['', [Validators.maxLength(64)]],
     categoryId:   [null as number | null, [Validators.required]],
     baseUomId:    [null as number | null, [Validators.required]],
     brandId:      [null as number | null],
@@ -194,6 +195,12 @@ export class ProductFormComponent implements OnInit {
       ),
     );
     nameCtrl?.updateValueAndValidity({ emitEvent: false });
+
+    const barcodeCtrl = this.form.get('barcode');
+    barcodeCtrl?.setAsyncValidators(
+      uniqueFieldValidator(this.http, `${environment.apiUrl}/inventory/products/barcode-exists`, () => this.productId),
+    );
+    barcodeCtrl?.updateValueAndValidity({ emitEvent: false });
 
     this.form.get('categoryId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       nameCtrl?.updateValueAndValidity({ emitEvent: false });
@@ -386,6 +393,7 @@ export class ProductFormComponent implements OnInit {
     const request: ProductRequest = {
       productCode:  (v.productCode ?? '').trim().toUpperCase(),
       productName:  (v.productName ?? '').trim(),
+      barcode:      v.barcode?.trim() || undefined,
       categoryId:   v.categoryId,
       baseUomId:    v.baseUomId,
       brandId:      v.brandId ?? undefined,
@@ -430,7 +438,7 @@ export class ProductFormComponent implements OnInit {
   }
 
   private static readonly FIELD_LABELS: Record<string, string> = {
-    productCode: 'Product code', productName: 'Product name', categoryId: 'Category', baseUomId: 'Base unit of measure',
+    productCode: 'Product code', productName: 'Product name', barcode: 'Barcode', categoryId: 'Category', baseUomId: 'Base unit of measure',
     description: 'Description',
   };
 
@@ -449,6 +457,7 @@ export class ProductFormComponent implements OnInit {
         this.form.patchValue({
           productCode: p.productCode,
           productName: p.productName,
+          barcode: p.barcode || '',
           categoryId: p.categoryId,
           baseUomId: p.baseUomId,
           brandId: p.brandId ?? null,

@@ -71,9 +71,13 @@ public class ProductService {
             }
             if (search != null && !search.isBlank()) {
                 String pattern = "%" + search.trim().toLowerCase() + "%";
+                // barcode included so scanning/typing a captured GTIN into the list search finds
+                // the product — the "lookup" half of the "Barcode/GTIN" item; LOWER(NULL) is NULL,
+                // so this is a safe no-op match for the many products with no barcode captured.
                 predicates = cb.and(predicates, cb.or(
                     cb.like(cb.lower(root.get("productName")), pattern),
-                    cb.like(cb.lower(root.get("productCode")), pattern)
+                    cb.like(cb.lower(root.get("productCode")), pattern),
+                    cb.like(cb.lower(root.get("barcode")), pattern)
                 ));
             }
             return predicates;
@@ -123,9 +127,29 @@ public class ProductService {
             : productRepository.existsByProductNameIgnoreCaseAndCategoryId(trimmed, categoryId);
     }
 
+    public boolean barcodeExists(String barcode, Long excludeId) {
+        String trimmed = barcode == null ? "" : barcode.trim();
+        if (trimmed.isEmpty()) return false;
+        return excludeId != null
+            ? productRepository.existsByBarcodeIgnoreCaseAndIdNot(trimmed, excludeId)
+            : productRepository.existsByBarcodeIgnoreCase(trimmed);
+    }
+
+    /** The barcode-scan lookup workflow — see ProductController's /by-barcode endpoint. */
+    public ProductResponse findByBarcode(String barcode) {
+        String trimmed = trim(barcode);
+        if (trimmed == null) {
+            throw new ResourceNotFoundException("No product found for barcode: " + barcode);
+        }
+        Product product = productRepository.findByBarcodeIgnoreCase(trimmed)
+            .orElseThrow(() -> new ResourceNotFoundException("No product found for barcode: " + barcode));
+        return toResponse(product);
+    }
+
     private void applyRequest(Product product, ProductRequest request, Long excludeId) {
         String code = requireTrimmed(request.productCode(), "Product code is required");
         String name = requireTrimmed(request.productName(), "Product name is required");
+        String barcode = trim(request.barcode());
         Category category = categoryService.findOrThrow(request.categoryId());
         Uom baseUom = uomService.findOrThrow(request.baseUomId());
         Brand brand = request.brandId() != null ? brandService.findOrThrow(request.brandId()) : null;
@@ -142,9 +166,13 @@ public class ProductService {
         if (nameTaken) {
             throw new IllegalArgumentException("A product named '" + name + "' already exists under '" + category.getName() + "'");
         }
+        if (barcode != null && barcodeExists(barcode, excludeId)) {
+            throw new IllegalArgumentException("A product with the barcode '" + barcode + "' already exists");
+        }
 
         product.setProductCode(code);
         product.setProductName(name);
+        product.setBarcode(barcode);
         product.setCategory(category);
         product.setBaseUom(baseUom);
         product.setBrand(brand);
@@ -291,7 +319,7 @@ public class ProductService {
             CategoryAttribute def = pav.getAttribute();
             attrValues.add(new ProductAttributeValueResponse(def.getId(), def.getName(), def.getDataType().name(), pav.renderValue()));
         }
-        return new ProductResponse(p.getId(), p.getProductCode(), p.getProductName(),
+        return new ProductResponse(p.getId(), p.getProductCode(), p.getProductName(), p.getBarcode(),
             category.getId(), category.getName(), uom.getId(), uom.getCode(), uom.getName(),
             brand != null ? brand.getId() : null, brand != null ? brand.getName() : null,
             p.getReorderLevel(), p.getReorderQty(), p.getStandardCost(), p.getListPrice(),

@@ -25,6 +25,8 @@ export interface Product {
   id: number;
   productCode: string;
   productName: string;
+  /** The product's real-world barcode/GTIN, as captured from packaging — optional. */
+  barcode?: string | null;
   categoryId: number;
   categoryName: string;
   baseUomId: number;
@@ -70,6 +72,7 @@ export interface ProductAttributeValueRequest {
 export interface ProductRequest {
   productCode: string;
   productName: string;
+  barcode?: string | null;
   categoryId: number;
   baseUomId: number;
   brandId?: number | null;

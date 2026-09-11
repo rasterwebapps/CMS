@@ -8,6 +8,7 @@ public record ProductResponse(
     Long id,
     String productCode,
     String productName,
+    String barcode,
     Long categoryId,
     String categoryName,
     Long baseUomId,

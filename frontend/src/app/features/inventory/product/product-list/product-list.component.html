@@ -24,7 +24,7 @@
         class="search-bar__input"
         [value]="searchValue()"
         (input)="applyFilter($event)"
-        placeholder="Search by name or code…"
+        placeholder="Search by name, code, or barcode…"
         type="text"
         aria-label="Search products"
       />
@@ -78,6 +78,9 @@
               </cms-row-action-btn>
               <cms-row-action-btn variant="success" [iconOnly]="true" [tooltip]="'Edit ' + item.productName" [ariaLabel]="'Edit ' + item.productName" (clicked)="editProduct(item)">
                 <cms-icon-edit [size]="14" />
+              </cms-row-action-btn>
+              <cms-row-action-btn [iconOnly]="true" [tooltip]="'Print barcode label for ' + item.productName" [ariaLabel]="'Print barcode label for ' + item.productName" (clicked)="printBarcode(item)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"/></svg>
               </cms-row-action-btn>
             </div>
             <div class="prod-card__icon">
@@ -151,6 +154,9 @@
               <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editProduct(row)">
                 <cms-icon-edit [size]="14" />
               </cms-row-action-btn>
+              <cms-row-action-btn [iconOnly]="true" tooltip="Print barcode label" ariaLabel="Print barcode label" (clicked)="printBarcode(row)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5v14M8 5v14M12 5v14M17 5v14M21 5v14"/></svg>
+              </cms-row-action-btn>
              </div>
           </td>
         </ng-container>
@@ -171,6 +177,10 @@
       </div>
       <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
     </div>
+  }
+
+  @if (barcodeTarget(); as t) {
+    <app-product-barcode-preview-dialog [target]="t" (closed)="barcodeTarget.set(null)" />
   }
 
 </div>

@@ -17,6 +17,11 @@ public record ProductRequest(
     @Size(max = 200, message = "Name must not exceed 200 characters")
     String productName,
 
+    /** The product's real-world barcode/GTIN, as captured from packaging — optional, unique when
+     *  present. */
+    @Size(max = 64, message = "Barcode must not exceed 64 characters")
+    String barcode,
+
     @NotNull(message = "Category is required")
     Long categoryId,
 

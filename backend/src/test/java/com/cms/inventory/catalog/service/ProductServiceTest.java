@@ -58,8 +58,8 @@ class ProductServiceTest {
         uom.setCode("KG");
         uom.setName("Kilogram");
 
-        when(categoryService.findOrThrow(1L)).thenReturn(category);
-        when(uomService.findOrThrow(1L)).thenReturn(uom);
+        lenient().when(categoryService.findOrThrow(1L)).thenReturn(category);
+        lenient().when(uomService.findOrThrow(1L)).thenReturn(uom);
         lenient().when(productRepository.save(any(Product.class))).thenAnswer(inv -> {
             Product p = inv.getArgument(0);
             p.setId(100L);
@@ -80,7 +80,11 @@ class ProductServiceTest {
     }
 
     private ProductRequest request(List<ProductAttributeValueRequest> attributeValues) {
-        return new ProductRequest("CHM-0001", "Sodium Chloride", 1L, 1L, null,
+        return requestWithBarcode(null, attributeValues);
+    }
+
+    private ProductRequest requestWithBarcode(String barcode, List<ProductAttributeValueRequest> attributeValues) {
+        return new ProductRequest("CHM-0001", "Sodium Chloride", barcode, 1L, 1L, null,
             null, null, null, null, null, null,
             null, null, null, null, null, null, null,
             null, null, null, null, null, true,
@@ -201,5 +205,60 @@ class ProductServiceTest {
         assertThatThrownBy(() -> service.create(request(List.of(new ProductAttributeValueRequest(999L, "x")))))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("999");
+    }
+
+    // ── barcode (2026-09-11 "Barcode/GTIN — capture + lookup + label printing") ────────────────
+
+    @Test
+    void storesTrimmedBarcode() {
+        when(attributeRepository.findByCategoryIdOrderByDisplayOrderAscNameAsc(1L)).thenReturn(List.of());
+
+        ProductResponse response = service.create(requestWithBarcode("  8901030826001  ", List.of()));
+
+        assertThat(response.barcode()).isEqualTo("8901030826001");
+    }
+
+    @Test
+    void blankBarcodeStaysNull() {
+        when(attributeRepository.findByCategoryIdOrderByDisplayOrderAscNameAsc(1L)).thenReturn(List.of());
+
+        ProductResponse response = service.create(requestWithBarcode("   ", List.of()));
+
+        assertThat(response.barcode()).isNull();
+    }
+
+    @Test
+    void rejectsDuplicateBarcode() {
+        when(productRepository.existsByBarcodeIgnoreCase("8901030826001")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(requestWithBarcode("8901030826001", List.of())))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("8901030826001")
+            .hasMessageContaining("already exists");
+    }
+
+    @Test
+    void findByBarcodeReturnsMatchingProduct() {
+        Product p = new Product();
+        p.setId(50L);
+        p.setProductCode("CHM-0001");
+        p.setProductName("Sodium Chloride");
+        p.setBarcode("8901030826001");
+        p.setCategory(category);
+        p.setBaseUom(uom);
+        when(productRepository.findByBarcodeIgnoreCase("8901030826001")).thenReturn(java.util.Optional.of(p));
+
+        ProductResponse response = service.findByBarcode("8901030826001");
+
+        assertThat(response.id()).isEqualTo(50L);
+        assertThat(response.barcode()).isEqualTo("8901030826001");
+    }
+
+    @Test
+    void findByBarcodeThrowsWhenNotFound() {
+        when(productRepository.findByBarcodeIgnoreCase("0000000000000")).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> service.findByBarcode("0000000000000"))
+            .isInstanceOf(com.cms.exception.ResourceNotFoundException.class);
     }
 }

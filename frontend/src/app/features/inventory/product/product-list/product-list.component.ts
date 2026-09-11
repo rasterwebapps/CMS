@@ -19,6 +19,7 @@ import { CmsViewToggleComponent } from '../../../../shared/view-toggle/view-togg
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../../shared/icons';
+import { ProductBarcodePreviewDialogComponent, ProductBarcodePreviewDialogData } from '../product-barcode-preview-dialog/product-barcode-preview-dialog.component';
 
 @Component({
   selector: 'app-product-list',
@@ -37,6 +38,7 @@ import { CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../../
     CmsRowActionButtonComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    ProductBarcodePreviewDialogComponent,
   ],
   templateUrl: './product-list.component.html',
   styleUrl: './product-list.component.scss',
@@ -74,6 +76,8 @@ export class ProductListComponent implements OnInit, OnDestroy {
   protected readonly searchValue = signal('');
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
   protected readonly categories = signal<Category[]>([]);
+
+  protected readonly barcodeTarget = signal<ProductBarcodePreviewDialogData | null>(null);
 
   protected categoryFilter: number | null = null;
   protected totalElements = 0;
@@ -141,6 +145,11 @@ export class ProductListComponent implements OnInit, OnDestroy {
 
   protected editProduct(item: Product): void {
     void this.router.navigate(['/inventory/products', item.id, 'edit']);
+  }
+
+  protected printBarcode(item: Product): void {
+    const code = item.barcode?.trim() || item.productCode;
+    this.barcodeTarget.set({ id: item.id, productName: item.productName, code });
   }
 
   protected toggleProductStatus(item: Product): void {

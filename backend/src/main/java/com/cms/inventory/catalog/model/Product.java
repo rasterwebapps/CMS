@@ -51,6 +51,12 @@ public class Product {
     @Column(name = "product_name", nullable = false, length = 200)
     private String productName;
 
+    /** The product's real-world barcode/GTIN, as captured from packaging — optional, and distinct
+     *  from {@code productCode} (this app's own internal identifier). Unique when present (partial
+     *  index, V494); a label can still be printed from {@code productCode} when this is blank. */
+    @Column(length = 64)
+    private String barcode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -159,6 +165,9 @@ public class Product {
 
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }
+
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
 
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }

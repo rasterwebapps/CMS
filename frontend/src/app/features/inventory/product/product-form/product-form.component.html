@@ -64,6 +64,19 @@
               </div>
 
               <div class="field-group">
+                <label for="prod-barcode" class="field-label">Barcode / GTIN</label>
+                <input id="prod-barcode" class="field-input" formControlName="barcode" placeholder="e.g., 8901030826001"
+                  autocomplete="off" [class.field-input--error]="form.get('barcode')?.invalid && form.get('barcode')?.touched" />
+                @if (form.get('barcode')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('barcode')?.invalid && form.get('barcode')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('barcode') }}</p>
+                } @else {
+                  <p class="field-hint">Optional — the real-world barcode from packaging, if captured</p>
+                }
+              </div>
+
+              <div class="field-group">
                 <label for="prod-category" class="field-label">Category <span class="required-star">*</span></label>
                 <select id="prod-category" class="field-select" formControlName="categoryId"
                   [class.field-select--error]="form.get('categoryId')?.invalid && form.get('categoryId')?.touched">

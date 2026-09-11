@@ -58,6 +58,25 @@ export class ProductService {
     return this.http.get<boolean>(`${this.baseUrl}/name-exists`, { params });
   }
 
+  checkBarcodeExists(value: string, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${this.baseUrl}/barcode-exists`, { params });
+  }
+
+  /** The barcode-scan lookup workflow — 404s (via the HTTP error channel) when nothing matches. */
+  findByBarcode(value: string): Observable<Product> {
+    const params = new HttpParams().set('value', value);
+    return this.http.get<Product>(`${this.baseUrl}/by-barcode`, { params });
+  }
+
+  /** A printable label PNG (barcode/GTIN if captured, else the product's own code). A plain
+   *  `<img src>` can't carry the auth header — fetch as a blob and bind an object URL, same
+   *  pattern as ProductImageService.download. */
+  getBarcodePng(productId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/${productId}/barcode.png`, { responseType: 'blob' });
+  }
+
   /** Null when the product has no unit hierarchy configured yet (base unit only). */
   getActiveUomChain(productId: number): Observable<ProductUomChainVersion | null> {
     return this.http.get<ProductUomChainVersion | null>(`${this.baseUrl}/${productId}/uom-chain/active`);
