@@ -59,6 +59,11 @@ public class Product {
     @JoinColumn(name = "base_uom_id", nullable = false)
     private Uom baseUom;
 
+    /** Optional — a generic lab consumable commonly has none. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
+
     @Column(name = "reorder_level", precision = 14, scale = 3)
     private BigDecimal reorderLevel;
 
@@ -124,6 +129,9 @@ public class Product {
 
     public Uom getBaseUom() { return baseUom; }
     public void setBaseUom(Uom baseUom) { this.baseUom = baseUom; }
+
+    public Brand getBrand() { return brand; }
+    public void setBrand(Brand brand) { this.brand = brand; }
 
     public BigDecimal getReorderLevel() { return reorderLevel; }
     public void setReorderLevel(BigDecimal reorderLevel) { this.reorderLevel = reorderLevel; }

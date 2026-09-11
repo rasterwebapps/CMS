@@ -136,6 +136,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'inventory/brands',
+    canActivate: withPermission('INVENTORY_BRAND_VIEW', 'INVENTORY_BRAND_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/brand/brand-list/brand-list.component').then(
+        (m) => m.BrandListComponent
+      ),
+  },
+  {
+    path: 'inventory/brands/new',
+    canActivate: withPermission('INVENTORY_BRAND_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/brand/brand-form/brand-form.component').then(
+        (m) => m.BrandFormComponent
+      ),
+  },
+  {
+    path: 'inventory/brands/:id/edit',
+    canActivate: withPermission('INVENTORY_BRAND_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/brand/brand-form/brand-form.component').then(
+        (m) => m.BrandFormComponent
+      ),
+  },
+  {
     path: 'inventory/uoms',
     canActivate: withPermission('INVENTORY_UOM_VIEW', 'INVENTORY_UOM_MANAGE'),
     loadComponent: () =>

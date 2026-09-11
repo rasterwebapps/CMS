@@ -1,0 +1,101 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/brands" aria-label="Back to brands">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Brand</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update the brand details below.' : 'Fill in the details below to register a new brand or manufacturer.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <!-- ── LEFT: Form Card ─────────────────────────────────── -->
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 12 21.99l-9-9V4h8.99l8.6 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7.5" cy="8.5" r="1.5"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Brand Information</div>
+            <div class="entry-form-card__hdr-sub">Name and description</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <!-- Name -->
+            <div class="field-group">
+              <label for="brand-name" class="field-label">
+                Brand Name <span class="required-star">*</span>
+              </label>
+              <input
+                id="brand-name"
+                class="field-input"
+                formControlName="name"
+                placeholder="e.g., Dell"
+                autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched"
+              />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <!-- Description -->
+            <div class="field-group">
+              <label for="brand-desc" class="field-label">Description</label>
+              <textarea
+                id="brand-desc"
+                class="field-textarea"
+                formControlName="description"
+                placeholder="Optional description"
+                rows="3"
+                [class.field-textarea--error]="form.get('description')?.invalid && form.get('description')?.touched"
+              ></textarea>
+              @if (form.get('description')?.invalid && form.get('description')?.touched) {
+                <p class="field-error">{{ getErrorMessage('description') }}</p>
+              }
+            </div>
+
+            <!-- Footer -->
+            <div class="entry-form-card__footer">
+              <a routerLink="/inventory/brands" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Update' : 'Save' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      <!-- ── RIGHT: Preview Card ─────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Brand will appear here' }}
+          </div>
+        </cms-preview-card>
+      </aside>
+
+    </div>
+  }
+
+</div>

@@ -38,6 +38,7 @@ class ProductServiceTest {
     @Mock private CategoryAttributeRepository attributeRepository;
     @Mock private CategoryService categoryService;
     @Mock private UomService uomService;
+    @Mock private BrandService brandService;
 
     private ProductService service;
 
@@ -46,7 +47,7 @@ class ProductServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProductService(productRepository, attributeRepository, categoryService, uomService);
+        service = new ProductService(productRepository, attributeRepository, categoryService, uomService, brandService);
 
         category = new Category();
         category.setId(1L);
@@ -79,9 +80,9 @@ class ProductServiceTest {
     }
 
     private ProductRequest request(List<ProductAttributeValueRequest> attributeValues) {
-        return new ProductRequest("CHM-0001", "Sodium Chloride", 1L, 1L,
-            null, null, null, null, null, null, null,
-            null, null, null, true,
+        return new ProductRequest("CHM-0001", "Sodium Chloride", 1L, 1L, null,
+            null, null, null, null, null, null,
+            null, null, null, null, true,
             List.of(), attributeValues);
     }
 

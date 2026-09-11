@@ -13,6 +13,8 @@ public record ProductResponse(
     Long baseUomId,
     String baseUomCode,
     String baseUomName,
+    Long brandId,
+    String brandName,
     BigDecimal reorderLevel,
     BigDecimal reorderQty,
     Boolean isAsset,

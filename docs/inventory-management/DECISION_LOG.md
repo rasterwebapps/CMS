@@ -1632,4 +1632,36 @@ the full backend suite, all green. `npx tsc -p tsconfig.app.json --noEmit` clean
 `VendorProductMappingService.java`; new `VendorProductMappingServiceTest.java`; frontend
 `vendor-product-mapping.model.ts`, `vendor-product-mapping-form.component.ts/html`.
 
+---
+
+## 2026-09-11 — Brand/Manufacturer master + FK on Product
+
+**Prompted by:** Phase 1 item #4 of the approved Product/Inventory extension program — a new
+master screen so a product can record what brand/manufacturer it's from.
+
+**Shaped like UOM, not Category:** both existing masters were considered as the template. Chose
+`Uom`'s flat (no self-referencing hierarchy) shape over `Category`'s parent/child tree, since a
+brand has no natural sub-brand concept worth modelling yet — but dropped `Uom`'s `code` column:
+units have a standard short-code convention (EA, KG, …) a brand name doesn't. So `Brand` is
+`name` (unique) + `description` + `isActive`, the smallest master shape already used elsewhere in
+this codebase, screen/controller/service/repository structured identically to `UomController`/
+`UomService`/`UomRepository` (V485 creates `brands`, adds nullable `products.brand_id`; V486 seeds
+`INVENTORY_BRAND_VIEW`/`_MANAGE` with the same DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN grant +
+catch-all sync as V423). `Product.brandId` is nullable — a generic lab consumable commonly has no
+brand — surfaced on the product form as a "None"-defaulting select next to Base Unit of Measure.
+
+**Verified:** new `BrandServiceTest` (8 cases: create/trim, blank-name rejection, duplicate-name
+on create and update, update, unknown-id on update/delete, status toggle) plus `ProductServiceTest`
+updated for the new constructor/field, full backend suite green. `npx tsc -p tsconfig.app.json
+--noEmit` and `ng build --configuration production` both clean (pre-existing unrelated warnings
+only). New nav entry ("Brands", same "Masters" cluster as Categories/UOM) and routes registered.
+
+**Impact:** `V485__create_inventory_brands_table.sql`,
+`V486__seed_inventory_brand_permissions.sql`; `Brand.java`, `BrandRepository.java`,
+`BrandRequest`/`Response.java`, `BrandService.java`, `BrandController.java`; `Product.java`
+(`brand` FK), `ProductRequest`/`Response` (`brandId`/`brandName`), `ProductService.java`; new
+`BrandServiceTest.java`; `ProductServiceTest.java` updated; frontend `features/inventory/brand/`
+(model, service, list, form — new), `product.model.ts`, `product-form.component.ts/html`,
+`app.routes.ts`, `nav-config.ts`.
+
 *Next entry goes here — do not insert above this line.*

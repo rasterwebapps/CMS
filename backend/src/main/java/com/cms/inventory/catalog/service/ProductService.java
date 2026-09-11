@@ -22,6 +22,7 @@ import com.cms.inventory.catalog.dto.ProductAttributeValueRequest;
 import com.cms.inventory.catalog.dto.ProductAttributeValueResponse;
 import com.cms.inventory.catalog.dto.ProductRequest;
 import com.cms.inventory.catalog.dto.ProductResponse;
+import com.cms.inventory.catalog.model.Brand;
 import com.cms.inventory.catalog.model.Category;
 import com.cms.inventory.catalog.model.CategoryAttribute;
 import com.cms.inventory.catalog.model.Product;
@@ -41,13 +42,16 @@ public class ProductService {
     private final CategoryAttributeRepository attributeRepository;
     private final CategoryService categoryService;
     private final UomService uomService;
+    private final BrandService brandService;
 
     public ProductService(ProductRepository productRepository,
                            CategoryAttributeRepository attributeRepository,
                            CategoryService categoryService,
-                           UomService uomService) {
+                           UomService uomService,
+                           BrandService brandService) {
         this.productRepository = productRepository;
         this.attributeRepository = attributeRepository;
+        this.brandService = brandService;
         this.categoryService = categoryService;
         this.uomService = uomService;
     }
@@ -124,6 +128,7 @@ public class ProductService {
         String name = requireTrimmed(request.productName(), "Product name is required");
         Category category = categoryService.findOrThrow(request.categoryId());
         Uom baseUom = uomService.findOrThrow(request.baseUomId());
+        Brand brand = request.brandId() != null ? brandService.findOrThrow(request.brandId()) : null;
 
         boolean codeTaken = excludeId != null
             ? productRepository.existsByProductCodeIgnoreCaseAndIdNot(code, excludeId)
@@ -142,6 +147,7 @@ public class ProductService {
         product.setProductName(name);
         product.setCategory(category);
         product.setBaseUom(baseUom);
+        product.setBrand(brand);
         product.setReorderLevel(request.reorderLevel());
         product.setReorderQty(request.reorderQty());
         if (request.isAsset() != null) product.setIsAsset(request.isAsset());
@@ -270,6 +276,7 @@ public class ProductService {
     private ProductResponse toResponse(Product p) {
         Category category = p.getCategory();
         Uom uom = p.getBaseUom();
+        Brand brand = p.getBrand();
         List<String> aliases = p.getAliases().stream().map(ProductAlias::getAliasName).toList();
         List<ProductAttributeValueResponse> attrValues = new ArrayList<>();
         for (ProductAttributeValue pav : p.getAttributeValues()) {
@@ -278,6 +285,7 @@ public class ProductService {
         }
         return new ProductResponse(p.getId(), p.getProductCode(), p.getProductName(),
             category.getId(), category.getName(), uom.getId(), uom.getCode(), uom.getName(),
+            brand != null ? brand.getId() : null, brand != null ? brand.getName() : null,
             p.getReorderLevel(), p.getReorderQty(), p.getIsAsset(), p.getIsConsumable(), p.getIsService(), p.getIsLoanable(),
             p.getTrackingMode().name(),
             p.getDepreciationRate(), p.getWarrantyPeriodMonths(), p.getDescription(), p.getIsActive(),

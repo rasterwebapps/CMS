@@ -23,6 +23,9 @@ public record ProductRequest(
     @NotNull(message = "Base unit of measure is required")
     Long baseUomId,
 
+    /** Optional — a generic lab consumable commonly has none. */
+    Long brandId,
+
     BigDecimal reorderLevel,
     BigDecimal reorderQty,
 

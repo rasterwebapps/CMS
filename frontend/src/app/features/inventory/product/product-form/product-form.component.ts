@@ -23,6 +23,8 @@ import { CategoryAttributeService } from '../../category/category-attribute.serv
 import { CategoryAttribute } from '../../category/category-attribute.model';
 import { UomService } from '../../uom/uom.service';
 import { Uom } from '../../uom/uom.model';
+import { BrandService } from '../../brand/brand.service';
+import { Brand } from '../../brand/brand.model';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../../shared/validators/cms-validators';
@@ -52,6 +54,7 @@ export class ProductFormComponent implements OnInit {
   private readonly categoryService  = inject(CategoryService);
   private readonly attributeService = inject(CategoryAttributeService);
   private readonly uomService       = inject(UomService);
+  private readonly brandService     = inject(BrandService);
   private readonly toast            = inject(ToastService);
   private readonly destroyRef       = inject(DestroyRef);
   private readonly http             = inject(HttpClient);
@@ -62,6 +65,7 @@ export class ProductFormComponent implements OnInit {
   protected readonly pageTitle  = signal('Add Product');
   protected readonly categories = signal<Category[]>([]);
   protected readonly uoms       = signal<Uom[]>([]);
+  protected readonly brands     = signal<Brand[]>([]);
   protected readonly categoryAttributes = signal<CategoryAttribute[]>([]);
   protected readonly attributesLoading  = signal(false);
 
@@ -90,6 +94,7 @@ export class ProductFormComponent implements OnInit {
     productName:  ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(200), noConsecutiveSpaces()]],
     categoryId:   [null as number | null, [Validators.required]],
     baseUomId:    [null as number | null, [Validators.required]],
+    brandId:      [null as number | null],
     reorderLevel: [null as number | null],
     reorderQty:   [null as number | null],
     isAsset:      [false],
@@ -126,6 +131,7 @@ export class ProductFormComponent implements OnInit {
   ngOnInit(): void {
     this.categoryService.getAll(true).subscribe({ next: (c) => this.categories.set(c) });
     this.uomService.getAll(true).subscribe({ next: (u) => this.uoms.set(u) });
+    this.brandService.getAll(true).subscribe({ next: (b) => this.brands.set(b) });
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -335,6 +341,7 @@ export class ProductFormComponent implements OnInit {
       productName:  (v.productName ?? '').trim(),
       categoryId:   v.categoryId,
       baseUomId:    v.baseUomId,
+      brandId:      v.brandId ?? undefined,
       reorderLevel: v.reorderLevel,
       reorderQty:   v.reorderQty,
       isAsset:      !!v.isAsset,
@@ -389,6 +396,7 @@ export class ProductFormComponent implements OnInit {
           productName: p.productName,
           categoryId: p.categoryId,
           baseUomId: p.baseUomId,
+          brandId: p.brandId ?? null,
           reorderLevel: p.reorderLevel ?? null,
           reorderQty: p.reorderQty ?? null,
           isAsset: p.isAsset,

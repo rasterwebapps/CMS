@@ -30,6 +30,8 @@ export interface Product {
   baseUomId: number;
   baseUomCode: string;
   baseUomName: string;
+  brandId?: number | null;
+  brandName?: string | null;
   reorderLevel?: number | null;
   reorderQty?: number | null;
   isAsset: boolean;
@@ -57,6 +59,7 @@ export interface ProductRequest {
   productName: string;
   categoryId: number;
   baseUomId: number;
+  brandId?: number | null;
   reorderLevel?: number | null;
   reorderQty?: number | null;
   isAsset?: boolean;
