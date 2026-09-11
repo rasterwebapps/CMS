@@ -27,6 +27,8 @@ import { BrandService } from '../../brand/brand.service';
 import { Brand } from '../../brand/brand.model';
 import { TaxRuleService } from '../../procurement/tax-rule/tax-rule.service';
 import { TaxRule } from '../../procurement/tax-rule/tax-rule.model';
+import { UomConversionTemplateService } from '../../uom-conversion-template/uom-conversion-template.service';
+import { UomConversionTemplate } from '../../uom-conversion-template/uom-conversion-template.model';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../../shared/validators/cms-validators';
@@ -58,6 +60,7 @@ export class ProductFormComponent implements OnInit {
   private readonly uomService       = inject(UomService);
   private readonly brandService     = inject(BrandService);
   private readonly taxRuleService   = inject(TaxRuleService);
+  private readonly uomTemplateService = inject(UomConversionTemplateService);
   private readonly toast            = inject(ToastService);
   private readonly destroyRef       = inject(DestroyRef);
   private readonly http             = inject(HttpClient);
@@ -70,6 +73,9 @@ export class ProductFormComponent implements OnInit {
   protected readonly uoms       = signal<Uom[]>([]);
   protected readonly brands     = signal<Brand[]>([]);
   protected readonly taxRules   = signal<TaxRule[]>([]);
+  // Templates whose own base unit matches the product's currently-selected base unit — the only
+  // ones the "apply a template" picker in Unit Hierarchy can legitimately offer.
+  protected readonly applicableTemplates = signal<UomConversionTemplate[]>([]);
   protected readonly categoryAttributes = signal<CategoryAttribute[]>([]);
   protected readonly attributesLoading  = signal(false);
 
@@ -156,6 +162,10 @@ export class ProductFormComponent implements OnInit {
       this.loadUomChain();
     }
     this.setupUniquenessValidators();
+
+    this.form.get('baseUomId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((baseUomId) => {
+      this.loadApplicableTemplates(baseUomId);
+    });
 
     this.form.get('categoryId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((categoryId) => {
       this.rebuildAttributeRows(categoryId);
@@ -265,6 +275,30 @@ export class ProductFormComponent implements OnInit {
 
   protected removeUomLevel(index: number): void {
     this.uomLevels.removeAt(index);
+  }
+
+  private loadApplicableTemplates(baseUomId: number | null): void {
+    if (baseUomId == null) { this.applicableTemplates.set([]); return; }
+    this.uomTemplateService.getApplicableTo(baseUomId).subscribe({
+      next: (templates) => this.applicableTemplates.set(templates),
+      error: () => this.applicableTemplates.set([]),
+    });
+  }
+
+  /** Pre-fills the levels-above-base array from a template's own levels — the levels are then
+   * ordinary editable rows, only actually saved when "Save Unit Hierarchy" is clicked. No link is
+   * kept to the template afterward. See the "Shared/global UOM conversion templates"
+   * decision-log entry. */
+  protected applyUomTemplate(templateIdStr: string): void {
+    const templateId = Number(templateIdStr);
+    const template = this.applicableTemplates().find(t => t.id === templateId);
+    if (!template) return;
+    this.uomLevels.clear();
+    const aboveBase = (template.levels ?? []).filter(l => l.levelRank > 0).sort((a, b) => a.levelRank - b.levelRank);
+    for (const level of aboveBase) {
+      this.uomLevels.push(this.newUomLevelGroup(level.uomId, level.factorToBase, level.isDefaultPurchase));
+    }
+    this.toast.success(`Applied "${template.name}" — review and save when ready`);
   }
 
   /** A level above the base is only removable/reorderable through this form — level 0 (the

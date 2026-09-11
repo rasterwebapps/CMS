@@ -184,6 +184,30 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'inventory/uom-conversion-templates',
+    canActivate: withPermission('INVENTORY_UOM_TEMPLATE_VIEW', 'INVENTORY_UOM_TEMPLATE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/uom-conversion-template/uom-conversion-template-list/uom-conversion-template-list.component').then(
+        (m) => m.UomConversionTemplateListComponent
+      ),
+  },
+  {
+    path: 'inventory/uom-conversion-templates/new',
+    canActivate: withPermission('INVENTORY_UOM_TEMPLATE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/uom-conversion-template/uom-conversion-template-form/uom-conversion-template-form.component').then(
+        (m) => m.UomConversionTemplateFormComponent
+      ),
+  },
+  {
+    path: 'inventory/uom-conversion-templates/:id/edit',
+    canActivate: withPermission('INVENTORY_UOM_TEMPLATE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/uom-conversion-template/uom-conversion-template-form/uom-conversion-template-form.component').then(
+        (m) => m.UomConversionTemplateFormComponent
+      ),
+  },
+  {
     path: 'inventory/products',
     canActivate: withPermission('INVENTORY_PRODUCT_VIEW', 'INVENTORY_PRODUCT_MANAGE'),
     loadComponent: () =>

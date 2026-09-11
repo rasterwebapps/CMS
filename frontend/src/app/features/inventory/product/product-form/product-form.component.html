@@ -268,6 +268,20 @@
                 <span class="uom-level-factor">factor 1 (fixed)</span>
               </div>
 
+              @if (applicableTemplates().length > 0) {
+                <div class="uom-level-row uom-template-picker">
+                  <span class="uom-level-eq">Apply a template</span>
+                  <select class="field-select" #templatePicker>
+                    <option value="" selected disabled>Select a template</option>
+                    @for (t of applicableTemplates(); track t.id) {
+                      <option [value]="t.id">{{ t.name }}</option>
+                    }
+                  </select>
+                  <button type="button" class="btn-secondary" (click)="applyUomTemplate(templatePicker.value)">Apply</button>
+                  <span class="field-hint">Pre-fills the levels below — still editable, and only saved once you click "Save Unit Hierarchy"</span>
+                </div>
+              }
+
               @if (uomLevels.length > 0) {
                 @for (levelCtrl of uomLevels.controls; track $index; let i = $index) {
                   <div class="uom-level-row" [formGroup]="$any(levelCtrl)">

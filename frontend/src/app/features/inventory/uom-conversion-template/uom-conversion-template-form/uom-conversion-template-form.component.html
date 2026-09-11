@@ -1,0 +1,152 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/uom-conversion-templates" aria-label="Back to UOM conversion templates">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>UOM Conversion Template</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update this template\'s chain below.' : 'Define a reusable unit chain products can be pre-filled from.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="entry-form-sections">
+
+        <!-- ── Template Information ────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Template Information</div>
+              <div class="entry-form-card__hdr-sub">Name, base unit, and description</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+
+            <div class="field-group">
+              <label for="uct-name" class="field-label">Template Name <span class="required-star">*</span></label>
+              <input id="uct-name" class="field-input" formControlName="name" placeholder="e.g., Pharma Tablet Pack" autocomplete="off"
+                [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />
+              @if (form.get('name')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <p class="field-error">{{ getErrorMessage('name') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="uct-base-uom" class="field-label">Base Unit of Measure <span class="required-star">*</span></label>
+              <select id="uct-base-uom" class="field-select" formControlName="baseUomId"
+                [class.field-select--error]="form.get('baseUomId')?.invalid && form.get('baseUomId')?.touched">
+                <option [ngValue]="null" disabled>Select a unit</option>
+                @for (u of uoms(); track u.id) {
+                  <option [ngValue]="u.id">{{ u.name }} ({{ u.code }})</option>
+                }
+              </select>
+              @if (form.get('baseUomId')?.invalid && form.get('baseUomId')?.touched) {
+                <p class="field-error">Base unit of measure is required</p>
+              }
+              <p class="field-hint">This template only applies to products whose own base unit matches this one</p>
+            </div>
+
+            <div class="field-group">
+              <label for="uct-desc" class="field-label">Description</label>
+              <textarea id="uct-desc" class="field-textarea" formControlName="description" placeholder="Optional description" rows="3"
+                [class.field-textarea--error]="form.get('description')?.invalid && form.get('description')?.touched"></textarea>
+              @if (form.get('description')?.invalid && form.get('description')?.touched) {
+                <p class="field-error">{{ getErrorMessage('description') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label class="checkbox-label"><input type="checkbox" formControlName="isActive" class="field-checkbox" /> Active</label>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── Chain Levels ─────────────────────────────────────── -->
+        <section class="entry-form-card entry-form-card--sectioned">
+          <div class="entry-form-card__hdr">
+            <div class="entry-form-card__hdr-ico">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            </div>
+            <div>
+              <div class="entry-form-card__hdr-title">Chain Levels</div>
+              <div class="entry-form-card__hdr-sub">Levels above the base unit (e.g. Strip → Box → Carton)</div>
+            </div>
+          </div>
+          <div class="entry-form-card__body">
+
+            <div class="uom-level-row uom-level-row--base">
+              <span class="uom-level-badge">Level 0 · Base</span>
+              <span class="uom-level-name">{{ uomName(form.value.baseUomId) }}</span>
+              <span class="uom-level-factor">factor 1 (fixed)</span>
+            </div>
+
+            @if (levels.length > 0) {
+              @for (levelCtrl of levels.controls; track $index; let i = $index) {
+                <div class="uom-level-row" [formGroup]="$any(levelCtrl)">
+                  <span class="uom-level-badge">Level {{ i + 1 }}</span>
+                  <select class="field-select" formControlName="uomId">
+                    <option [ngValue]="null" disabled>Select a unit</option>
+                    @for (u of uoms(); track u.id) {
+                      <option [ngValue]="u.id">{{ u.name }} ({{ u.code }})</option>
+                    }
+                  </select>
+                  <span class="uom-level-eq">=</span>
+                  <input type="number" step="0.000001" min="0.000001" class="field-input uom-level-factor-input"
+                    formControlName="factorToBase" placeholder="e.g., 10" />
+                  <span class="uom-level-eq">× base unit</span>
+                  <label class="checkbox-label uom-level-default">
+                    <input type="checkbox" class="field-checkbox" formControlName="isDefaultPurchase" /> Default purchase unit
+                  </label>
+                  <button type="button" class="btn-secondary" (click)="removeLevel(i)" aria-label="Remove level">Remove</button>
+                </div>
+              }
+            } @else {
+              <p class="field-hint">No levels above the base unit yet.</p>
+            }
+
+            <button type="button" class="btn-secondary" (click)="addLevel()">+ Add Level</button>
+
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/uom-conversion-templates" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid || levels.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              {{ isEditMode() ? 'Update' : 'Save' }}
+            </button>
+          </div>
+        </section>
+
+      </form>
+
+      <!-- ── Preview Card ─────────────────────────────────────── -->
+      <aside class="entry-form-side-panel">
+        <cms-preview-card label="Live preview">
+          <div class="prev-name" [class.prev-name--empty]="!previewName()">
+            {{ previewName() || 'Template will appear here' }}
+          </div>
+        </cms-preview-card>
+      </aside>
+
+    </div>
+  }
+
+</div>

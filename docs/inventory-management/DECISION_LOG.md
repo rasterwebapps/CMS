@@ -1779,4 +1779,65 @@ unrelated warnings only).
 Angular has no equivalent Gradle-module-extraction concern the backend boundary is protecting),
 `purchase-order-detail.component.ts` (pre-fill on requisition-line change).
 
+---
+
+## 2026-09-11 — Shared/global UOM conversion templates
+
+**Prompted by:** Phase 2 item #8 (final item) of the approved Product/Inventory extension
+program — reusable "1 Box = 10 Each"-style chain definitions so a product's own Unit Hierarchy
+doesn't have to be typed out from scratch every time, framed as groundwork for the variant
+subsystem (Phase 3) where many variants of one product would otherwise each redefine an identical
+chain.
+
+**No live link once applied — deliberately:** the new `UomConversionTemplate`/
+`UomConversionTemplateLevel` tables (V490) are purely a copy-source. Applying a template to a
+product's Unit Hierarchy (`ProductFormComponent.applyUomTemplate`) pre-fills the levels-above-base
+form array client-side from the template's own levels; the actual save still goes through the
+unchanged `ProductUomChainService.saveVersion` → `ProductUomChainVersion`/`ProductUomLevel` flow,
+which already snapshots a chain permanently at save time and never re-derives it. A later edit to
+the template never reaches back into any product that used it — same "snapshot, never re-derived"
+spirit `ProductUomChainVersion`'s own javadoc already commits to for pack-size changes. No new
+backend endpoint was needed for "applying" a template for this reason; it's a pure frontend
+convenience.
+
+**Template shape:** deliberately mirrors `Uom` (flat, no hierarchy) rather than `Category`
+(parent/child tree) — same reasoning as the Brand master (2026-09-11 entry): nothing about a
+reusable unit chain needs sub-templates. `baseUomId` is stored redundantly on the template itself
+(not just derived from its own level-0 entry) purely so "which templates apply to a product with
+base unit X" can be queried directly (`findByBaseUomIdAndIsActiveTrueOrderByNameAsc`) without
+loading every template's levels — the product form's "apply a template" picker only ever offers
+templates whose base unit matches the product's own, since a mismatched base unit can never
+satisfy `ProductUomChainService.validateLevels`'s "level 0 must be the product's base unit" rule
+anyway. Level validation in `UomConversionTemplateService` mirrors
+`ProductUomChainService.validateLevels` rule-for-rule (unique ranks, unique units, exactly one
+level-0 base entry at factor 1, at most one default-purchase level) but is kept as its own
+near-duplicate method rather than extracted/shared, since the two operate on different level
+request DTOs tied to different owning concepts (a product's own base unit vs. a template's own
+`baseUomId`) — the duplication is small (~20 lines) and extracting a shared abstraction across two
+different service classes for one reuse wasn't judged worth the added indirection.
+
+**Verified:** 11 new `UomConversionTemplateServiceTest` cases (create/levels, blank name,
+duplicate name on create/update, level-0/base-unit mismatch, missing level 0, duplicate rank,
+more than one default-purchase level, unknown-id update/delete, `baseUomId` filtering) plus the
+full backend suite, all green (a transient compile failure mid-session was traced to an unrelated
+concurrent session's in-progress edit to `TimetableSkeletonService`/`TimetableConflictInspector
+Service` and their tests — confirmed via `git status` showing those files modified outside this
+work, not by anything in this slice; resolved itself once that session's edit landed, not fixed
+here). `npx tsc -p tsconfig.app.json --noEmit` and `ng build --configuration production` both
+clean (pre-existing unrelated warnings only). New nav entry ("UOM Conversion Templates", Masters
+cluster) and routes registered.
+
+**Impact:** `V490__create_inventory_uom_conversion_templates.sql`,
+`V491__seed_inventory_uom_conversion_template_permissions.sql`; `UomConversionTemplate.java`,
+`UomConversionTemplateLevel.java`, `UomConversionTemplateRepository.java`,
+`UomConversionTemplateRequest/Response/LevelRequest/LevelResponse.java`,
+`UomConversionTemplateService.java`, `UomConversionTemplateController.java`; new
+`UomConversionTemplateServiceTest.java`; frontend `features/inventory/uom-conversion-template/`
+(model, service, list, form — new), `product-form.component.ts/html/scss` (the "apply a template"
+picker in Unit Hierarchy), `app.routes.ts`, `nav-config.ts`.
+
+**This closes Phase 2 of the Product/Inventory extension program** (items #6–8: product-level
+pricing, HSN/SAC + default tax rule, shared UOM conversion templates) — Phase 3 (multi-currency
+FX, barcode/label printing, the `ProductVariant` subsystem itself) starts on explicit go-ahead.
+
 *Next entry goes here — do not insert above this line.*

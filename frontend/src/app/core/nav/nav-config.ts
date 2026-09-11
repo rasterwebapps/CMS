@@ -221,6 +221,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Categories',        icon: 'category',   route: '/inventory/categories', permissions: ['INVENTORY_CATEGORY_VIEW', 'INVENTORY_CATEGORY_MANAGE'] },
       { label: 'Units of Measure',  icon: 'straighten', route: '/inventory/uoms',        permissions: ['INVENTORY_UOM_VIEW', 'INVENTORY_UOM_MANAGE'] },
       { label: 'Brands',            icon: 'sell',        route: '/inventory/brands',     permissions: ['INVENTORY_BRAND_VIEW', 'INVENTORY_BRAND_MANAGE'] },
+      { label: 'UOM Conversion Templates', icon: 'sync_alt', route: '/inventory/uom-conversion-templates', permissions: ['INVENTORY_UOM_TEMPLATE_VIEW', 'INVENTORY_UOM_TEMPLATE_MANAGE'] },
       { label: 'Locations',         icon: 'store',       route: '/inventory/locations',  permissions: ['INVENTORY_LOCATION_VIEW', 'INVENTORY_LOCATION_MANAGE'] },
       // -- Stock visibility --
       { label: 'Stock Balance',     icon: 'inventory',   route: '/inventory/stock/balances', permissions: ['INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE'] },
