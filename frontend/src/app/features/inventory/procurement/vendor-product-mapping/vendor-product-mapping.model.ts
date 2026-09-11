@@ -16,6 +16,10 @@ export interface VendorProductMapping {
   productCode: string;
   productName: string;
   rateContractId: number | null;
+  /** The supplier's own SKU/part number for this product — commonly differs from ours. */
+  vendorPartNumber: string | null;
+  /** The supplier's own name for this product, if it differs from ours. */
+  vendorProductName: string | null;
   unitPrice: number;
   currencyCode: string;
   uomId: number | null;
@@ -47,6 +51,8 @@ export interface VendorProductMappingRequest {
   supplierId: number;
   productId: number;
   rateContractId?: number;
+  vendorPartNumber?: string;
+  vendorProductName?: string;
   unitPrice: number;
   currencyCode?: string;
   uomId?: number;

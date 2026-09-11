@@ -170,6 +170,8 @@ public class VendorProductMappingService {
         mapping.setSupplier(supplier);
         mapping.setProduct(product);
         mapping.setRateContract(rateContract);
+        mapping.setVendorPartNumber(trim(request.vendorPartNumber()));
+        mapping.setVendorProductName(trim(request.vendorProductName()));
         mapping.setUnitPrice(request.unitPrice());
         mapping.setCurrencyCode(request.currencyCode() != null && !request.currencyCode().isBlank()
             ? request.currencyCode().toUpperCase() : "INR");
@@ -207,10 +209,17 @@ public class VendorProductMappingService {
             m.getId(), supplier.getId(), supplier.getSupplierName(),
             product.getId(), product.getProductCode(), product.getProductName(),
             contract != null ? contract.getId() : null,
+            m.getVendorPartNumber(), m.getVendorProductName(),
             m.getUnitPrice(), m.getCurrencyCode(),
             uom != null ? uom.getId() : null, uom != null ? uom.getCode() : null,
             m.getMinOrderQty(), m.getLeadTimeDays(), m.getIsPreferred(), m.getIsActive(),
             effectivePrice, priceSource, m.getCreatedAt(), m.getUpdatedAt());
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 
     private static boolean isWithinActiveWindow(RateContract contract) {

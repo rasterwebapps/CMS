@@ -53,6 +53,15 @@ public class VendorProductMapping {
     @JoinColumn(name = "rate_contract_id")
     private RateContract rateContract;
 
+    /** The supplier's own SKU/part number for this product — commonly differs from ours; used to
+     *  match their invoice/catalog line back to our Product. */
+    @Column(name = "vendor_part_number", length = 100)
+    private String vendorPartNumber;
+
+    /** The supplier's own name for this product, if it differs from ours. */
+    @Column(name = "vendor_product_name", length = 200)
+    private String vendorProductName;
+
     @Column(name = "unit_price", nullable = false, precision = 14, scale = 2)
     private BigDecimal unitPrice;
 
@@ -94,6 +103,12 @@ public class VendorProductMapping {
 
     public RateContract getRateContract() { return rateContract; }
     public void setRateContract(RateContract rateContract) { this.rateContract = rateContract; }
+
+    public String getVendorPartNumber() { return vendorPartNumber; }
+    public void setVendorPartNumber(String vendorPartNumber) { this.vendorPartNumber = vendorPartNumber; }
+
+    public String getVendorProductName() { return vendorProductName; }
+    public void setVendorProductName(String vendorProductName) { this.vendorProductName = vendorProductName; }
 
     public BigDecimal getUnitPrice() { return unitPrice; }
     public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }

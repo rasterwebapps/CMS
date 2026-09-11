@@ -11,6 +11,8 @@ public record VendorProductMappingResponse(
     String productCode,
     String productName,
     Long rateContractId,
+    String vendorPartNumber,
+    String vendorProductName,
     BigDecimal unitPrice,
     String currencyCode,
     Long uomId,

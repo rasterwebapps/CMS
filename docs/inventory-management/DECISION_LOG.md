@@ -1607,4 +1607,29 @@ byte-for-byte unchanged. `ProductFormComponent` gained a "Stock Tracking" `<sele
 `StockMovementService.java` (`requireTrackingModeCompliance`); `ProductServiceTest.java`,
 `StockMovementServiceTest.java`; frontend `product.model.ts`, `product-form.component.ts/html`.
 
+---
+
+## 2026-09-11 — Vendor part-number/name on VendorProductMapping
+
+**Prompted by:** Phase 1 item #3 of the approved Product/Inventory extension program — a small,
+additive field pair matching what a supplier's own catalog/invoice calls a product, since that
+rarely matches our own `productCode`/`productName` and nothing in this module previously captured
+it.
+
+**What changed:** `VendorProductMapping` gains two optional columns, `vendor_part_number`
+(VARCHAR 100) and `vendor_product_name` (VARCHAR 200), migration V484. Trimmed to null the same
+way every other optional free-text field in this module already is (blank input never gets stored
+as an empty string). Surfaced on the mapping form right after the Rate Contract field, ahead of
+pricing — reads as "identify the thing, then price it." Left off the list-screen table
+(already at 7 columns; the form is where you'd look these up for a specific mapping).
+
+**Verified:** new `VendorProductMappingServiceTest` (previously no test file existed for this
+service) — 4 cases covering store/return, trim, blank-to-null, and optional-when-omitted — plus
+the full backend suite, all green. `npx tsc -p tsconfig.app.json --noEmit` clean.
+
+**Impact:** `V484__add_vendor_identifiers_to_vendor_product_mappings.sql`;
+`VendorProductMapping.java`; `VendorProductMappingRequest`/`Response`;
+`VendorProductMappingService.java`; new `VendorProductMappingServiceTest.java`; frontend
+`vendor-product-mapping.model.ts`, `vendor-product-mapping-form.component.ts/html`.
+
 *Next entry goes here — do not insert above this line.*

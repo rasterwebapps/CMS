@@ -17,6 +17,12 @@ public record VendorProductMappingRequest(
 
     Long rateContractId,
 
+    @Size(max = 100, message = "Vendor part number must not exceed 100 characters")
+    String vendorPartNumber,
+
+    @Size(max = 200, message = "Vendor product name must not exceed 200 characters")
+    String vendorProductName,
+
     @NotNull(message = "Unit price is required")
     @DecimalMin(value = "0", message = "Unit price cannot be negative")
     BigDecimal unitPrice,

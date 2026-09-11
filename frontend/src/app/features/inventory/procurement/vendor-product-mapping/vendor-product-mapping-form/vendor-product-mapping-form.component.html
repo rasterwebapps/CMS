@@ -80,6 +80,17 @@
 
             <div class="vpm-form-grid">
               <div class="field-group">
+                <label for="vpm-vendor-part-number" class="field-label">Vendor Part Number</label>
+                <input id="vpm-vendor-part-number" type="text" class="field-input" formControlName="vendorPartNumber" placeholder="Supplier's own SKU/code, if different" />
+              </div>
+              <div class="field-group">
+                <label for="vpm-vendor-product-name" class="field-label">Vendor Product Name</label>
+                <input id="vpm-vendor-product-name" type="text" class="field-input" formControlName="vendorProductName" placeholder="Supplier's own name for this product, if different" />
+              </div>
+            </div>
+
+            <div class="vpm-form-grid">
+              <div class="field-group">
                 <label for="vpm-price" class="field-label">Unit Price <span class="required-star">*</span></label>
                 <input id="vpm-price" type="number" step="0.01" min="0" class="field-input" formControlName="unitPrice"
                   [class.field-input--error]="form.get('unitPrice')?.invalid && form.get('unitPrice')?.touched" />
