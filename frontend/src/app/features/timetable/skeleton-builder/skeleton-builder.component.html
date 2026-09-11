@@ -270,6 +270,29 @@
                         @if (seg.window.busDepart && seg.window.busReturn) {
                           <span class="skeleton-shift-block__bus">Buffer {{ seg.window.busDepart }}–{{ seg.window.busReturn }}</span>
                         }
+
+                        <!-- Sessions still scheduled inside this duty window. The periods they sit
+                             in are collapsed into this banner, so without this they render nowhere
+                             at all while staying active in the draft. Each opens the same cell menu
+                             as a normal cell, so Remove is reachable. -->
+                        @if (cellsInsideShift(day, seg.window); as trapped) {
+                          @if (trapped.length > 0) {
+                            <div class="skeleton-shift-block__conflicts">
+                              <span class="skeleton-shift-block__conflicts-title">
+                                ⚠ {{ trapped.length }} session{{ trapped.length > 1 ? 's are' : ' is' }} scheduled inside this duty window
+                              </span>
+                              @for (c of trapped; track c.id) {
+                                <button type="button" class="skeleton-shift-block__conflict"
+                                  [disabled]="!canManage()"
+                                  [matMenuTriggerFor]="cellMenu"
+                                  [matMenuTriggerData]="{ cell: c }"
+                                  [title]="'Students are on clinical duty then — open to remove or move this session'">
+                                  {{ c.slotName }} · {{ c.subjectCode }} ({{ c.sessionType }})
+                                </button>
+                              }
+                            </div>
+                          }
+                        }
                       </div>
                     </td>
                   } @else {

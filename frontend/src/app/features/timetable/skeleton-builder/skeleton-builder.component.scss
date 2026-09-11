@@ -515,3 +515,50 @@
 ::ng-deep .skeleton-cell-menu .skeleton-cell-menu__danger {
   color: var(--cms-danger);
 }
+
+// ─── Sessions trapped inside a Clinical Shift duty window ──────────────────
+// The periods these sit in are collapsed into the duty banner, so they have nowhere else to
+// render. Shown here rather than left invisible: they stay active in the draft, and an admin can
+// only act on what they can see.
+.skeleton-shift-block__conflicts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--cms-danger);
+}
+
+.skeleton-shift-block__conflicts-title {
+  flex: 0 0 100%;
+  text-align: center;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-danger);
+}
+
+.skeleton-shift-block__conflict {
+  padding: 2px 8px;
+  border: 1px solid var(--cms-danger);
+  border-radius: 999px;
+  // danger-light is a pale red in light mode and a translucent red over the dark surface in dark,
+  // so the text colour is set from the primary token rather than inherited from the banner.
+  background: var(--cms-danger-light);
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--cms-danger);
+    filter: brightness(0.97);
+  }
+}

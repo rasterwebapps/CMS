@@ -194,6 +194,25 @@ export class SkeletonBuilderComponent implements OnInit {
     return segments;
   }
 
+  /** Sessions that are still scheduled inside a Clinical Shift duty window.
+   *
+   *  <p>These would otherwise be completely invisible. {@link rowSegments} collapses every period
+   *  a shift covers into ONE banner segment, so cells sitting in those periods are never rendered
+   *  — not painted over, but absent from the DOM entirely. They stay active in the database and,
+   *  until the matching Conflict Inspector check was added, also passed the scan that gates
+   *  Publish, so they could reach a published timetable without anyone seeing them.
+   *
+   *  <p>Nothing revalidates already-placed rows when a shift group's start time, duration or
+   *  travel buffer is edited, which is exactly how a week that was legal when built acquires them.
+   *  Surfacing them in the banner is what makes them removable at all from this screen. */
+  protected cellsInsideShift(day: string, window: ClinicalShiftWindow): SkeletonCell[] {
+    if (!window.busDepart || !window.busReturn) return [];
+    return this.visibleCells()
+      .filter((c) => c.dayOfWeek === day
+        && c.startTime < window.busReturn!
+        && window.busDepart! < c.endTime);
+  }
+
   /** Total clinical duty duration (clinicalStart–clinicalEnd only, excluding bus travel) as a
    *  compact label like "8h" or "8h 30m". Null when the offering's shift duration isn't configured
    *  yet (clinicalEnd unset) or resolves to zero/negative. */
@@ -571,9 +590,16 @@ export class SkeletonBuilderComponent implements OnInit {
    *  different rooms, a Rotation Group's linked cells, or (now cohort-wide) another subject
    *  entirely — so this returns every cell sharing that slot across the whole cohort. */
   protected cellsFor(day: string, periodId: number): SkeletonCell[] {
+    return this.visibleCells().filter((c) => c.dayOfWeek === day && c.periodId === periodId);
+  }
+
+  /** Every loaded cell the current section filter admits. Extracted so the section filter has one
+   *  definition — {@link cellsFor} and {@link cellsInsideShift} select by different criteria
+   *  (period id vs. clock-time overlap) but must agree on which sections are in scope. */
+  private visibleCells(): SkeletonCell[] {
     const sectionFilter = this.selectedSectionId();
-    return this.skeleton()?.cells.filter((c) => c.dayOfWeek === day && c.periodId === periodId
-      && (sectionFilter === 'ALL' || c.cohortSectionId == null || c.cohortSectionId === sectionFilter)) ?? [];
+    return this.skeleton()?.cells.filter((c) =>
+      sectionFilter === 'ALL' || c.cohortSectionId == null || c.cohortSectionId === sectionFilter) ?? [];
   }
 
   protected subjectColor(courseOfferingId: number | null): string {

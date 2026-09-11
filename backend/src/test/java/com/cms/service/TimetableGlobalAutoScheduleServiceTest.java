@@ -120,6 +120,7 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private SubjectRepository subjectRepository;
     @Mock private SystemConfigurationService systemConfigurationService;
     @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
+    @Mock private TimetableClinicalShiftChecker clinicalShiftChecker;
     @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
     @Mock private RotationGroupService rotationGroupService;
     @Mock private RotationGroupRepository rotationGroupRepository;
@@ -150,7 +151,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TimetableGlobalAutoScheduleService(timetableSkeletonService, timetableStaffingService,
+        service = new TimetableGlobalAutoScheduleService(timetableSkeletonService, timetableStaffingService, clinicalShiftChecker,
             timetableCapacityPlanningService, courseOfferingService, courseOfferingRepository, classScheduleRepository,
             studentTermEnrollmentRepository, cohortRepository, batchRepository,
             courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,

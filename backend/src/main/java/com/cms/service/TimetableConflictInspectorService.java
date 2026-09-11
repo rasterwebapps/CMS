@@ -3,14 +3,18 @@ package com.cms.service;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.ConflictScanResponse;
+import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.TimetableConflictRow;
 import com.cms.exception.ResourceNotFoundException;
@@ -18,7 +22,9 @@ import com.cms.model.ClassSchedule;
 import com.cms.model.Faculty;
 import com.cms.model.Room;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.EnrollmentStatus;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
 /**
@@ -39,14 +45,24 @@ public class TimetableConflictInspectorService {
     private final TimetableStaffingService timetableStaffingService;
     private final TimetableBlockedPeriodChecker blockedPeriodChecker;
 
+    private final TimetableClinicalShiftChecker clinicalShiftChecker;
+    private final CourseOfferingService courseOfferingService;
+    private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+
     public TimetableConflictInspectorService(ClassScheduleRepository classScheduleRepository,
                                               TermInstanceRepository termInstanceRepository,
                                               TimetableStaffingService timetableStaffingService,
-                                              TimetableBlockedPeriodChecker blockedPeriodChecker) {
+                                              TimetableBlockedPeriodChecker blockedPeriodChecker,
+                                              TimetableClinicalShiftChecker clinicalShiftChecker,
+                                              CourseOfferingService courseOfferingService,
+                                              StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.timetableStaffingService = timetableStaffingService;
         this.blockedPeriodChecker = blockedPeriodChecker;
+        this.clinicalShiftChecker = clinicalShiftChecker;
+        this.courseOfferingService = courseOfferingService;
+        this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
     }
 
     public ConflictScanResponse scanTerm(Long termInstanceId) {
@@ -60,8 +76,14 @@ public class TimetableConflictInspectorService {
         List<TimetableConflictRow> rows = new ArrayList<>();
         Map<String, Integer> countsByCode = new TreeMap<>();
 
+        // Built once for the whole scan: which cohorts each offering actually serves. Needed only
+        // for cells that carry no CohortSection (electives are placed per cohort, not per section),
+        // where the audience cohort isn't reachable from the row itself. Resolving it per row would
+        // mean one query set per cell across the entire term.
+        Map<Long, Set<Long>> cohortsByOffering = buildCohortsByOffering(termInstanceId);
+
         for (ClassSchedule cs : cells) {
-            List<ConstraintViolation> violations = checkCell(cs, term);
+            List<ConstraintViolation> violations = checkCell(cs, term, cohortsByOffering);
             if (violations.isEmpty()) {
                 continue;
             }
@@ -85,7 +107,21 @@ public class TimetableConflictInspectorService {
         );
     }
 
-    private List<ConstraintViolation> checkCell(ClassSchedule cs, TermInstance term) {
+    /** offeringId -> the cohorts enrolled in this term that actually take it. Inverts
+     *  {@code CourseOfferingService#getOfferingsByTermInstanceAndCohort}, which only runs the
+     *  cohort-to-offerings direction, by walking each enrolled cohort once. */
+    private Map<Long, Set<Long>> buildCohortsByOffering(Long termInstanceId) {
+        Map<Long, Set<Long>> byOffering = new HashMap<>();
+        for (Long cohortId : studentTermEnrollmentRepository
+                .findDistinctCohortIdsByTermInstanceId(termInstanceId, EnrollmentStatus.ENROLLED)) {
+            for (CourseOfferingDto offering : courseOfferingService.getOfferingsByTermInstanceAndCohort(termInstanceId, cohortId)) {
+                byOffering.computeIfAbsent(offering.id(), k -> new HashSet<>()).add(cohortId);
+            }
+        }
+        return byOffering;
+    }
+
+    private List<ConstraintViolation> checkCell(ClassSchedule cs, TermInstance term, Map<Long, Set<Long>> cohortsByOffering) {
         LocalTime start = cs.getPeriod().getStartTime();
         LocalTime end = cs.getPeriod().getEndTime();
         List<ConstraintViolation> violations = new ArrayList<>();
@@ -93,6 +129,19 @@ public class TimetableConflictInspectorService {
         blockedPeriodChecker.blockReason(cs.getDayOfWeek(), start, end, term)
             .ifPresent(reason -> violations.add(new ConstraintViolation(
                 "CONFLICT_PERIOD_BLOCKED", "This day and period is blocked: " + reason)));
+
+        // A session sitting inside its own cohort's Clinical Shift duty window. Every placement
+        // path already refuses this, but nothing revalidates rows that were legal when placed and
+        // stopped being legal afterwards -- editing a shift group's start time, duration or travel
+        // buffer moves the window underneath an already-built week and revalidates nothing. Such a
+        // row stays active, is not drawn in the Skeleton Builder grid at all (its period collapses
+        // into the duty banner), and before this check it also passed the scan that gates Publish,
+        // so it could reach a published timetable entirely unseen.
+        Set<Long> fallbackCohorts = cs.getCourseOffering() != null
+            ? cohortsByOffering.getOrDefault(cs.getCourseOffering().getId(), Set.of())
+            : Set.of();
+        clinicalShiftChecker.blockReasonForCell(cs, fallbackCohorts)
+            .ifPresent(v -> violations.add(new ConstraintViolation("CONFLICT_CLINICAL_SHIFT_BLOCKED", v.message())));
 
         Faculty faculty = cs.getFaculty();
         if (faculty != null) {

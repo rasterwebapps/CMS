@@ -111,6 +111,7 @@ public class TimetableSkeletonService {
     private final TimetableStaffingService timetableStaffingService;
     private final ClinicalShiftGroupRepository clinicalShiftGroupRepository;
     private final ClinicalShiftGroupService clinicalShiftGroupService;
+    private final TimetableClinicalShiftChecker clinicalShiftChecker;
     private final FacultyRepository facultyRepository;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
@@ -130,6 +131,7 @@ public class TimetableSkeletonService {
                                      TimetableStaffingService timetableStaffingService,
                                      ClinicalShiftGroupRepository clinicalShiftGroupRepository,
                                      ClinicalShiftGroupService clinicalShiftGroupService,
+                                    TimetableClinicalShiftChecker clinicalShiftChecker,
                                      FacultyRepository facultyRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
@@ -148,6 +150,7 @@ public class TimetableSkeletonService {
         this.timetableStaffingService = timetableStaffingService;
         this.clinicalShiftGroupRepository = clinicalShiftGroupRepository;
         this.clinicalShiftGroupService = clinicalShiftGroupService;
+        this.clinicalShiftChecker = clinicalShiftChecker;
         this.facultyRepository = facultyRepository;
     }
 
@@ -622,22 +625,7 @@ public class TimetableSkeletonService {
      *  institution-wide/cohort-agnostic by design, while this one is cohort-scoped. No-op (empty)
      *  when the cohort's Program hasn't opted in. */
     private Optional<ConstraintViolation> checkClinicalShiftBlocked(Long cohortId, DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
-        if (cohortId == null) {
-            return Optional.empty();
-        }
-        Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
-        if (cohort == null || cohort.getProgram() == null
-            || !Boolean.TRUE.equals(cohort.getProgram().getUsesClinicalShiftScheduling())) {
-            return Optional.empty();
-        }
-        List<ClinicalShiftWindow> windows = clinicalShiftGroupService
-            .resolveActiveWindowsForCohort(cohortId, termInstance.getId());
-        return windows.stream()
-            .filter(w -> w.dayOfWeek() == dayOfWeek && w.overlaps(period.getStartTime(), period.getEndTime()))
-            .findFirst()
-            .map(w -> new ConstraintViolation("SKELETON_CELL_CLINICAL_SHIFT_BLOCKED",
-                "This day and period falls within this cohort's Clinical Shift window (" + w.label() + ", "
-                    + w.busDepart() + "–" + w.busReturn() + " incl. travel)"));
+        return clinicalShiftChecker.blockReason(cohortId, dayOfWeek, period, termInstance);
     }
 
     /** Used by {@link #suggestCandidates} to silently skip a blocked slot rather than surfacing a

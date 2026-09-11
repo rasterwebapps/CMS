@@ -89,6 +89,7 @@ class TimetableSkeletonServiceTest {
     @Mock private TimetableStaffingService timetableStaffingService;
     @Mock private ClinicalShiftGroupRepository clinicalShiftGroupRepository;
     @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
+    @Mock private TimetableClinicalShiftChecker clinicalShiftChecker;
     @Mock private com.cms.repository.FacultyRepository facultyRepository;
 
     private TimetableSkeletonService service;
@@ -107,7 +108,7 @@ class TimetableSkeletonServiceTest {
             periodRepository, batchRepository, batchService, blockedPeriodChecker,
             rotationSlotRepository, rotationMemberAssignmentRepository, rotationResolverService, courseOfferingService,
             cohortRepository, termInstanceRepository, cohortRoomAllocationRepository, cohortSectionRepository,
-            timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService, facultyRepository);
+            timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService, clinicalShiftChecker, facultyRepository);
         lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(anyLong())).thenReturn(List.of());
         lenient().when(clinicalShiftGroupService.resolveActiveWindowsForCohort(anyLong(), anyLong())).thenReturn(List.of());
 

@@ -222,6 +222,7 @@ public class TimetableGlobalAutoScheduleService {
 
     private final TimetableSkeletonService timetableSkeletonService;
     private final TimetableStaffingService timetableStaffingService;
+    private final TimetableClinicalShiftChecker clinicalShiftChecker;
     private final TimetableCapacityPlanningService timetableCapacityPlanningService;
     private final CourseOfferingService courseOfferingService;
     private final CourseOfferingRepository courseOfferingRepository;
@@ -253,6 +254,7 @@ public class TimetableGlobalAutoScheduleService {
 
     public TimetableGlobalAutoScheduleService(TimetableSkeletonService timetableSkeletonService,
                                                TimetableStaffingService timetableStaffingService,
+                                             TimetableClinicalShiftChecker clinicalShiftChecker,
                                                TimetableCapacityPlanningService timetableCapacityPlanningService,
                                                CourseOfferingService courseOfferingService,
                                                CourseOfferingRepository courseOfferingRepository,
@@ -277,6 +279,7 @@ public class TimetableGlobalAutoScheduleService {
                                                RotationMemberAssignmentRepository rotationMemberAssignmentRepository) {
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableStaffingService = timetableStaffingService;
+        this.clinicalShiftChecker = clinicalShiftChecker;
         this.timetableCapacityPlanningService = timetableCapacityPlanningService;
         this.courseOfferingService = courseOfferingService;
         this.courseOfferingRepository = courseOfferingRepository;
@@ -1244,7 +1247,12 @@ public class TimetableGlobalAutoScheduleService {
         int totalStaffed = 0;
         int totalUnfillableSelfStudyPeriods = 0;
         List<CohortPlacementSummary> summaries = new ArrayList<>();
-        Set<Long> electiveGroupIdsSeen = new LinkedHashSet<>();
+        // Which cohorts each elective group actually draws students from. A group's one shared slot
+        // has to be free of Clinical Shift duty for EVERY one of them, and duty windows are
+        // cohort-scoped, so Phase 3 can't do that check without knowing who they are. Collected
+        // here rather than re-derived later because this loop is the only place the two are in
+        // scope together.
+        Map<Long, Set<Long>> electiveGroupCohorts = new LinkedHashMap<>();
 
         // Phase 0: build every cohort's own context (skeleton, per-cohort dayLoad, unplaced list)
         // and flatten its still-short rows -- but LAB/CLINICAL rows go into one global queue instead
@@ -1267,7 +1275,9 @@ public class TimetableGlobalAutoScheduleService {
                 }
                 if (timetableSkeletonService.isElectiveOffering(offering)) {
                     if (subject.electiveGroupId() != null) {
-                        electiveGroupIdsSeen.add(subject.electiveGroupId());
+                        electiveGroupCohorts
+                            .computeIfAbsent(subject.electiveGroupId(), k -> new LinkedHashSet<>())
+                            .add(id);
                     }
                     continue;
                 }
@@ -1407,8 +1417,10 @@ public class TimetableGlobalAutoScheduleService {
         // leaving it last would let filler swallow the entire week before the elective group ever
         // got a slot to ask for.
         List<AutoPlaceUnplacedItem> electiveUnplaced = new ArrayList<>();
-        for (Long electiveGroupId : electiveGroupIdsSeen) {
-            int placed = placeAndStaffElectiveGroup(termInstanceId, electiveGroupId, term, periods, electiveUnplaced);
+        for (Map.Entry<Long, Set<Long>> entry : electiveGroupCohorts.entrySet()) {
+            Long electiveGroupId = entry.getKey();
+            int placed = placeAndStaffElectiveGroup(termInstanceId, electiveGroupId, term, periods, electiveUnplaced,
+                entry.getValue());
             totalPlaced += placed;
             totalStaffed += placed;
         }
@@ -3761,7 +3773,7 @@ public class TimetableGlobalAutoScheduleService {
      *  failure adds to {@code unplacedSink} and returns 0 instead of throwing, so one group's
      *  problem never aborts the whole term-wide run. */
     private int placeAndStaffElectiveGroup(Long termInstanceId, Long electiveGroupId, TermInstance term, List<Period> periods,
-                                            List<AutoPlaceUnplacedItem> unplacedSink) {
+                                            List<AutoPlaceUnplacedItem> unplacedSink, Set<Long> audienceCohortIds) {
         List<CourseOffering> members = courseOfferingRepository
             .findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(termInstanceId, electiveGroupId);
         if (members.isEmpty()) {
@@ -3814,9 +3826,22 @@ public class TimetableGlobalAutoScheduleService {
             return unplacedTheoryMembers.size();
         }
 
+        int dutyBlockedSlots = 0;
         for (DayOfWeek day : DayOfWeek.values()) {
             for (Period period : periods) {
                 if (blockedPeriodChecker.blockReason(day, period.getStartTime(), period.getEndTime(), term).isPresent()) {
+                    continue;
+                }
+                // Institutional blocks alone are not enough. A group's single shared slot must also
+                // be free of Clinical Shift duty for EVERY cohort drawing students from it -- those
+                // windows are cohort-scoped, so blockedPeriodChecker (which is deliberately
+                // institution-wide) cannot see them. Skipping this put real elective sessions
+                // inside a duty window where the students were off-campus, and because the grid
+                // collapses duty periods into one banner those sessions then rendered nowhere at
+                // all. The admin-driven placeElectiveGroup had always checked this; only the
+                // automated path had not.
+                if (clinicalShiftChecker.blocksAnyCohort(audienceCohortIds, day, period, term)) {
+                    dutyBlockedSlots++;
                     continue;
                 }
                 Classroom classroom = firstFreeClassroom(activeClassrooms, registeredStrength, day, period, term);
@@ -3828,8 +3853,16 @@ public class TimetableGlobalAutoScheduleService {
                 }
             }
         }
+        // Name clinical duty explicitly when it was a factor. Otherwise this reads as a
+        // faculty/room problem and sends the admin hunting for staffing capacity that isn't the
+        // actual constraint -- the group's students are simply off-campus for those slots.
+        String reason = dutyBlockedSlots > 0
+            ? "no day/period found where every member's bound faculty and a suitable room are all free"
+                + " (" + dutyBlockedSlots + " slot(s) were also ruled out because a participating cohort"
+                + " is away on Clinical Shift duty then)"
+            : "no day/period found where every member's bound faculty and a suitable room are all free";
         unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
-            "no day/period found where every member's bound faculty and a suitable room are all free", null));
+            reason, null));
         return 0;
     }
 
