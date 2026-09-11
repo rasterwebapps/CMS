@@ -34,6 +34,10 @@ export interface Product {
   brandName?: string | null;
   reorderLevel?: number | null;
   reorderQty?: number | null;
+  /** Baseline cost, independent of any one supplier's negotiated VendorProductMapping rate. */
+  standardCost?: number | null;
+  /** List price / MRP — the default reference selling price. */
+  listPrice?: number | null;
   isAsset: boolean;
   isConsumable: boolean;
   isService: boolean;
@@ -66,6 +70,8 @@ export interface ProductRequest {
   brandId?: number | null;
   reorderLevel?: number | null;
   reorderQty?: number | null;
+  standardCost?: number | null;
+  listPrice?: number | null;
   isAsset?: boolean;
   isConsumable?: boolean;
   isService?: boolean;

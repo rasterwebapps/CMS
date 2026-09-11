@@ -150,6 +150,8 @@ public class ProductService {
         product.setBrand(brand);
         product.setReorderLevel(request.reorderLevel());
         product.setReorderQty(request.reorderQty());
+        product.setStandardCost(request.standardCost());
+        product.setListPrice(request.listPrice());
         if (request.isAsset() != null) product.setIsAsset(request.isAsset());
         if (request.isConsumable() != null) product.setIsConsumable(request.isConsumable());
         if (request.isService() != null) product.setIsService(request.isService());
@@ -290,7 +292,8 @@ public class ProductService {
         return new ProductResponse(p.getId(), p.getProductCode(), p.getProductName(),
             category.getId(), category.getName(), uom.getId(), uom.getCode(), uom.getName(),
             brand != null ? brand.getId() : null, brand != null ? brand.getName() : null,
-            p.getReorderLevel(), p.getReorderQty(), p.getIsAsset(), p.getIsConsumable(), p.getIsService(), p.getIsLoanable(),
+            p.getReorderLevel(), p.getReorderQty(), p.getStandardCost(), p.getListPrice(),
+            p.getIsAsset(), p.getIsConsumable(), p.getIsService(), p.getIsLoanable(),
             p.getTrackingMode().name(),
             p.getDepreciationRate(), p.getWarrantyPeriodMonths(),
             p.getLengthCm(), p.getWidthCm(), p.getHeightCm(), p.getWeightKg(),

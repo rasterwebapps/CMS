@@ -29,6 +29,11 @@ public record ProductRequest(
     BigDecimal reorderLevel,
     BigDecimal reorderQty,
 
+    /** Baseline cost, independent of any one supplier's negotiated VendorProductMapping rate. */
+    BigDecimal standardCost,
+    /** List price / MRP — the default reference selling price. */
+    BigDecimal listPrice,
+
     Boolean isAsset,
     Boolean isConsumable,
     Boolean isService,

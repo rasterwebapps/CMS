@@ -1699,4 +1699,37 @@ storage, tracking-mode flag, vendor part-number/name, Brand master, dimensions/w
 (product-level pricing, HSN/SAC + default tax, shared UOM conversion templates) starts on explicit
 go-ahead, per the phased-plan approval.
 
+---
+
+## 2026-09-11 — Product-level pricing (standard cost, list price)
+
+**Prompted by:** Phase 2 item #6 (kickoff item) of the approved Product/Inventory extension
+program — the user said "go with existing flow" to start Phase 2 directly, so this proceeded
+without a fresh specialist round, per the pinned "go with existing flow" convention.
+
+**What changed:** `Product` gains `standardCost` and `listPrice` (both `NUMERIC(14,2)`, V488) —
+a baseline cost/price on the product itself, independent of any one supplier. This is
+deliberately separate from `VendorProductMapping.unitPrice`/`effectivePrice` (a specific
+supplier's negotiated rate, possibly contract-overridden) — neither reads from nor writes to the
+other; `resolveEffectiveRate`/`toResponse` in `VendorProductMappingService` are untouched. The
+distinction: `standardCost`/`listPrice` answer "what does this product typically cost/sell for,
+in general," while `VendorProductMapping` answers "what does *this* supplier charge for it,
+right now." The Phase 1 kickoff note framed this item as "needed as a base before variants get
+their own costing" — this slice only adds the Product-level fields; variant-level costing
+inheritance is out of scope until the variant subsystem itself is built (Phase 3).
+
+Named `listPrice` rather than `MRP` in code/columns, even though the kickoff note said "MRP/list
+price" — MRP (Maximum Retail Price) is India/pharma-specific jargon, and this module is meant to
+stay industry-agnostic (see the "no vertical branding" standing decision). The form label reads
+"List Price (MRP)" so the familiar term is still visible to users who expect it, without leaking
+into the schema/API.
+
+**Verified:** `ProductServiceTest`'s `request()` helper updated for the 2 new constructor
+positions; full backend suite green. `npx tsc -p tsconfig.app.json --noEmit` and `ng build
+--configuration production` both clean (pre-existing unrelated warnings only).
+
+**Impact:** `V488__add_pricing_to_products.sql`; `Product.java`; `ProductRequest`/`Response.java`;
+`ProductService.java`; `ProductServiceTest.java`; frontend `product.model.ts`,
+`product-form.component.ts/html` (new "Pricing (optional)" field group).
+
 *Next entry goes here — do not insert above this line.*

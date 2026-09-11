@@ -70,6 +70,15 @@ public class Product {
     @Column(name = "reorder_qty", precision = 14, scale = 3)
     private BigDecimal reorderQty;
 
+    /** Baseline cost, independent of any one supplier — a supplier's own negotiated rate is
+     *  {@code VendorProductMapping.unitPrice}/{@code effectivePrice}, unaffected by this field. */
+    @Column(name = "standard_cost", precision = 14, scale = 2)
+    private BigDecimal standardCost;
+
+    /** List price / MRP — the default reference selling price, independent of any one supplier. */
+    @Column(name = "list_price", precision = 14, scale = 2)
+    private BigDecimal listPrice;
+
     @Column(name = "is_asset", nullable = false)
     private Boolean isAsset = false;
 
@@ -150,6 +159,12 @@ public class Product {
 
     public BigDecimal getReorderQty() { return reorderQty; }
     public void setReorderQty(BigDecimal reorderQty) { this.reorderQty = reorderQty; }
+
+    public BigDecimal getStandardCost() { return standardCost; }
+    public void setStandardCost(BigDecimal standardCost) { this.standardCost = standardCost; }
+
+    public BigDecimal getListPrice() { return listPrice; }
+    public void setListPrice(BigDecimal listPrice) { this.listPrice = listPrice; }
 
     public Boolean getIsAsset() { return isAsset; }
     public void setIsAsset(Boolean isAsset) { this.isAsset = isAsset; }

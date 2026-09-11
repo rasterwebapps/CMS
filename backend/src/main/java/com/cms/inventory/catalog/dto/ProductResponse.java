@@ -17,6 +17,8 @@ public record ProductResponse(
     String brandName,
     BigDecimal reorderLevel,
     BigDecimal reorderQty,
+    BigDecimal standardCost,
+    BigDecimal listPrice,
     Boolean isAsset,
     Boolean isConsumable,
     Boolean isService,
