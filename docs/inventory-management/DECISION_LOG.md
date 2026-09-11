@@ -1664,4 +1664,39 @@ only). New nav entry ("Brands", same "Masters" cluster as Categories/UOM) and ro
 (model, service, list, form — new), `product.model.ts`, `product-form.component.ts/html`,
 `app.routes.ts`, `nav-config.ts`.
 
+---
+
+## 2026-09-11 — Dimensions/weight fields on Product
+
+**Prompted by:** Phase 1 item #5 (the last item) of the approved Product/Inventory extension
+program — plain additive fields, closing out Phase 1.
+
+**What changed:** `Product` gains `lengthCm`/`widthCm`/`heightCm` (`NUMERIC(10,2)`) and `weightKg`
+(`NUMERIC(10,3)`), migration V487. Unconstrained columns (no `CHECK`), matching the existing
+`depreciationRate`/`warrantyPeriodMonths` columns' shape exactly — this codebase's precedent for a
+plain optional numeric product field is "no DB-level constraint," so this follows it rather than
+introducing a one-off `CHECK (>= 0)` pattern nothing else here uses. The unit is implied by the
+column/field name (centimeters, kilograms) the same way `warrantyPeriodMonths` implies months —
+consistent, not a new convention. Frontend keeps a `min="0"`/`Validators.min(0)` client-side guard
+even though the column itself doesn't enforce it, matching how `reorderLevel`/`reorderQty` are
+already form-guarded without a matching DB constraint.
+
+Surfaced on the product form as an always-visible "Dimensions & weight (optional)" field group —
+unlike Depreciation Rate/Warranty Period, these aren't gated behind `isAsset`, since a shippable
+consumable (e.g. a box of test tubes) has real dimensions/weight for freight/storage purposes too,
+not just assets.
+
+**Verified:** `ProductServiceTest`'s `request()` helper updated for the 4 new constructor
+positions; full backend suite green. `npx tsc -p tsconfig.app.json --noEmit` and `ng build
+--configuration production` both clean (pre-existing unrelated warnings only).
+
+**Impact:** `V487__add_dimensions_weight_to_products.sql`; `Product.java`;
+`ProductRequest`/`Response.java`; `ProductService.java`; `ProductServiceTest.java`; frontend
+`product.model.ts`, `product-form.component.ts/html`.
+
+**This closes Phase 1 of the Product/Inventory extension program** (items #1–5: typed EAV
+storage, tracking-mode flag, vendor part-number/name, Brand master, dimensions/weight) — Phase 2
+(product-level pricing, HSN/SAC + default tax, shared UOM conversion templates) starts on explicit
+go-ahead, per the phased-plan approval.
+
 *Next entry goes here — do not insert above this line.*

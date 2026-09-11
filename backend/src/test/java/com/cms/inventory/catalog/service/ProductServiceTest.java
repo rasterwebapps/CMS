@@ -82,7 +82,8 @@ class ProductServiceTest {
     private ProductRequest request(List<ProductAttributeValueRequest> attributeValues) {
         return new ProductRequest("CHM-0001", "Sodium Chloride", 1L, 1L, null,
             null, null, null, null, null, null,
-            null, null, null, null, true,
+            null, null, null, null, null, null, null,
+            null, true,
             List.of(), attributeValues);
     }
 

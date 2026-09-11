@@ -41,6 +41,10 @@ export interface Product {
   trackingMode: StockTrackingMode;
   depreciationRate?: number | null;
   warrantyPeriodMonths?: number | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  weightKg?: number | null;
   description?: string;
   isActive: boolean;
   createdAt: string;
@@ -69,6 +73,10 @@ export interface ProductRequest {
   trackingMode?: StockTrackingMode;
   depreciationRate?: number | null;
   warrantyPeriodMonths?: number | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  weightKg?: number | null;
   description?: string;
   isActive?: boolean;
   aliases?: string[];

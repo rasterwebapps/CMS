@@ -157,6 +157,10 @@ public class ProductService {
         product.setTrackingMode(parseTrackingMode(request.trackingMode()));
         product.setDepreciationRate(request.depreciationRate());
         product.setWarrantyPeriodMonths(request.warrantyPeriodMonths());
+        product.setLengthCm(request.lengthCm());
+        product.setWidthCm(request.widthCm());
+        product.setHeightCm(request.heightCm());
+        product.setWeightKg(request.weightKg());
         product.setDescription(trim(request.description()));
         if (request.isActive() != null) product.setIsActive(request.isActive());
 
@@ -288,7 +292,9 @@ public class ProductService {
             brand != null ? brand.getId() : null, brand != null ? brand.getName() : null,
             p.getReorderLevel(), p.getReorderQty(), p.getIsAsset(), p.getIsConsumable(), p.getIsService(), p.getIsLoanable(),
             p.getTrackingMode().name(),
-            p.getDepreciationRate(), p.getWarrantyPeriodMonths(), p.getDescription(), p.getIsActive(),
+            p.getDepreciationRate(), p.getWarrantyPeriodMonths(),
+            p.getLengthCm(), p.getWidthCm(), p.getHeightCm(), p.getWeightKg(),
+            p.getDescription(), p.getIsActive(),
             p.getCreatedAt(), p.getUpdatedAt(), aliases, attrValues);
     }
 

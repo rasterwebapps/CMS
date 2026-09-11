@@ -94,6 +94,18 @@ public class Product {
     @Column(name = "warranty_period_months")
     private Integer warrantyPeriodMonths;
 
+    @Column(name = "length_cm", precision = 10, scale = 2)
+    private BigDecimal lengthCm;
+
+    @Column(name = "width_cm", precision = 10, scale = 2)
+    private BigDecimal widthCm;
+
+    @Column(name = "height_cm", precision = 10, scale = 2)
+    private BigDecimal heightCm;
+
+    @Column(name = "weight_kg", precision = 10, scale = 3)
+    private BigDecimal weightKg;
+
     @Column(length = 1000)
     private String description;
 
@@ -159,6 +171,18 @@ public class Product {
 
     public Integer getWarrantyPeriodMonths() { return warrantyPeriodMonths; }
     public void setWarrantyPeriodMonths(Integer warrantyPeriodMonths) { this.warrantyPeriodMonths = warrantyPeriodMonths; }
+
+    public BigDecimal getLengthCm() { return lengthCm; }
+    public void setLengthCm(BigDecimal lengthCm) { this.lengthCm = lengthCm; }
+
+    public BigDecimal getWidthCm() { return widthCm; }
+    public void setWidthCm(BigDecimal widthCm) { this.widthCm = widthCm; }
+
+    public BigDecimal getHeightCm() { return heightCm; }
+    public void setHeightCm(BigDecimal heightCm) { this.heightCm = heightCm; }
+
+    public BigDecimal getWeightKg() { return weightKg; }
+    public void setWeightKg(BigDecimal weightKg) { this.weightKg = weightKg; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
