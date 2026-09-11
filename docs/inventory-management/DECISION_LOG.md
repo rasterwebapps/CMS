@@ -1518,4 +1518,53 @@ wrong for a future reader.
 this is nav-grouping only, every route/permission stays exactly as it was).
 `docs/module-architecture/MODULE_REGISTRY.md`.
 
+---
+
+## 2026-09-11 — Typed EAV storage for ProductAttributeValue
+
+**Prompted by:** the user approving a phased "Product/Inventory extension" program (variant
+subsystem, real FX, barcode/label printing, and eight smaller items); this is Phase 1 item #1,
+picked to go first because the variant subsystem later in the program will also carry attribute
+values and should build on typed storage rather than duplicate the plain-text approach.
+
+**Reversed a prior decision, deliberately:** `ProductAttributeValue`'s own javadoc (written in the
+2026-09-07 "Product slice") said storage would stay plain text regardless of declared data type,
+with "parsing/validating by type is a display/input-form concern, not a storage concern." That was
+right for getting the Catalog slice shipped fast with no data yet in the table, but it meant a
+`NUMBER` attribute like "Shelf Life (months)" could silently hold `"twenty-four"`, and nothing
+could ever query/sort/aggregate by an attribute's real type. This entry supersedes it.
+
+**What changed:** `product_attribute_values` (V482) drops its single `value VARCHAR(500)` column
+for four typed columns — `text_value`, `number_value NUMERIC(18,4)`, `date_value`,
+`boolean_value` — exactly one of which is populated per row, chosen by the row's
+`CategoryAttribute.dataType` (`TEXT`/`ENUM` → `text_value`; `NUMBER` → `number_value`; `DATE` →
+`date_value`; `BOOLEAN` → `boolean_value`). The migration backfills any existing rows into the
+right column by joining `category_attributes.data_type` before dropping the old column — table was
+empty in every environment at the time (Catalog is still pre-release), so this was precautionary,
+not a real data-loss risk.
+
+**Where parsing/validation now lives:** kept in `ProductService` (`applyTypedValue`), not pushed
+into the entity — consistent with the superseded decision's reasoning that this is a
+service-layer concern, just no longer skipped. `NUMBER` parses as `BigDecimal`, `DATE` as
+`LocalDate` (ISO `yyyy-MM-dd`, matching the native `<input type=date>` the product form already
+uses), `BOOLEAN` requires literally `"true"`/`"false"` (matching the checkbox binding already in
+`product-form.component.html`), and `ENUM` is checked against `CategoryAttribute.enumOptions`
+split the same comma-separated way the frontend's `attributeOptions()` already does. A value that
+fails its type's parse/validation throws `IllegalArgumentException` naming the attribute, the same
+error-handling shape the rest of `ProductService` already uses for other 400s.
+`ProductAttributeValueRequest`/`Response` keep their plain-`String value` shape at the API
+boundary — the frontend form was already sending exactly the strings this parsing expects for
+every data type, so no frontend change was needed for this item.
+
+**Verified:** new `ProductServiceTest` (previously no test file existed for this service) covers
+all five data types' happy path and reject path, plus the pre-existing required-attribute and
+unknown-attribute-id checks — 11 tests, all passing. `./gradlew compileJava compileTestJava`
+clean.
+
+**Impact:** `V482__add_typed_columns_to_product_attribute_values.sql`;
+`ProductAttributeValue.java` (typed columns + `renderValue()`); `ProductService.java`
+(`applyTypedValue`/`parseEnumOptions`); `InventoryCatalogLocalDataSeeder.java` (its demo
+`attrValue()` helper now sets `textValue` directly, since all seeded demo attributes happen to be
+`TEXT`/`ENUM`); new `ProductServiceTest.java`. No DTO, controller, or frontend change.
+
 *Next entry goes here — do not insert above this line.*

@@ -154,10 +154,11 @@ public class InventoryCatalogLocalDataSeeder {
         return a;
     }
 
+    /** All demo attribute values here are TEXT or ENUM, so the plain text column is what they use. */
     private static ProductAttributeValue attrValue(CategoryAttribute attribute, String value) {
         ProductAttributeValue v = new ProductAttributeValue();
         v.setAttribute(attribute);
-        v.setValue(value);
+        v.setTextValue(value);
         return v;
     }
 
