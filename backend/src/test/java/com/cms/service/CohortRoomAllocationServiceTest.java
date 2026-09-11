@@ -75,6 +75,7 @@ class CohortRoomAllocationServiceTest {
     @Mock private BatchService batchService;
     @Mock private ClinicalShiftGroupRepository clinicalShiftGroupRepository;
     @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
+    @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
 
     private CohortRoomAllocationService service;
 
@@ -89,7 +90,7 @@ class CohortRoomAllocationServiceTest {
             termInstanceRepository, classroomRepository, labRepository, clinicalVenueRepository,
             courseOfferingRepository, batchRepository, studentTermEnrollmentRepository, classScheduleRepository,
             courseOfferingSectionFacultyRepository, batchService, clinicalShiftGroupRepository,
-            sessionOccurrenceRepository);
+            sessionOccurrenceRepository, courseOfferingSectionFacultyService);
 
         cohort = new Cohort();
         cohort.setId(1L);

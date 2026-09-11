@@ -56,7 +56,7 @@
                 @if (row.kind === 'THEORY') {
                   <tr>
                     <td class="tad-unit-cell">{{ row.unitLabel }}</td>
-                    <td class="tad-faculty-cell" colspan="4">
+                    <td class="tad-faculty-cell">
                       <select class="field-select"
                         [ngModel]="currentTheoryFacultyId(row)"
                         (ngModelChange)="onTheoryFacultyChange(row, $event)"
@@ -71,6 +71,9 @@
                         <p class="field-hint">No eligible faculty found for this subject — widen it from the Subject form's Eligible Faculty list.</p>
                       }
                     </td>
+                    <td class="tad-batch-col"></td>
+                    <td class="tad-capacity-col"></td>
+                    <td class="tad-batch-col"></td>
                   </tr>
                 } @else {
                   @if (batchFormGroup(row.source.id); as bf) {

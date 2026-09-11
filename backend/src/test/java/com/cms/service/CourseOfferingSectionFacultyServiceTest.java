@@ -14,6 +14,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,6 +41,7 @@ import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.FacultyRepository;
@@ -57,6 +59,7 @@ class CourseOfferingSectionFacultyServiceTest {
     @Mock private TimetableSkeletonService timetableSkeletonService;
     @Mock private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
     @Mock private BatchService batchService;
+    @Mock private CohortSectionRepository cohortSectionRepository;
 
     private CourseOfferingSectionFacultyService service;
 
@@ -70,7 +73,7 @@ class CourseOfferingSectionFacultyServiceTest {
     void setUp() {
         service = new CourseOfferingSectionFacultyService(courseOfferingRepository, sectionFacultyRepository,
             cohortRepository, studentTermEnrollmentRepository, facultyRepository, batchRepository,
-            timetableSkeletonService, timetableGlobalAutoScheduleService, batchService);
+            timetableSkeletonService, timetableGlobalAutoScheduleService, batchService, cohortSectionRepository);
 
         program = new Program("BSc Nursing", "BSCN", 4);
         program.setId(1L);
@@ -546,5 +549,127 @@ class CourseOfferingSectionFacultyServiceTest {
         SectionFacultyAssignment result = service.upsert(100L, 201L, null, null);
 
         assertThat(result.facultyId()).isNull();
+    }
+
+    /** Common mock scaffolding for an autoAssignTheory run over exactly one active offering
+     *  (id 100) with exactly one active section (id 201) belonging to one enrolled cohort. */
+    private CohortSection stubSingleOfferingTermFor(Cohort matchingCohort, List<Faculty> pool,
+                                                     List<CourseOfferingSectionFaculty> existingRowsForOffering) {
+        CohortSection targetSection = section(201L, matchingCohort, "A");
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(pool);
+        when(courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(offering));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Set.of(1L));
+        when(cohortRepository.findById(1L)).thenReturn(Optional.of(matchingCohort));
+        when(studentTermEnrollmentRepository.findByTermInstanceIdAndCohortId(10L, 1L))
+            .thenReturn(List.of(enrollmentAtSemester(3)));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of(targetSection));
+        when(sectionFacultyRepository.findByCourseOfferingId(100L)).thenReturn(existingRowsForOffering);
+        return targetSection;
+    }
+
+    /** The whole point of the ranking: with two equally eligible candidates, the one already
+     *  carrying load elsewhere in this same term must lose to the idle one. Seeded from BOTH
+     *  existing Theory rows (weighted by theoryCredits) and existing Lab/Clinical batch
+     *  coordinator duty, so a pass never starts everyone from zero. */
+    @Test
+    void autoAssignTheory_picksTheLeastLoadedEligibleCandidate() {
+        subject.setTheoryCredits(4);
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        Faculty alreadyLoaded = faculty(6L, subject.getSpeciality());
+        Faculty idle = faculty(7L, subject.getSpeciality());
+        CohortSection targetSection = stubSingleOfferingTermFor(matchingCohort, List.of(alreadyLoaded, idle), List.of());
+
+        // An assignment on a DIFFERENT offering in the same term -- 4 theory credits of load on 6L.
+        CourseOffering otherOffering = new CourseOffering();
+        otherOffering.setId(101L);
+        otherOffering.setTermInstance(termInstance);
+        otherOffering.setSubject(subject);
+        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L))
+            .thenReturn(List.of(new CourseOfferingSectionFaculty(otherOffering, targetSection, alreadyLoaded)));
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+
+        when(sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 201L)).thenReturn(Optional.empty());
+        when(facultyRepository.findById(7L)).thenReturn(Optional.of(idle));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 7L)).thenReturn(fitsWithinCapacity());
+        when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.AutoAssignTheoryResult result = service.autoAssignTheory(10L);
+
+        assertThat(result.assignedCount()).isEqualTo(1);
+        assertThat(result.skippedCount()).isZero();
+        ArgumentCaptor<CourseOfferingSectionFaculty> saved = ArgumentCaptor.forClass(CourseOfferingSectionFaculty.class);
+        verify(sectionFacultyRepository).save(saved.capture());
+        assertThat(saved.getValue().getFaculty().getId()).isEqualTo(7L);
+    }
+
+    /** A row someone already staffed -- by hand or by a previous run -- is never re-opened or
+     *  reshuffled, so a repeat run over a fully-staffed term is a clean no-op. */
+    @Test
+    void autoAssignTheory_neverTouchesAnAlreadyAssignedRow() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        Faculty existing = faculty(6L, subject.getSpeciality());
+        CohortSection targetSection = section(201L, matchingCohort, "A");
+        CourseOfferingSectionFaculty existingRow = new CourseOfferingSectionFaculty(offering, targetSection, existing);
+        stubSingleOfferingTermFor(matchingCohort, List.of(existing, faculty(7L, subject.getSpeciality())), List.of(existingRow));
+        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of(existingRow));
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+
+        com.cms.dto.AutoAssignTheoryResult result = service.autoAssignTheory(10L);
+
+        assertThat(result.assignedCount()).isZero();
+        assertThat(result.skippedCount()).isZero();
+        verify(sectionFacultyRepository, never()).save(any());
+    }
+
+    /** No eligible faculty exists for the subject at all (nobody in the speciality, nobody on its
+     *  Eligible Faculty list) -- the only case that legitimately leaves a row Unassigned, and it
+     *  has to come back named so the admin knows which one to fix. */
+    @Test
+    void autoAssignTheory_reportsAnOfferingWithNoEligibleFacultyAsSkipped() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        Speciality otherSpeciality = new Speciality("Community Health Nursing", "CHN", "dept", null, null);
+        otherSpeciality.setId(2L);
+        stubSingleOfferingTermFor(matchingCohort, List.of(faculty(6L, otherSpeciality)), List.of());
+        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of());
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+
+        com.cms.dto.AutoAssignTheoryResult result = service.autoAssignTheory(10L);
+
+        assertThat(result.assignedCount()).isZero();
+        assertThat(result.skippedCount()).isEqualTo(1);
+        assertThat(result.skippedOfferingNames()).containsExactly("Nursing Foundation (2023-2027 Batch)");
+        verify(sectionFacultyRepository, never()).save(any());
+    }
+
+    /** With a small faculty pool covering a whole curriculum, every eligible candidate being over
+     *  capacity is normal. Leaving the offering unstaffed would hide the overload; assigning it
+     *  anyway surfaces it on the Faculty Workload dashboard, which is what that dashboard is for.
+     *  Deliberately NOT counted as skipped -- the row does end up staffed. */
+    @Test
+    void autoAssignTheory_assignsAnOverCapacityCandidateAsALastResortRatherThanSkipping() {
+        Cohort matchingCohort = cohort(1L, "2023-2027 Batch");
+        Faculty onlyCandidate = faculty(6L, subject.getSpeciality());
+        CohortSection targetSection = stubSingleOfferingTermFor(matchingCohort, List.of(onlyCandidate), List.of());
+        when(sectionFacultyRepository.findByCourseOffering_TermInstanceId(10L)).thenReturn(List.of());
+        when(batchRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of());
+
+        when(sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 201L)).thenReturn(Optional.empty());
+        when(facultyRepository.findById(6L)).thenReturn(Optional.of(onlyCandidate));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L))
+            .thenReturn(new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, List.of()));
+        when(facultyRepository.getReferenceById(6L)).thenReturn(onlyCandidate);
+        when(cohortSectionRepository.getReferenceById(201L)).thenReturn(targetSection);
+        when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.AutoAssignTheoryResult result = service.autoAssignTheory(10L);
+
+        assertThat(result.assignedCount()).isEqualTo(1);
+        assertThat(result.skippedCount()).isZero();
+        ArgumentCaptor<CourseOfferingSectionFaculty> saved = ArgumentCaptor.forClass(CourseOfferingSectionFaculty.class);
+        verify(sectionFacultyRepository).save(saved.capture());
+        assertThat(saved.getValue().getFaculty().getId()).isEqualTo(6L);
+        assertThat(saved.getValue().getCohort().getId()).isEqualTo(1L);
     }
 }

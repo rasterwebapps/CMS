@@ -83,6 +83,7 @@ public class CohortRoomAllocationService {
     private final BatchService batchService;
     private final ClinicalShiftGroupRepository clinicalShiftGroupRepository;
     private final SessionOccurrenceRepository sessionOccurrenceRepository;
+    private final CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
 
     public CohortRoomAllocationService(CohortRoomAllocationRepository allocationRepository,
                                         CohortSectionRepository cohortSectionRepository,
@@ -98,7 +99,8 @@ public class CohortRoomAllocationService {
                                         CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository,
                                         BatchService batchService,
                                         ClinicalShiftGroupRepository clinicalShiftGroupRepository,
-                                        SessionOccurrenceRepository sessionOccurrenceRepository) {
+                                        SessionOccurrenceRepository sessionOccurrenceRepository,
+                                        CourseOfferingSectionFacultyService courseOfferingSectionFacultyService) {
         this.allocationRepository = allocationRepository;
         this.cohortSectionRepository = cohortSectionRepository;
         this.cohortRepository = cohortRepository;
@@ -114,6 +116,7 @@ public class CohortRoomAllocationService {
         this.batchService = batchService;
         this.clinicalShiftGroupRepository = clinicalShiftGroupRepository;
         this.sessionOccurrenceRepository = sessionOccurrenceRepository;
+        this.courseOfferingSectionFacultyService = courseOfferingSectionFacultyService;
     }
 
     public CohortRoomAllocationResponse getCurrent(Long cohortId, Long termInstanceId) {
@@ -254,6 +257,13 @@ public class CohortRoomAllocationService {
             String label = soleSectionLabel != null ? soleSectionLabel : split.cohortSectionLabel();
             createVentureBatch(allocation, sectionsByLabel.get(label), split);
         }
+
+        // A fresh or newly-split section orphans any whole-cohort Theory assignment this cohort
+        // had before (see CourseOfferingSectionFacultyService#getForOffering's own note on stale
+        // rows) -- fill the resulting gaps immediately rather than leaving every affected offering
+        // "Unassigned" until someone notices on the Assign Faculty screen or the Global
+        // Auto-Schedule checklist. Never touches a row this commit didn't just orphan.
+        courseOfferingSectionFacultyService.autoAssignTheory(request.termInstanceId());
 
         return toResponse(allocation);
     }

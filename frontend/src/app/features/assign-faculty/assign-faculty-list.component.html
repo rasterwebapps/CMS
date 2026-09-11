@@ -13,12 +13,21 @@
         }
       </p>
     </div>
-    @if (canViewClassIncharge()) {
+    @if (canViewClassIncharge() || canAutoAssign()) {
       <div class="mlp-hdr-actions">
-        <button class="btn-secondary" (click)="openClassIncharge()" [disabled]="!selectedTermInstanceId">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h3M15 12h3M6 16h12"/></svg>
-          Class Incharge
-        </button>
+        @if (canAutoAssign()) {
+          <button class="btn-secondary" (click)="autoAssignAll()" [disabled]="!selectedTermInstanceId || autoAssigning()"
+            title="Fill every Unassigned Theory row from the eligible faculty pool — never touches an existing assignment">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            @if (autoAssigning()) { Auto-Assigning… } @else { Auto-Assign }
+          </button>
+        }
+        @if (canViewClassIncharge()) {
+          <button class="btn-secondary" (click)="openClassIncharge()" [disabled]="!selectedTermInstanceId">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h3M15 12h3M6 16h12"/></svg>
+            Class Incharge
+          </button>
+        }
       </div>
     }
   </div>

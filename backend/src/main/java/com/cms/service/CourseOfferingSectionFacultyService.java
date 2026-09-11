@@ -1,6 +1,9 @@
 package com.cms.service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +15,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.AutoAssignTheoryResult;
 import com.cms.dto.ConfirmFacultySubstitutionItem;
 import com.cms.dto.ConfirmFacultySubstitutionsResult;
 import com.cms.dto.ConstraintViolation;
@@ -29,10 +33,13 @@ import com.cms.model.CourseOffering;
 import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
+import com.cms.model.Subject;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.OfferingAssignmentStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.CohortRepository;
+import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.FacultyRepository;
@@ -59,6 +66,7 @@ public class CourseOfferingSectionFacultyService {
     private final TimetableSkeletonService timetableSkeletonService;
     private final TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
     private final BatchService batchService;
+    private final CohortSectionRepository cohortSectionRepository;
 
     public CourseOfferingSectionFacultyService(CourseOfferingRepository courseOfferingRepository,
                                                 CourseOfferingSectionFacultyRepository sectionFacultyRepository,
@@ -68,7 +76,8 @@ public class CourseOfferingSectionFacultyService {
                                                 BatchRepository batchRepository,
                                                 TimetableSkeletonService timetableSkeletonService,
                                                 TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService,
-                                                BatchService batchService) {
+                                                BatchService batchService,
+                                                CohortSectionRepository cohortSectionRepository) {
         this.batchService = batchService;
         this.courseOfferingRepository = courseOfferingRepository;
         this.sectionFacultyRepository = sectionFacultyRepository;
@@ -78,6 +87,7 @@ public class CourseOfferingSectionFacultyService {
         this.batchRepository = batchRepository;
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableGlobalAutoScheduleService = timetableGlobalAutoScheduleService;
+        this.cohortSectionRepository = cohortSectionRepository;
     }
 
     /** One row per active section for a split cohort, or exactly one whole-cohort row for a
@@ -183,6 +193,100 @@ public class CourseOfferingSectionFacultyService {
             result.add(new CourseOfferingFacultySummaryDto(offering.getId(), names, status));
         }
         return result;
+    }
+
+    /** Fills every currently-Unassigned Theory row in a term instance from the 13-or-however-many
+     *  active faculty pool, ranked least-combined-load-first (existing Theory {@code
+     *  theoryCredits} sum + existing Lab/Clinical coordinator count, so this pass balances against
+     *  what everyone is ALREADY carrying, not from zero) -- never touches a row that already has a
+     *  faculty, whether that was set by a human or a prior auto-assign run. Runs the same
+     *  eligibility ({@link FacultyEligibility}) and elective-group-conflict gate {@link #upsert}/
+     *  {@link #upsertForCohort} already enforce for a manual save, but deliberately allows exceeding
+     *  a candidate's configured weekly/daily capacity as a last resort (tries every eligible
+     *  candidate under capacity first) -- with a small faculty pool covering a full curriculum,
+     *  real overload is the useful finding the Faculty Workload dashboard is for, not something to
+     *  hide by leaving the offering unstaffed. Called both from {@link
+     *  CohortRoomAllocationService#commit} (right after a Capacity Auto-Plan commit creates/splits
+     *  this term's sections) and on demand from the Assign Faculty screen. */
+    @Transactional
+    public AutoAssignTheoryResult autoAssignTheory(Long termInstanceId) {
+        List<Faculty> pool = facultyRepository.findByStatus(FacultyStatus.ACTIVE);
+        Map<Long, Double> load = new LinkedHashMap<>();
+        pool.forEach(f -> load.put(f.getId(), 0.0));
+
+        for (CourseOfferingSectionFaculty sf : sectionFacultyRepository.findByCourseOffering_TermInstanceId(termInstanceId)) {
+            Integer credits = sf.getCourseOffering().getSubject().getTheoryCredits();
+            load.merge(sf.getFaculty().getId(), credits != null ? credits.doubleValue() : 1.0, Double::sum);
+        }
+        for (Batch batch : batchRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId)) {
+            if (batch.getCoordinatorFaculty() != null) {
+                load.merge(batch.getCoordinatorFaculty().getId(), 1.0, Double::sum);
+            }
+        }
+
+        List<CourseOffering> offerings = courseOfferingRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+            .sorted(Comparator.comparing(CourseOffering::getSemesterNumber).thenComparing(o -> o.getSubject().getName()))
+            .toList();
+
+        int assignedCount = 0;
+        List<String> skippedNames = new ArrayList<>();
+
+        for (CourseOffering offering : offerings) {
+            CourseOfferingSectionFacultyResponse resp = getForOffering(offering.getId());
+            if (!resp.applicable()) {
+                continue;
+            }
+            for (SectionFacultyAssignment row : resp.sections()) {
+                if (row.facultyId() != null) {
+                    continue;
+                }
+                Subject subject = offering.getSubject();
+                double weight = subject.getTheoryCredits() != null ? subject.getTheoryCredits() : 1.0;
+
+                List<Faculty> eligible = FacultyEligibility.eligibleFaculty(subject, pool).stream()
+                    .sorted(Comparator.comparingDouble(f -> load.get(f.getId())))
+                    .toList();
+
+                Faculty chosen = null;
+                Faculty capacityFallback = null;
+                for (Faculty candidate : eligible) {
+                    try {
+                        if (row.cohortSectionId() != null) {
+                            upsert(offering.getId(), row.cohortSectionId(), candidate.getId(), row.version());
+                        } else {
+                            upsertForCohort(offering.getId(), row.cohortId(), candidate.getId(), row.version());
+                        }
+                        chosen = candidate;
+                        break;
+                    } catch (TimetableConstraintViolationException e) {
+                        boolean overCapacity = e.getViolations().stream().anyMatch(v -> "SECTION_FACULTY_OVER_CAPACITY".equals(v.code()));
+                        if (overCapacity && capacityFallback == null) {
+                            capacityFallback = candidate;
+                        }
+                    } catch (IllegalArgumentException e) {
+                        // eligibility/section-liveness rejection -- try next candidate
+                    }
+                }
+
+                if (chosen == null && capacityFallback != null) {
+                    Faculty faculty = facultyRepository.getReferenceById(capacityFallback.getId());
+                    CourseOfferingSectionFaculty forced = row.cohortSectionId() != null
+                        ? new CourseOfferingSectionFaculty(offering, cohortSectionRepository.getReferenceById(row.cohortSectionId()), faculty)
+                        : new CourseOfferingSectionFaculty(offering, cohortRepository.getReferenceById(row.cohortId()), faculty);
+                    sectionFacultyRepository.save(forced);
+                    chosen = capacityFallback;
+                }
+
+                if (chosen != null) {
+                    load.merge(chosen.getId(), weight, Double::sum);
+                    assignedCount++;
+                } else {
+                    skippedNames.add(subject.getName() + " (" + row.cohortName() + ")");
+                }
+            }
+        }
+
+        return new AutoAssignTheoryResult(assignedCount, skippedNames.size(), skippedNames);
     }
 
     /** {@code facultyId} null clears any existing override for this section. Gated by the same

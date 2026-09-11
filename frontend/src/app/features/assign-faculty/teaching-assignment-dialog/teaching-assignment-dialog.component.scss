@@ -168,8 +168,12 @@ mat-dialog-content {
 }
 
 // ── Batch-admin columns (name/capacity/actions), merged from the retired Manage Batches dialog ──
+// 240px comfortably fits the longer auto-generated "Clinical - Section N - Batch N" name pattern
+// without ellipsis-truncating it (measured: the td's own 24px padding plus the input's own 28px
+// padding already eats 52px before any text renders) -- the ellipsis stays as a safety net for a
+// longer manual rename.
 .tad-batch-col {
-  min-width: 120px;
+  min-width: 240px;
 
   .field-input {
     white-space: nowrap;

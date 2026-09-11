@@ -100,6 +100,7 @@ export class AssignFacultyListComponent implements OnInit {
   protected readonly dataSource = new MatTableDataSource<CourseOffering>([]);
   protected readonly loading = signal(false);
   protected readonly termsLoading = signal(false);
+  protected readonly autoAssigning = signal(false);
   protected readonly searchValue = signal('');
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
@@ -157,6 +158,10 @@ export class AssignFacultyListComponent implements OnInit {
 
   protected canViewClassIncharge(): boolean {
     return this.permissionService.has('CLASS_INCHARGE_VIEW');
+  }
+
+  protected canAutoAssign(): boolean {
+    return this.permissionService.has('SECTION_FACULTY_AUTO_ASSIGN');
   }
 
   protected canManageClinicalShift(): boolean {
@@ -260,6 +265,38 @@ export class AssignFacultyListComponent implements OnInit {
         // keeps the table mounted so the user's current sort/column state survives the refresh.
         if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId, false);
       });
+  }
+
+  /** Fills every Unassigned Theory row in the current term from the eligible faculty pool,
+   *  ranked least-loaded-first — never touches a row someone already assigned, by hand or by a
+   *  prior run (see {@code CourseOfferingSectionFacultyService#autoAssignTheory}). Same action
+   *  also runs automatically right after a Capacity Auto-Plan commit; this button is for filling
+   *  a gap that opens up later (e.g. a new offering added afterward) without a full recommit. */
+  protected autoAssignAll(): void {
+    if (!this.selectedTermInstanceId || this.autoAssigning()) return;
+    this.autoAssigning.set(true);
+    this.http.post<{ assignedCount: number; skippedCount: number; skippedOfferingNames: string[] }>(
+      `${environment.apiUrl}/course-offerings/faculty-auto-assign`, null,
+      { params: { termInstanceId: this.selectedTermInstanceId } },
+    ).subscribe({
+      next: (result) => {
+        this.autoAssigning.set(false);
+        if (result.assignedCount === 0 && result.skippedCount === 0) {
+          this.toast.success('Every offering already has faculty assigned — nothing to do.');
+        } else if (result.skippedCount === 0) {
+          this.toast.success(`Assigned faculty to ${result.assignedCount} offering(s).`);
+        } else {
+          this.toast.info(
+            `Assigned ${result.assignedCount} offering(s) — ${result.skippedCount} still unassigned, `
+            + `no eligible faculty found: ${result.skippedOfferingNames.join(', ')}`);
+        }
+        if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId, false);
+      },
+      error: () => {
+        this.autoAssigning.set(false);
+        this.toast.error('Auto-assign failed');
+      },
+    });
   }
 
   /** OC-175, merged with the former standalone "Clinical Shift Config" dialog per OC-187: manage
