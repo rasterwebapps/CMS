@@ -1,11 +1,11 @@
--- V498: SKSCON currently runs the full academic program on 13 teaching staff. Local dev only
+-- V501: SKSCON currently runs the full academic program on 13 teaching staff. Local dev only
 -- had 10 active faculty (FAC009-FAC018 -- V45's FAC001-FAC008 never persisted here, since those
 -- rows matched specialities by code 'MO'/'PN', which don't exist in this environment's
 -- specialities table: GN/CHN/CHDN/MHN/OBGN/MSN). Adds 3 more to reach 13, filling the
 -- specialities (CHDN, OBGN, MSN) that were thinnest, so the workload dashboard has real
 -- speciality-eligible coverage to auto-assign across. Idempotent: ON CONFLICT (employee_code)
--- DO NOTHING, matches the V45/V296 seed-data pattern. Authored as V475 and renumbered to V498
--- before it was ever committed -- see V499's header for why.
+-- DO NOTHING, matches the V45/V296 seed-data pattern. Authored as V475, renumbered to V498, then to
+-- V501 -- see V502's header for why (neither earlier number was ever deployed).
 
 WITH new_faculty (employee_code, first_name, last_name, email, phone, speciality_code, designation_code, specialization, lab_expertise, joining_date) AS (
     VALUES

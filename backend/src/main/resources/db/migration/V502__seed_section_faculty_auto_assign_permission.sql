@@ -6,11 +6,15 @@
 -- SECTION_FACULTY_MANAGE (the closest existing tier), mirroring V392's own COURSE_MANAGE ->
 -- SECTION_FACULTY_MANAGE grant pattern.
 --
--- Authored as V478 and renumbered to V499 before it was ever committed: V479-V497 shipped while
--- this file sat uncommitted in a working tree, so landing it at 478 would have been an
--- out-of-order insertion. `out-of-order` is unset (defaults false) and 243/prod run with
--- validate-on-migrate on, which would crash-loop the backend there. Local dev has a 478 history
--- row from the original file; this one is idempotent, so re-running at 499 is a no-op.
+-- Authored as V478, renumbered to V499, then to V502 -- neither earlier number was ever deployed.
+-- 478 was abandoned because V479-V497 shipped while this file sat uncommitted in a working tree, so
+-- landing it there would have been an out-of-order insertion: `out-of-order` is unset (defaults
+-- false) and 243/prod run with validate-on-migrate on, which would crash-loop the backend. 499 then
+-- collided head-on with V499__add_variant_to_stock_transfer_lines.sql, authored concurrently in the
+-- same working tree, and Flyway refuses to boot at all on a duplicate version ("Found more than one
+-- migration with version 499") -- so this pair moved above the inventory run (V497-V500) rather than
+-- renumbering someone else's in-flight work. Local dev has a 478 history row from the original file;
+-- this is idempotent, so re-running it at 502 is a no-op.
 
 INSERT INTO permissions (code, display_name, category, screen_label, created_at) VALUES
     ('SECTION_FACULTY_AUTO_ASSIGN', 'Auto-Assign Section Faculty', 'MASTER', 'Course Offerings', CURRENT_TIMESTAMP)
