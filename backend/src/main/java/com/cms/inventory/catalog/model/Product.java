@@ -9,10 +9,14 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.cms.inventory.catalog.model.enums.StockTrackingMode;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -73,6 +77,12 @@ public class Product {
     @Column(name = "is_loanable", nullable = false)
     private Boolean isLoanable = false;
 
+    /** Defaults to NONE — today's pre-existing free-text batch/serial behavior, unchanged until a
+     *  product is explicitly opted into BATCH or SERIAL discipline. See {@link StockTrackingMode}. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tracking_mode", nullable = false, length = 20)
+    private StockTrackingMode trackingMode = StockTrackingMode.NONE;
+
     @Column(name = "depreciation_rate", precision = 5, scale = 2)
     private BigDecimal depreciationRate;
 
@@ -132,6 +142,9 @@ public class Product {
 
     public Boolean getIsLoanable() { return isLoanable; }
     public void setIsLoanable(Boolean isLoanable) { this.isLoanable = isLoanable; }
+
+    public StockTrackingMode getTrackingMode() { return trackingMode; }
+    public void setTrackingMode(StockTrackingMode trackingMode) { this.trackingMode = trackingMode; }
 
     public BigDecimal getDepreciationRate() { return depreciationRate; }
     public void setDepreciationRate(BigDecimal depreciationRate) { this.depreciationRate = depreciationRate; }

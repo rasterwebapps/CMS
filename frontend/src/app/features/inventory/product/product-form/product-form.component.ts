@@ -15,6 +15,7 @@ import {
   ProductRequest,
   ProductUomChainVersion,
   ProductUomLevelRequest,
+  StockTrackingMode,
 } from '../product.model';
 import { CategoryService } from '../../category/category.service';
 import { Category } from '../../category/category.model';
@@ -95,6 +96,7 @@ export class ProductFormComponent implements OnInit {
     isConsumable: [true],
     isService:    [false],
     isLoanable:   [false],
+    trackingMode: ['NONE' as StockTrackingMode],
     depreciationRate:      [null as number | null],
     warrantyPeriodMonths:  [null as number | null],
     description:  ['', [Validators.maxLength(1000)]],
@@ -339,6 +341,7 @@ export class ProductFormComponent implements OnInit {
       isConsumable: !!v.isConsumable,
       isService:    !!v.isService,
       isLoanable:   !!v.isLoanable,
+      trackingMode: v.trackingMode,
       depreciationRate:     v.depreciationRate,
       warrantyPeriodMonths: v.warrantyPeriodMonths,
       description:  v.description?.trim() || undefined,
@@ -392,6 +395,7 @@ export class ProductFormComponent implements OnInit {
           isConsumable: p.isConsumable,
           isService: p.isService,
           isLoanable: p.isLoanable,
+          trackingMode: p.trackingMode ?? 'NONE',
           depreciationRate: p.depreciationRate ?? null,
           warrantyPeriodMonths: p.warrantyPeriodMonths ?? null,
           description: p.description || '',

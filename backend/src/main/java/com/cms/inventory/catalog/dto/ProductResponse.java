@@ -19,6 +19,7 @@ public record ProductResponse(
     Boolean isConsumable,
     Boolean isService,
     Boolean isLoanable,
+    String trackingMode,
     BigDecimal depreciationRate,
     Integer warrantyPeriodMonths,
     String description,

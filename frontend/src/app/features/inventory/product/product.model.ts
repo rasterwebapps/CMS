@@ -10,6 +10,10 @@ export interface Page<T> {
   last: boolean;
 }
 
+/** How a product's stock is tracked at the batch/serial level. NONE is the default — no batch or
+ *  serial number is required, matching today's plain aggregate-quantity behavior. */
+export type StockTrackingMode = 'NONE' | 'BATCH' | 'SERIAL';
+
 export interface ProductAttributeValueEntry {
   attributeId: number;
   attributeName: string;
@@ -32,6 +36,7 @@ export interface Product {
   isConsumable: boolean;
   isService: boolean;
   isLoanable: boolean;
+  trackingMode: StockTrackingMode;
   depreciationRate?: number | null;
   warrantyPeriodMonths?: number | null;
   description?: string;
@@ -58,6 +63,7 @@ export interface ProductRequest {
   isConsumable?: boolean;
   isService?: boolean;
   isLoanable?: boolean;
+  trackingMode?: StockTrackingMode;
   depreciationRate?: number | null;
   warrantyPeriodMonths?: number | null;
   description?: string;

@@ -31,6 +31,9 @@ public record ProductRequest(
     Boolean isService,
     Boolean isLoanable,
 
+    /** NONE, BATCH, or SERIAL — null/blank defaults to NONE. */
+    String trackingMode,
+
     BigDecimal depreciationRate,
     Integer warrantyPeriodMonths,
 

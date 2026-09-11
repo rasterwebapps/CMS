@@ -29,6 +29,7 @@ import com.cms.inventory.catalog.model.ProductAlias;
 import com.cms.inventory.catalog.model.ProductAttributeValue;
 import com.cms.inventory.catalog.model.Uom;
 import com.cms.inventory.catalog.model.enums.AttributeDataType;
+import com.cms.inventory.catalog.model.enums.StockTrackingMode;
 import com.cms.inventory.catalog.repository.CategoryAttributeRepository;
 import com.cms.inventory.catalog.repository.ProductRepository;
 
@@ -147,6 +148,7 @@ public class ProductService {
         if (request.isConsumable() != null) product.setIsConsumable(request.isConsumable());
         if (request.isService() != null) product.setIsService(request.isService());
         if (request.isLoanable() != null) product.setIsLoanable(request.isLoanable());
+        product.setTrackingMode(parseTrackingMode(request.trackingMode()));
         product.setDepreciationRate(request.depreciationRate());
         product.setWarrantyPeriodMonths(request.warrantyPeriodMonths());
         product.setDescription(trim(request.description()));
@@ -154,6 +156,17 @@ public class ProductService {
 
         applyAliases(product, request.aliases());
         applyAttributeValues(product, category, request.attributeValues());
+    }
+
+    /** Blank/null defaults to NONE — today's pre-existing free-text batch/serial behavior. */
+    private StockTrackingMode parseTrackingMode(String value) {
+        String trimmed = trim(value);
+        if (trimmed == null) return StockTrackingMode.NONE;
+        try {
+            return StockTrackingMode.valueOf(trimmed.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid tracking mode '" + value + "' — must be NONE, BATCH, or SERIAL");
+        }
     }
 
     private void applyAliases(Product product, List<String> aliasNames) {
@@ -266,6 +279,7 @@ public class ProductService {
         return new ProductResponse(p.getId(), p.getProductCode(), p.getProductName(),
             category.getId(), category.getName(), uom.getId(), uom.getCode(), uom.getName(),
             p.getReorderLevel(), p.getReorderQty(), p.getIsAsset(), p.getIsConsumable(), p.getIsService(), p.getIsLoanable(),
+            p.getTrackingMode().name(),
             p.getDepreciationRate(), p.getWarrantyPeriodMonths(), p.getDescription(), p.getIsActive(),
             p.getCreatedAt(), p.getUpdatedAt(), aliases, attrValues);
     }

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomChainVersion;
+import com.cms.inventory.catalog.model.enums.StockTrackingMode;
 import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.catalog.repository.ProductUomChainVersionRepository;
 import com.cms.inventory.stock.dto.StockBalanceResponse;
@@ -77,6 +78,7 @@ public class StockMovementService {
         InventoryLocation location = locationRepository.findById(request.locationId())
             .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + request.locationId()));
         StockTxnType txnType = parseTxnType(request.txnType());
+        requireTrackingModeCompliance(product, request);
 
         StockBatch batch = resolveBatch(product, request.batchOrSerialNo(), request.expiryDate());
         Long batchId = batch == null ? null : batch.getId();
@@ -149,6 +151,27 @@ public class StockMovementService {
             return predicates;
         };
         return balanceRepository.findAll(spec, pageable).map(this::toResponse);
+    }
+
+    /**
+     * Enforces {@code Product.trackingMode} — see the 2026-09-11 "Serial/batch tracking-mode
+     * flag" DECISION_LOG entry. {@code NONE} enforces nothing (today's pre-existing behavior,
+     * {@code batchOrSerialNo} stays fully optional free text); {@code BATCH} requires a batch
+     * number on every movement; {@code SERIAL} requires a serial number and restricts the
+     * movement to exactly one unit.
+     */
+    private void requireTrackingModeCompliance(Product product, StockMovementRequest request) {
+        StockTrackingMode mode = product.getTrackingMode();
+        if (mode == StockTrackingMode.NONE) return;
+        if (trim(request.batchOrSerialNo()) == null) {
+            String label = mode == StockTrackingMode.SERIAL ? "a serial number" : "a batch number";
+            throw new IllegalArgumentException(
+                "'" + product.getProductName() + "' is tracked by " + mode.name().toLowerCase() + " — " + label + " is required for this movement");
+        }
+        if (mode == StockTrackingMode.SERIAL && request.quantity().compareTo(BigDecimal.ONE) != 0) {
+            throw new IllegalArgumentException(
+                "'" + product.getProductName() + "' is serial-tracked — quantity must be exactly 1 per movement (one unit per serial number)");
+        }
     }
 
     private StockBatch resolveBatch(Product product, String batchOrSerialNo, java.time.LocalDate expiryDate) {

@@ -1567,4 +1567,44 @@ clean.
 `attrValue()` helper now sets `textValue` directly, since all seeded demo attributes happen to be
 `TEXT`/`ENUM`); new `ProductServiceTest.java`. No DTO, controller, or frontend change.
 
+---
+
+## 2026-09-11 — Serial/batch tracking-mode flag on Product
+
+**Prompted by:** Phase 1 item #2 of the approved Product/Inventory extension program, picked to
+go second because barcode-per-unit (a later Phase 3 item) and variant stock behavior both need a
+declared tracking discipline to build on, and `StockBatch.batchOrSerialNo` was, until now, one
+ambiguous free-text field — any product could populate or ignore it, with no declared meaning and
+no validation either way.
+
+**What changed:** `Product` gains `trackingMode` (`NONE`/`BATCH`/`SERIAL`, migration V483,
+`chk_products_tracking_mode` check constraint). `StockMovementService.recordMovement` now enforces
+it before resolving a batch: `BATCH` requires a batch number on every movement (no quantity
+restriction — a batch can hold many units); `SERIAL` requires a serial number **and** restricts
+the movement to exactly 1 unit (one unit per serial number). `NONE` enforces nothing at all.
+
+**Chose NONE as the default, and made NONE a true no-op, deliberately:** the tempting "clean"
+reading of `NONE` would be "this product doesn't use batch/serial tracking, so `batchOrSerialNo`
+should be *rejected* if given." That was rejected as the default specifically because every
+existing product implicitly starts at whatever the new field's Java-level default is, and
+`StockMovementServiceTest`'s existing fixtures freely pass a `batchOrSerialNo` on products nobody
+has classified yet — forcing a hard rejection by default would have been a same-day regression for
+every real in-flight product that hasn't been assigned a mode, not just a test-suite fix-up. `NONE`
+therefore means "no tracking discipline declared yet," reproducing today's fully free-form
+behavior byte-for-byte, and `BATCH`/`SERIAL` are opt-in stricter behaviors a product owner turns on
+deliberately once they classify that product.
+
+**Verified:** 6 new `StockMovementServiceTest` cases (reject batch-tracked with no batch number,
+reject serial-tracked with no serial number, reject serial-tracked with qty ≠ 1, allow both
+compliant cases) plus the full pre-existing suite, all green — confirming `NONE`'s behavior is
+byte-for-byte unchanged. `ProductFormComponent` gained a "Stock Tracking" `<select>` (Classification
+& Planning section, reusing the existing global `.field-select` styling — no new SCSS needed).
+`npx tsc -p tsconfig.app.json --noEmit` and `ng build --configuration production` both clean
+(pre-existing unrelated warnings only). `./gradlew test` (full backend suite) green.
+
+**Impact:** `V483__add_tracking_mode_to_products.sql`; `StockTrackingMode.java` (new enum);
+`Product.java`; `ProductRequest`/`ProductResponse`; `ProductService.java` (`parseTrackingMode`);
+`StockMovementService.java` (`requireTrackingModeCompliance`); `ProductServiceTest.java`,
+`StockMovementServiceTest.java`; frontend `product.model.ts`, `product-form.component.ts/html`.
+
 *Next entry goes here — do not insert above this line.*

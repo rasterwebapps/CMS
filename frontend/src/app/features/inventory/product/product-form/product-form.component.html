@@ -127,6 +127,14 @@
 
             <div class="prod-form-grid">
               <div class="field-group">
+                <label for="prod-tracking-mode" class="field-label">Stock Tracking</label>
+                <select id="prod-tracking-mode" class="field-select" formControlName="trackingMode">
+                  <option value="NONE">None — no batch/serial required</option>
+                  <option value="BATCH">Batch — a batch number is required, many units per batch</option>
+                  <option value="SERIAL">Serial — a unique serial number per unit, one unit per movement</option>
+                </select>
+              </div>
+              <div class="field-group">
                 <label for="prod-reorder-level" class="field-label">Reorder Level</label>
                 <input id="prod-reorder-level" type="number" step="0.001" class="field-input" formControlName="reorderLevel" placeholder="e.g., 10" />
               </div>

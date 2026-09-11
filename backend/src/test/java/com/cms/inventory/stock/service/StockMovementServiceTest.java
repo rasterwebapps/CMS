@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomChainVersion;
+import com.cms.inventory.catalog.model.enums.StockTrackingMode;
 import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.catalog.repository.ProductUomChainVersionRepository;
 import com.cms.inventory.stock.dto.StockMovementRequest;
@@ -131,6 +132,81 @@ class StockMovementServiceTest {
         service.recordMovement(req, "clerk");
 
         verify(batchRepository, never()).findByProductAndBatchOrSerialNo(any(), any());
+    }
+
+    // ── Product.trackingMode enforcement (2026-09-11 "Serial/batch tracking-mode flag") ───────
+
+    @Test
+    void shouldRejectMovementOnBatchTrackedProductWithNoBatchNumber() {
+        Product batchTracked = product(20L);
+        batchTracked.setTrackingMode(StockTrackingMode.BATCH);
+        when(productRepository.findById(20L)).thenReturn(Optional.of(batchTracked));
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
+
+        var req = new StockMovementRequest(20L, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("batch number is required");
+    }
+
+    @Test
+    void shouldRejectMovementOnSerialTrackedProductWithNoSerialNumber() {
+        Product serialTracked = product(21L);
+        serialTracked.setTrackingMode(StockTrackingMode.SERIAL);
+        when(productRepository.findById(21L)).thenReturn(Optional.of(serialTracked));
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
+
+        var req = new StockMovementRequest(21L, 1L, null, null, "RECEIPT", null, BigDecimal.ONE, BigDecimal.ONE, null);
+        assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("serial number is required");
+    }
+
+    @Test
+    void shouldRejectSerialTrackedMovementWithQuantityOtherThanOne() {
+        Product serialTracked = product(22L);
+        serialTracked.setTrackingMode(StockTrackingMode.SERIAL);
+        when(productRepository.findById(22L)).thenReturn(Optional.of(serialTracked));
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
+
+        var req = new StockMovementRequest(22L, 1L, "SN-001", null, "RECEIPT", null, new BigDecimal("2"), BigDecimal.ONE, null);
+        assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("quantity must be exactly 1");
+    }
+
+    @Test
+    void shouldAllowSerialTrackedMovementWithOneUnitAndSerialNumber() {
+        Product serialTracked = product(23L);
+        serialTracked.setTrackingMode(StockTrackingMode.SERIAL);
+        when(productRepository.findById(23L)).thenReturn(Optional.of(serialTracked));
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
+        when(batchRepository.findByProductAndBatchOrSerialNo(23L, "SN-001")).thenReturn(Optional.empty());
+        when(uomChainVersionRepository.findByProductIdAndIsActiveTrue(23L)).thenReturn(Optional.empty());
+        when(batchRepository.save(any(StockBatch.class))).thenAnswer(inv -> { StockBatch b = inv.getArgument(0); b.setId(400L); return b; });
+        when(balanceRepository.findByProductIdAndLocationIdAndBatchId(23L, 1L, 400L)).thenReturn(Optional.empty());
+
+        var req = new StockMovementRequest(23L, 1L, "SN-001", null, "RECEIPT", null, BigDecimal.ONE, BigDecimal.ONE, null);
+        var res = service.recordMovement(req, "clerk");
+
+        assertThat(res.qtyDelta()).isEqualByComparingTo("1");
+    }
+
+    @Test
+    void shouldAllowBatchTrackedMovementWithMultipleUnitsGivenABatchNumber() {
+        Product batchTracked = product(24L);
+        batchTracked.setTrackingMode(StockTrackingMode.BATCH);
+        when(productRepository.findById(24L)).thenReturn(Optional.of(batchTracked));
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
+        when(batchRepository.findByProductAndBatchOrSerialNo(24L, "LOT-1")).thenReturn(Optional.empty());
+        when(uomChainVersionRepository.findByProductIdAndIsActiveTrue(24L)).thenReturn(Optional.empty());
+        when(batchRepository.save(any(StockBatch.class))).thenAnswer(inv -> { StockBatch b = inv.getArgument(0); b.setId(401L); return b; });
+        when(balanceRepository.findByProductIdAndLocationIdAndBatchId(24L, 1L, 401L)).thenReturn(Optional.empty());
+
+        var req = new StockMovementRequest(24L, 1L, "LOT-1", null, "RECEIPT", null, new BigDecimal("50"), BigDecimal.ONE, null);
+        var res = service.recordMovement(req, "clerk");
+
+        assertThat(res.qtyDelta()).isEqualByComparingTo("50");
     }
 
     @Test
