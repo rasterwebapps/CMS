@@ -1,0 +1,60 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">Currency <em>Settings</em></h1>
+      </div>
+      <p class="page-subtitle">The institution's base currency — every exchange rate converts to this currency.</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-card entry-form-card--sectioned cs-card">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M8 10a2 2 0 0 1 2-2h1.5a2 2 0 0 1 0 4H10a2 2 0 0 0 0 4h2a2 2 0 0 0 2-2"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Base Currency</div>
+          <div class="entry-form-card__hdr-sub">3-letter ISO code (e.g. INR, USD)</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="field-group">
+            <label for="cs-base-currency" class="field-label">Base Currency Code <span class="required-star">*</span></label>
+            <input id="cs-base-currency" class="field-input cs-currency-input" formControlName="baseCurrencyCode"
+              placeholder="e.g., INR" maxlength="3" autocomplete="off"
+              [class.field-input--error]="form.get('baseCurrencyCode')?.invalid && form.get('baseCurrencyCode')?.touched" />
+            @if (form.get('baseCurrencyCode')?.invalid && form.get('baseCurrencyCode')?.touched) {
+              <p class="field-error">{{ getErrorMessage('baseCurrencyCode') }}</p>
+            }
+          </div>
+
+          @if (lastUpdatedAt()) {
+            <p class="field-hint">Last updated {{ lastUpdatedAt() | date: 'medium' }}@if (lastUpdatedBy()) { by {{ lastUpdatedBy() }} }</p>
+          }
+
+          <div class="entry-form-card__footer">
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              Save
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  }
+
+</div>

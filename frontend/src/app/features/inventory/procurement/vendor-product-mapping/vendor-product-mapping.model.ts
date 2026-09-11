@@ -32,6 +32,11 @@ export interface VendorProductMapping {
   effectivePrice: number;
   /** 'CONTRACT' when effectivePrice came from a RateContractLine, 'STANDARD' otherwise. */
   priceSource: 'CONTRACT' | 'STANDARD';
+  /** The institution's configured base currency, or null if not configured yet. */
+  baseCurrencyCode: string | null;
+  /** effectivePrice converted to baseCurrencyCode, or null when unresolvable (no base currency
+   *  configured, or no exchange rate on file for this mapping's currency). */
+  effectivePriceInBaseCurrency: number | null;
   createdAt: string;
   updatedAt: string;
 }

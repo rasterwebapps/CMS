@@ -43,17 +43,20 @@ public class VendorProductMappingService {
     private final ProductRepository productRepository;
     private final UomRepository uomRepository;
     private final RateContractRepository rateContractRepository;
+    private final CurrencyExchangeRateService currencyExchangeRateService;
 
     public VendorProductMappingService(VendorProductMappingRepository mappingRepository,
                                         SupplierRepository supplierRepository,
                                         ProductRepository productRepository,
                                         UomRepository uomRepository,
-                                        RateContractRepository rateContractRepository) {
+                                        RateContractRepository rateContractRepository,
+                                        CurrencyExchangeRateService currencyExchangeRateService) {
         this.mappingRepository = mappingRepository;
         this.supplierRepository = supplierRepository;
         this.productRepository = productRepository;
         this.uomRepository = uomRepository;
         this.rateContractRepository = rateContractRepository;
+        this.currencyExchangeRateService = currencyExchangeRateService;
     }
 
     @Transactional
@@ -205,6 +208,8 @@ public class VendorProductMappingService {
             }
         }
 
+        CurrencyExchangeRateService.Resolved resolved = currencyExchangeRateService.resolveToBaseCurrency(m.getCurrencyCode(), effectivePrice);
+
         return new VendorProductMappingResponse(
             m.getId(), supplier.getId(), supplier.getSupplierName(),
             product.getId(), product.getProductCode(), product.getProductName(),
@@ -213,7 +218,9 @@ public class VendorProductMappingService {
             m.getUnitPrice(), m.getCurrencyCode(),
             uom != null ? uom.getId() : null, uom != null ? uom.getCode() : null,
             m.getMinOrderQty(), m.getLeadTimeDays(), m.getIsPreferred(), m.getIsActive(),
-            effectivePrice, priceSource, m.getCreatedAt(), m.getUpdatedAt());
+            effectivePrice, priceSource,
+            resolved != null ? resolved.baseCurrencyCode() : null, resolved != null ? resolved.amount() : null,
+            m.getCreatedAt(), m.getUpdatedAt());
     }
 
     private static String trim(String s) {

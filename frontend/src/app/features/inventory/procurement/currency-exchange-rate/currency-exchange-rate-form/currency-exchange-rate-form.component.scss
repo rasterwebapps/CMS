@@ -1,0 +1,16 @@
+.cer-card {
+  max-width: 560px;
+}
+
+.cer-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.cer-currency-input {
+  font-family: var(--cms-font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

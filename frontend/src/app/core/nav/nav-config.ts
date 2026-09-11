@@ -255,6 +255,8 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'PO Aging Report',   icon: 'schedule',    route: '/inventory/reporting/purchase-order-aging', permissions: ['INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE'] },
       { label: 'PO Cycle-Time Report', icon: 'timer',    route: '/inventory/reporting/purchase-order-cycle-time', permissions: ['INVENTORY_PURCHASE_ORDER_VIEW', 'INVENTORY_PURCHASE_ORDER_MANAGE'] },
       { label: 'Tax Rules',         icon: 'percent',     route: '/inventory/procurement/tax-rules',      permissions: ['INVENTORY_TAX_RULE_VIEW', 'INVENTORY_TAX_RULE_MANAGE'] },
+      { label: 'Currency Settings', icon: 'settings',    route: '/inventory/procurement/currency-settings', permissions: ['INVENTORY_CURRENCY_SETTINGS_VIEW', 'INVENTORY_CURRENCY_SETTINGS_MANAGE'] },
+      { label: 'Currency Exchange Rates', icon: 'currency_exchange', route: '/inventory/procurement/currency-exchange-rates', permissions: ['INVENTORY_CURRENCY_EXCHANGE_RATE_VIEW', 'INVENTORY_CURRENCY_EXCHANGE_RATE_MANAGE'] },
     ],
   },
   // 8f. Equipment & Asset Management — Phase 5 of the Inventory Management module. Own

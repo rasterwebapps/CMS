@@ -38,6 +38,7 @@ class VendorProductMappingServiceTest {
     @Mock private ProductRepository productRepository;
     @Mock private UomRepository uomRepository;
     @Mock private RateContractRepository rateContractRepository;
+    @Mock private CurrencyExchangeRateService currencyExchangeRateService;
 
     private VendorProductMappingService service;
 
@@ -47,7 +48,7 @@ class VendorProductMappingServiceTest {
     @BeforeEach
     void setUp() {
         service = new VendorProductMappingService(mappingRepository, supplierRepository, productRepository,
-            uomRepository, rateContractRepository);
+            uomRepository, rateContractRepository, currencyExchangeRateService);
 
         supplier = new Supplier();
         supplier.setId(1L);

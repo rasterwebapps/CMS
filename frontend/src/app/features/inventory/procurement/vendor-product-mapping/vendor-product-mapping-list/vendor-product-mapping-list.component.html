@@ -48,6 +48,9 @@
           @if (row.priceSource === 'CONTRACT') {
             <span class="vpm-source-tag vpm-source-tag--contract">Contract</span>
           }
+          @if (row.effectivePriceInBaseCurrency != null && row.baseCurrencyCode !== row.currencyCode) {
+            <div class="vpm-base-currency-hint">≈ {{ row.baseCurrencyCode }} {{ row.effectivePriceInBaseCurrency | number: '1.2-2' }}</div>
+          }
         </td>
       </ng-container>
       <ng-container matColumnDef="isPreferred">

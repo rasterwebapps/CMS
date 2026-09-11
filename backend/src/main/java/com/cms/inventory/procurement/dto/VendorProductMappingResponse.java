@@ -27,6 +27,13 @@ public record VendorProductMappingResponse(
     /** "CONTRACT" when effectivePrice came from a RateContractLine, "STANDARD" otherwise. */
     String priceSource,
 
+    /** The institution's configured base currency, or null if not configured yet. */
+    String baseCurrencyCode,
+    /** effectivePrice converted to baseCurrencyCode, or null when no base currency is configured
+     *  or no exchange rate is on file for this mapping's currency — never a computation error,
+     *  just "not resolvable right now". See CurrencyExchangeRateService.resolveToBaseCurrency. */
+    BigDecimal effectivePriceInBaseCurrency,
+
     Instant createdAt,
     Instant updatedAt
 ) {}

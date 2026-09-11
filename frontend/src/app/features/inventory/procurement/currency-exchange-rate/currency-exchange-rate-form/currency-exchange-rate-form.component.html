@@ -1,0 +1,89 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/procurement/currency-exchange-rates" aria-label="Back to currency exchange rates">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Exchange Rate</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update this rate below.' : 'Record a currency\'s rate to the base currency, effective from a given date.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-card entry-form-card--sectioned cer-card">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8h-6.5a3.5 3.5 0 1 0 0 7H17"/><path d="M3 16h6.5a3.5 3.5 0 1 0 0-7H8"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Rate Details</div>
+          <div class="entry-form-card__hdr-sub">Currency, rate to base, and effective date</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="cer-form-grid">
+            <div class="field-group">
+              <label for="cer-currency" class="field-label">Currency Code <span class="required-star">*</span></label>
+              <input id="cer-currency" class="field-input cer-currency-input" formControlName="currencyCode"
+                placeholder="e.g., USD" maxlength="3" autocomplete="off"
+                [class.field-input--error]="form.get('currencyCode')?.invalid && form.get('currencyCode')?.touched" />
+              @if (form.get('currencyCode')?.invalid && form.get('currencyCode')?.touched) {
+                <p class="field-error">{{ getErrorMessage('currencyCode') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="cer-rate" class="field-label">Rate to Base <span class="required-star">*</span></label>
+              <input id="cer-rate" type="number" step="0.000001" min="0.000001" class="field-input" formControlName="rateToBase"
+                placeholder="e.g., 83.50"
+                [class.field-input--error]="form.get('rateToBase')?.invalid && form.get('rateToBase')?.touched" />
+              @if (form.get('rateToBase')?.invalid && form.get('rateToBase')?.touched) {
+                <p class="field-error">{{ getErrorMessage('rateToBase') }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="cer-eff-date" class="field-label">Effective Date <span class="required-star">*</span></label>
+            <input id="cer-eff-date" type="date" class="field-input" formControlName="effectiveDate"
+              [class.field-input--error]="form.get('effectiveDate')?.invalid && form.get('effectiveDate')?.touched" />
+            @if (form.get('effectiveDate')?.pending) {
+              <p class="field-hint">Checking…</p>
+            } @else if (form.get('effectiveDate')?.invalid && form.get('effectiveDate')?.touched) {
+              <p class="field-error">{{ getErrorMessage('effectiveDate') }}</p>
+            } @else {
+              <p class="field-hint">The most recent rate on or before a given date is the one used</p>
+            }
+          </div>
+
+          <div class="field-group">
+            <label class="checkbox-label"><input type="checkbox" formControlName="isActive" class="field-checkbox" /> Active</label>
+          </div>
+
+          <div class="entry-form-card__footer">
+            <a routerLink="/inventory/procurement/currency-exchange-rates" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              {{ isEditMode() ? 'Update' : 'Save' }}
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  }
+
+</div>

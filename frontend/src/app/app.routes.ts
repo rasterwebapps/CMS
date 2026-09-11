@@ -383,6 +383,39 @@ export const routes: Routes = [
         (m) => m.TaxRuleFormComponent
       ),
   },
+  // Phase 3 "Multi-currency FX" — configurable base currency, manually-maintained exchange rates.
+  {
+    path: 'inventory/procurement/currency-settings',
+    canActivate: withPermission('INVENTORY_CURRENCY_SETTINGS_VIEW', 'INVENTORY_CURRENCY_SETTINGS_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/currency-settings/currency-settings.component').then(
+        (m) => m.CurrencySettingsComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/currency-exchange-rates',
+    canActivate: withPermission('INVENTORY_CURRENCY_EXCHANGE_RATE_VIEW', 'INVENTORY_CURRENCY_EXCHANGE_RATE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/currency-exchange-rate/currency-exchange-rate-list/currency-exchange-rate-list.component').then(
+        (m) => m.CurrencyExchangeRateListComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/currency-exchange-rates/new',
+    canActivate: withPermission('INVENTORY_CURRENCY_EXCHANGE_RATE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/currency-exchange-rate/currency-exchange-rate-form/currency-exchange-rate-form.component').then(
+        (m) => m.CurrencyExchangeRateFormComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/currency-exchange-rates/:id/edit',
+    canActivate: withPermission('INVENTORY_CURRENCY_EXCHANGE_RATE_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/currency-exchange-rate/currency-exchange-rate-form/currency-exchange-rate-form.component').then(
+        (m) => m.CurrencyExchangeRateFormComponent
+      ),
+  },
   {
     path: 'inventory/procurement/suppliers',
     canActivate: withPermission('INVENTORY_SUPPLIER_VIEW', 'INVENTORY_SUPPLIER_MANAGE'),

@@ -1840,4 +1840,55 @@ picker in Unit Hierarchy), `app.routes.ts`, `nav-config.ts`.
 pricing, HSN/SAC + default tax rule, shared UOM conversion templates) — Phase 3 (multi-currency
 FX, barcode/label printing, the `ProductVariant` subsystem itself) starts on explicit go-ahead.
 
+---
+
+## 2026-09-11 — Multi-currency FX (configurable base currency, manual exchange rates)
+
+**Prompted by:** Phase 3 item #9 (kickoff item) of the approved Product/Inventory extension
+program — the user said "go with existing flow" to start Phase 3 directly, so this proceeded
+without a fresh specialist round, same convention as Phase 2's kickoff.
+
+**Found — and deliberately left alone — a pre-existing gap this item doesn't reopen:**
+`PurchaseOrder` already has `currencyCode`/`exchangeRate` columns, but its own javadoc says
+they're "plain fields with no conversion/revaluation engine, same posture as
+`VendorProductMapping.currencyCode`" (the "Purchase Order slice" decision). This item is scoped
+exactly to what its name says — "applied to VendorProductMapping" — so `PurchaseOrder`'s manual
+fields stay exactly as they are; this doesn't build a PO-line conversion engine or reopen that
+earlier decision.
+
+**What was built:** `InventoryCurrencySetting` — a singleton settings row (id pinned to 1),
+structured identically to `InventoryTaxJurisdictionSetting`/`TaxJurisdictionSettingsService`
+(starts absent, "not configured" until an admin sets it, same find/save shape). `
+CurrencyExchangeRate` — a manually-maintained reference table, one row per (currency, effective
+date) pair; multiple dated rows per currency are allowed since rates change over time, and
+`CurrencyExchangeRateService.resolveToBaseCurrency` picks the most recent row on or before today.
+No live FX feed anywhere — an admin keeps it current by hand, the same "manual entry" posture the
+item's own name specifies.
+
+**Applied to VendorProductMapping:** `VendorProductMappingResponse` gains `baseCurrencyCode` and
+`effectivePriceInBaseCurrency`, resolved at read time in `toResponse` (same "resolved at read
+time, not stored" spirit as `effectivePrice`'s own RateContract override). Resolution is
+deliberately lenient — `null` (not an exception) whenever it can't be resolved: no base currency
+configured yet, or no exchange rate on file for that currency as of today. A mapping already in
+the base currency short-circuits to a 1:1 "rate," no lookup needed. The list screen shows it as a
+small "≈ INR 1,250.00" hint under Effective Price, only when the mapping's currency differs from
+the base currency.
+
+**Verified:** new `InventoryCurrencySettingsServiceTest` (4 cases) and
+`CurrencyExchangeRateServiceTest` (10 cases, covering CRUD and all three `resolveToBaseCurrency`
+outcomes: resolved, same-as-base, unresolvable) plus `VendorProductMappingServiceTest` updated
+for the new constructor parameter; full backend suite green. `npx tsc -p tsconfig.app.json
+--noEmit` and `ng build --configuration production` both clean (pre-existing unrelated warnings
+only). Two new nav entries (Currency Settings, Currency Exchange Rates) and routes registered.
+
+**Impact:** `V492__create_inventory_currency_fx.sql`,
+`V493__seed_inventory_currency_fx_permissions.sql`; `InventoryCurrencySetting.java`,
+`CurrencyExchangeRate.java`, their repositories/DTOs, `InventoryCurrencySettingsService.java`,
+`CurrencyExchangeRateService.java`, their controllers; `VendorProductMappingResponse.java`,
+`VendorProductMappingService.java`; new `InventoryCurrencySettingsServiceTest.java`,
+`CurrencyExchangeRateServiceTest.java`; `VendorProductMappingServiceTest.java` updated; frontend
+`features/inventory/procurement/currency-settings/` and `currency-exchange-rate/` (new),
+`vendor-product-mapping.model.ts`/`vendor-product-mapping-list.component.html/scss`,
+`app.routes.ts`, `nav-config.ts`.
+
 *Next entry goes here — do not insert above this line.*
