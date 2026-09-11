@@ -1,0 +1,69 @@
+<div mat-dialog-title class="scs-title">
+  <h2 class="scs-title__heading">Swap Sessions</h2>
+  <p class="scs-title__sub">
+    {{ data.cell.subjectCode }} · {{ data.cell.sessionType }}
+    — {{ data.cell.dayOfWeek | titlecase }}, {{ data.cell.slotName }}
+    @if (data.cell.cohortSectionLabel) { · {{ data.cell.cohortSectionLabel }} }
+    @else if (data.cell.batchName) { · {{ data.cell.batchName }} }
+  </p>
+</div>
+
+<mat-dialog-content>
+  <p class="field-hint scs-intro">
+    The two sessions trade times. Each keeps its own subject, faculty and students — only the day
+    and period change. Both sides are pinned afterwards, so the next Run Automation packs the week
+    around your arrangement instead of undoing half of it.
+  </p>
+
+  @if (sourceIsMultiPeriod()) {
+    <p class="scs-callout scs-callout--warn">
+      This session spans more than one period, and multi-period sessions can't be swapped yet.
+      Remove and re-place it instead.
+    </p>
+  } @else if (options().length === 0) {
+    <p class="field-hint scs-hint--warn">
+      There's no other single-period session in this cohort to swap with.
+    </p>
+  } @else {
+    <div class="field-group">
+      <span class="field-label">Swap with</span>
+      <div class="scs-list" role="radiogroup" aria-label="Session to swap with">
+        @for (group of optionsByDay(); track group.dayLabel) {
+          <p class="scs-list__day">{{ group.dayLabel }}</p>
+          @for (o of group.items; track o.cellId) {
+            <label class="scs-option" [class.scs-option--selected]="selectedTargetId() === o.cellId">
+              <input type="radio" name="scs-target" class="scs-option__radio"
+                [value]="o.cellId"
+                [checked]="selectedTargetId() === o.cellId"
+                (change)="selectedTargetId.set(o.cellId)" />
+              <span class="scs-option__slot">{{ o.slotName }}</span>
+              <span class="scs-option__subject">{{ o.subjectCode }}</span>
+              <span class="scs-option__meta">
+                {{ o.sessionType }}@if (o.occupantLabel) { · {{ o.occupantLabel }} }
+              </span>
+            </label>
+          }
+        }
+      </div>
+      <p class="field-hint">
+        Multi-period sessions aren't listed — they can't be swapped yet. Electives aren't either:
+        every subject in a group shares one slot, so moving a single member would split it — use
+        Place Elective Block to move the whole group. Dragging one session onto another does the
+        same thing as this, and is quicker when both are on screen together.
+      </p>
+    </div>
+
+    @if (selectedOption(); as t) {
+      <p class="scs-callout">
+        <strong>{{ data.cell.subjectCode }}</strong> moves to {{ t.dayLabel }}, {{ t.slotName }}, and
+        <strong>{{ t.subjectCode }}</strong> moves to {{ sourceDayLabel() }},
+        {{ data.cell.slotName }}.
+      </p>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button class="btn-secondary" type="button" (click)="onCancel()">Cancel</button>
+  <button class="btn-primary" type="button" [disabled]="!canSave()" (click)="onSave()">Swap</button>
+</mat-dialog-actions>

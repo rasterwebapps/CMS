@@ -384,6 +384,12 @@
       <button mat-menu-item type="button" disabled [title]="reason">Reassign faculty…</button>
     }
 
+    @if (canSwapCell(cell)) {
+      <button mat-menu-item type="button" (click)="openSwapDialog(cell)">Swap with another session…</button>
+    } @else if (swapBlockedReason(cell); as reason) {
+      <button mat-menu-item type="button" disabled [title]="reason">Swap with another session…</button>
+    }
+
     @if (canPin() && cell.status === 'DRAFT') {
       <button mat-menu-item type="button" (click)="onTogglePin($event, cell)">
         {{ cell.pinned ? 'Unpin — let automation move it' : 'Pin — keep it where it is' }}

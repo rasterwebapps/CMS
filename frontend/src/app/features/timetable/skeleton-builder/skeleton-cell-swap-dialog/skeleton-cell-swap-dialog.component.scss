@@ -1,0 +1,80 @@
+@use '../../../../shared/styles/session-edit-dialog.mixin' as *;
+
+// Title/intro/callout chrome is shared with the Replace and Reassign dialogs — see the mixin.
+@include session-edit-dialog('scs');
+
+// The target list is this dialog's own: the other two pick from a <select>, but a swap partner is
+// a slot AND a subject AND an occupant, which doesn't survive being flattened into one option line
+// at a readable length. A scrolling radio list keeps the three facets in their own columns.
+.scs-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.scs-list__day {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 6px 8px 4px;
+  // Opaque, not transparent: this sticks over scrolling rows, and a see-through heading would let
+  // option text slide visibly underneath it. `--cms-bg-card` is the dialog's own surface (#ffffff
+  // light / #151926 dark) — note there is no `--cms-surface-card` or `--cms-bg-page` in
+  // styles.scss, and an undefined custom property here fails silently rather than erroring.
+  background: var(--cms-bg-card);
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+}
+
+.scs-option {
+  display: grid;
+  // Radio | slot | subject | everything else takes the slack.
+  grid-template-columns: auto 5.5rem auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cms-primary-alpha-8);
+  }
+}
+
+.scs-option--selected {
+  background: var(--cms-primary-alpha-8);
+  box-shadow: inset 2px 0 0 0 var(--cms-primary);
+}
+
+.scs-option__radio {
+  margin: 0;
+}
+
+.scs-option__slot {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.scs-option__subject {
+  font-size: var(--cms-text-base);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+// min-width: 0 so a long section/batch name ellipsises instead of refusing to shrink and pushing
+// the row wider than the list — grid items default to min-width: auto, same trap as flex.
+.scs-option__meta {
+  min-width: 0;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

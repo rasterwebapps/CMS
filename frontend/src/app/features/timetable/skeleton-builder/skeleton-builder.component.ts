@@ -16,6 +16,7 @@ import { SkeletonBuilderService } from './skeleton-builder.service';
 import { ClinicalShiftWindow, DisplacedSubjectShortfall, SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType, SkeletonSlotPreview, SkeletonSubject } from './skeleton-builder.model';
 import { SkeletonCellReplaceDialogComponent, SkeletonCellReplaceDialogData, SkeletonCellReplaceDialogResult } from './skeleton-cell-replace-dialog/skeleton-cell-replace-dialog.component';
 import { SkeletonCellReassignFacultyDialogComponent, SkeletonCellReassignFacultyDialogData, SkeletonCellReassignFacultyDialogResult } from './skeleton-cell-reassign-faculty-dialog/skeleton-cell-reassign-faculty-dialog.component';
+import { SkeletonCellSwapDialogComponent, SkeletonCellSwapDialogData, SkeletonCellSwapDialogResult } from './skeleton-cell-swap-dialog/skeleton-cell-swap-dialog.component';
 import { StaffingService } from '../staffing/staffing.service';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -836,6 +837,52 @@ export class SkeletonBuilderComponent implements OnInit {
           this.reloadSkeleton();
         },
         error: (err) => this.toast.error(violationText(err) ?? 'Failed to reassign faculty'),
+      });
+    });
+  }
+
+  /** Whether Swap is offered for this cell, mirroring {@code swapCells}: DRAFT on both sides, and
+   *  neither may be a multi-period session — the backend refuses those outright. Shares
+   *  {@code TIMETABLE_SKELETON_MOVE} with drag-to-swap because it is literally the same operation
+   *  reached a different way, not a distinct capability. */
+  protected canSwapCell(cell: SkeletonCell): boolean {
+    return this.canMove()
+      && cell.status === 'DRAFT'
+      && cell.sessionGroupId == null
+      && cell.electiveGroupId == null;
+  }
+
+  /** Why Swap is unavailable, for the disabled menu item. Null when it IS available. */
+  protected swapBlockedReason(cell: SkeletonCell): string | null {
+    if (!this.canMove()) return 'You don\'t have permission to move sessions.';
+    if (cell.status !== 'DRAFT') return 'Published sessions can\'t be moved here.';
+    if (cell.sessionGroupId != null) return 'Multi-period sessions can\'t be swapped yet — remove and re-place instead.';
+    // Moving one member out of a shared elective slot splits the group, which the backend refuses
+    // outright — the whole group's slot moves together via Place Elective Block instead.
+    if (cell.electiveGroupId != null) return 'Electives share one slot — move the whole group with Place Elective Block.';
+    return null;
+  }
+
+  /** Exchange this session's day/period with another one's. Dragging a cell onto an occupied slot
+   *  already does this and stays the quicker gesture when both are visible; this covers the case
+   *  dragging is bad at — two cells far apart on a scrolling grid — and is keyboard-reachable. */
+  protected openSwapDialog(cell: SkeletonCell): void {
+    const sk = this.skeleton();
+    const cohortId = this.selectedCohortId;
+    if (!sk || !cohortId || !this.canSwapCell(cell)) return;
+
+    this.dialog.open(SkeletonCellSwapDialogComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      data: { cell, cells: sk.cells } satisfies SkeletonCellSwapDialogData,
+    }).afterClosed().subscribe((result: SkeletonCellSwapDialogResult | undefined) => {
+      if (!result) return;
+      this.skeletonService.swapCells(cell.id, { targetCellId: result.targetCellId, cohortId }).subscribe({
+        next: () => {
+          this.toast.success('Swapped — both sessions pinned, so Run Automation will keep them.');
+          this.reloadSkeleton();
+        },
+        error: (err) => this.toast.error(violationText(err) ?? 'Failed to swap sessions'),
       });
     });
   }
