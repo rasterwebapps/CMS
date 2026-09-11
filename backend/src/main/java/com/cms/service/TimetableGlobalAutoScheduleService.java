@@ -29,6 +29,7 @@ import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.SystemConfigurationResponse;
 import com.cms.dto.ClinicalShiftPeriodAvailabilityResult;
 import com.cms.dto.ClinicalShiftWindow;
+import com.cms.dto.ClinicalResidualItem;
 import com.cms.dto.CohortPlacementSummary;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
@@ -1254,6 +1255,7 @@ public class TimetableGlobalAutoScheduleService {
         // scope together.
         Map<Long, Set<Long>> electiveGroupCohorts = new LinkedHashMap<>();
 
+        List<ClinicalResidualItem> clinicalResiduals = new ArrayList<>();
         // Phase 0: build every cohort's own context (skeleton, per-cohort dayLoad, unplaced list)
         // and flatten its still-short rows -- but LAB/CLINICAL rows go into one global queue instead
         // of this cohort's own list. THEORY rows stay per-cohort in the context since nothing about
@@ -1285,6 +1287,11 @@ public class TimetableGlobalAutoScheduleService {
                     int shortfall = budget.requiredSessionsPerWeek() - budget.placedSessionsPerWeek();
                     if (shortfall <= 0) {
                         continue;
+                    }
+                    ClinicalResidualItem residual = clinicalResidualFor(subject.subjectName(), budget, offering, cohort, periods);
+                    if (residual != null) {
+                        clinicalResiduals.add(residual);
+                        continue; // the weekly grid can only overshoot this — don't ask it to try
                     }
                     Long facultyId = resolveBudgetFacultyId(offering, budget, id);
                     if (facultyId == null) {
@@ -1483,7 +1490,78 @@ public class TimetableGlobalAutoScheduleService {
 
         return new GlobalAutoScheduleResult(totalPlaced, totalStaffed, summaries, electiveUnplaced, staleDraftsCleared,
             purge.pinnedPreserved(), capacityCausedGapHours, recommendedAdditionalFacultyCount, venueCapacityGaps, skippedPublishedCohorts,
-            rotationGroupsCreated, pairingSkipReasons, buildFacultySubstitutionTips(facultySubstitutionEvents));
+            rotationGroupsCreated, pairingSkipReasons, buildFacultySubstitutionTips(facultySubstitutionEvents),
+            clinicalResiduals);
+    }
+
+    /**
+     * Stage B residual closer. Returns a {@link ClinicalResidualItem} when this CLINICAL budget row
+     * is a leftover the weekly grid can only OVERSHOOT, and null in every ordinary case (which is
+     * most of them) so the row goes on to be placed exactly as before.
+     *
+     * <p>The shape it catches: a shift-configured offering whose duty roster already delivers
+     * nearly all of its curriculum Clinical hours. A duty group runs one occurrence per week, so
+     * three duty days over a 26-week term give 78 occurrences while a 480h subject at a 6h shift
+     * needs 80 — a 12h residual. {@code creditClinicalShiftHours} correctly hands that 12h to the
+     * grid, and {@code sessionsPerWeek} then rounds it up to one weekly session, because one per
+     * week is the smallest cadence a grid row can express. That row delivers ~3.33h &times; 26
+     * weeks &asymp; 86.7h against a 12h need: roughly 75 hours of clinical placement nobody asked
+     * for, permanently occupying a slot some other subject needs. Placing it is worse than not
+     * placing it, and leaving the row to fail placement is worse still — it reports as an ordinary
+     * "couldn't find a slot", which sends the admin hunting for capacity that would not help.
+     *
+     * <p>So the run declines the row and says what actually closes it: N extra duty days on a
+     * date-bounded {@code ClinicalShiftGroup}. That is a real, existing mechanism, not a proposal
+     * for new modelling — see {@link ClinicalResidualItem} for why it is proposed rather than
+     * created here.
+     *
+     * <p>Guarded narrowly on purpose. It only fires for CLINICAL, only for an offering that
+     * actually has an active shift group (without one there is no duty roster and the grid IS the
+     * delivery mechanism, however coarse), and only when one weekly session would genuinely
+     * overshoot the residual — a subject legitimately short by several sessions a week still goes
+     * to the grid untouched.
+     */
+    private ClinicalResidualItem clinicalResidualFor(String subjectName, SkeletonSubjectBudget budget,
+                                                       CourseOffering offering, Cohort cohort, List<Period> periods) {
+        if (budget.sessionType() != ClassSessionType.CLINICAL || budget.totalHours() <= 0) {
+            return null;
+        }
+        Integer durationMinutes = offering.getClinicalShiftDurationMinutes();
+        if (durationMinutes == null || durationMinutes <= 0) {
+            return null;
+        }
+        boolean hasActiveShiftGroup = clinicalShiftGroupService.getGroupsForOffering(offering.getId()).stream()
+            .anyMatch(g -> Boolean.TRUE.equals(g.isActive()));
+        if (!hasActiveShiftGroup) {
+            return null;
+        }
+
+        // What ONE weekly grid row would actually deliver over the whole term, in clock hours --
+        // the same session-length arithmetic CurriculumHoursCalculator uses, not an assumed hour.
+        int blockSize = CurriculumHoursCalculator.resolveBlockSize(offering.getSubject(), ClassSessionType.CLINICAL);
+        double slotMinutes = CurriculumHoursCalculator.averageDurationMinutes(periods.stream()
+            .map(p -> (int) java.time.Duration.between(p.getStartTime(), p.getEndTime()).toMinutes())
+            .toList());
+        double oneWeeklyRowDeliversHours = (slotMinutes * blockSize / 60.0) * budget.weeksInTerm();
+        double residualHours = budget.totalHours();
+        if (oneWeeklyRowDeliversHours <= residualHours) {
+            return null; // the grid can deliver this without overshooting -- place it normally
+        }
+
+        double hoursPerDutyDay = durationMinutes / 60.0;
+        int extraDutyDays = (int) Math.ceil(residualHours / hoursPerDutyDay);
+        String remedy = "Add a Clinical Shift group bounded to " + extraDutyDays + " week(s) "
+            + "(Effective From/To on the group) to deliver " + extraDutyDays + " more duty day(s) of "
+            + trimHours(hoursPerDutyDay) + "h. A weekly grid row can't express this: the smallest one "
+            + "would deliver about " + trimHours(oneWeeklyRowDeliversHours) + "h over the term against "
+            + trimHours(residualHours) + "h owed.";
+        return new ClinicalResidualItem(offering.getId(), subjectName,
+            cohort != null ? cohort.getDisplayName() : null,
+            residualHours, hoursPerDutyDay, extraDutyDays, remedy);
+    }
+
+    private static String trimHours(double hours) {
+        return hours == Math.rint(hours) ? String.valueOf((long) hours) : String.format("%.1f", hours);
     }
 
     /** This run's real, exact-count "still couldn't fill it, even after trying every eligible

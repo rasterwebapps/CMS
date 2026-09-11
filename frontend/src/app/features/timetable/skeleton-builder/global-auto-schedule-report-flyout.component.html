@@ -364,6 +364,30 @@
           @if (r.rotationGroupsCreated > 0) {
             <p class="field-hint">Created {{ r.rotationGroupsCreated }} cross-offering Lab rotation(s) — two offerings sharing a cohort section, each split into 2 batches, now alternate Labs week-to-week instead of one batch sitting idle during the other's turn.</p>
           }
+          @if (r.clinicalResiduals.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Clinical hours still owed — add duty days, not grid sessions</div>
+              <p class="field-hint">
+                A Clinical Shift group runs one duty day a week, so three duty days over a term deliver three
+                occurrences a week and no more. Where that lands just short of a subject's curriculum hours, the
+                leftover can't be placed on the weekly grid at all — the smallest weekly Clinical row would
+                overshoot it several times over and take a slot another subject needs. This run left those rows
+                off the grid on purpose. Close each one by adding a Clinical Shift group with Effective From/To
+                set to the number of weeks shown.
+              </p>
+              <ul class="gas-contributors">
+                @for (residual of r.clinicalResiduals; track residual.courseOfferingId) {
+                  <li class="gas-warning">
+                    <strong>{{ residual.subjectName }}</strong>
+                    @if (residual.cohortName) { <span> — {{ residual.cohortName }}</span> }
+                    <span> — {{ residual.residualHours }}h still owed
+                      = {{ residual.extraDutyDays }} more duty day(s) of {{ residual.hoursPerDutyDay }}h.</span>
+                    <span class="gas-residual-remedy">{{ residual.remedy }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
           @if (r.pairingSkipReasons.length > 0) {
             <div class="gas-prereq-group">
               <div class="gas-prereq-group__title">Lab pairing considered but not placed</div>

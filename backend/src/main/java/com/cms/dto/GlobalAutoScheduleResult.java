@@ -66,5 +66,12 @@ public record GlobalAutoScheduleResult(
     List<SkippedPublishedCohort> skippedPublishedCohorts,
     int rotationGroupsCreated,
     List<String> pairingSkipReasons,
-    List<FacultySubstitutionTip> facultySubstitutionTips
+    List<FacultySubstitutionTip> facultySubstitutionTips,
+
+    /** Curriculum Clinical hours still owed by a shift-configured offering after BOTH its duty
+     *  roster and the weekly grid have delivered everything they structurally can — see {@link
+     *  ClinicalResidualItem} for why this is arithmetic rather than a placement failure, and why
+     *  the grid can never absorb it. Empty on a term whose duty rosters already cover their
+     *  subjects' full curriculum hours. */
+    List<ClinicalResidualItem> clinicalResiduals
 ) {}

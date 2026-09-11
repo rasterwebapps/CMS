@@ -1472,6 +1472,90 @@ class TimetableGlobalAutoScheduleServiceTest {
         verify(timetableStaffingService, never()).staffCell(anyLong(), any());
     }
 
+    /** Stage B residual closer. A shift-configured subject whose duty roster already delivers
+     *  nearly all its Clinical hours is left with a residual the weekly grid can only OVERSHOOT:
+     *  480h at a 6h shift needs 80 occurrences, three duty days over 26 weeks give 78, so 12h are
+     *  owed — and the smallest weekly grid row for it delivers ~86.7h over the term. Placing that
+     *  row buys ~75h nobody asked for and occupies a slot another subject needs; failing to place
+     *  it reports as an ordinary "no slot found" and sends the admin hunting for capacity that
+     *  would not help. The run must decline the row and name the real remedy: extra duty days. */
+    @Test
+    void runReportsAClinicalResidualAsDutyDaysInsteadOfOvershootingItOnTheWeeklyGrid() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        Cohort theCohort = cohort(1L, "Cohort 1");
+        theCohort.setDisplayName("BSc Nursing (2025-2029)");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Adult Health Nursing I")));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        lenient().when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        CourseOffering offering = offeringEntity(100L, 0, 0, 480);
+        offering.setClinicalShiftDurationMinutes(360);
+        Subject clinicalSubject = new Subject();
+        clinicalSubject.setId(100L);
+        clinicalSubject.setClinicalSessionBlockPeriods(4);
+        offering.setSubject(clinicalSubject);
+        when(clinicalShiftGroupService.getGroupsForOffering(100L)).thenReturn(List.of(
+            new com.cms.dto.ClinicalShiftGroupDto(7L, 100L, "Adult Health Nursing I", null, null, 10L, "Shift A",
+                DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(13, 0), LocalTime.of(6, 0), LocalTime.of(14, 0),
+                null, null, true, List.of(), List.of(), null, null)));
+
+        // 12h still owed after the duty roster's own crediting -- one weekly grid row of a 4-period
+        // clinical block would deliver 4 x 50min x 26 weeks = 86.7h against it.
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, null, null, null, null, 12, 26, 1, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Adult Health Nursing I", "AHN1", List.of(budget), null, null);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(
+            new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(),
+                26, 0L, List.of(), false, List.of()));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.clinicalResiduals()).hasSize(1);
+        var residual = result.clinicalResiduals().get(0);
+        assertThat(residual.courseOfferingId()).isEqualTo(100L);
+        assertThat(residual.residualHours()).isEqualTo(12.0);
+        assertThat(residual.hoursPerDutyDay()).isEqualTo(6.0);
+        assertThat(residual.extraDutyDays()).isEqualTo(2);
+        assertThat(residual.remedy()).contains("Clinical Shift group bounded to 2 week(s)");
+        // The whole point: it is NOT handed to the grid, so no ~75h of overshoot gets placed.
+        verify(timetableSkeletonService, never()).placeCell(argThat(
+            (SkeletonCellPlacementRequest r) -> r != null && r.sessionType() == ClassSessionType.CLINICAL));
+    }
+
+    /** The guard has to stay narrow: a subject genuinely short by a full weekly session's worth is
+     *  ordinary work for the grid and must still go to it, residual machinery or not. */
+    @Test
+    void runStillPlacesAClinicalRowOnTheGridWhenOneWeeklySessionDoesNotOvershoot() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Adult Health Nursing I")));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        lenient().when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        CourseOffering offering = offeringEntity(100L, 0, 0, 480);
+        offering.setClinicalShiftDurationMinutes(360);
+        Subject clinicalSubject = new Subject();
+        clinicalSubject.setId(100L);
+        clinicalSubject.setClinicalSessionBlockPeriods(4);
+        offering.setSubject(clinicalSubject);
+        lenient().when(clinicalShiftGroupService.getGroupsForOffering(100L)).thenReturn(List.of(
+            new com.cms.dto.ClinicalShiftGroupDto(7L, 100L, "Adult Health Nursing I", null, null, 10L, "Shift A",
+                DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(13, 0), LocalTime.of(6, 0), LocalTime.of(14, 0),
+                null, null, true, List.of(), List.of(), null, null)));
+
+        // 200h owed -- far more than one weekly row's 86.7h, so the grid is the right tool.
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.CLINICAL, null, null, null, null, 200, 26, 3, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Adult Health Nursing I", "AHN1", List.of(budget), null, null);
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(
+            new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(),
+                26, 0L, List.of(), false, List.of()));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.clinicalResiduals()).isEmpty();
+    }
+
     private SkeletonCellResponse skeletonCell(Long id, com.cms.model.enums.ClassScheduleStatus status) {
         return skeletonCell(id, status, false);
     }

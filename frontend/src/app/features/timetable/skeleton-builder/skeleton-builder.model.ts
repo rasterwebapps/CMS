@@ -387,6 +387,26 @@ export interface GlobalAutoScheduleResult {
    *  tip, never a pending action. Empty on the common run where every row's own bound faculty covered
    *  everything it needed to. */
   facultySubstitutionTips: FacultySubstitutionTip[];
+  /** Curriculum Clinical hours a shift-configured subject still owes after BOTH its duty roster and
+   *  the weekly grid have delivered everything they structurally can. This is arithmetic, not a
+   *  placement failure: a duty group runs one occurrence a week, so three duty days over a 26-week
+   *  term give 78 occurrences while a 480h subject at a 6h shift needs 80. The 12h left over is two
+   *  duty DAYS, and the grid cannot express it — its smallest weekly clinical row would deliver
+   *  ~86.7h against 12h owed. The run declines that row rather than overshooting by ~75h, and
+   *  reports the remedy instead. Empty on a term whose duty rosters already cover their subjects. */
+  clinicalResiduals: ClinicalResidualItem[];
+}
+
+/** One subject's leftover Clinical hours and the duty days that close them — see {@link
+ *  GlobalAutoScheduleResult.clinicalResiduals}. */
+export interface ClinicalResidualItem {
+  courseOfferingId: number;
+  subjectName: string;
+  cohortName: string | null;
+  residualHours: number;
+  hoursPerDutyDay: number;
+  extraDutyDays: number;
+  remedy: string;
 }
 
 /** One subject this run had to fall back off {@code originalFacultyName} onto {@code
