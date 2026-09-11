@@ -49,6 +49,30 @@ final class WorkingSaturdayCalculator {
         return ordinalWeek != null && allowed.contains(ordinalWeek);
     }
 
+    /** Total Saturdays falling inside [termStart, termEnd], ignoring the opt-in pattern entirely —
+     *  the denominator {@link #isEverySaturdayWorking} compares {@link #workingSaturdayCount}
+     *  against. */
+    static long totalSaturdayCount(TermInstance term) {
+        LocalDate firstSaturday = term.getStartDate()
+            .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SATURDAY));
+        return firstSaturday.isAfter(term.getEndDate()) ? 0
+            : ChronoUnit.WEEKS.between(firstSaturday, term.getEndDate()) + 1;
+    }
+
+    /** True when EVERY Saturday in the term is a designated working day — i.e. a session placed on
+     *  Saturday fires exactly as often as one placed on any Monday-Friday day, so it delivers its
+     *  full curriculum hours and needs no special handling. False both for a term that hasn't opted
+     *  in at all and for a partial pattern like "1st Saturday only", where a Saturday-placed weekly
+     *  session genuinely under-delivers and {@code TimetableGlobalAutoScheduleService}'s Phase 5
+     *  mending should still try to move real curriculum content back onto a full-frequency weekday. */
+    static boolean isEverySaturdayWorking(TermInstance term) {
+        if (term.getWorkingSaturdayWeeks().isEmpty()) {
+            return false;
+        }
+        long total = totalSaturdayCount(term);
+        return total > 0 && workingSaturdayCount(term) >= total;
+    }
+
     /** How many of {@code date}'s Saturdays within [termStart, termEnd] are real working days
      *  under {@code term}'s pattern — used to compute a Saturday-placed weekly session's honest
      *  contribution to scheduled hours (a "1st Saturday only" session fires far less often than a

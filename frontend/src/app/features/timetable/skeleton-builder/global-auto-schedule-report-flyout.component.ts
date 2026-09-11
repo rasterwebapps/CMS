@@ -400,7 +400,18 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  every day Mon–Sat — offering it as a remedy in that case is actively misleading (see the
    *  incident this fixed: an admin had already opted into 1st/2nd Saturday and the panel kept
    *  pointing back at the same dead-end button). */
-  protected readonly workingSaturdaysConfigured = signal(false);
+  protected readonly workingSaturdayWeeks = signal<string[]>([]);
+
+  protected readonly workingSaturdaysConfigured = computed(() => this.workingSaturdayWeeks().length > 0);
+
+  /** True only when the opt-in pattern covers FIRST/SECOND/THIRD/FOURTH/LAST — i.e. every Saturday
+   *  in the term is a working day, so "open more Saturdays" really has nothing left to give. A
+   *  PARTIAL pattern (the common case — an admin ticks "1st Saturday" and assumes that means every
+   *  Saturday) is the opposite: opting into more weeks adds genuine, substantial capacity, because
+   *  a 1st-Saturday-only session fires about 6 times across a 26-week term instead of 26. The panel
+   *  used to collapse both cases into one "Saturday is already open, it can't help" message, which
+   *  sent admins away from the one setting that would actually have closed their gap. */
+  protected readonly everySaturdayWorking = computed(() => this.workingSaturdayWeeks().length >= 5);
 
   /** Required signal inputs aren't guaranteed bound until ngOnInit — reading {@link termInstanceId}
    *  any earlier (e.g. the constructor) throws NG0950. */
@@ -412,8 +423,8 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
 
   private refreshWorkingSaturdaysConfigured(): void {
     this.academicYearService.getWorkingSaturdays(this.termInstanceId()).subscribe({
-      next: (weeks) => this.workingSaturdaysConfigured.set(weeks.length > 0),
-      error: () => this.workingSaturdaysConfigured.set(false),
+      next: (weeks) => this.workingSaturdayWeeks.set(weeks ?? []),
+      error: () => this.workingSaturdayWeeks.set([]),
     });
   }
 

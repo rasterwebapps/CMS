@@ -15,10 +15,20 @@
         @for (week of weeks; track week.value) {
           <label class="wsat-option">
             <input type="checkbox" [checked]="week.checked" [disabled]="saveSucceeded()" (change)="toggle(week)" />
-            {{ week.label }}
+            <span class="wsat-option__label">{{ week.label }}</span>
+            @if (totalSaturdays() > 0) {
+              <span class="wsat-option__count">{{ countForWeek(week.value) }} day(s)</span>
+            }
           </label>
         }
       </div>
+      @if (totalSaturdays() > 0) {
+        <p class="field-hint wsat-total">
+          This selection gives <strong>{{ selectedSaturdayCount() }}</strong> working Saturday(s) out of
+          {{ totalSaturdays() }} in the term. A session placed on a Saturday runs only on those days —
+          a Monday–Friday one runs every week — so a partial pattern delivers proportionally fewer hours.
+        </p>
+      }
       @if (saveSucceeded()) {
         <p class="field-hint">
           Saved. @if (canRunAutomation()) { Run Automation now to use this pattern right away, or close

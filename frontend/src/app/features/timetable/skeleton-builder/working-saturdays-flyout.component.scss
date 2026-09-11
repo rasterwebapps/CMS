@@ -13,3 +13,20 @@
   color: var(--cms-text-primary);
   cursor: pointer;
 }
+
+/* min-width:0 so the label, not the count chip, is what shrinks on a narrow panel. */
+.wsat-option__label {
+  flex: 1;
+  min-width: 0;
+}
+
+.wsat-option__count {
+  flex: 0 0 auto;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.wsat-total {
+  margin-top: 12px;
+}

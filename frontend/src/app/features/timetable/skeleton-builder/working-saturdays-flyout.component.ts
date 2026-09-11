@@ -20,6 +20,11 @@ export class WorkingSaturdaysFlyoutComponent implements OnInit {
   private readonly toast = inject(ToastService);
 
   readonly termInstanceId = input.required<number>();
+  /** The term's real date range, used purely to show how many actual Saturdays each pattern yields
+   *  (see {@link saturdayDatesByWeek}). Null-tolerant: the counts are simply hidden if the parent
+   *  hasn't loaded the term yet, never guessed at. */
+  readonly termStartDate = input<string | null>(null);
+  readonly termEndDate = input<string | null>(null);
   /** Mirrors the toolbar's own "Run Automation" gate (permission + a real single cohort selected,
    *  not "All Cohorts") -- controls whether the post-save follow-up offers that button at all. */
   readonly canRunAutomation = input<boolean>(false);
@@ -62,6 +67,70 @@ export class WorkingSaturdaysFlyoutComponent implements OnInit {
 
   protected toggle(week: { checked: boolean }): void {
     week.checked = !week.checked;
+  }
+
+  /** Every Saturday falling inside the term, or an empty list when the parent hasn't supplied the
+   *  date range. Parsed field-by-field rather than via `new Date(iso)` so a 'YYYY-MM-DD' string is
+   *  read as a local calendar date — `Date.parse` treats the bare form as UTC, which shifts the day
+   *  by one for anyone east of Greenwich and would mis-bucket Saturdays near a month boundary. */
+  private allSaturdays(): Date[] {
+    const start = this.parseLocalDate(this.termStartDate());
+    const end = this.parseLocalDate(this.termEndDate());
+    if (!start || !end || start > end) {
+      return [];
+    }
+    const cursor = new Date(start);
+    cursor.setDate(cursor.getDate() + ((6 - cursor.getDay() + 7) % 7)); // first Saturday on/after start
+    const saturdays: Date[] = [];
+    while (cursor <= end) {
+      saturdays.push(new Date(cursor));
+      cursor.setDate(cursor.getDate() + 7);
+    }
+    return saturdays;
+  }
+
+  private parseLocalDate(iso: string | null): Date | null {
+    if (!iso) {
+      return null;
+    }
+    const [year, month, day] = iso.split('-').map(Number);
+    return Number.isFinite(year) && Number.isFinite(month) && Number.isFinite(day)
+      ? new Date(year, month - 1, day)
+      : null;
+  }
+
+  /** Mirrors the backend's `WorkingSaturdayCalculator.matches` exactly — same ordinal arithmetic and
+   *  the same rule that LAST also covers a rare 5th Saturday, so the count shown here can never
+   *  disagree with what automation will actually treat as a working day. */
+  private matchesWeek(date: Date, week: WeekOfMonth): boolean {
+    const ordinal = Math.floor((date.getDate() - 1) / 7) + 1;
+    const lengthOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    if (week === 'LAST') {
+      return date.getDate() + 7 > lengthOfMonth;
+    }
+    const byOrdinal: Record<number, WeekOfMonth> = { 1: 'FIRST', 2: 'SECOND', 3: 'THIRD', 4: 'FOURTH' };
+    return byOrdinal[ordinal] === week;
+  }
+
+  protected totalSaturdays(): number {
+    return this.allSaturdays().length;
+  }
+
+  /** How many real Saturdays this one pattern yields across the term — the number an admin needs in
+   *  order to read "1st Saturday" as "about 6 days", not "every Saturday". */
+  protected countForWeek(week: WeekOfMonth): number {
+    return this.allSaturdays().filter((d) => this.matchesWeek(d, week)).length;
+  }
+
+  /** Distinct Saturdays covered by the current tick-state — deliberately de-duplicated, since LAST
+   *  overlaps FOURTH (or FIFTH) in most months and naively summing the per-pattern counts would
+   *  overstate the total. */
+  protected selectedSaturdayCount(): number {
+    const selected = this.weeks.filter((w) => w.checked).map((w) => w.value);
+    if (selected.length === 0) {
+      return 0;
+    }
+    return this.allSaturdays().filter((d) => selected.some((w) => this.matchesWeek(d, w))).length;
   }
 
   protected save(): void {

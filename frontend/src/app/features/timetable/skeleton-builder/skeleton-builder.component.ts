@@ -109,6 +109,15 @@ export class SkeletonBuilderComponent implements OnInit {
   protected selectedTermInstanceId: number | null = null;
   protected selectedCohortId: number | null = null;
 
+  /** The currently-selected {@link TermInstance} row, or null before terms have loaded. A plain
+   *  method rather than a `computed` because {@link selectedTermInstanceId} is a plain ngModel
+   *  field, not a signal — a computed over it would never recompute on change. Used to hand the
+   *  Working Saturdays flyout the term's real date range so it can show how many actual Saturdays
+   *  a given week-of-month pattern yields. */
+  protected selectedTerm(): TermInstance | null {
+    return this.termInstances().find((t) => t.id === this.selectedTermInstanceId) ?? null;
+  }
+
   /** Bound to the cohort `<select>` directly — mirrors {@link selectedCohortId} except it can also
    *  hold the `'ALL'` sentinel for the "All cohorts" option. Kept separate from {@link
    *  selectedCohortId} deliberately: that field flows unchanged into placeCell/moveCell/the

@@ -478,13 +478,21 @@
 
           @if (hasShortfall()) {
             <div class="gas-prereq-group gas-shortfall">
-              @if (workingSaturdaysConfigured()) {
-                <div class="gas-prereq-group__title">Still short even with Saturday already open</div>
+              @if (everySaturdayWorking()) {
+                <div class="gas-prereq-group__title">Still short with every Saturday already a working day</div>
                 <p class="field-hint">
-                  This term already has Saturday scheduling enabled, so opening more Saturday weeks won't add
-                  weekly capacity — Saturday is still just one more day in the week, not extra slots. A subject
-                  already placed once on every day Mon–Sat can't fit a further session no matter how many
-                  Saturdays are opted in. Request a one-off Special Class for whatever's still short instead.
+                  Every Saturday in this term is already opted in, so there is genuinely no further day to
+                  open — the week is six working days and all six are in use. Request a one-off Special Class
+                  for whatever's still short instead.
+                </p>
+              } @else if (workingSaturdaysConfigured()) {
+                <div class="gas-prereq-group__title">Only some Saturdays are working days — the rest are still closed</div>
+                <p class="field-hint">
+                  This term opts into {{ workingSaturdayWeeks().length }} of the 5 possible Saturday patterns,
+                  so most Saturdays in the term are still non-working days and automation cannot place anything
+                  on them. Opting into the remaining weeks adds real capacity — a session on a pattern that
+                  only matches once a month runs about 6 times across the term, against 26 for a full weekly
+                  one. Open the rest, or request a one-off Special Class for whatever's still short.
                 </p>
               } @else {
                 <div class="gas-prereq-group__title">Monday–Friday didn't have room for everything above</div>
@@ -494,7 +502,7 @@
                 </p>
               }
               <div class="gas-shortfall__actions">
-                @if (!workingSaturdaysConfigured()) {
+                @if (!everySaturdayWorking()) {
                   <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
                 }
                 @if (singleShortfallSubject(); as subject) {
