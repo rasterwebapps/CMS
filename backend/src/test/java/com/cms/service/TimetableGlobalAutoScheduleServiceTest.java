@@ -2718,4 +2718,111 @@ class TimetableGlobalAutoScheduleServiceTest {
             .extracting(AutoPlaceUnplacedItem::reason)
             .contains("no faculty assigned on its Course Offering");
     }
+
+    // --- reconcileUnplacedAgainstFinalPlacements: the report reflects the FINISHED grid ---------
+
+    private static final String DISPLACED = "displaced during a backtrack attempt and could not be placed at its "
+        + "original slot or any other free day/period";
+
+    private static TimetableGlobalAutoScheduleService.Placement theoryPlacement(Long offeringId, Long sectionId) {
+        return new TimetableGlobalAutoScheduleService.Placement(1L, offeringId, ClassSessionType.THEORY, null, sectionId,
+            36L, "Pathology I", "Section 1", DayOfWeek.FRIDAY, List.of(6L));
+    }
+
+    private static SkeletonSubjectBudget sectionTheoryBudget(Long sectionId, String label, int required, int placedBeforeRun) {
+        return new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, sectionId, label, 20, 26, required, placedBeforeRun);
+    }
+
+    @Test
+    void displacedSessionThatWasReplacedLaterInTheRunIsNotReportedUnplaced() {
+        // The real 2025-2029 incident: Pathology I was bumped by a backtrack and logged "displaced",
+        // then placed again later in the same run -- the grid was fine, the report still said unplaced.
+        SkeletonSubjectResponse pathology = new SkeletonSubjectResponse(100L, "Pathology I", "PATH",
+            List.of(sectionTheoryBudget(51L, "Section 1", 1, 0)), null, null);
+        List<AutoPlaceUnplacedItem> logged = List.of(
+            new AutoPlaceUnplacedItem("Pathology I", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L));
+
+        List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
+            logged, List.of(pathology), List.of(theoryPlacement(100L, 51L)));
+
+        assertThat(reconciled).isEmpty();
+    }
+
+    @Test
+    void pinnedSessionsSurvivingThePurgeCountTowardTheQuota() {
+        SkeletonSubjectResponse pathology = new SkeletonSubjectResponse(100L, "Pathology I", "PATH",
+            List.of(sectionTheoryBudget(51L, "Section 1", 1, 2)), null, null);
+        List<AutoPlaceUnplacedItem> logged = List.of(
+            new AutoPlaceUnplacedItem("Pathology I", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L));
+
+        assertThat(TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
+            logged, List.of(pathology), List.of())).isEmpty();
+    }
+
+    @Test
+    void genuinelyShortSubjectKeepsOnlyAsManyItemsAsSessionsStillOwed() {
+        // Needs 3/week, 1 placed this run -> 2 still owed; 3 failure events were logged along the way.
+        SkeletonSubjectResponse chn = new SkeletonSubjectResponse(100L, "Community Health Nursing I", "CHN",
+            List.of(sectionTheoryBudget(51L, "Section 1", 3, 0)), null, null);
+        List<AutoPlaceUnplacedItem> logged = List.of(
+            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "first", 100L),
+            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "second", 100L),
+            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "third", 100L));
+
+        List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
+            logged, List.of(chn), List.of(theoryPlacement(100L, 51L)));
+
+        assertThat(reconciled).extracting(AutoPlaceUnplacedItem::reason).containsExactly("first", "second");
+    }
+
+    @Test
+    void eachSectionIsReconciledAgainstItsOwnQuota() {
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Applied Anatomy", "ANAT",
+            List.of(sectionTheoryBudget(51L, "Section 1", 1, 0), sectionTheoryBudget(52L, "Section 2", 1, 0)), null, null);
+        List<AutoPlaceUnplacedItem> logged = List.of(
+            new AutoPlaceUnplacedItem("Applied Anatomy", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L),
+            new AutoPlaceUnplacedItem("Applied Anatomy", ClassSessionType.THEORY, "Section 2", DISPLACED, 100L));
+
+        List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
+            logged, List.of(subject), List.of(theoryPlacement(100L, 51L)));
+
+        assertThat(reconciled).extracting(AutoPlaceUnplacedItem::occupantLabel).containsExactly("Section 2");
+    }
+
+    @Test
+    void labBudgetIsMatchedPerBatch() {
+        SkeletonSubjectBudget batchA = new SkeletonSubjectBudget(ClassSessionType.LAB, 285L, "Batch A", 51L, null, 40, 26, 1, 0);
+        SkeletonSubjectBudget batchB = new SkeletonSubjectBudget(ClassSessionType.LAB, 286L, "Batch B", 51L, null, 40, 26, 1, 0);
+        SkeletonSubjectResponse ahn = new SkeletonSubjectResponse(100L, "Adult Health Nursing I", "AHN",
+            List.of(batchA, batchB), null, null);
+        TimetableGlobalAutoScheduleService.Placement placedA = new TimetableGlobalAutoScheduleService.Placement(1L, 100L,
+            ClassSessionType.LAB, 285L, 51L, 34L, "Adult Health Nursing I", "Batch A", DayOfWeek.TUESDAY, List.of(1L, 2L));
+        List<AutoPlaceUnplacedItem> logged = List.of(
+            new AutoPlaceUnplacedItem("Adult Health Nursing I", ClassSessionType.LAB, "Batch A", DISPLACED, 100L),
+            new AutoPlaceUnplacedItem("Adult Health Nursing I", ClassSessionType.LAB, "Batch B", DISPLACED, 100L));
+
+        List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
+            logged, List.of(ahn), List.of(placedA));
+
+        assertThat(reconciled).extracting(AutoPlaceUnplacedItem::occupantLabel).containsExactly("Batch B");
+    }
+
+    @Test
+    void libraryGapFillAndUnmatchedItemsAreNeverReconciledAway() {
+        // A subject literally named like the gap-fill note, whole-cohort (null occupant), already at
+        // quota: its period-level "N period(s) left empty" note must still survive -- it describes
+        // empty periods, not this subject's weekly quota.
+        SkeletonSubjectResponse selfStudy = new SkeletonSubjectResponse(100L, "Self-Study/Co-curricular", "SSCC",
+            List.of(new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 20, 26, 1, 1)), null, null);
+        List<AutoPlaceUnplacedItem> logged = List.of(
+            new AutoPlaceUnplacedItem("Library", ClassSessionType.LIBRARY, null, "1 of this cohort's weekly Library session(s)", null),
+            new AutoPlaceUnplacedItem("Self-Study/Co-curricular", ClassSessionType.THEORY, null, "2 period(s) left genuinely empty", 100L),
+            new AutoPlaceUnplacedItem("Gap-fill", ClassSessionType.THEORY, null, "1 period(s) left empty", 100L),
+            new AutoPlaceUnplacedItem("Unknown Subject", ClassSessionType.THEORY, "Section 1", DISPLACED, 999L));
+
+        List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
+            logged, List.of(selfStudy), List.of());
+
+        assertThat(reconciled).isEqualTo(logged);
+    }
 }
