@@ -1,0 +1,81 @@
+<div mat-dialog-title class="srf-title">
+  <h2 class="srf-title__heading">Reassign Faculty</h2>
+  <p class="srf-title__sub">
+    {{ data.cell.subjectCode }} · {{ data.cell.subjectName }}
+    — {{ data.cell.dayOfWeek | titlecase }}, {{ data.cell.slotName }}
+    @if (data.cell.cohortSectionLabel) { · {{ data.cell.cohortSectionLabel }} }
+    @else if (data.cell.batchName) { · {{ data.cell.batchName }} }
+  </p>
+</div>
+
+<mat-dialog-content>
+  <p class="field-hint srf-intro">
+    Changes only who teaches this session. The subject, day, period and students stay exactly as
+    they are, and the room is re-resolved from the committed room allocation — it isn't a choice
+    here.
+  </p>
+
+  @if (isMultiPeriod()) {
+    <p class="srf-callout">
+      This session spans more than one period. All of its periods are reassigned together, to the
+      same person.
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="field-hint srf-loading">
+      <mat-spinner diameter="16" />
+      <span>Loading eligible faculty…</span>
+    </p>
+  } @else if (error()) {
+    <p class="field-hint srf-hint--warn">{{ error() }}</p>
+  } @else if (faculty().length === 0) {
+    <p class="field-hint srf-hint--warn">
+      No active faculty is eligible to teach this subject — eligibility comes from a Speciality
+      match or the subject's own Eligible Faculty list. Set one up in Subject Master first.
+    </p>
+  } @else {
+    <div class="field-group">
+      <label for="srf-faculty" class="field-label">Faculty</label>
+      <select id="srf-faculty" class="field-select"
+        [ngModel]="selectedFacultyId()"
+        (ngModelChange)="selectedFacultyId.set($event)">
+        @for (f of faculty(); track f.facultyId) {
+          <option [ngValue]="f.facultyId">
+            {{ f.facultyName }}{{ f.currentlyAssigned ? ' (current)' : '' }}
+            @if (f.capacityTier === 'NONE') {
+              — no cap configured
+            } @else if (f.overCapacity) {
+              — over capacity by {{ -f.remainingHours | number: '1.0-1' }}h
+            } @else {
+              — {{ f.remainingHours | number: '1.0-1' }}h free this term
+            }
+          </option>
+        }
+      </select>
+      <p class="field-hint">
+        Sorted with the most free capacity first. Remaining hours are measured against each
+        person's whole term demand, not just this cohort.
+        @if (currentFaculty()) {
+          Currently taught by {{ currentFaculty()!.facultyName }}.
+        }
+      </p>
+
+      @if (selectedFaculty(); as f) {
+        @if (f.overCapacity) {
+          <p class="srf-callout srf-callout--warn">
+            {{ f.facultyName }} is already over their total term capacity by
+            {{ -f.remainingHours | number: '1.0-1' }}h. This won't block the reassignment on its own
+            — what's enforced at save time is the daily, weekly and continuous caps for this
+            particular slot — but it does add to an existing overload.
+          </p>
+        }
+      }
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button class="btn-secondary" type="button" (click)="onCancel()">Cancel</button>
+  <button class="btn-primary" type="button" [disabled]="!canSave()" (click)="onSave()">Reassign</button>
+</mat-dialog-actions>

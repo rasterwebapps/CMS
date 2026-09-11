@@ -1,0 +1,4 @@
+@use '../../../../shared/styles/session-edit-dialog.mixin' as *;
+
+// Title/intro/callout/loading chrome is shared with the Replace Subject dialog — see the mixin.
+@include session-edit-dialog('srf');

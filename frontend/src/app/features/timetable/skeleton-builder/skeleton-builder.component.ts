@@ -15,6 +15,8 @@ import { Period } from '../../period/period.model';
 import { SkeletonBuilderService } from './skeleton-builder.service';
 import { ClinicalShiftWindow, DisplacedSubjectShortfall, SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType, SkeletonSlotPreview, SkeletonSubject } from './skeleton-builder.model';
 import { SkeletonCellReplaceDialogComponent, SkeletonCellReplaceDialogData, SkeletonCellReplaceDialogResult } from './skeleton-cell-replace-dialog/skeleton-cell-replace-dialog.component';
+import { SkeletonCellReassignFacultyDialogComponent, SkeletonCellReassignFacultyDialogData, SkeletonCellReassignFacultyDialogResult } from './skeleton-cell-reassign-faculty-dialog/skeleton-cell-reassign-faculty-dialog.component';
+import { StaffingService } from '../staffing/staffing.service';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -76,6 +78,10 @@ export class SkeletonBuilderComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly periodService = inject(PeriodService);
   private readonly skeletonService = inject(SkeletonBuilderService);
+  // Reassign Faculty reuses the Staffing screen's own endpoint rather than adding a parallel one —
+  // `staffCell` already handles reassignment (it grandfathers the current holder) and applies a
+  // multi-period session's rows atomically.
+  private readonly staffingService = inject(StaffingService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -780,6 +786,56 @@ export class SkeletonBuilderComponent implements OnInit {
           this.reloadSkeleton();
         },
         error: (err) => this.toast.error(violationText(err) ?? 'Failed to replace session'),
+      });
+    });
+  }
+
+  protected canReassignFaculty(): boolean {
+    return this.permissionService.has('TIMETABLE_STAFFING_MANAGE');
+  }
+
+  /** Whether Reassign Faculty is offered for this cell, mirroring what {@code staffCell} accepts.
+   *  DRAFT only (a published session is immutable), and it must have a subject to be taught — a
+   *  Library slot has no offering and no faculty. Elective Theory is excluded for a different
+   *  reason: it's the one session type whose room is a free pick rather than resolved from the
+   *  committed allocation, so reassigning it properly needs a classroom field this dialog
+   *  deliberately doesn't carry. The Staffing screen has that picker. */
+  protected canReassignFacultyCell(cell: SkeletonCell): boolean {
+    return this.canReassignFaculty()
+      && cell.status === 'DRAFT'
+      && cell.courseOfferingId != null
+      && cell.electiveGroupId == null;
+  }
+
+  /** Why Reassign Faculty is unavailable, for the disabled menu item. Null when it IS available. */
+  protected reassignBlockedReason(cell: SkeletonCell): string | null {
+    if (!this.canReassignFaculty()) return 'You don\'t have permission to change staffing.';
+    if (cell.status !== 'DRAFT') return 'Published sessions can\'t be changed here.';
+    if (cell.courseOfferingId == null) return 'A Library slot has no faculty to reassign.';
+    if (cell.electiveGroupId != null) return 'Elective sessions also need a classroom — reassign them on the Staffing screen.';
+    return null;
+  }
+
+  /** Change who teaches a session, keeping the subject and slot. Separate from Replace because it
+   *  is the far commoner edit: a staffing correction rather than a curriculum one. */
+  protected openReassignFacultyDialog(cell: SkeletonCell): void {
+    const sk = this.skeleton();
+    if (!sk || !this.canReassignFacultyCell(cell)) return;
+
+    this.dialog.open(SkeletonCellReassignFacultyDialogComponent, {
+      width: '520px',
+      maxWidth: '95vw',
+      data: { cell, cohortId: sk.cohortId } satisfies SkeletonCellReassignFacultyDialogData,
+    }).afterClosed().subscribe((result: SkeletonCellReassignFacultyDialogResult | undefined) => {
+      if (!result) return;
+      // classroomId is null throughout: elective Theory is the only session type the backend reads
+      // it for, and those never reach this dialog (see canReassignFacultyCell).
+      this.staffingService.staffCell(cell.id, { facultyId: result.facultyId, classroomId: null }).subscribe({
+        next: () => {
+          this.toast.success('Faculty reassigned.');
+          this.reloadSkeleton();
+        },
+        error: (err) => this.toast.error(violationText(err) ?? 'Failed to reassign faculty'),
       });
     });
   }

@@ -98,8 +98,10 @@
         @if (selectedFaculty(); as f) {
           @if (f.overCapacity) {
             <p class="scr-callout scr-callout--warn">
-              {{ f.facultyName }} is already over their term capacity. Assigning them here will be
-              rejected if a workload cap is enforced for their tier.
+              {{ f.facultyName }} is already over their total term capacity by
+              {{ -f.remainingHours | number: '1.0-1' }}h. This won't block the replacement on its
+              own — what's enforced at save time is the daily, weekly and continuous caps for this
+              particular slot — but it does add to an existing overload.
             </p>
           }
         }

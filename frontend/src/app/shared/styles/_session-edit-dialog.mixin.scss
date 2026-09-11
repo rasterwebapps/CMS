@@ -1,0 +1,82 @@
+// Shared chrome for the small "edit one placed session" dialogs opened from the Skeleton Builder
+// grid's cell action menu (Replace Subject, Reassign Faculty, and any sibling added later).
+//
+// They are deliberately the same shape: a two-line title (what you're editing + where it sits), a
+// short explanatory intro, optional callouts for a caveat or a warning, and one or two pickers.
+// Before this mixin existed the second dialog was about to hand-roll a byte-for-byte copy of the
+// first one's title/intro/callout/loading rules, so the pattern is centralised here at the point
+// it would first have been duplicated rather than after it drifted.
+//
+// Every colour comes from a `--cms-*` token, so both themes follow the global palette with no
+// local light/dark overrides to fall out of sync.
+//
+// Usage -- the caller owns its own block-name prefix, so pass it in:
+//
+//   @use '../../../../shared/styles/session-edit-dialog.mixin' as *;
+//   @include session-edit-dialog('scr');
+//
+// which generates .scr-title, .scr-intro, .scr-callout, .scr-callout--warn, .scr-hint--warn,
+// .scr-loading and .scr-footnote.
+
+@mixin session-edit-dialog($prefix) {
+  .#{$prefix}-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .#{$prefix}-title__heading {
+    margin: 0;
+    font-size: var(--cms-text-lg);
+    color: var(--cms-text-primary);
+  }
+
+  .#{$prefix}-title__sub {
+    margin: 0;
+    font-size: var(--cms-text-sm);
+    color: var(--cms-text-secondary);
+  }
+
+  .#{$prefix}-intro {
+    margin-top: 0;
+  }
+
+  // One box, two accents, so an informational caveat and a real warning read as one family
+  // rather than two separately invented styles.
+  .#{$prefix}-callout {
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border-left: 3px solid var(--cms-primary);
+    border-radius: 4px;
+    background: var(--cms-primary-alpha-8);
+    font-size: var(--cms-text-sm);
+    line-height: 1.45;
+    color: var(--cms-text-secondary);
+  }
+
+  .#{$prefix}-callout--warn {
+    margin-top: 8px;
+    border-left-color: var(--cms-warning);
+    background: var(--cms-warning-light);
+    // Set explicitly rather than inherited: warning-light is a near-white amber (#fffbeb) in
+    // light mode and a translucent amber over the dark surface in dark mode, so the muted body
+    // token would wash out on the light one. text-primary reads on both.
+    color: var(--cms-text-primary);
+  }
+
+  .#{$prefix}-hint--warn {
+    color: var(--cms-warning);
+  }
+
+  .#{$prefix}-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .#{$prefix}-footnote {
+    margin-bottom: 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--cms-border-light);
+  }
+}
