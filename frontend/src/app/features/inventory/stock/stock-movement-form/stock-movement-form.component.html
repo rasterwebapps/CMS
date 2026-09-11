@@ -44,6 +44,24 @@
               }
             </div>
 
+            @if (variants().length > 0) {
+              <div class="field-group">
+                <label for="mv-variant" class="field-label">Variant <span class="required-star">*</span></label>
+                <select id="mv-variant" class="field-select" formControlName="variantId"
+                  [class.field-select--error]="form.get('variantId')?.invalid && form.get('variantId')?.touched">
+                  <option [ngValue]="null" disabled>Select a variant</option>
+                  @for (v of variants(); track v.id) {
+                    <option [ngValue]="v.id">{{ v.variantName }} ({{ v.variantCode }})</option>
+                  }
+                </select>
+                @if (form.get('variantId')?.invalid && form.get('variantId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('variantId') }}</p>
+                } @else {
+                  <p class="field-hint">This product has variants — pick which one moved</p>
+                }
+              </div>
+            }
+
             <div class="field-group">
               <label for="mv-location" class="field-label">Location <span class="required-star">*</span></label>
               <select id="mv-location" class="field-select" formControlName="locationId"

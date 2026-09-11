@@ -70,6 +70,17 @@
               }
             </select>
           </div>
+          @if (variants().length > 0) {
+            <div class="field-group po-add-variant">
+              <label class="field-label">Variant <span class="required-star">*</span></label>
+              <select class="field-select" [(ngModel)]="addVariantId">
+                <option [ngValue]="null" disabled>Select a variant</option>
+                @for (v of variants(); track v.id) {
+                  <option [ngValue]="v.id">{{ v.variantName }} ({{ v.variantCode }})</option>
+                }
+              </select>
+            </div>
+          }
           @if (uomLevels().length > 0) {
             <div class="field-group po-add-uom">
               <label class="field-label">Unit</label>
@@ -98,7 +109,7 @@
               }
             </select>
           </div>
-          <button class="btn-secondary" [disabled]="addRequisitionItemId == null || busy()" (click)="addLine()">Add Line</button>
+          <button class="btn-secondary" [disabled]="addRequisitionItemId == null || (variants().length > 0 && addVariantId == null) || busy()" (click)="addLine()">Add Line</button>
         </div>
         @if (!availableLines().length) {
           <p class="po-no-lines-hint">No approved requisition lines are waiting to be ordered for this location.</p>
@@ -130,7 +141,7 @@
               <tr>
                 <td>
                   <div class="po-product-name">{{ line.productName }}</div>
-                  <div class="po-product-code">{{ line.productCode }}</div>
+                  <div class="po-product-code">{{ line.productCode }}{{ line.variantName ? ' — ' + line.variantName : '' }}</div>
                 </td>
                 <td>{{ line.uomCode || '—' }}</td>
                 <td class="cell-align-right">

@@ -14,6 +14,15 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     List<ProductVariant> findByProductIdOrderByVariantNameAsc(Long productId);
 
+    /** Whether {@code productId} has any active variant — the trigger for "variant becomes
+     *  required" across Stock Movement/PO/Transfer/Issue Request. See {@code
+     *  StockMovementService.requireVariantIfProductHasAny}. */
+    boolean existsByProductIdAndIsActiveTrue(Long productId);
+
+    /** Confirms a given variant actually belongs to the given product before it's accepted on any
+     *  movement/line — a variant id from a different product must never silently pass through. */
+    Optional<ProductVariant> findByIdAndProductId(Long id, Long productId);
+
     boolean existsByVariantCodeIgnoreCase(String variantCode);
     boolean existsByVariantCodeIgnoreCaseAndIdNot(String variantCode, Long id);
 

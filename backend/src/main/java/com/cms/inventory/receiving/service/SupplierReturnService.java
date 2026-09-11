@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.procurement.model.PurchaseOrderItem;
 import com.cms.inventory.procurement.repository.PurchaseOrderItemRepository;
 import com.cms.inventory.procurement.service.PurchaseOrderService;
@@ -187,8 +188,12 @@ public class SupplierReturnService {
                         + " still returnable (another return confirmed first) — reduce this line's quantity");
             }
 
+            // Always the same variant (if any) the original receipt was posted against — a return
+            // is decreasing the exact stock that receipt increased, so it must target the same
+            // balance bucket, never chosen fresh here.
+            ProductVariant variant = receiptLine.getPurchaseOrderItem().getVariant();
             stockMovementService.recordMovement(new StockMovementRequest(
-                receiptLine.getPurchaseOrderItem().getProduct().getId(), location.getId(), null, null,
+                receiptLine.getPurchaseOrderItem().getProduct().getId(), variant != null ? variant.getId() : null, location.getId(), null, null,
                 "RETURN", "DECREASE", line.getReturnedQty(), receiptLine.getUnitCost(),
                 "Supplier Return #" + ret.getId() + (line.getNotes() != null ? " — " + line.getNotes() : "")
             ), actor);

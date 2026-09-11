@@ -188,7 +188,7 @@ public class CycleCountService {
 
         BigDecimal variance = line.getVarianceQty();
         StockMovementRequest movementRequest = new StockMovementRequest(
-            line.getProduct().getId(), count.getLocation().getId(), null, null,
+            line.getProduct().getId(), null, count.getLocation().getId(), null, null,
             "ADJUSTMENT", variance.signum() > 0 ? "INCREASE" : "DECREASE", variance.abs(), null,
             "Cycle Count #" + count.getId() + " variance");
         try {

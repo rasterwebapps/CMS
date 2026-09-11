@@ -10,6 +10,8 @@ import { TaxRuleService } from '../../tax-rule/tax-rule.service';
 import { TaxRule } from '../../tax-rule/tax-rule.model';
 import { ProductService } from '../../../product/product.service';
 import { ProductUomLevel } from '../../../product/product.model';
+import { ProductVariantService } from '../../../product/product-variant/product-variant.service';
+import { ProductVariant } from '../../../product/product-variant/product-variant.model';
 import { ConfirmDialogComponent } from '../../../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
@@ -35,6 +37,7 @@ export class PurchaseOrderDetailComponent implements OnInit {
   private readonly orderService  = inject(PurchaseOrderService);
   private readonly taxRuleService = inject(TaxRuleService);
   private readonly productService = inject(ProductService);
+  private readonly variantService = inject(ProductVariantService);
   private readonly dialog        = inject(MatDialog);
   private readonly toast         = inject(ToastService);
 
@@ -47,8 +50,13 @@ export class PurchaseOrderDetailComponent implements OnInit {
   // picker's pool. Empty means the product has no hierarchy configured; it can only be ordered
   // in its base unit.
   protected readonly uomLevels       = signal<ProductUomLevel[]>([]);
+  // Active variants of the selected line's product — empty means the product has no variants and
+  // can be ordered without picking one. See the 2026-09-11 "Wire ProductVariant into Stock
+  // Movement" decision-log entry.
+  protected readonly variants        = signal<ProductVariant[]>([]);
 
   protected addRequisitionItemId: number | null = null;
+  protected addVariantId: number | null = null;
   protected addQty: number | null = null;
   protected addUomLevelId: number | null = null;
   protected addUnitPrice: number | null = null;
@@ -84,9 +92,14 @@ export class PurchaseOrderDetailComponent implements OnInit {
 
   protected addLine(): void {
     if (this.addRequisitionItemId == null) return;
+    if (this.variants().length > 0 && this.addVariantId == null) {
+      this.toast.error('This product has variants — select one before adding the line');
+      return;
+    }
     this.busy.set(true);
     this.orderService.addLine(this.orderId, {
       purchaseRequisitionItemId: this.addRequisitionItemId,
+      variantId: this.addVariantId ?? undefined,
       orderedQty: this.addQty ?? undefined,
       uomLevelId: this.addUomLevelId ?? undefined,
       unitPrice: this.addUnitPrice ?? undefined,
@@ -94,11 +107,13 @@ export class PurchaseOrderDetailComponent implements OnInit {
     }).subscribe({
       next: () => {
         this.addRequisitionItemId = null;
+        this.addVariantId = null;
         this.addQty = null;
         this.addUomLevelId = null;
         this.addUnitPrice = null;
         this.addTaxRuleId = null;
         this.uomLevels.set([]);
+        this.variants.set([]);
         this.toast.success('Line added to the order');
         this.busy.set(false);
         this.load();
@@ -150,8 +165,14 @@ export class PurchaseOrderDetailComponent implements OnInit {
     this.addQty = line ? line.requestedQty : null;
     this.addUomLevelId = null;
     this.addTaxRuleId = null;
+    this.addVariantId = null;
     this.uomLevels.set([]);
+    this.variants.set([]);
     if (!line) return;
+    this.variantService.findByProduct(line.productId).subscribe({
+      next: (variants) => this.variants.set(variants.filter(v => v.isActive)),
+      error: () => { /* no variants for this product — not an error */ },
+    });
     this.productService.getActiveUomChain(line.productId).subscribe({
       next: (chain) => {
         const levels = (chain?.levels ?? []).filter(l => l.levelRank > 0);

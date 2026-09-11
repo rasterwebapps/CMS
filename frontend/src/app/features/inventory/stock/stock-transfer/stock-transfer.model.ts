@@ -19,6 +19,8 @@ export interface StockTransferCreateRequest {
 
 export interface StockTransferAddLineRequest {
   productId: number;
+  /** Required once the product has any active ProductVariant. */
+  variantId?: number;
   quantity: number;
   notes?: string;
 }
@@ -28,6 +30,9 @@ export interface StockTransferLine {
   productId: number;
   productCode: string;
   productName: string;
+  variantId: number | null;
+  variantCode: string | null;
+  variantName: string | null;
   uomCode: string | null;
   quantity: number;
   notes: string | null;

@@ -11,6 +11,8 @@ import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/stat
 import { CmsProductPickerComponent } from '../../../../../shared/product-picker/product-picker.component';
 import { PermissionService } from '../../../../../core/permissions/permission.service';
 import { ToastService } from '../../../../../core/toast/toast.service';
+import { ProductVariantService } from '../../../product/product-variant/product-variant.service';
+import { ProductVariant } from '../../../product/product-variant/product-variant.model';
 
 @Component({
   selector: 'app-stock-issue-request-detail',
@@ -34,12 +36,15 @@ export class StockIssueRequestDetailComponent implements OnInit {
   private readonly dialog            = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
   private readonly toast             = inject(ToastService);
+  private readonly variantService    = inject(ProductVariantService);
 
   protected readonly loading      = signal(false);
   protected readonly busy         = signal(false);
   protected readonly issueRequest = signal<StockIssueRequest | null>(null);
   protected readonly addProductId = signal<number | null>(null);
+  protected readonly addVariantId = signal<number | null>(null);
   protected readonly addQty       = signal<number | null>(null);
+  protected readonly variants     = signal<ProductVariant[]>([]);
 
   protected readonly canApprove = computed(() => this.permissionService.has('INVENTORY_ISSUE_REQUEST_APPROVE'));
   protected readonly canReturn  = computed(() => this.permissionService.has('INVENTORY_ISSUE_REQUEST_RETURN'));
@@ -61,15 +66,32 @@ export class StockIssueRequestDetailComponent implements OnInit {
     });
   }
 
+  protected onProductChange(productId: number | null): void {
+    this.addProductId.set(productId);
+    this.addVariantId.set(null);
+    this.variants.set([]);
+    if (productId == null) return;
+    this.variantService.findByProduct(productId).subscribe({
+      next: (variants) => this.variants.set(variants.filter(v => v.isActive)),
+      error: () => { /* no variants for this product — not an error */ },
+    });
+  }
+
   protected addLine(): void {
     const productId = this.addProductId();
     const requestedQty = this.addQty();
     if (productId == null || requestedQty == null || requestedQty <= 0) return;
+    if (this.variants().length > 0 && this.addVariantId() == null) {
+      this.toast.error('This product has variants — select one before adding it');
+      return;
+    }
     this.busy.set(true);
-    this.requestService.addLine(this.requestId, { productId, requestedQty }).subscribe({
+    this.requestService.addLine(this.requestId, { productId, variantId: this.addVariantId() ?? undefined, requestedQty }).subscribe({
       next: () => {
         this.addProductId.set(null);
+        this.addVariantId.set(null);
         this.addQty.set(null);
+        this.variants.set([]);
         this.toast.success('Product added to the request');
         this.busy.set(false);
         this.load();

@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomLevel;
+import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.catalog.service.ProductUomChainService;
 import com.cms.inventory.procurement.model.PurchaseOrder;
 import com.cms.inventory.procurement.model.PurchaseOrderItem;
@@ -115,8 +116,10 @@ public class GoodsReceiptService {
             .filter(item -> item.getReceivedQty().compareTo(item.getOrderedQty()) < 0)
             .map(item -> {
                 Product product = item.getProduct();
+                ProductVariant variant = item.getVariant();
                 return new ReceivablePurchaseOrderLineResponse(
                     item.getId(), product.getId(), product.getProductCode(), product.getProductName(),
+                    variant != null ? variant.getId() : null, variant != null ? variant.getVariantCode() : null, variant != null ? variant.getVariantName() : null,
                     product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
                     item.getOrderedQty(), item.getReceivedQty(), item.getOrderedQty().subtract(item.getReceivedQty()),
                     item.getUnitPrice());
@@ -202,8 +205,9 @@ public class GoodsReceiptService {
                         + " still open on its order line (another receipt confirmed first) — reduce this line's quantity");
             }
 
+            ProductVariant variant = poItem.getVariant();
             stockMovementService.recordMovement(new StockMovementRequest(
-                poItem.getProduct().getId(), location.getId(),
+                poItem.getProduct().getId(), variant != null ? variant.getId() : null, location.getId(),
                 line.getBatchOrSerialNo(), line.getExpiryDate(),
                 "RECEIPT", null, line.getReceivedQty(), line.getUnitCost(),
                 "Goods Receipt #" + receipt.getId() + (line.getNotes() != null ? " — " + line.getNotes() : "")
@@ -278,9 +282,11 @@ public class GoodsReceiptService {
     private GoodsReceiptLineResponse toLineResponse(GoodsReceiptLine line) {
         PurchaseOrderItem poItem = line.getPurchaseOrderItem();
         Product product = poItem.getProduct();
+        ProductVariant variant = poItem.getVariant();
         ProductUomLevel uomLevel = line.getUomLevel();
         return new GoodsReceiptLineResponse(
             line.getId(), poItem.getId(), product.getId(), product.getProductCode(), product.getProductName(),
+            variant != null ? variant.getId() : null, variant != null ? variant.getVariantCode() : null, variant != null ? variant.getVariantName() : null,
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
             poItem.getOrderedQty(), poItem.getReceivedQty(), line.getReceivedQty(),
             uomLevel != null ? uomLevel.getId() : null,

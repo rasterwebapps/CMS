@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Size;
 
 public record StockIssueRequestAddLineRequest(
     @NotNull Long productId,
+    /** Required once the product has any active {@code ProductVariant}. */
+    Long variantId,
     @NotNull @DecimalMin(value = "0.001", message = "Requested quantity must be greater than zero") BigDecimal requestedQty,
     @Size(max = 500) String notes
 ) {}

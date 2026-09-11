@@ -13,7 +13,9 @@ public interface StockIssueRequestItemRepository extends JpaRepository<StockIssu
 
     List<StockIssueRequestItem> findByStockIssueRequestIdOrderByIdAsc(Long stockIssueRequestId);
 
-    boolean existsByStockIssueRequestIdAndProductId(Long stockIssueRequestId, Long productId);
+    boolean existsByStockIssueRequestIdAndProductIdAndVariantId(Long stockIssueRequestId, Long productId, Long variantId);
+
+    boolean existsByStockIssueRequestIdAndProductIdAndVariantIsNull(Long stockIssueRequestId, Long productId);
 
     boolean existsByStockIssueRequestIdAndStatus(Long stockIssueRequestId, StockIssueRequestItemStatus status);
 }

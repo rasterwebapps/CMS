@@ -36,6 +36,11 @@ export interface GoodsReceiptLine {
   productId: number;
   productCode: string;
   productName: string;
+  /** Always inherited from the purchase order line being received against — never chosen fresh
+   * on the receipt itself. */
+  variantId: number | null;
+  variantCode: string | null;
+  variantName: string | null;
   uomCode: string | null;
   orderedQty: number;
   alreadyReceivedQty: number;
@@ -72,6 +77,9 @@ export interface ReceivablePurchaseOrderLine {
   productId: number;
   productCode: string;
   productName: string;
+  variantId: number | null;
+  variantCode: string | null;
+  variantName: string | null;
   uomCode: string | null;
   orderedQty: number;
   receivedQty: number;

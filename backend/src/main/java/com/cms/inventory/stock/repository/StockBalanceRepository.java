@@ -18,9 +18,21 @@ import com.cms.inventory.stock.model.StockValuationByCategoryProjection;
 @Repository
 public interface StockBalanceRepository extends JpaRepository<StockBalance, Long>, JpaSpecificationExecutor<StockBalance> {
 
-    Optional<StockBalance> findByProductIdAndLocationIdAndBatchId(Long productId, Long locationId, Long batchId);
+    /**
+     * Variant-aware balance lookups used by {@code StockMovementService.findBalance} now that the
+     * balance key is {@code (product_id, variant_id, location_id, batch_id)}. There is no
+     * plain/non-variant equivalent any more — even a caller (like {@code AssetService.dispose})
+     * that only ever means the product's own non-variant balance must say so explicitly with
+     * {@code AndVariantIsNull}, since a product can now have more than one balance row at the same
+     * location/batch (one per variant plus, optionally, one for "no variant").
+     */
+    Optional<StockBalance> findByProductIdAndVariantIdAndLocationIdAndBatchId(Long productId, Long variantId, Long locationId, Long batchId);
 
-    Optional<StockBalance> findByProductIdAndLocationIdAndBatchIsNull(Long productId, Long locationId);
+    Optional<StockBalance> findByProductIdAndVariantIsNullAndLocationIdAndBatchId(Long productId, Long locationId, Long batchId);
+
+    Optional<StockBalance> findByProductIdAndVariantIdAndLocationIdAndBatchIsNull(Long productId, Long variantId, Long locationId);
+
+    Optional<StockBalance> findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(Long productId, Long locationId);
 
     /**
      * Every product currently holding any balance (batched or unbatched) at a location, each
@@ -45,11 +57,11 @@ public interface StockBalanceRepository extends JpaRepository<StockBalance, Long
     BigDecimal sumQtyForProductAndLocation(@Param("productId") Long productId, @Param("locationId") Long locationId);
 
     /**
-     * Atomic upsert against the {@code (product_id, location_id, batch_id)} unique constraint
-     * (NULLS NOT DISTINCT) — adds the given deltas to whatever is already there, or creates the
-     * row starting from these deltas. Never call this outside {@code StockMovementService}: it's
-     * the only thing allowed to write this table, always paired with a {@code StockLedger} insert
-     * in the same transaction.
+     * Atomic upsert against the {@code (product_id, variant_id, location_id, batch_id)} unique
+     * constraint (NULLS NOT DISTINCT) — adds the given deltas to whatever is already there, or
+     * creates the row starting from these deltas. Never call this outside {@code
+     * StockMovementService}: it's the only thing allowed to write this table, always paired with a
+     * {@code StockLedger} insert in the same transaction.
      */
     /**
      * Every (product, location) pair currently below the product's configured reorder level,
@@ -92,13 +104,13 @@ public interface StockBalanceRepository extends JpaRepository<StockBalance, Long
 
     @Modifying
     @Query(value = """
-        INSERT INTO stock_balances (product_id, location_id, batch_id, qty_on_hand, value_on_hand, last_updated)
-        VALUES (:productId, :locationId, :batchId, :qtyDelta, :valueDelta, now())
-        ON CONFLICT (product_id, location_id, batch_id) DO UPDATE SET
+        INSERT INTO stock_balances (product_id, variant_id, location_id, batch_id, qty_on_hand, value_on_hand, last_updated)
+        VALUES (:productId, :variantId, :locationId, :batchId, :qtyDelta, :valueDelta, now())
+        ON CONFLICT (product_id, variant_id, location_id, batch_id) DO UPDATE SET
           qty_on_hand = stock_balances.qty_on_hand + EXCLUDED.qty_on_hand,
           value_on_hand = stock_balances.value_on_hand + EXCLUDED.value_on_hand,
           last_updated = now()
         """, nativeQuery = true)
-    void upsertBalance(@Param("productId") Long productId, @Param("locationId") Long locationId,
+    void upsertBalance(@Param("productId") Long productId, @Param("variantId") Long variantId, @Param("locationId") Long locationId,
                         @Param("batchId") Long batchId, @Param("qtyDelta") BigDecimal qtyDelta, @Param("valueDelta") BigDecimal valueDelta);
 }

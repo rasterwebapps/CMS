@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.catalog.repository.ProductRepository;
+import com.cms.inventory.catalog.repository.ProductVariantRepository;
 import com.cms.inventory.issue.dto.StockIssueRequestAddLineRequest;
 import com.cms.inventory.issue.dto.StockIssueRequestCreateRequest;
 import com.cms.inventory.issue.dto.StockIssueRequestItemResponse;
@@ -53,17 +55,20 @@ public class StockIssueRequestService {
     private final InventoryLocationRepository locationRepository;
     private final ProductRepository productRepository;
     private final StockMovementService stockMovementService;
+    private final ProductVariantRepository variantRepository;
 
     public StockIssueRequestService(StockIssueRequestRepository requestRepository,
                                      StockIssueRequestItemRepository lineRepository,
                                      InventoryLocationRepository locationRepository,
                                      ProductRepository productRepository,
-                                     StockMovementService stockMovementService) {
+                                     StockMovementService stockMovementService,
+                                     ProductVariantRepository variantRepository) {
         this.requestRepository = requestRepository;
         this.lineRepository = lineRepository;
         this.locationRepository = locationRepository;
         this.productRepository = productRepository;
         this.stockMovementService = stockMovementService;
+        this.variantRepository = variantRepository;
     }
 
     @Transactional
@@ -110,15 +115,20 @@ public class StockIssueRequestService {
     public StockIssueRequestItemResponse addLine(Long requestId, StockIssueRequestAddLineRequest request) {
         StockIssueRequest issueRequest = requireRequest(requestId);
         requireStatus(issueRequest, StockIssueRequestStatus.DRAFT, "add a product to");
-        if (lineRepository.existsByStockIssueRequestIdAndProductId(requestId, request.productId())) {
-            throw new IllegalArgumentException("This product is already on the request");
-        }
         Product product = productRepository.findById(request.productId())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + request.productId()));
+        ProductVariant variant = resolveVariant(product, request.variantId());
+        boolean alreadyOnRequest = variant != null
+            ? lineRepository.existsByStockIssueRequestIdAndProductIdAndVariantId(requestId, product.getId(), variant.getId())
+            : lineRepository.existsByStockIssueRequestIdAndProductIdAndVariantIsNull(requestId, product.getId());
+        if (alreadyOnRequest) {
+            throw new IllegalArgumentException("This product is already on the request");
+        }
 
         StockIssueRequestItem line = new StockIssueRequestItem();
         line.setStockIssueRequest(issueRequest);
         line.setProduct(product);
+        line.setVariant(variant);
         line.setRequestedQty(request.requestedQty());
         line.setNotes(trim(request.notes()));
         return toLineResponse(lineRepository.save(line));
@@ -158,7 +168,8 @@ public class StockIssueRequestService {
         }
 
         stockMovementService.recordMovement(new StockMovementRequest(
-            line.getProduct().getId(), issueRequest.getIssuingLocation().getId(), null, null,
+            line.getProduct().getId(), line.getVariant() != null ? line.getVariant().getId() : null,
+            issueRequest.getIssuingLocation().getId(), null, null,
             "ISSUE", null, line.getRequestedQty(), null,
             "Stock Issue Request #" + issueRequest.getId() + " to " + issueRequest.getRequestingLocation().getVirtualName()
         ), resolvedBy);
@@ -207,6 +218,25 @@ public class StockIssueRequestService {
             issueRequest.setUpdatedAt(Instant.now());
             requestRepository.save(issueRequest);
         }
+    }
+
+    /**
+     * Resolves {@code variantId} against {@code product}, enforcing that it actually belongs to
+     * that product and that one is given at all once the product has any active variant — the
+     * same "variant becomes required once the product has any" rule as {@code
+     * StockMovementService.resolveVariant}.
+     */
+    private ProductVariant resolveVariant(Product product, Long variantId) {
+        if (variantId != null) {
+            return variantRepository.findByIdAndProductId(variantId, product.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Variant " + variantId + " does not belong to '" + product.getProductName() + "'"));
+        }
+        if (variantRepository.existsByProductIdAndIsActiveTrue(product.getId())) {
+            throw new IllegalArgumentException(
+                "'" + product.getProductName() + "' has active variants — select one for this line");
+        }
+        return null;
     }
 
     private StockIssueRequest requireRequest(Long id) {
@@ -286,7 +316,8 @@ public class StockIssueRequestService {
         }
 
         stockMovementService.recordMovement(new StockMovementRequest(
-            line.getProduct().getId(), issueRequest.getIssuingLocation().getId(), null, null,
+            line.getProduct().getId(), line.getVariant() != null ? line.getVariant().getId() : null,
+            issueRequest.getIssuingLocation().getId(), null, null,
             "RETURN", "INCREASE", request.returnedQty(), null,
             "Internal Return — Stock Issue Request #" + issueRequest.getId() + " line #" + line.getId()
                 + (request.notes() != null ? " — " + request.notes() : "")
@@ -299,8 +330,10 @@ public class StockIssueRequestService {
 
     private StockIssueRequestItemResponse toLineResponse(StockIssueRequestItem line) {
         Product product = line.getProduct();
+        ProductVariant variant = line.getVariant();
         return new StockIssueRequestItemResponse(
             line.getId(), product.getId(), product.getProductCode(), product.getProductName(),
+            variant != null ? variant.getId() : null, variant != null ? variant.getVariantCode() : null, variant != null ? variant.getVariantName() : null,
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
             line.getRequestedQty(), line.getStatus().name(),
             line.getResolvedBy(), line.getResolvedAt(), line.getResolutionNotes(),

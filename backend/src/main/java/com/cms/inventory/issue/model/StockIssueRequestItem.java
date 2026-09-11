@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.issue.model.enums.StockIssueRequestItemStatus;
 
 import jakarta.persistence.Column;
@@ -34,6 +35,12 @@ public class StockIssueRequestItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
+
+    /** Required once {@link #product} has any active variant — see {@code
+     *  StockIssueRequestService.resolveVariant}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
 
     @Column(name = "requested_qty", nullable = false, precision = 14, scale = 3)
     private BigDecimal requestedQty;
@@ -70,6 +77,9 @@ public class StockIssueRequestItem {
 
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
+
+    public ProductVariant getVariant() { return variant; }
+    public void setVariant(ProductVariant variant) { this.variant = variant; }
 
     public BigDecimal getRequestedQty() { return requestedQty; }
     public void setRequestedQty(BigDecimal requestedQty) { this.requestedQty = requestedQty; }

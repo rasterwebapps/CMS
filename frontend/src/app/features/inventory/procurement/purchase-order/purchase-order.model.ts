@@ -22,6 +22,9 @@ export interface PurchaseOrderCreateRequest {
 
 export interface PurchaseOrderAddLineRequest {
   purchaseRequisitionItemId: number;
+  /** Required once the requisition line's product has any active ProductVariant — the
+   * requisition itself never carries one, so this is always chosen fresh here. */
+  variantId?: number;
   /** When uomLevelId is set, this is the quantity *as typed in that unit* (e.g. "5" Cartons) —
    * converted to base units server-side. Otherwise it's the base-unit quantity, as before. */
   orderedQty?: number;
@@ -40,6 +43,9 @@ export interface PurchaseOrderItem {
   productId: number;
   productCode: string;
   productName: string;
+  variantId: number | null;
+  variantCode: string | null;
+  variantName: string | null;
   uomCode: string | null;
   purchaseRequisitionItemId: number | null;
   orderedQty: number;
@@ -79,6 +85,8 @@ export interface PurchaseOrder {
 }
 
 /** A requisition line available to pick up into a PO — reuses the Purchase Requisition item shape. */
+/** Note: no variantId — a requisition line never carries one; the PO line it's picked up into
+ *  chooses its own variant fresh (see PurchaseOrderAddLineRequest.variantId). */
 export interface AvailableRequisitionLine {
   id: number;
   productId: number;

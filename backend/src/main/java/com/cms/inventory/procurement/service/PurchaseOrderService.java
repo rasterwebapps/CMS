@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomLevel;
+import com.cms.inventory.catalog.model.ProductVariant;
+import com.cms.inventory.catalog.repository.ProductVariantRepository;
 import com.cms.inventory.catalog.service.ProductUomChainService;
 import com.cms.inventory.procurement.dto.PurchaseOrderAddLineRequest;
 import com.cms.inventory.procurement.dto.PurchaseOrderCreateRequest;
@@ -70,6 +72,7 @@ public class PurchaseOrderService {
     private final TaxSubTypeService taxSubTypeService;
     private final PurchaseOrderItemTaxComponentRepository taxComponentRepository;
     private final ProductUomChainService uomChainService;
+    private final ProductVariantRepository variantRepository;
 
     public PurchaseOrderService(PurchaseOrderRepository orderRepository,
                                  PurchaseOrderItemRepository itemRepository,
@@ -81,7 +84,8 @@ public class PurchaseOrderService {
                                  JurisdictionService jurisdictionService,
                                  TaxSubTypeService taxSubTypeService,
                                  PurchaseOrderItemTaxComponentRepository taxComponentRepository,
-                                 ProductUomChainService uomChainService) {
+                                 ProductUomChainService uomChainService,
+                                 ProductVariantRepository variantRepository) {
         this.orderRepository = orderRepository;
         this.itemRepository = itemRepository;
         this.requisitionItemRepository = requisitionItemRepository;
@@ -93,6 +97,7 @@ public class PurchaseOrderService {
         this.taxSubTypeService = taxSubTypeService;
         this.taxComponentRepository = taxComponentRepository;
         this.uomChainService = uomChainService;
+        this.variantRepository = variantRepository;
     }
 
     @Transactional
@@ -158,6 +163,7 @@ public class PurchaseOrderService {
         }
 
         Product product = requisitionItem.getProduct();
+        ProductVariant variant = resolveVariant(product, request.variantId());
         BigDecimal enteredQty = request.orderedQty() != null ? request.orderedQty() : requisitionItem.getRequestedQty();
         if (enteredQty == null || enteredQty.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Ordered quantity must be greater than zero");
@@ -222,6 +228,7 @@ public class PurchaseOrderService {
         PurchaseOrderItem item = new PurchaseOrderItem();
         item.setPurchaseOrder(order);
         item.setProduct(product);
+        item.setVariant(variant);
         item.setPurchaseRequisitionItem(requisitionItem);
         item.setOrderedQty(orderedQty);
         item.setUomLevel(uomLevel);
@@ -372,6 +379,25 @@ public class PurchaseOrderService {
         return requireOrder(id);
     }
 
+    /**
+     * Resolves {@code variantId} against {@code product}, enforcing that it actually belongs to
+     * that product and that one is given at all once the product has any active variant — the
+     * same "variant becomes required once the product has any" rule as {@code
+     * StockMovementService.resolveVariant}.
+     */
+    private ProductVariant resolveVariant(Product product, Long variantId) {
+        if (variantId != null) {
+            return variantRepository.findByIdAndProductId(variantId, product.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Variant " + variantId + " does not belong to '" + product.getProductName() + "'"));
+        }
+        if (variantRepository.existsByProductIdAndIsActiveTrue(product.getId())) {
+            throw new IllegalArgumentException(
+                "'" + product.getProductName() + "' has active variants — select one for this line");
+        }
+        return null;
+    }
+
     private PurchaseOrder requireOrder(Long id) {
         return orderRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Purchase order not found with id: " + id));
@@ -438,8 +464,10 @@ public class PurchaseOrderService {
             .map(c -> new TaxComponentResponse(c.getComponentName(), c.getSplitPercentApplied(), c.getComponentAmount()))
             .toList();
         ProductUomLevel uomLevel = item.getUomLevel();
+        ProductVariant variant = item.getVariant();
         return new PurchaseOrderItemResponse(
             item.getId(), product.getId(), product.getProductCode(), product.getProductName(),
+            variant != null ? variant.getId() : null, variant != null ? variant.getVariantCode() : null, variant != null ? variant.getVariantName() : null,
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
             item.getPurchaseRequisitionItem() != null ? item.getPurchaseRequisitionItem().getId() : null,
             item.getOrderedQty(),

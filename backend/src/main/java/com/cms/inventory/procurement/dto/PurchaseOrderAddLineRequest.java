@@ -17,6 +17,10 @@ import jakarta.validation.constraints.NotNull;
  */
 public record PurchaseOrderAddLineRequest(
     @NotNull Long purchaseRequisitionItemId,
+    /** Required once the requisition line's product has any active {@code ProductVariant} — the
+     *  requisition itself never carries one, so this is always chosen fresh here, same as {@code
+     *  uomLevelId}. */
+    Long variantId,
     BigDecimal orderedQty,
     Long uomLevelId,
     BigDecimal unitPrice,

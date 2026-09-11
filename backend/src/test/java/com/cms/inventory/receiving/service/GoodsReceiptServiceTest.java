@@ -196,7 +196,7 @@ class GoodsReceiptServiceTest {
         when(receiptRepository.findById(1L)).thenReturn(Optional.of(receipt));
         when(lineRepository.findByGoodsReceiptIdOrderByIdAsc(1L)).thenReturn(List.of(line));
         when(stockMovementService.recordMovement(any(), org.mockito.ArgumentMatchers.eq("receiver")))
-            .thenReturn(new StockMovementResponse(1L, 10L, 1L, null, "RECEIPT", new BigDecimal("20"),
+            .thenReturn(new StockMovementResponse(1L, 10L, null, 1L, null, "RECEIPT", new BigDecimal("20"),
                 new BigDecimal("20"), new BigDecimal("200"), Instant.now()));
 
         var res = service.confirm(1L, "receiver");

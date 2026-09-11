@@ -71,7 +71,7 @@ public class InventoryStockLocalDataSeeder {
             for (Product product : products) {
                 if (!Boolean.TRUE.equals(product.getIsConsumable())) continue; // only give consumables an opening balance
                 stockMovementService.recordMovement(new StockMovementRequest(
-                    product.getId(), mainStore.getId(), null, null,
+                    product.getId(), null, mainStore.getId(), null, null,
                     "RECEIPT", null, new BigDecimal("50"), new BigDecimal("10.00"),
                     "Opening balance (local dev seed)"
                 ), "seed-data");

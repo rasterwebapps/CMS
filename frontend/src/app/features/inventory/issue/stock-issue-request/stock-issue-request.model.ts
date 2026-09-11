@@ -20,6 +20,8 @@ export interface StockIssueRequestCreateRequest {
 
 export interface StockIssueRequestAddLineRequest {
   productId: number;
+  /** Required once the product has any active ProductVariant. */
+  variantId?: number;
   requestedQty: number;
   notes?: string;
 }
@@ -38,6 +40,9 @@ export interface StockIssueRequestItem {
   productId: number;
   productCode: string;
   productName: string;
+  variantId: number | null;
+  variantCode: string | null;
+  variantName: string | null;
   uomCode: string | null;
   requestedQty: number;
   status: StockIssueRequestItemStatus;

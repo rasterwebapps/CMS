@@ -8,6 +8,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomChainVersion;
+import com.cms.inventory.catalog.model.ProductVariant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -39,6 +40,13 @@ public class StockBatch {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    /** Which variant of {@link #product} this batch belongs to — null for a product with no
+     *  variants, or a batch predating this field. A product with active variants scopes every
+     *  batch/serial number per-variant (see {@code StockMovementService.resolveBatch}). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
+
     @Column(name = "batch_or_serial_no", nullable = false, length = 100)
     private String batchOrSerialNo;
 
@@ -68,6 +76,9 @@ public class StockBatch {
 
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
+
+    public ProductVariant getVariant() { return variant; }
+    public void setVariant(ProductVariant variant) { this.variant = variant; }
 
     public String getBatchOrSerialNo() { return batchOrSerialNo; }
     public void setBatchOrSerialNo(String batchOrSerialNo) { this.batchOrSerialNo = batchOrSerialNo; }

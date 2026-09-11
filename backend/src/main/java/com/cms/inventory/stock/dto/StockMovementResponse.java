@@ -6,6 +6,7 @@ import java.time.Instant;
 public record StockMovementResponse(
     Long ledgerId,
     Long productId,
+    Long variantId,
     Long locationId,
     Long batchId,
     String txnType,

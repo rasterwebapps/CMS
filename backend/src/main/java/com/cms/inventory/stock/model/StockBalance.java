@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductVariant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,6 +42,12 @@ public class StockBalance {
     @JoinColumn(name = "batch_id")
     private StockBatch batch;
 
+    /** Which variant of {@link #product} this balance is for — null for a product with no
+     *  variants. Part of the balance key alongside product/location/batch. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
+
     @Column(name = "qty_on_hand", nullable = false, precision = 14, scale = 3)
     private BigDecimal qtyOnHand = BigDecimal.ZERO;
 
@@ -61,6 +68,9 @@ public class StockBalance {
 
     public StockBatch getBatch() { return batch; }
     public void setBatch(StockBatch batch) { this.batch = batch; }
+
+    public ProductVariant getVariant() { return variant; }
+    public void setVariant(ProductVariant variant) { this.variant = variant; }
 
     public BigDecimal getQtyOnHand() { return qtyOnHand; }
     public void setQtyOnHand(BigDecimal qtyOnHand) { this.qtyOnHand = qtyOnHand; }

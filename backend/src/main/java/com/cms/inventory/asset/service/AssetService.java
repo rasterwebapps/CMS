@@ -135,11 +135,11 @@ public class AssetService {
         }
 
         StockBalance balance = stockBalanceRepository
-            .findByProductIdAndLocationIdAndBatchIsNull(asset.getProduct().getId(), asset.getLocation().getId())
+            .findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(asset.getProduct().getId(), asset.getLocation().getId())
             .orElse(null);
         if (balance != null && balance.getQtyOnHand().signum() > 0) {
             stockMovementService.recordMovement(new StockMovementRequest(
-                asset.getProduct().getId(), asset.getLocation().getId(), null, null,
+                asset.getProduct().getId(), null, asset.getLocation().getId(), null, null,
                 "DISPOSAL", null, BigDecimal.ONE, null,
                 "Asset disposal — " + asset.getAssetTag() + (request.reason() != null ? " — " + request.reason() : "")
             ), actor);

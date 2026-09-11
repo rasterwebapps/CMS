@@ -50,7 +50,7 @@
             <select class="field-select" [(ngModel)]="addPoItemId" (ngModelChange)="onPoItemChange()">
               <option [ngValue]="null" disabled>Select a line</option>
               @for (l of receivableLines(); track l.id) {
-                <option [ngValue]="l.id">{{ l.productName }} ({{ l.productCode }}) — {{ l.openQty }} of {{ l.orderedQty }} {{ l.uomCode }} open</option>
+                <option [ngValue]="l.id">{{ l.productName }}{{ l.variantName ? ' — ' + l.variantName : '' }} ({{ l.productCode }}) — {{ l.openQty }} of {{ l.orderedQty }} {{ l.uomCode }} open</option>
               }
             </select>
           </div>
@@ -111,7 +111,7 @@
               <tr>
                 <td>
                   <div class="gr-product-name">{{ line.productName }}</div>
-                  <div class="gr-product-code">{{ line.productCode }}</div>
+                  <div class="gr-product-code">{{ line.productCode }}{{ line.variantName ? ' — ' + line.variantName : '' }}</div>
                 </td>
                 <td>{{ line.uomCode || '—' }}</td>
                 <td class="cell-align-right">

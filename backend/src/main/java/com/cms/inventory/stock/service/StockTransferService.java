@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.catalog.repository.ProductRepository;
+import com.cms.inventory.catalog.repository.ProductVariantRepository;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockTransferAddLineRequest;
 import com.cms.inventory.stock.dto.StockTransferCreateRequest;
@@ -53,19 +55,22 @@ public class StockTransferService {
     private final ProductRepository productRepository;
     private final StockBalanceRepository balanceRepository;
     private final StockMovementService stockMovementService;
+    private final ProductVariantRepository variantRepository;
 
     public StockTransferService(StockTransferRepository transferRepository,
                                  StockTransferLineRepository lineRepository,
                                  InventoryLocationRepository locationRepository,
                                  ProductRepository productRepository,
                                  StockBalanceRepository balanceRepository,
-                                 StockMovementService stockMovementService) {
+                                 StockMovementService stockMovementService,
+                                 ProductVariantRepository variantRepository) {
         this.transferRepository = transferRepository;
         this.lineRepository = lineRepository;
         this.locationRepository = locationRepository;
         this.productRepository = productRepository;
         this.balanceRepository = balanceRepository;
         this.stockMovementService = stockMovementService;
+        this.variantRepository = variantRepository;
     }
 
     @Transactional
@@ -112,15 +117,20 @@ public class StockTransferService {
     public StockTransferLineResponse addLine(Long transferId, StockTransferAddLineRequest request) {
         StockTransfer transfer = requireTransfer(transferId);
         requireStatus(transfer, StockTransferStatus.DRAFT, "add a line to");
-        if (lineRepository.existsByStockTransferIdAndProductId(transferId, request.productId())) {
-            throw new IllegalArgumentException("This product is already on the transfer");
-        }
         Product product = productRepository.findById(request.productId())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + request.productId()));
+        ProductVariant variant = resolveVariant(product, request.variantId());
+        boolean alreadyOnTransfer = variant != null
+            ? lineRepository.existsByStockTransferIdAndProductIdAndVariantId(transferId, product.getId(), variant.getId())
+            : lineRepository.existsByStockTransferIdAndProductIdAndVariantIsNull(transferId, product.getId());
+        if (alreadyOnTransfer) {
+            throw new IllegalArgumentException("This product is already on the transfer");
+        }
 
         StockTransferLine line = new StockTransferLine();
         line.setStockTransfer(transfer);
         line.setProduct(product);
+        line.setVariant(variant);
         line.setQuantity(request.quantity());
         line.setNotes(trim(request.notes()));
         line = lineRepository.save(line);
@@ -153,16 +163,17 @@ public class StockTransferService {
         InventoryLocation destination = transfer.getDestinationLocation();
         for (StockTransferLine line : lines) {
             Long productId = line.getProduct().getId();
-            BigDecimal unitCost = currentUnbatchedUnitCost(productId, source.getId());
+            Long variantId = line.getVariant() != null ? line.getVariant().getId() : null;
+            BigDecimal unitCost = currentUnbatchedUnitCost(productId, variantId, source.getId());
 
             stockMovementService.recordMovement(new StockMovementRequest(
-                productId, source.getId(), null, null,
+                productId, variantId, source.getId(), null, null,
                 "TRANSFER", "DECREASE", line.getQuantity(), unitCost,
                 "Stock Transfer #" + transfer.getId() + " to " + destination.getVirtualName()
             ), actor);
 
             stockMovementService.recordMovement(new StockMovementRequest(
-                productId, destination.getId(), null, null,
+                productId, variantId, destination.getId(), null, null,
                 "TRANSFER", "INCREASE", line.getQuantity(), unitCost,
                 "Stock Transfer #" + transfer.getId() + " from " + source.getVirtualName()
             ), actor);
@@ -186,11 +197,33 @@ public class StockTransferService {
     }
 
     /** Same weighted-average formula {@code StockMovementService}'s own decrease-valuation uses. */
-    private BigDecimal currentUnbatchedUnitCost(Long productId, Long locationId) {
-        return balanceRepository.findByProductIdAndLocationIdAndBatchIsNull(productId, locationId)
+    private BigDecimal currentUnbatchedUnitCost(Long productId, Long variantId, Long locationId) {
+        var balance = variantId != null
+            ? balanceRepository.findByProductIdAndVariantIdAndLocationIdAndBatchIsNull(productId, variantId, locationId)
+            : balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(productId, locationId);
+        return balance
             .filter(b -> b.getQtyOnHand().signum() > 0)
             .map(b -> b.getValueOnHand().divide(b.getQtyOnHand(), 2, RoundingMode.HALF_UP))
             .orElse(BigDecimal.ZERO);
+    }
+
+    /**
+     * Resolves {@code variantId} against {@code product}, enforcing that it actually belongs to
+     * that product and that one is given at all once the product has any active variant — the
+     * same "variant becomes required once the product has any" rule as {@code
+     * StockMovementService.resolveVariant}.
+     */
+    private ProductVariant resolveVariant(Product product, Long variantId) {
+        if (variantId != null) {
+            return variantRepository.findByIdAndProductId(variantId, product.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Variant " + variantId + " does not belong to '" + product.getProductName() + "'"));
+        }
+        if (variantRepository.existsByProductIdAndIsActiveTrue(product.getId())) {
+            throw new IllegalArgumentException(
+                "'" + product.getProductName() + "' has active variants — select one for this line");
+        }
+        return null;
     }
 
     private StockTransfer requireTransfer(Long id) {
@@ -247,8 +280,10 @@ public class StockTransferService {
 
     private StockTransferLineResponse toLineResponse(StockTransferLine line) {
         Product product = line.getProduct();
+        ProductVariant variant = line.getVariant();
         return new StockTransferLineResponse(
             line.getId(), product.getId(), product.getProductCode(), product.getProductName(),
+            variant != null ? variant.getId() : null, variant != null ? variant.getVariantCode() : null, variant != null ? variant.getVariantName() : null,
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
             line.getQuantity(), line.getNotes());
     }

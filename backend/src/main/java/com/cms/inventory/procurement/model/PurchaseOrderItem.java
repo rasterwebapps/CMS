@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomLevel;
+import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.procurement.model.enums.JurisdictionMode;
 
 import jakarta.persistence.Column;
@@ -53,6 +54,14 @@ public class PurchaseOrderItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "purchase_requisition_item_id")
     private PurchaseRequisitionItem purchaseRequisitionItem;
+
+    /** Chosen fresh when this line is created — the source requisition line never carries a
+     *  variant, same as {@code uomLevel} below. Required once {@link #product} has any active
+     *  variant; a Goods Receipt/Supplier Return line against this PO line always inherits this
+     *  value rather than choosing its own. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
 
     /** Always the base-unit quantity — every open-qty/received-progress comparison in {@code
      * PurchaseOrderService}/{@code GoodsReceiptService} relies on that being true regardless of
@@ -106,6 +115,9 @@ public class PurchaseOrderItem {
 
     public PurchaseRequisitionItem getPurchaseRequisitionItem() { return purchaseRequisitionItem; }
     public void setPurchaseRequisitionItem(PurchaseRequisitionItem purchaseRequisitionItem) { this.purchaseRequisitionItem = purchaseRequisitionItem; }
+
+    public ProductVariant getVariant() { return variant; }
+    public void setVariant(ProductVariant variant) { this.variant = variant; }
 
     public BigDecimal getOrderedQty() { return orderedQty; }
     public void setOrderedQty(BigDecimal orderedQty) { this.orderedQty = orderedQty; }

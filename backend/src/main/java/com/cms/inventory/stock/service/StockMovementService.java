@@ -15,9 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomChainVersion;
+import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.catalog.model.enums.StockTrackingMode;
 import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.catalog.repository.ProductUomChainVersionRepository;
+import com.cms.inventory.catalog.repository.ProductVariantRepository;
 import com.cms.inventory.stock.dto.StockBalanceResponse;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockMovementResponse;
@@ -56,19 +58,22 @@ public class StockMovementService {
     private final StockLedgerRepository ledgerRepository;
     private final StockBalanceRepository balanceRepository;
     private final ProductUomChainVersionRepository uomChainVersionRepository;
+    private final ProductVariantRepository variantRepository;
 
     public StockMovementService(ProductRepository productRepository,
                                  InventoryLocationRepository locationRepository,
                                  StockBatchRepository batchRepository,
                                  StockLedgerRepository ledgerRepository,
                                  StockBalanceRepository balanceRepository,
-                                 ProductUomChainVersionRepository uomChainVersionRepository) {
+                                 ProductUomChainVersionRepository uomChainVersionRepository,
+                                 ProductVariantRepository variantRepository) {
         this.productRepository = productRepository;
         this.locationRepository = locationRepository;
         this.batchRepository = batchRepository;
         this.ledgerRepository = ledgerRepository;
         this.balanceRepository = balanceRepository;
         this.uomChainVersionRepository = uomChainVersionRepository;
+        this.variantRepository = variantRepository;
     }
 
     @Transactional
@@ -78,10 +83,12 @@ public class StockMovementService {
         InventoryLocation location = locationRepository.findById(request.locationId())
             .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + request.locationId()));
         StockTxnType txnType = parseTxnType(request.txnType());
-        requireTrackingModeCompliance(product, request);
+        ProductVariant variant = resolveVariant(product, request.variantId());
+        requireTrackingModeCompliance(variant != null ? variant.getTrackingMode() : product.getTrackingMode(), product, request);
 
-        StockBatch batch = resolveBatch(product, request.batchOrSerialNo(), request.expiryDate());
+        StockBatch batch = resolveBatch(product, variant, request.batchOrSerialNo(), request.expiryDate());
         Long batchId = batch == null ? null : batch.getId();
+        Long variantId = variant == null ? null : variant.getId();
 
         BigDecimal magnitude = request.quantity();
         BigDecimal qtyDelta = switch (txnType) {
@@ -101,7 +108,7 @@ public class StockMovementService {
                 "Transaction type '" + txnType + "' is not yet available — only RECEIPT, ADJUSTMENT, DISPOSAL, TRANSFER, RETURN, and ISSUE can be recorded here");
         };
 
-        StockBalance existing = findBalance(product.getId(), location.getId(), batchId);
+        StockBalance existing = findBalance(product.getId(), variantId, location.getId(), batchId);
         BigDecimal currentQty = existing != null ? existing.getQtyOnHand() : BigDecimal.ZERO;
         BigDecimal currentValue = existing != null ? existing.getValueOnHand() : BigDecimal.ZERO;
 
@@ -127,6 +134,7 @@ public class StockMovementService {
 
         StockLedger ledger = new StockLedger();
         ledger.setProduct(product);
+        ledger.setVariant(variant);
         ledger.setLocation(location);
         ledger.setBatch(batch);
         ledger.setTxnType(txnType);
@@ -137,9 +145,9 @@ public class StockMovementService {
         ledger.setTxnDate(Instant.now());
         ledger = ledgerRepository.save(ledger);
 
-        balanceRepository.upsertBalance(product.getId(), location.getId(), batchId, qtyDelta, valueDelta);
+        balanceRepository.upsertBalance(product.getId(), variantId, location.getId(), batchId, qtyDelta, valueDelta);
 
-        return new StockMovementResponse(ledger.getId(), product.getId(), location.getId(), batchId,
+        return new StockMovementResponse(ledger.getId(), product.getId(), variantId, location.getId(), batchId,
             txnType.name(), qtyDelta, currentQty.add(qtyDelta), currentValue.add(valueDelta), ledger.getTxnDate());
     }
 
@@ -154,14 +162,35 @@ public class StockMovementService {
     }
 
     /**
-     * Enforces {@code Product.trackingMode} — see the 2026-09-11 "Serial/batch tracking-mode
-     * flag" DECISION_LOG entry. {@code NONE} enforces nothing (today's pre-existing behavior,
-     * {@code batchOrSerialNo} stays fully optional free text); {@code BATCH} requires a batch
-     * number on every movement; {@code SERIAL} requires a serial number and restricts the
+     * Resolves {@code request.variantId()} against the product, enforcing that it actually
+     * belongs to that product, and — per the 2026-09-11 "Wire ProductVariant into Stock Movement"
+     * decision-log entry — that a variant is given at all once the product has any active
+     * variant. A product with no active variants keeps working exactly as before (variant stays
+     * null, nothing required).
+     */
+    private ProductVariant resolveVariant(Product product, Long variantId) {
+        if (variantId != null) {
+            return variantRepository.findByIdAndProductId(variantId, product.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Variant " + variantId + " does not belong to '" + product.getProductName() + "'"));
+        }
+        if (variantRepository.existsByProductIdAndIsActiveTrue(product.getId())) {
+            throw new IllegalArgumentException(
+                "'" + product.getProductName() + "' has active variants — select one for this movement");
+        }
+        return null;
+    }
+
+    /**
+     * Enforces the effective tracking mode — a selected variant's own {@code trackingMode}
+     * overrides the parent product's (variants carry their own, per {@code ProductVariant}'s
+     * copy-at-creation design), else the product's — see the 2026-09-11 "Serial/batch
+     * tracking-mode flag" DECISION_LOG entry. {@code NONE} enforces nothing (today's pre-existing
+     * behavior, {@code batchOrSerialNo} stays fully optional free text); {@code BATCH} requires a
+     * batch number on every movement; {@code SERIAL} requires a serial number and restricts the
      * movement to exactly one unit.
      */
-    private void requireTrackingModeCompliance(Product product, StockMovementRequest request) {
-        StockTrackingMode mode = product.getTrackingMode();
+    private void requireTrackingModeCompliance(StockTrackingMode mode, Product product, StockMovementRequest request) {
         if (mode == StockTrackingMode.NONE) return;
         if (trim(request.batchOrSerialNo()) == null) {
             String label = mode == StockTrackingMode.SERIAL ? "a serial number" : "a batch number";
@@ -174,13 +203,15 @@ public class StockMovementService {
         }
     }
 
-    private StockBatch resolveBatch(Product product, String batchOrSerialNo, java.time.LocalDate expiryDate) {
+    private StockBatch resolveBatch(Product product, ProductVariant variant, String batchOrSerialNo, java.time.LocalDate expiryDate) {
         String trimmed = trim(batchOrSerialNo);
         if (trimmed == null) return null;
-        return batchRepository.findByProductAndBatchOrSerialNo(product.getId(), trimmed)
+        Long variantId = variant == null ? null : variant.getId();
+        return batchRepository.findByProductAndVariantAndBatchOrSerialNo(product.getId(), variantId, trimmed)
             .orElseGet(() -> {
                 StockBatch batch = new StockBatch();
                 batch.setProduct(product);
+                batch.setVariant(variant);
                 batch.setBatchOrSerialNo(trimmed);
                 batch.setExpiryDate(expiryDate);
                 // Permanently stamped with whichever chain version is active right now — never
@@ -194,10 +225,16 @@ public class StockMovementService {
             });
     }
 
-    private StockBalance findBalance(Long productId, Long locationId, Long batchId) {
+    private StockBalance findBalance(Long productId, Long variantId, Long locationId, Long batchId) {
+        if (variantId != null) {
+            return (batchId != null
+                ? balanceRepository.findByProductIdAndVariantIdAndLocationIdAndBatchId(productId, variantId, locationId, batchId)
+                : balanceRepository.findByProductIdAndVariantIdAndLocationIdAndBatchIsNull(productId, variantId, locationId))
+                .orElse(null);
+        }
         return (batchId != null
-            ? balanceRepository.findByProductIdAndLocationIdAndBatchId(productId, locationId, batchId)
-            : balanceRepository.findByProductIdAndLocationIdAndBatchIsNull(productId, locationId))
+            ? balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchId(productId, locationId, batchId)
+            : balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(productId, locationId))
             .orElse(null);
     }
 
@@ -219,7 +256,9 @@ public class StockMovementService {
         Product product = b.getProduct();
         InventoryLocation location = b.getLocation();
         StockBatch batch = b.getBatch();
+        ProductVariant variant = b.getVariant();
         return new StockBalanceResponse(b.getId(), product.getId(), product.getProductCode(), product.getProductName(),
+            variant == null ? null : variant.getId(), variant == null ? null : variant.getVariantCode(), variant == null ? null : variant.getVariantName(),
             location.getId(), location.getVirtualName(),
             batch == null ? null : batch.getId(), batch == null ? null : batch.getBatchOrSerialNo(), batch == null ? null : batch.getExpiryDate(),
             b.getQtyOnHand(), b.getValueOnHand(), b.getLastUpdated());

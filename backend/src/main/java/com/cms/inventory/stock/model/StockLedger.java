@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.stock.model.enums.StockTxnType;
 
 import jakarta.persistence.Column;
@@ -44,6 +45,12 @@ public class StockLedger {
     @JoinColumn(name = "batch_id")
     private StockBatch batch;
 
+    /** Which variant of {@link #product} this movement was posted against — null for a product
+     *  with no variants. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "txn_type", nullable = false, length = 30)
     private StockTxnType txnType;
@@ -82,6 +89,9 @@ public class StockLedger {
 
     public StockBatch getBatch() { return batch; }
     public void setBatch(StockBatch batch) { this.batch = batch; }
+
+    public ProductVariant getVariant() { return variant; }
+    public void setVariant(ProductVariant variant) { this.variant = variant; }
 
     public StockTxnType getTxnType() { return txnType; }
     public void setTxnType(StockTxnType txnType) { this.txnType = txnType; }

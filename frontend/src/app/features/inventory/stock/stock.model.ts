@@ -13,6 +13,9 @@ export interface StockBalance {
   productId: number;
   productCode: string;
   productName: string;
+  variantId: number | null;
+  variantCode: string | null;
+  variantName: string | null;
   locationId: number;
   locationVirtualName: string;
   batchId: number | null;
@@ -28,6 +31,8 @@ export type AdjustmentDirection = 'INCREASE' | 'DECREASE';
 
 export interface StockMovementRequest {
   productId: number;
+  /** Required once the product has any active ProductVariant. */
+  variantId?: number;
   locationId: number;
   batchOrSerialNo?: string;
   expiryDate?: string;
@@ -41,6 +46,7 @@ export interface StockMovementRequest {
 export interface StockMovementResponse {
   ledgerId: number;
   productId: number;
+  variantId: number | null;
   locationId: number;
   batchId: number | null;
   txnType: string;

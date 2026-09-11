@@ -2043,4 +2043,106 @@ aren't fully contiguous since other concurrent sessions were creating their own 
 same shared Jira project throughout) with backend + frontend tests, `tsc`/`ng build` verification,
 and a DECISION_LOG entry recording the design calls made along the way.
 
+## 2026-09-11 — Wire ProductVariant into Stock Movement, Purchase Order, Goods Receipt, Stock Transfer, Stock Issue Request (OC-225)
+
+The `ProductVariant` entity shipped in the previous entry had no consumers — every stock-affecting
+flow still only ever dealt in bare `Product`. This item wires it into all five: **Stock Movement**
+(the standalone record-a-movement screen), **Purchase Order** (add-line), **Goods Receipt**,
+**Stock Transfer** (add-line), and **Stock Issue Request** (add-line). Per the approved scope
+(specialist round of 2026-09-11), variant becomes **required once the product has any active
+variant** — there is no more "bare product" transaction for a variant-bearing product on any of
+these five flows — and coverage is *all* stock-movement-adjacent flows, not just the two originally
+named.
+
+**Core layer (touched once, used by everything):** `StockBatch`, `StockLedger`, and `StockBalance`
+each gained a nullable `variant_id` (V497). `StockBalance`'s upsert key widened to `(product_id,
+variant_id, location_id, batch_id)` (`UNIQUE NULLS NOT DISTINCT`, replacing the old constraint
+rather than editing it, per the migration hard gate); `StockBatch` resolution now scopes by
+`(product_id, variant_id, batchOrSerialNo)` too, since each variant can carry its own tracking
+mode. `StockMovementService.recordMovement` gained `resolveVariant(product, variantId)` —
+validates a given variant actually belongs to the product, and throws once the product has any
+active variant and none was given. A selected variant's own `trackingMode` now overrides the
+parent product's when enforcing batch/serial compliance, matching `ProductVariant`'s
+copy-at-creation design (a variant is allowed to be tracked differently from its parent).
+`StockBalanceRepository`'s two non-variant balance finders were removed outright rather than kept
+as a silent footgun — once a product can have more than one balance row at the same
+location/batch (one per variant), a query that ignores variant would throw
+`IncorrectResultSizeDataAccessException` the first time it hit real data instead of failing loudly
+at compile time; every caller (including `AssetService.dispose`, which only ever means the
+product's own non-variant balance) now says so explicitly via `...AndVariantIsNull...`.
+
+**Purchase Order:** `PurchaseOrderItem` gained a nullable `variant_id` (V498), same
+required-when-active rule, resolved in `PurchaseOrderService.addLine` the same way
+`uomLevelId`/`taxRuleId` already are — chosen fresh at line-creation time, since the source
+`PurchaseRequisitionItem` never carries one. **Goods Receipt** lines deliberately got no column of
+their own: a receipt line has no direct product reference at all (only reachable via
+`purchaseOrderItem.getProduct()`), so it always inherits its variant from the PO line it's
+receiving against — `GoodsReceiptService.confirm` reads `poItem.getVariant()` straight into the
+`StockMovementRequest`. **Supplier Return** (not originally in scope, but directly downstream of
+Goods Receipt) was fixed the same way: a return must decrease the *same* balance bucket the
+original receipt increased, so `SupplierReturnService` now also reads the variant off
+`receiptLine.getPurchaseOrderItem().getVariant()` rather than defaulting to none — leaving it null
+would have posted variant-bearing returns against the wrong (empty) bucket and either silently
+misallocated stock or tripped the negative-stock guard.
+
+**Stock Transfer / Stock Issue Request:** both pick a product directly (not via a PO line), so
+`StockTransferLine`/`StockIssueRequestItem` each gained their own explicit nullable `variant_id`
+(V499/V500), with the per-header product uniqueness widened to include it (`UNIQUE NULLS NOT
+DISTINCT (header_id, product_id, variant_id)`) so distinct variants of the same product can each
+get their own line. `StockTransferService.currentUnbatchedUnitCost` and both `recordMovement`
+calls in `complete()`, and `StockIssueRequestService`'s `approveLine`/`returnLine`, all thread the
+line's own variant through.
+
+**Explicitly out of scope** (not touched, product-level as before): Purchase Requisition (a
+variant is chosen fresh when a requisition line becomes a PO line — the same way UOM level already
+works), Cycle Count and the reorder/Wanted-List shortage job (both stay product-level aggregates,
+since `reorderLevel`/`reorderQty` live on `Product`, not the variant, and their queries `GROUP BY`
+product only — summing across every variant's balance rows automatically, no schema change
+needed), Consignment receipt, Asset disposal, and the local dev data seeder (none of these flows
+were named in scope; each now explicitly passes no variant via the widened
+`StockMovementRequest`/repository signatures rather than being silently broken by the constructor
+change).
+
+**Frontend:** each of the five forms gained a variant `<select>` that appears only once the chosen
+product actually has active variants (`ProductVariantService.findByProduct`, filtered to
+`isActive`), and is required — via `Validators.required` on the reactive-form Stock Movement
+screen, via a disabled-until-picked submit button on the four template-driven add-line rows
+(Purchase Order, Stock Transfer, Stock Issue Request use `cms-product-picker`/plain selects
+already; Goods Receipt needed no picker at all, since it only ever displays the inherited
+variant). Every list/detail screen showing a product/balance/line now appends `— variantName` next
+to the product name when one is set, reusing the existing product-name cell rather than adding a
+new table column.
+
+**Verified:** new `StockTransferServiceTest.java` and `StockIssueRequestServiceTest.java` (both
+services had zero test coverage before this item — added alongside the variant work per this
+program's own testing convention), `StockMovementServiceTest`/`PurchaseOrderServiceTest`/
+`GoodsReceiptServiceTest` updated and extended with variant-specific cases (resolution, the
+required-once-active-variants rule, rejecting a variant belonging to a different product), full
+backend suite green. `npx tsc -p tsconfig.app.json --noEmit` and `ng build --configuration
+production` both clean.
+
+**Impact:** `V497__add_variant_to_stock_tracking_core.sql`,
+`V498__add_variant_to_purchase_order_items.sql`,
+`V499__add_variant_to_stock_transfer_lines.sql`,
+`V500__add_variant_to_stock_issue_request_items.sql`; `StockBatch.java`, `StockLedger.java`,
+`StockBalance.java`, `PurchaseOrderItem.java`, `StockTransferLine.java`,
+`StockIssueRequestItem.java` (new `variant` field each); `StockBatchRepository.java`,
+`StockBalanceRepository.java`, `StockTransferLineRepository.java`,
+`StockIssueRequestItemRepository.java`, `ProductVariantRepository.java` (new variant-aware
+queries); `StockMovementRequest/Response.java`, `StockBalanceResponse.java`,
+`PurchaseOrderAddLineRequest/ItemResponse.java`, `ReceivablePurchaseOrderLineResponse.java`,
+`GoodsReceiptLineResponse.java`, `StockTransferAddLineRequest/LineResponse.java`,
+`StockIssueRequestAddLineRequest/ItemResponse.java` (new variant fields); `StockMovementService.java`,
+`PurchaseOrderService.java`, `GoodsReceiptService.java`, `SupplierReturnService.java`,
+`StockTransferService.java`, `StockIssueRequestService.java` (variant resolution/threading);
+`AssetService.java`, `CycleCountService.java`, `ConsignmentStockLineService.java`,
+`InventoryStockLocalDataSeeder.java` (updated call sites, explicitly no variant); new
+`StockTransferServiceTest.java`, `StockIssueRequestServiceTest.java`; updated
+`StockMovementServiceTest.java`, `PurchaseOrderServiceTest.java`, `GoodsReceiptServiceTest.java`;
+frontend `stock.model.ts`, `stock-movement-form.component.ts/html`,
+`purchase-order.model.ts`, `purchase-order-detail.component.ts/html`, `goods-receipt.model.ts`,
+`goods-receipt-detail.component.html`, `stock-transfer.model.ts`,
+`stock-transfer-detail.component.ts/html`, `stock-issue-request.model.ts`,
+`stock-issue-request-detail.component.ts/html`, `stock-balance-list.component.html`.
+
 *Next entry goes here — do not insert above this line.*

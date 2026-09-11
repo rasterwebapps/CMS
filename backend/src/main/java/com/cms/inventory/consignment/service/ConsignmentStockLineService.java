@@ -77,7 +77,7 @@ public class ConsignmentStockLineService {
         // though it isn't owned yet. See the class docs for why this doesn't also happen again
         // when consumption is recorded.
         stockMovementService.recordMovement(new StockMovementRequest(
-            product.getId(), agreement.getLocation().getId(), null, null,
+            product.getId(), null, agreement.getLocation().getId(), null, null,
             "RECEIPT", null, request.quantity(), request.consignmentPrice(),
             "Consignment receipt — agreement " + agreement.getAgreementNumber() + (request.notes() != null ? " — " + request.notes() : "")
         ), performedBy);

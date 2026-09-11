@@ -48,13 +48,24 @@
           <cms-product-picker
             label="Product"
             [selectedProductId]="addProductId()"
-            (selectedProductIdChange)="addProductId.set($event)"
+            (selectedProductIdChange)="onProductChange($event)"
           />
+          @if (variants().length > 0) {
+            <div class="field-group st-add-variant">
+              <label class="field-label">Variant <span class="required-star">*</span></label>
+              <select class="field-select" [ngModel]="addVariantId()" (ngModelChange)="addVariantId.set($event)">
+                <option [ngValue]="null" disabled>Select a variant</option>
+                @for (v of variants(); track v.id) {
+                  <option [ngValue]="v.id">{{ v.variantName }} ({{ v.variantCode }})</option>
+                }
+              </select>
+            </div>
+          }
           <div class="field-group st-add-qty">
             <label class="field-label">Quantity</label>
             <input type="number" step="0.001" min="0" class="field-input" [ngModel]="addQty()" (ngModelChange)="addQty.set($event)" placeholder="0.000" />
           </div>
-          <button class="btn-secondary" [disabled]="addProductId() == null || !addQty() || busy()" (click)="addLine()">Add to Transfer</button>
+          <button class="btn-secondary" [disabled]="addProductId() == null || !addQty() || (variants().length > 0 && addVariantId() == null) || busy()" (click)="addLine()">Add to Transfer</button>
         </div>
       </div>
     }
@@ -78,7 +89,7 @@
               <tr>
                 <td>
                   <div class="st-product-name">{{ line.productName }}</div>
-                  <div class="st-product-code">{{ line.productCode }}</div>
+                  <div class="st-product-code">{{ line.productCode }}{{ line.variantName ? ' — ' + line.variantName : '' }}</div>
                 </td>
                 <td>{{ line.uomCode || '—' }}</td>
                 <td class="cell-align-right">{{ line.quantity }}</td>

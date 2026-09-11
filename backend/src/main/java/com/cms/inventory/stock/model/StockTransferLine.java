@@ -3,6 +3,7 @@ package com.cms.inventory.stock.model;
 import java.math.BigDecimal;
 
 import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductVariant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -31,6 +32,12 @@ public class StockTransferLine {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    /** Required once {@link #product} has any active variant — see {@code
+     *  StockTransferService.resolveVariant}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
+
     @Column(nullable = false, precision = 14, scale = 3)
     private BigDecimal quantity;
 
@@ -45,6 +52,9 @@ public class StockTransferLine {
 
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
+
+    public ProductVariant getVariant() { return variant; }
+    public void setVariant(ProductVariant variant) { this.variant = variant; }
 
     public BigDecimal getQuantity() { return quantity; }
     public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }

@@ -10,6 +10,8 @@ import { ConfirmDialogComponent } from '../../../../../shared/confirm-dialog/con
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { CmsProductPickerComponent } from '../../../../../shared/product-picker/product-picker.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
+import { ProductVariantService } from '../../../product/product-variant/product-variant.service';
+import { ProductVariant } from '../../../product/product-variant/product-variant.model';
 
 @Component({
   selector: 'app-stock-transfer-detail',
@@ -32,12 +34,15 @@ export class StockTransferDetailComponent implements OnInit {
   private readonly transferService = inject(StockTransferService);
   private readonly dialog          = inject(MatDialog);
   private readonly toast           = inject(ToastService);
+  private readonly variantService  = inject(ProductVariantService);
 
   protected readonly loading  = signal(false);
   protected readonly busy     = signal(false);
   protected readonly transfer = signal<StockTransfer | null>(null);
   protected readonly addProductId = signal<number | null>(null);
+  protected readonly addVariantId = signal<number | null>(null);
   protected readonly addQty       = signal<number | null>(null);
+  protected readonly variants     = signal<ProductVariant[]>([]);
 
   private transferId!: number;
 
@@ -54,15 +59,32 @@ export class StockTransferDetailComponent implements OnInit {
     });
   }
 
+  protected onProductChange(productId: number | null): void {
+    this.addProductId.set(productId);
+    this.addVariantId.set(null);
+    this.variants.set([]);
+    if (productId == null) return;
+    this.variantService.findByProduct(productId).subscribe({
+      next: (variants) => this.variants.set(variants.filter(v => v.isActive)),
+      error: () => { /* no variants for this product — not an error */ },
+    });
+  }
+
   protected addLine(): void {
     const productId = this.addProductId();
     const quantity = this.addQty();
     if (productId == null || quantity == null || quantity <= 0) return;
+    if (this.variants().length > 0 && this.addVariantId() == null) {
+      this.toast.error('This product has variants — select one before adding it');
+      return;
+    }
     this.busy.set(true);
-    this.transferService.addLine(this.transferId, { productId, quantity }).subscribe({
+    this.transferService.addLine(this.transferId, { productId, variantId: this.addVariantId() ?? undefined, quantity }).subscribe({
       next: () => {
         this.addProductId.set(null);
+        this.addVariantId.set(null);
         this.addQty.set(null);
+        this.variants.set([]);
         this.toast.success('Product added to the transfer');
         this.busy.set(false);
         this.load();

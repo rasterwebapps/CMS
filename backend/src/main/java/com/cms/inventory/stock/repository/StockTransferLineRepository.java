@@ -12,5 +12,7 @@ public interface StockTransferLineRepository extends JpaRepository<StockTransfer
 
     List<StockTransferLine> findByStockTransferIdOrderByIdAsc(Long stockTransferId);
 
-    boolean existsByStockTransferIdAndProductId(Long stockTransferId, Long productId);
+    boolean existsByStockTransferIdAndProductIdAndVariantId(Long stockTransferId, Long productId, Long variantId);
+
+    boolean existsByStockTransferIdAndProductIdAndVariantIsNull(Long stockTransferId, Long productId);
 }

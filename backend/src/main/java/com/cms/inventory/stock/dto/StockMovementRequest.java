@@ -13,6 +13,10 @@ public record StockMovementRequest(
     @NotNull(message = "Product is required")
     Long productId,
 
+    /** Required once the product has any active {@code ProductVariant} — see {@code
+     *  StockMovementService.requireVariantIfProductHasAny}. Null for a product with no variants. */
+    Long variantId,
+
     @NotNull(message = "Location is required")
     Long locationId,
 

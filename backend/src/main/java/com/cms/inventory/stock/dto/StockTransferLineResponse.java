@@ -7,6 +7,9 @@ public record StockTransferLineResponse(
     Long productId,
     String productCode,
     String productName,
+    Long variantId,
+    String variantCode,
+    String variantName,
     String uomCode,
     BigDecimal quantity,
     String notes

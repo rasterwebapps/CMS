@@ -7,6 +7,8 @@ import { StockService } from '../stock.service';
 import { StockMovementRequest, StockTxnType } from '../stock.model';
 import { ProductService } from '../../product/product.service';
 import { Product } from '../../product/product.model';
+import { ProductVariantService } from '../../product/product-variant/product-variant.service';
+import { ProductVariant } from '../../product/product-variant/product-variant.model';
 import { InventoryLocationService } from '../../location/inventory-location.service';
 import { InventoryLocation } from '../../location/inventory-location.model';
 import { ToastService } from '../../../../core/toast/toast.service';
@@ -30,12 +32,14 @@ export class StockMovementFormComponent implements OnInit {
   private readonly router          = inject(Router);
   private readonly stockService    = inject(StockService);
   private readonly productService  = inject(ProductService);
+  private readonly variantService  = inject(ProductVariantService);
   private readonly locationService = inject(InventoryLocationService);
   private readonly toast           = inject(ToastService);
 
   protected readonly saving    = signal(false);
   protected readonly products  = signal<Product[]>([]);
   protected readonly locations = signal<InventoryLocation[]>([]);
+  protected readonly variants  = signal<ProductVariant[]>([]);
 
   protected readonly txnTypes: { value: StockTxnType; label: string; hint: string }[] = [
     { value: 'RECEIPT', label: 'Receipt', hint: 'New stock coming in (e.g. an opening balance, until Procurement/GRN exist)' },
@@ -45,6 +49,7 @@ export class StockMovementFormComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.group({
     productId:       [null as number | null, [Validators.required]],
+    variantId:       [null as number | null],
     locationId:      [null as number | null, [Validators.required]],
     txnType:         ['RECEIPT' as StockTxnType, [Validators.required]],
     direction:       ['INCREASE' as 'INCREASE' | 'DECREASE'],
@@ -58,10 +63,25 @@ export class StockMovementFormComponent implements OnInit {
   ngOnInit(): void {
     this.productService.getPage({ page: 0, size: 500 }).subscribe({ next: (p) => this.products.set(p.content) });
     this.locationService.getAll(true).subscribe({ next: (l) => this.locations.set(l) });
+
+    this.form.get('productId')?.valueChanges.subscribe((productId: number | null) => {
+      this.form.get('variantId')?.setValue(null);
+      this.variants.set([]);
+      if (!productId) return;
+      this.variantService.findByProduct(productId).subscribe({
+        next: (variants) => {
+          const active = variants.filter(v => v.isActive);
+          this.variants.set(active);
+          const variantControl = this.form.get('variantId');
+          variantControl?.setValidators(active.length > 0 ? [Validators.required] : []);
+          variantControl?.updateValueAndValidity();
+        },
+      });
+    });
   }
 
   protected getErrorMessage(fieldName: string): string {
-    const labels: Record<string, string> = { productId: 'Product', locationId: 'Location', quantity: 'Quantity' };
+    const labels: Record<string, string> = { productId: 'Product', variantId: 'Variant', locationId: 'Location', quantity: 'Quantity' };
     return cmsFieldError(this.form.get(fieldName), labels[fieldName] ?? fieldName);
   }
 
@@ -74,6 +94,7 @@ export class StockMovementFormComponent implements OnInit {
     const v = this.form.value;
     const request: StockMovementRequest = {
       productId: v.productId,
+      variantId: v.variantId ?? undefined,
       locationId: v.locationId,
       txnType: v.txnType,
       direction: v.txnType === 'ADJUSTMENT' ? v.direction : undefined,
