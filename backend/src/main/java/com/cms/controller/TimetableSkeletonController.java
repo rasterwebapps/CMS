@@ -23,6 +23,8 @@ import com.cms.dto.GlobalCapacityPrecheckResult;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
+import com.cms.dto.SkeletonCellReplaceResponse;
+import com.cms.dto.SkeletonCellReplaceRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonCellSwapRequest;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
@@ -77,6 +79,17 @@ public class TimetableSkeletonController {
     @PreAuthorize("@perm.has('TIMETABLE_SKELETON_PIN')")
     public ResponseEntity<SkeletonCellResponse> setPinned(@PathVariable Long id, @RequestParam boolean pinned) {
         return ResponseEntity.ok(timetableSkeletonService.setPinned(id, pinned));
+    }
+
+    /** Replace what a placed Theory cell teaches, keeping its slot and audience. Its own permission
+     *  rather than a free rider on MANAGE: replacing displaces the previous subject, which silently
+     *  puts that subject BELOW its curriculum-hours requirement elsewhere in the term — a different
+     *  and less obvious consequence than placing or removing a session outright. */
+    @PutMapping("/cells/{id}/replace")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_REPLACE')")
+    public ResponseEntity<SkeletonCellReplaceResponse> replaceCell(
+            @PathVariable Long id, @Valid @RequestBody SkeletonCellReplaceRequest request) {
+        return ResponseEntity.ok(timetableSkeletonService.replaceCellSubject(id, request));
     }
 
     @DeleteMapping("/cells/{id}")

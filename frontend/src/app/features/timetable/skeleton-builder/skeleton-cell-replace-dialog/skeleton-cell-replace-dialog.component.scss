@@ -1,0 +1,63 @@
+// Every colour here comes from a `--cms-*` token defined in styles.scss, so both themes follow the
+// global palette automatically -- no local light/dark overrides to drift out of sync.
+
+.scr-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scr-title__heading {
+  margin: 0;
+  font-size: var(--cms-text-lg);
+  color: var(--cms-text-primary);
+}
+
+.scr-title__sub {
+  margin: 0;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+}
+
+.scr-intro {
+  margin-top: 0;
+}
+
+// Shared treatment for both the informational (multi-period) and warning (over-capacity) callouts
+// -- same box, different accent, so they read as one family rather than two invented styles.
+.scr-callout {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--cms-primary);
+  border-radius: 4px;
+  background: var(--cms-primary-alpha-8);
+  font-size: var(--cms-text-sm);
+  line-height: 1.45;
+  color: var(--cms-text-secondary);
+}
+
+.scr-callout--warn {
+  margin-top: 8px;
+  border-left-color: var(--cms-warning);
+  background: var(--cms-warning-light);
+  // Set explicitly rather than inherited: warning-light is a near-white amber (#fffbeb) in light
+  // mode and a translucent amber over the dark surface in dark mode, so the muted body token would
+  // wash out on the light one. text-primary reads on both.
+  color: var(--cms-text-primary);
+}
+
+.scr-hint--warn {
+  color: var(--cms-warning);
+}
+
+.scr-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scr-footnote {
+  margin-bottom: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--cms-border-light);
+}

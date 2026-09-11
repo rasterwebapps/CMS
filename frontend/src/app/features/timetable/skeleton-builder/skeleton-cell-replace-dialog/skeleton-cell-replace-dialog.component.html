@@ -1,0 +1,120 @@
+<div mat-dialog-title class="scr-title">
+  <h2 class="scr-title__heading">Replace Subject</h2>
+  <p class="scr-title__sub">
+    {{ data.cell.subjectCode }} · {{ data.cell.subjectName }}
+    — {{ data.cell.dayOfWeek | titlecase }}, {{ data.cell.slotName }}
+    @if (data.cell.cohortSectionLabel) { · {{ data.cell.cohortSectionLabel }} }
+  </p>
+</div>
+
+<mat-dialog-content>
+  <p class="field-hint scr-intro">
+    The slot itself doesn't move — same day, same period, same students. Only what's taught in it
+    changes. The room stays the section's committed classroom, and the replacement is checked
+    against staff, room and period availability before it's applied.
+  </p>
+
+  @if (isMultiPeriod()) {
+    <p class="scr-callout">
+      This session spans more than one period. All of its periods are replaced together — a
+      multi-period block can't teach two different subjects.
+    </p>
+  }
+
+  <div class="field-group">
+    <label for="scr-subject" class="field-label">New subject</label>
+    <select id="scr-subject" class="field-select"
+      [ngModel]="selectedOfferingId()"
+      (ngModelChange)="onOfferingChange($event)">
+      <option [ngValue]="null" disabled>Select a subject…</option>
+      @for (o of options(); track o.courseOfferingId) {
+        <option [ngValue]="o.courseOfferingId">
+          {{ o.subjectCode }} — {{ o.subjectName }}
+          ({{ o.placedSessionsPerWeek }}/{{ o.requiredSessionsPerWeek }} per week placed{{ o.atQuota ? ' — already at quota' : '' }})
+        </option>
+      }
+    </select>
+    @if (!hasSelectableOption()) {
+      <p class="field-hint scr-hint--warn">
+        This section has no other non-elective subject to move the slot to. Remove the session
+        instead, or add the subject to this term's Curriculum Map first.
+      </p>
+    } @else {
+      <p class="field-hint">
+        Subjects still owing sessions are listed first. Replacing doesn't change how many hours the
+        week delivers — one slot simply changes hands — so a subject already at its quota can still
+        receive it; the figures are shown so you can see what you're adding to. Electives aren't
+        listed: an elective group shares one slot across all its members, so it's re-placed with
+        Place Elective Block.
+      </p>
+    }
+    @if (allAtQuota()) {
+      <p class="field-hint">
+        Every subject here is already at or above its curriculum requirement — normal once
+        automation has packed the week with extra hours to leave no free periods.
+      </p>
+    }
+  </div>
+
+  @if (selectedOfferingId() != null) {
+    <div class="field-group">
+      <label for="scr-faculty" class="field-label">Faculty for the new subject</label>
+
+      @if (loadingFaculty()) {
+        <p class="field-hint scr-loading">
+          <mat-spinner diameter="16" />
+          <span>Loading eligible faculty…</span>
+        </p>
+      } @else if (facultyError()) {
+        <p class="field-hint scr-hint--warn">{{ facultyError() }}</p>
+      } @else if (faculty().length === 0) {
+        <p class="field-hint scr-hint--warn">
+          No active faculty is eligible to teach this subject — eligibility comes from a Speciality
+          match or the subject's own Eligible Faculty list. Set one up in Subject Master before
+          replacing into this subject.
+        </p>
+      } @else {
+        <select id="scr-faculty" class="field-select"
+          [ngModel]="selectedFacultyId()"
+          (ngModelChange)="selectedFacultyId.set($event)">
+          <option [ngValue]="null" disabled>Select a faculty member…</option>
+          @for (f of faculty(); track f.facultyId) {
+            <option [ngValue]="f.facultyId">
+              {{ f.facultyName }}
+              @if (f.capacityTier === 'NONE') {
+                — no cap configured
+              } @else if (f.overCapacity) {
+                — over capacity by {{ -f.remainingHours | number: '1.0-1' }}h
+              } @else {
+                — {{ f.remainingHours | number: '1.0-1' }}h free this term
+              }
+            </option>
+          }
+        </select>
+        <p class="field-hint">
+          Sorted with the most free capacity first. Remaining hours are measured against this
+          faculty member's whole term demand, not just this cohort.
+        </p>
+        @if (selectedFaculty(); as f) {
+          @if (f.overCapacity) {
+            <p class="scr-callout scr-callout--warn">
+              {{ f.facultyName }} is already over their term capacity. Assigning them here will be
+              rejected if a workload cap is enforced for their tier.
+            </p>
+          }
+        }
+      }
+    </div>
+  }
+
+  <p class="field-hint scr-footnote">
+    Replacing pins this session, so the next Run Automation keeps your choice instead of packing
+    over it. The subject being displaced will drop below its weekly requirement — you'll be told by
+    how much, so you can place it elsewhere.
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button class="btn-secondary" type="button" (click)="onCancel()">Cancel</button>
+  <button class="btn-primary" type="button" [disabled]="!canSave()" (click)="onSave()">Replace</button>
+</mat-dialog-actions>

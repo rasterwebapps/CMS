@@ -1,5 +1,7 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -604,6 +606,20 @@ public class TimetableStaffingService {
                 .stream())
             .filter(other -> !other.getId().equals(cs.getId()))
             .filter(other -> other.getPeriod() != null)
+            // Soft-deleted rows must not count toward a cap. Neither source filters them:
+            // `findByTermInstanceIdAndStatusAndFacultyId` has no isActive predicate, and
+            // AutoScheduleRunCache#byStatusAndFacultyId matches only on status+faculty -- so the
+            // filter goes here, where it covers both paths at once.
+            //
+            // This mattered enormously in practice. Every Global Auto-Schedule run rebuilds the
+            // draft by deactivating the previous rows rather than deleting them, so each run left
+            // another full week of phantom load attached to every faculty member. A real local
+            // example: faculty 34 had 2 active Thursday sessions (1.67h) and 26 inactive ones
+            // (21.67h), and the daily check reported 23.3h against a 7h cap -- more hours in one
+            // day than a day contains. After a few runs every faculty is "over cap", so Replace,
+            // Assign Faculty and staffing in general refuse everything. Same defect class as
+            // OC-182, which fixed the missing isActive filter on a different repository method.
+            .filter(other -> Boolean.TRUE.equals(other.getIsActive()))
             .toList();
 
         List<ConstraintViolation> violations = new ArrayList<>();
@@ -728,8 +744,18 @@ public class TimetableStaffingService {
             });
     }
 
+    /** A whole number renders bare ("7"), anything else to a single decimal ("14.2").
+     *
+     *  <p>The fractional branch used to be a plain {@code String.valueOf(double)}, which leaked the
+     *  full binary-floating-point expansion straight into user-facing violation messages -- a real
+     *  message read "would put this faculty member at 14.166666666666668 hours today". Period
+     *  lengths are routinely non-terminating in hours (a 50-minute period is 5/6 h), so this was
+     *  the normal case for any cap message, not an edge case. */
     private static String formatHours(double hours) {
-        return hours == Math.floor(hours) ? String.valueOf((long) hours) : String.valueOf(hours);
+        if (hours == Math.floor(hours)) {
+            return String.valueOf((long) hours);
+        }
+        return BigDecimal.valueOf(hours).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 
     /** Blocks assigning a room already occupied at this exact day/time — either the exact same

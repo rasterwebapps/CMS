@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatMenuModule } from '@angular/material/menu';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { from } from 'rxjs';
 import { concatMap } from 'rxjs/operators';
@@ -12,7 +13,8 @@ import { AcademicYear, CohortSummary, TermInstance } from '../../academic-year/a
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
 import { SkeletonBuilderService } from './skeleton-builder.service';
-import { ClinicalShiftWindow, SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType, SkeletonSlotPreview, SkeletonSubject } from './skeleton-builder.model';
+import { ClinicalShiftWindow, DisplacedSubjectShortfall, SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType, SkeletonSlotPreview, SkeletonSubject } from './skeleton-builder.model';
+import { SkeletonCellReplaceDialogComponent, SkeletonCellReplaceDialogData, SkeletonCellReplaceDialogResult } from './skeleton-cell-replace-dialog/skeleton-cell-replace-dialog.component';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -66,7 +68,7 @@ interface HoursSummary {
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, RouterLink, MatDialogModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, GlobalAutoScheduleReportFlyoutComponent, WorkingSaturdaysFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent],
+  imports: [FormsModule, DecimalPipe, RouterLink, MatDialogModule, MatMenuModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, GlobalAutoScheduleReportFlyoutComponent, WorkingSaturdaysFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -364,6 +366,10 @@ export class SkeletonBuilderComponent implements OnInit {
    *  close it. An all-cohorts run falls back to a normal single-cohort selection instead, reusing
    *  the existing per-cohort load path with no new logic needed. */
   protected onGlobalScheduleCompleted(): void {
+    // A rebuild re-derives every subject's placed count from scratch, so any shortfall recorded
+    // from an earlier replace is now stale — whatever it reported has either been re-placed by the
+    // run or is reported afresh in the run's own unplaced list.
+    this.displacedShortfalls.set([]);
     if (!this.allCohortsSelected()) {
       this.reloadSkeleton();
       return;
@@ -522,9 +528,14 @@ export class SkeletonBuilderComponent implements OnInit {
   private tryLoadSkeleton(): void {
     if (this.selectedTermInstanceId && this.selectedCohortId) {
       this.selectedSectionId.set('ALL');
+      // Displaced-subject figures are per-cohort and per-term, so they're meaningless once either
+      // changes. Cleared here rather than in reloadSkeleton because a replace itself calls
+      // reloadSkeleton — clearing there would wipe the banner the replace just raised.
+      this.displacedShortfalls.set([]);
       this.loadSkeleton(this.selectedTermInstanceId, this.selectedCohortId);
     } else {
       this.skeleton.set(null);
+      this.displacedShortfalls.set([]);
     }
   }
 
@@ -691,6 +702,94 @@ export class SkeletonBuilderComponent implements OnInit {
       return;
     }
     this.confirmRemove(cell);
+  }
+
+  protected canReplace(): boolean {
+    return this.permissionService.has('TIMETABLE_SKELETON_REPLACE');
+  }
+
+  /** Whether Replace is offered for this specific cell, mirroring every gate the backend's
+   *  {@code replaceCellSubject} enforces so the menu never offers an action that is certain to be
+   *  rejected. THEORY only (a Lab/Clinical cell's audience is a batch tied to one offering, so
+   *  changing its subject means changing the batch in Capacity Planner); DRAFT only (a published
+   *  session is immutable); never an elective (the group shares one slot — use Place Elective
+   *  Block); and never a Library cell, which has no course offering to displace. */
+  protected canReplaceCell(cell: SkeletonCell): boolean {
+    return this.canReplace()
+      && cell.sessionType === 'THEORY'
+      && cell.status === 'DRAFT'
+      && cell.electiveGroupId == null
+      && cell.courseOfferingId != null;
+  }
+
+  /** Why Replace is unavailable on this cell, for the disabled menu item's explanation. Returns
+   *  null when it IS available — an unexplained disabled control is the thing this avoids. */
+  protected replaceBlockedReason(cell: SkeletonCell): string | null {
+    if (!this.canReplace()) return 'You don\'t have permission to replace a session.';
+    if (cell.status !== 'DRAFT') return 'Published sessions can\'t be changed here.';
+    if (cell.electiveGroupId != null) return 'Electives share one slot — use Place Elective Block.';
+    if (cell.courseOfferingId == null) return 'A Library slot has no subject to replace.';
+    if (cell.sessionType !== 'THEORY') return 'Only Theory sessions can be replaced — change a Lab/Clinical batch in Capacity Planner.';
+    return null;
+  }
+
+  /** Subjects pushed below their weekly curriculum requirement by a replace this session.
+   *
+   *  <p>Held in a persistent banner rather than a toast because the whole point is that the
+   *  displaced subject still needs placing somewhere else — a message that disappears after a few
+   *  seconds is exactly the wrong surface for a task the user has to act on. Keyed by
+   *  offering+section so replacing the same subject twice updates one row instead of stacking
+   *  duplicates. Cleared on cohort/term change and on a successful Run Automation, both of which
+   *  make the figures stale. */
+  protected readonly displacedShortfalls = signal<DisplacedSubjectShortfall[]>([]);
+
+  private shortfallKey(d: DisplacedSubjectShortfall): string {
+    return `${d.courseOfferingId}|${d.cohortSectionId ?? 'none'}`;
+  }
+
+  protected dismissShortfall(displaced: DisplacedSubjectShortfall): void {
+    const key = this.shortfallKey(displaced);
+    this.displacedShortfalls.update((list) => list.filter((d) => this.shortfallKey(d) !== key));
+  }
+
+  protected dismissAllShortfalls(): void {
+    this.displacedShortfalls.set([]);
+  }
+
+  /** Open the Replace picker, then apply the choice. The dialog gathers subject + faculty but
+   *  never writes, so a constraint violation surfaces through the same `violationText` toast path
+   *  every other placement error uses rather than a second error surface inside the dialog. */
+  protected openReplaceDialog(cell: SkeletonCell): void {
+    const sk = this.skeleton();
+    if (!sk || !this.canReplaceCell(cell)) return;
+
+    this.dialog.open(SkeletonCellReplaceDialogComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      data: {
+        cell,
+        subjects: sk.subjects,
+        cohortId: sk.cohortId,
+      } satisfies SkeletonCellReplaceDialogData,
+    }).afterClosed().subscribe((result: SkeletonCellReplaceDialogResult | undefined) => {
+      if (!result) return;
+      this.skeletonService.replaceCell(cell.id, result).subscribe({
+        next: (response) => {
+          this.toast.success(`Replaced with ${response.cell.subjectCode} — pinned, so Run Automation will keep it.`);
+          if (response.displaced) this.recordDisplaced(response.displaced);
+          this.reloadSkeleton();
+        },
+        error: (err) => this.toast.error(violationText(err) ?? 'Failed to replace session'),
+      });
+    });
+  }
+
+  private recordDisplaced(displaced: DisplacedSubjectShortfall): void {
+    const key = this.shortfallKey(displaced);
+    this.displacedShortfalls.update((list) => [
+      ...list.filter((d) => this.shortfallKey(d) !== key),
+      displaced,
+    ]);
   }
 
   /** Pin/unpin from the cell's own badge. Stops propagation so it never falls through to

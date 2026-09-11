@@ -184,6 +184,37 @@ export interface SkeletonCellSwapRequest {
   cohortId: number;
 }
 
+/** Hands a placed Theory cell's slot to a different subject, keeping its day/period/audience.
+ *  THEORY only, DRAFT only, and never an elective on either side — an elective group shares one
+ *  slot across all its members, so it's re-placed via Place Elective Block instead. */
+export interface SkeletonCellReplaceRequest {
+  courseOfferingId: number;
+  facultyId: number;
+}
+
+/** How far below its weekly curriculum requirement the subject we just displaced now sits, for
+ *  this exact section. `shortfallSessions` is always at least 1 when present — it's what still
+ *  needs re-placing elsewhere in the week. Mirrors the backend's
+ *  `SkeletonCellReplaceResponse.DisplacedSubjectShortfall` exactly. */
+export interface DisplacedSubjectShortfall {
+  courseOfferingId: number;
+  subjectName: string;
+  subjectCode: string;
+  cohortSectionId: number | null;
+  cohortSectionLabel: string | null;
+  requiredSessionsPerWeek: number;
+  placedSessionsPerWeek: number;
+  shortfallSessions: number;
+}
+
+/** `displaced` is null when the replacement cost nothing that matters: the cell had no previous
+ *  offering (a Library cell), the previous subject has no curriculum hours to measure against, or
+ *  it still meets its requirement without this slot (it was over quota, or covered elsewhere). */
+export interface SkeletonCellReplaceResponse {
+  cell: SkeletonCell;
+  displaced: DisplacedSubjectShortfall | null;
+}
+
 export interface AutoPlaceUnplacedItem {
   subjectName: string;
   sessionType: SkeletonSessionType;

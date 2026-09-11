@@ -207,6 +207,41 @@
       </div>
     }
 
+    <!-- Raised by Replace: the subject that lost the slot is now below its weekly curriculum
+         requirement somewhere else in the week, and nothing else on this screen would say so.
+         Persists until dismissed or until a rebuild makes the figures stale. -->
+    @if (displacedShortfalls().length > 0) {
+      <div class="skeleton-displaced anim-rise anim-rise--d2" role="status">
+        <div class="skeleton-displaced__head">
+          <span class="skeleton-displaced__title">Needs re-placing after your replacement{{ displacedShortfalls().length > 1 ? 's' : '' }}</span>
+          @if (displacedShortfalls().length > 1) {
+            <button type="button" class="skeleton-displaced__dismiss-all" (click)="dismissAllShortfalls()">Dismiss all</button>
+          }
+        </div>
+        <ul class="skeleton-displaced__list">
+          @for (d of displacedShortfalls(); track d.courseOfferingId + '|' + d.cohortSectionId) {
+            <li class="skeleton-displaced__item">
+              <span class="skeleton-displaced__subject">
+                {{ d.subjectName }} ({{ d.subjectCode }})
+                @if (d.cohortSectionLabel) { — {{ d.cohortSectionLabel }} }
+              </span>
+              <span class="skeleton-displaced__stat">
+                {{ d.placedSessionsPerWeek }} of {{ d.requiredSessionsPerWeek }} weekly sessions placed ·
+                {{ d.shortfallSessions }} short
+              </span>
+              <button type="button" class="skeleton-displaced__dismiss"
+                [attr.aria-label]="'Dismiss shortfall notice for ' + d.subjectName"
+                (click)="dismissShortfall(d)">Dismiss</button>
+            </li>
+          }
+        </ul>
+        <p class="skeleton-displaced__hint">
+          Place these back into a free slot, or run automation again to let it re-pack the week
+          around your pinned replacements.
+        </p>
+      </div>
+    }
+
     <div id="tour-skel-grid" class="content-card mlp-table-card skeleton-grid-card anim-rise anim-rise--d3">
       <div class="table-wrapper">
         <table class="skeleton-grid" cdkDropListGroup>
@@ -265,7 +300,8 @@
                             [cdkDragDisabled]="!canManage() || !canMove() || !!cell.sessionGroupId"
                             (cdkDragStarted)="onDragStarted(cell)"
                             (cdkDragEnded)="onDragEnded()"
-                            (click)="onCellChipClick(cell)">
+                            [matMenuTriggerFor]="cellMenu"
+                            [matMenuTriggerData]="{ cell: cell }">
                             <span class="skeleton-cell__subject">{{ cell.subjectCode }}</span>
                             <span class="skeleton-cell__type">{{ cell.sessionType }}</span>
                             @if (cell.rotationGroupLabel) {
@@ -320,3 +356,44 @@
   }
 
 </div>
+
+<!-- One shared menu for every cell in the grid: `matMenuContent` instantiates it per-open with the
+     clicked cell, so this is a single template rather than one menu node per session. The trigger
+     button is already `[disabled]="!canManage()"`, so a user without manage rights never opens
+     it at all — the per-item guards below are about which actions suit THIS cell. -->
+<mat-menu #cellMenu="matMenu" class="skeleton-cell-menu">
+  <ng-template matMenuContent let-cell="cell">
+    <div class="skeleton-cell-menu__header">
+      <span class="skeleton-cell-menu__subject">{{ cell.subjectCode }} · {{ cell.sessionType }}</span>
+      <span class="skeleton-cell-menu__slot">
+        {{ dayLabels[cell.dayOfWeek] }}, {{ cell.slotName }}
+        @if (cell.cohortSectionLabel) { · {{ cell.cohortSectionLabel }} }
+        @else if (cell.batchName) { · {{ cell.batchName }} }
+      </span>
+    </div>
+
+    @if (canReplaceCell(cell)) {
+      <button mat-menu-item type="button" (click)="openReplaceDialog(cell)">Replace subject…</button>
+    } @else if (replaceBlockedReason(cell); as reason) {
+      <button mat-menu-item type="button" disabled [title]="reason">Replace subject…</button>
+    }
+
+    @if (canPin() && cell.status === 'DRAFT') {
+      <button mat-menu-item type="button" (click)="onTogglePin($event, cell)">
+        {{ cell.pinned ? 'Unpin — let automation move it' : 'Pin — keep it where it is' }}
+      </button>
+    }
+
+    @if (canManage()) {
+      @if (cell.isStaffed) {
+        <button mat-menu-item type="button" disabled
+          title="This session is already staffed — remove or reassign its faculty on the Class Schedule screen first.">
+          Remove session
+        </button>
+      } @else {
+        <button mat-menu-item type="button" class="skeleton-cell-menu__danger"
+          (click)="onCellChipClick(cell)">Remove session</button>
+      }
+    }
+  </ng-template>
+</mat-menu>

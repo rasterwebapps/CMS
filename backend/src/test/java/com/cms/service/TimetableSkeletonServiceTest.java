@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,6 +30,8 @@ import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
+import com.cms.dto.SkeletonCellReplaceResponse;
+import com.cms.dto.SkeletonCellReplaceRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
@@ -86,6 +89,7 @@ class TimetableSkeletonServiceTest {
     @Mock private TimetableStaffingService timetableStaffingService;
     @Mock private ClinicalShiftGroupRepository clinicalShiftGroupRepository;
     @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
+    @Mock private com.cms.repository.FacultyRepository facultyRepository;
 
     private TimetableSkeletonService service;
 
@@ -103,7 +107,7 @@ class TimetableSkeletonServiceTest {
             periodRepository, batchRepository, batchService, blockedPeriodChecker,
             rotationSlotRepository, rotationMemberAssignmentRepository, rotationResolverService, courseOfferingService,
             cohortRepository, termInstanceRepository, cohortRoomAllocationRepository, cohortSectionRepository,
-            timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService);
+            timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService, facultyRepository);
         lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(anyLong())).thenReturn(List.of());
         lenient().when(clinicalShiftGroupService.resolveActiveWindowsForCohort(anyLong(), anyLong())).thenReturn(List.of());
 
@@ -1294,6 +1298,123 @@ class TimetableSkeletonServiceTest {
         // admin's manual arrangement is silently destroyed by the very next run.
         assertThat(cs.isPinned()).isTrue();
         assertThat(response.pinned()).isTrue();
+    }
+
+    // ── replaceCellSubject ─────────────────────────────────────────────
+
+    /** Replace swaps subject AND faculty in one decision, keeping the slot. The room, staff and
+     *  period must all be re-validated rather than assumed still legal, so this asserts the call
+     *  reaches validateAssignment carrying a real RoomCheckSpec (a null spec would silently skip
+     *  the room/audience scan entirely) and excluding this very cell, which is vacating the old
+     *  subject as part of the same edit. */
+    @Test
+    void shouldReplaceSubjectAndFacultyTogether_revalidatingRoomStaffAndPeriod() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(100L);
+        cs.setTermInstance(termInstance);
+        Classroom room = new Classroom("A-101", null, null, 60);
+        room.setId(70L);
+        cs.setClassroom(room);
+
+        Faculty newFaculty = new Faculty();
+        newFaculty.setId(42L);
+        newFaculty.setFirstName("Meera");
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
+        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of());
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L));
+
+        assertThat(cs.getCourseOffering()).isEqualTo(otherOffering);
+        assertThat(cs.getSubject()).isEqualTo(otherOffering.getSubject());
+        assertThat(cs.getFaculty()).isEqualTo(newFaculty);
+        // Replacing is a deliberate human decision, so it pins like a drag-move does.
+        assertThat(cs.isPinned()).isTrue();
+        assertThat(response.cell().subjectCode()).isEqualTo("PHY101");
+
+        ArgumentCaptor<TimetableStaffingService.RoomCheckSpec> roomCaptor =
+            ArgumentCaptor.forClass(TimetableStaffingService.RoomCheckSpec.class);
+        ArgumentCaptor<Long> excludeCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(timetableStaffingService).validateAssignment(any(), any(), any(), any(), eq(newFaculty),
+            excludeCaptor.capture(), roomCaptor.capture(), any(), any());
+        assertThat(roomCaptor.getValue()).isNotNull();
+        assertThat(roomCaptor.getValue().venueId()).isEqualTo(70L);
+        assertThat(excludeCaptor.getValue()).isEqualTo(100L);
+    }
+
+    /** Replace is deliberately NOT budget-capped, unlike ordinary placement.
+     *
+     *  <p>Placement adds a session to the week, so it can genuinely over-deliver a subject's
+     *  curriculum hours. A replace cannot: one already-existing slot changes hands, the incoming
+     *  subject gains exactly what the outgoing one loses, and the term's total delivered hours are
+     *  unchanged. Capping it also made the feature unusable in practice -- the auto-scheduler's
+     *  extra-hours filler intentionally pushes every Theory offering past its requirement to leave
+     *  no free periods, so on a packed grid every candidate was over quota and every replace was
+     *  refused because of a surplus the scheduler had itself created. */
+    @Test
+    void shouldAllowReplaceEvenWhenIncomingSubjectsWeeklyQuotaIsAlreadyMet() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(100L);
+        cs.setTermInstance(termInstance);
+
+        // otherOffering needs a curriculum mapping for the budget check to have anything to measure.
+        CurriculumSemesterCourse otherCsc = new CurriculumSemesterCourse();
+        otherCsc.setTheoryHours(54); // -> 3 weekly sessions, same maths as the main fixture
+        otherOffering.setCurriculumSemesterCourse(otherCsc);
+
+        Faculty newFaculty = new Faculty();
+        newFaculty.setId(42L);
+        // Deliberately NOT on MONDAY, the day `existingRow` puts the cell being replaced on: the
+        // incoming subject having a session in this exact slot already is a separate, still-active
+        // rejection (checkAlreadyPlaced), and it would mask the quota behaviour under test here.
+        ClassSchedule a = rowFor(otherOffering, ClassSessionType.THEORY, null, DayOfWeek.TUESDAY, period);
+        a.setId(201L);
+        ClassSchedule b = rowFor(otherOffering, ClassSessionType.THEORY, null, DayOfWeek.WEDNESDAY, period);
+        b.setId(202L);
+        ClassSchedule c = rowFor(otherOffering, ClassSessionType.THEORY, null, DayOfWeek.THURSDAY, period);
+        c.setId(203L);
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
+        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of(a, b, c));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+
+        // otherOffering already has 3 of its 3 weekly sessions placed (a/b/c above) -- ordinary
+        // placement would refuse a 4th. Replace goes through anyway, and the row now teaches it.
+        SkeletonCellReplaceResponse response =
+            service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L));
+
+        assertThat(response.cell()).isNotNull();
+        assertThat(cs.getCourseOffering()).isSameAs(otherOffering);
+        assertThat(cs.getFaculty()).isSameAs(newFaculty);
+        verify(classScheduleRepository).save(cs);
+    }
+
+    /** LAB/CLINICAL is out of scope by design: its audience is a Batch, and a Batch belongs to
+     *  exactly one CourseOffering, so "replace the subject" there means swapping in a different
+     *  batch with its own committed venue -- a Capacity Planner decision, not a per-session edit. */
+    @Test
+    void shouldRejectReplacingALabSession() {
+        Batch batch = new Batch();
+        batch.setId(55L);
+        ClassSchedule cs = existingRow(ClassSessionType.LAB, batch, false);
+        cs.setId(100L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Only a Theory session");
+
+        verify(classScheduleRepository, never()).save(any());
     }
 
     @Test

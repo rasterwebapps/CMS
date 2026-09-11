@@ -637,6 +637,7 @@ class TimetableStaffingServiceTest {
 
         ClassSchedule existingSameDay = new ClassSchedule();
         existingSameDay.setId(400L);
+        existingSameDay.setIsActive(true);
         existingSameDay.setFaculty(eligibleFaculty);
         existingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
         Period existingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 30), 1);
@@ -664,6 +665,7 @@ class TimetableStaffingServiceTest {
     void shouldRejectStaffingWhenWeeklyCapWouldBeExceeded() {
         ClassSchedule existingDifferentDay = new ClassSchedule();
         existingDifferentDay.setId(400L);
+        existingDifferentDay.setIsActive(true);
         existingDifferentDay.setFaculty(eligibleFaculty);
         existingDifferentDay.setDayOfWeek(DayOfWeek.TUESDAY);
         Period existingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 30), 1);
@@ -699,6 +701,7 @@ class TimetableStaffingServiceTest {
 
         ClassSchedule precedingSameDay = new ClassSchedule();
         precedingSameDay.setId(400L);
+        precedingSameDay.setIsActive(true);
         precedingSameDay.setFaculty(eligibleFaculty);
         precedingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
         Period precedingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
@@ -739,6 +742,7 @@ class TimetableStaffingServiceTest {
 
         ClassSchedule existingSameDay = new ClassSchedule();
         existingSameDay.setId(400L);
+        existingSameDay.setIsActive(true);
         existingSameDay.setFaculty(eligibleFaculty);
         existingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
         Period existingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 30), 1);
@@ -774,6 +778,7 @@ class TimetableStaffingServiceTest {
 
         ClassSchedule precedingSameDay = new ClassSchedule();
         precedingSameDay.setId(400L);
+        precedingSameDay.setIsActive(true);
         precedingSameDay.setFaculty(eligibleFaculty);
         precedingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
         Period precedingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
@@ -833,6 +838,7 @@ class TimetableStaffingServiceTest {
 
         ClassSchedule existingSameDay = new ClassSchedule();
         existingSameDay.setId(400L);
+        existingSameDay.setIsActive(true);
         existingSameDay.setFaculty(eligibleFaculty);
         existingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
         Period existingPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 30), 1);

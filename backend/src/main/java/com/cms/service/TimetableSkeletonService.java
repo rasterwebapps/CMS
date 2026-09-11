@@ -27,6 +27,8 @@ import com.cms.dto.SkeletonBuilderResponse;
 import com.cms.dto.SkeletonCellMoveRequest;
 import com.cms.dto.SkeletonCellSwapRequest;
 import com.cms.dto.SkeletonCellPlacementRequest;
+import com.cms.dto.SkeletonCellReplaceResponse;
+import com.cms.dto.SkeletonCellReplaceRequest;
 import com.cms.dto.SkeletonCellResponse;
 import com.cms.dto.SkeletonClinicalShiftHours;
 import com.cms.dto.SkeletonPlacementCandidateResponse;
@@ -43,6 +45,7 @@ import com.cms.model.ClinicalShiftGroup;
 import com.cms.model.Cohort;
 import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
+import com.cms.model.Faculty;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Period;
 import com.cms.model.Subject;
@@ -58,6 +61,7 @@ import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
+import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.TermInstanceRepository;
 
@@ -107,6 +111,7 @@ public class TimetableSkeletonService {
     private final TimetableStaffingService timetableStaffingService;
     private final ClinicalShiftGroupRepository clinicalShiftGroupRepository;
     private final ClinicalShiftGroupService clinicalShiftGroupService;
+    private final FacultyRepository facultyRepository;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
@@ -124,7 +129,8 @@ public class TimetableSkeletonService {
                                      CohortSectionRepository cohortSectionRepository,
                                      TimetableStaffingService timetableStaffingService,
                                      ClinicalShiftGroupRepository clinicalShiftGroupRepository,
-                                     ClinicalShiftGroupService clinicalShiftGroupService) {
+                                     ClinicalShiftGroupService clinicalShiftGroupService,
+                                     FacultyRepository facultyRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
@@ -142,6 +148,7 @@ public class TimetableSkeletonService {
         this.timetableStaffingService = timetableStaffingService;
         this.clinicalShiftGroupRepository = clinicalShiftGroupRepository;
         this.clinicalShiftGroupService = clinicalShiftGroupService;
+        this.facultyRepository = facultyRepository;
     }
 
     public SkeletonBuilderResponse getCohortSkeleton(Long termInstanceId, Long cohortId) {
@@ -708,6 +715,188 @@ public class TimetableSkeletonService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public SkeletonCellResponse placeCell(SkeletonCellPlacementRequest request) {
         return placeCell(request, true);
+    }
+
+    /** Replace WHAT a placed Theory cell teaches, keeping its day/period/audience untouched — the
+     *  "same slot, different content" edit that previously forced an admin to remove the session and
+     *  place a new one, losing its faculty and room in between and briefly leaving a hole in the grid
+     *  that a concurrent automation run could fill.
+     *
+     *  <p>Subject and faculty move together as one decision (see {@link SkeletonCellReplaceRequest}),
+     *  and every check that guards an ordinary placement still applies to the incoming subject:
+     *  it must not already sit at this exact day/period, it must not exceed its own curriculum-hours
+     *  quota, the chosen faculty must be eligible for it, free at this time, and within their
+     *  workload caps. Nothing is written until all of them pass.
+     *
+     *  <p>THEORY only, deliberately. A LAB/CLINICAL row's audience is a {@link Batch}, and a Batch
+     *  belongs to exactly one CourseOffering — so "replace the subject" there really means "swap in
+     *  a different batch with its own committed venue", which is a Capacity Planner decision rather
+     *  than a per-session edit. Electives are excluded for the same class of reason: every member of
+     *  an elective group must share one slot, so changing one member's subject in place would break
+     *  that invariant.
+     *
+     *  <p>The room is deliberately NOT a parameter: it is re-derived from the section's committed
+     *  allocation, exactly as {@code TimetableStaffingService#staffCell} does. */
+    @Transactional
+    public SkeletonCellReplaceResponse replaceCellSubject(Long classScheduleId, SkeletonCellReplaceRequest request) {
+        ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
+            .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
+        if (cs.getStatus() != ClassScheduleStatus.DRAFT) {
+            throw new LifecycleConflictException(
+                "Only a draft skeleton cell can be replaced — a published session is immutable.",
+                "SKELETON_CELL_NOT_DRAFT", "ClassSchedule", classScheduleId, null);
+        }
+        if (cs.getSessionType() != ClassSessionType.THEORY) {
+            throw new IllegalArgumentException(
+                "Only a Theory session can have its subject replaced here — a Lab/Clinical session's audience is a "
+                    + "batch tied to one offering, so changing its subject means changing the batch in Capacity Planner.");
+        }
+        CourseOffering newOffering = courseOfferingRepository.findById(request.courseOfferingId())
+            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + request.courseOfferingId()));
+        if (isElectiveOffering(newOffering) || (cs.getCourseOffering() != null && isElectiveOffering(cs.getCourseOffering()))) {
+            throw new IllegalArgumentException(
+                "Elective sessions can't be replaced in place — every member of an elective group shares one slot, "
+                    + "so use Place Elective Block instead.");
+        }
+        Faculty newFaculty = facultyRepository.findById(request.facultyId())
+            .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.facultyId()));
+
+        Period period = cs.getPeriod();
+        List<ConstraintViolation> violations = new ArrayList<>();
+
+        // excludeCellId = this row: it is vacating the old subject as part of this very edit, so it
+        // must never count as a blocker against the incoming one.
+        SkeletonCellPlacementRequest asPlacementRequest = new SkeletonCellPlacementRequest(
+            newOffering.getId(), ClassSessionType.THEORY, cs.getDayOfWeek(), period.getId(), null, null,
+            cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, null);
+        checkAlreadyPlaced(newOffering, asPlacementRequest, cs.getId()).ifPresent(violations::add);
+
+        // NO budget-cap check here, deliberately -- unlike placement, which adds a session to the
+        // week, a replace is hour-neutral: one existing slot changes hands, so the incoming subject
+        // gains exactly what the outgoing one loses and the term's total delivered hours do not
+        // move. The over-delivery `checkBudgetNotExceeded` exists to prevent is therefore not
+        // something this operation can cause.
+        //
+        // Enforcing it here also made the feature unusable in practice. The Global Auto-Schedule
+        // extra-hours filler deliberately packs the grid by pushing every Theory offering PAST its
+        // curriculum requirement (that is the whole point of the "no empty periods" policy), so on
+        // a packed grid every candidate subject is already over quota and every replace was
+        // rejected -- the cap was rejecting replacements on the grounds of a surplus the scheduler
+        // had itself created on purpose.
+
+        // Eligibility is reported as a violation alongside the rest rather than thrown on its own, so
+        // the admin sees every reason the replacement was refused in one response instead of
+        // discovering them one failed attempt at a time.
+        if (FacultyEligibility.eligibleFaculty(newOffering.getSubject(), List.of(newFaculty)).isEmpty()) {
+            violations.add(new ConstraintViolation("STAFFING_FACULTY_NOT_ELIGIBLE",
+                newFaculty.getFullName() + " isn't eligible to teach " + newOffering.getSubject().getName() + "."));
+        }
+        // Physical location, staff, and period availability are all re-checked, not assumed. The
+        // room does not change (a Theory room is the section's committed classroom, re-derived, not
+        // a per-session choice), but it must still be re-scanned: the section's committed allocation
+        // can have been changed or re-committed since this cell was placed, and the incoming faculty
+        // is new to this slot regardless. Room spec mirrors validateMoveTarget's, so replace and
+        // move/swap judge occupancy by exactly the same rule rather than two drifting copies.
+        Long venueId = TimetableStaffingService.venueIdOf(cs);
+        TimetableStaffingService.RoomCheckSpec roomCheck = venueId != null
+            ? new TimetableStaffingService.RoomCheckSpec(cs.getSessionType(), venueId,
+                TimetableStaffingService.physicalRoomOf(cs), TimetableStaffingService.RoomMode.STRICT)
+            : null;
+        violations.addAll(timetableStaffingService.validateAssignment(
+            cs, cs.getDayOfWeek(), period.getStartTime(), period.getEndTime(), newFaculty,
+            cs.getId(), roomCheck, null, null).violations());
+
+        // Period availability also means "this cohort isn't away on clinical duty" -- a duty window
+        // can be added or widened after a cell was placed, so the slot's legality is re-established
+        // here rather than trusted because it was legal when originally placed.
+        Long cohortId = audienceCohortId(cs);
+        if (cohortId != null) {
+            checkClinicalShiftBlocked(cohortId, cs.getDayOfWeek(), period, cs.getTermInstance())
+                .ifPresent(violations::add);
+        }
+
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        // A multi-period Theory block is one session, so every row in the group is replaced together
+        // -- replacing only the clicked period would leave a 2-period block teaching two subjects.
+        CourseOffering displacedOffering = cs.getCourseOffering();
+        CohortSection audience = cs.getCohortSection();
+
+        List<ClassSchedule> group = cs.getSessionGroupId() == null ? List.of(cs)
+            : classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(cs.getSessionGroupId());
+        for (ClassSchedule row : group) {
+            row.setCourseOffering(newOffering);
+            row.setSubject(newOffering.getSubject());
+            row.setFaculty(newFaculty);
+            // Replacing is a deliberate human decision, so it pins for the same reason a drag-move
+            // does -- otherwise the next automation run would simply undo it.
+            row.setPinned(true);
+            classScheduleRepository.save(row);
+        }
+        return new SkeletonCellReplaceResponse(toCellResponse(cs),
+            describeDisplacedShortfall(displacedOffering, audience));
+    }
+
+    /** The cohort a placed Theory cell's audience belongs to, via its section's committed
+     *  allocation — needed for the cohort-scoped Clinical Shift duty check, which cannot be derived
+     *  from the row alone. Null for a row with no section (unsectioned cohort, or a row predating
+     *  section-scoped placement), where the duty check is skipped rather than guessed at. */
+    private Long audienceCohortId(ClassSchedule cs) {
+        CohortSection section = cs.getCohortSection();
+        if (section == null || section.getCohortRoomAllocation() == null) {
+            return null;
+        }
+        return section.getCohortRoomAllocation().getCohort() != null
+            ? section.getCohortRoomAllocation().getCohort().getId() : null;
+    }
+
+    /** What the subject we just displaced now owes, measured AFTER the replacement has been applied.
+     *  Replacing hands a slot from one subject to another, so the loser silently drops below its
+     *  weekly curriculum requirement somewhere else in the term — reported straight back so the
+     *  admin knows to re-place it rather than finding out later from an hours card that stopped
+     *  adding up. Null when nothing meaningful was displaced: no previous offering (a Library cell),
+     *  no curriculum mapping to measure against, or the subject still meets its requirement without
+     *  this slot because it was over quota or is covered elsewhere. */
+    private SkeletonCellReplaceResponse.DisplacedSubjectShortfall describeDisplacedShortfall(
+            CourseOffering displaced, CohortSection audience) {
+        if (displaced == null || displaced.getCurriculumSemesterCourse() == null) {
+            return null;
+        }
+        CurriculumSemesterCourse csc = displaced.getCurriculumSemesterCourse();
+        int theoryHours = csc.getTheoryHours() != null ? csc.getTheoryHours() : 0;
+        if (theoryHours <= 0) {
+            return null;
+        }
+        TermInstance term = displaced.getTermInstance();
+        int weeksInTerm = CurriculumHoursCalculator.weeksInTerm(term);
+        List<Period> activePeriods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
+        double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
+            activePeriods.stream().map(Period::getDurationMinutes).toList());
+        int required = CurriculumHoursCalculator.sessionsPerWeek(theoryHours, weeksInTerm, periodDurationMinutes, 1);
+
+        Long audienceId = audience != null ? audience.getId() : null;
+        long placed = classScheduleRepository.findByCourseOfferingId(displaced.getId()).stream()
+            .filter(row -> Boolean.TRUE.equals(row.getIsActive()))
+            .filter(row -> row.getSessionType() == ClassSessionType.THEORY)
+            .filter(row -> Objects.equals(
+                row.getCohortSection() != null ? row.getCohortSection().getId() : null, audienceId))
+            .map(TimetableSkeletonService::sessionKey)
+            .distinct()
+            .count();
+
+        int shortfall = required - (int) placed;
+        if (shortfall <= 0) {
+            return null;
+        }
+        return new SkeletonCellReplaceResponse.DisplacedSubjectShortfall(
+            displaced.getId(),
+            displaced.getSubject().getName(),
+            displaced.getSubject().getCode(),
+            audienceId,
+            audience != null ? audience.getSectionLabel() : null,
+            required, (int) placed, shortfall);
     }
 
     /** Manual placement from the Skeleton Builder — {@link #placeCell(SkeletonCellPlacementRequest)}

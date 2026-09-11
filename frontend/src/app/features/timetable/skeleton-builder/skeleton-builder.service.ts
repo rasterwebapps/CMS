@@ -12,6 +12,8 @@ import {
   SkeletonCell,
   SkeletonCellMoveRequest,
   SkeletonCellPlacementRequest,
+  SkeletonCellReplaceRequest,
+  SkeletonCellReplaceResponse,
   SkeletonCellSwapRequest,
   SkeletonPlacementCandidate,
   SkeletonSessionType,
@@ -57,6 +59,14 @@ export class SkeletonBuilderService {
     return this.http.put<SkeletonCell>(`${this.baseUrl}/cells/${id}/pin`, null, {
       params: { pinned },
     });
+  }
+
+  /** Hand this Theory cell's slot to a different subject + faculty, keeping its day/period/audience.
+   *  Applies to every period of a multi-period session server-side, and pins the result (a
+   *  deliberate human decision, same as a drag-move). The response carries the displaced subject's
+   *  resulting weekly shortfall so the caller can surface what now needs re-placing. */
+  replaceCell(id: number, request: SkeletonCellReplaceRequest): Observable<SkeletonCellReplaceResponse> {
+    return this.http.put<SkeletonCellReplaceResponse>(`${this.baseUrl}/cells/${id}/replace`, request);
   }
 
   swapCells(id: number, request: SkeletonCellSwapRequest): Observable<SkeletonCell[]> {

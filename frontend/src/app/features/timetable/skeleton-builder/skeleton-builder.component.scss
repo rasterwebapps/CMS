@@ -267,6 +267,32 @@
     background: var(--cms-badge-green-bg);
   }
 
+  // Theory and Clinical fill with a SOLID badge colour (`--cms-badge-blue-bg` #1d4ed8 light /
+  // #2563eb dark; `--cms-badge-green-bg` #059669), dark and saturated in BOTH themes. Lab is only
+  // an 8% tint and Library is transparent, so those two keep the page-surface text tokens.
+  //
+  // On a solid fill those tokens fail in both directions: `--cms-text-muted` is #94a3b8 in light
+  // but #64748b in dark, and `--cms-text-primary` is #0f172a in light — so the subject code and
+  // section label rendered as dark grey on mid-blue in dark mode (present in the DOM, effectively
+  // invisible), and near-black on dark blue in light mode. A theme token cannot fix this, because
+  // the surface it sits on does not flip with the theme the way the page background does. A fixed
+  // light on-fill colour is the only thing that reads on both.
+  &--theory,
+  &--clinical {
+    .skeleton-cell__subject,
+    .skeleton-cell__type,
+    .skeleton-cell__batch {
+      color: #f8fafc;
+    }
+
+    .skeleton-cell__subject,
+    .skeleton-cell__batch {
+      // Keeps the subject/section subordinate to the session type without dropping to a colour
+      // that stops contrasting with the fill.
+      opacity: 0.82;
+    }
+  }
+
   &--staffed {
     opacity: 0.75;
   }
@@ -347,6 +373,8 @@
   }
 }
 
+// Default colours here suit a transparent or lightly-tinted cell (Library, Lab). Cells with a
+// SOLID badge fill override them — see the `--theory`/`--clinical` on-fill block above.
 .skeleton-cell__subject {
   font-size: 0.6rem;
   font-weight: 600;
@@ -377,3 +405,113 @@
   max-width: 100%;
 }
 
+
+// ─── Displaced-subject banner (raised by Replace) ──────────────────────────
+// Sits between the section tabs and the grid card. Deliberately NOT a `.content-card`: it is a
+// transient advisory, not a section of the page, and giving it the same card treatment as the
+// grid would read as a permanent part of the screen.
+.skeleton-displaced {
+  padding: 12px 14px;
+  border: 1px solid var(--cms-warning);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: var(--cms-warning-light);
+  // warning-light is a near-white amber in light mode and a translucent amber in dark, so text
+  // colour is set explicitly from the primary token rather than inherited.
+  color: var(--cms-text-primary);
+}
+
+.skeleton-displaced__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.skeleton-displaced__title {
+  font-size: var(--cms-text-base);
+  font-weight: 600;
+}
+
+.skeleton-displaced__dismiss-all,
+.skeleton-displaced__dismiss {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 4px;
+  background: transparent;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--cms-border-hover);
+    color: var(--cms-text-primary);
+  }
+}
+
+.skeleton-displaced__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skeleton-displaced__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+// `min-width: 0` so a long subject name truncates instead of refusing to shrink and pushing the
+// Dismiss button out of the row -- flex items default to `min-width: auto`.
+.skeleton-displaced__subject {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--cms-text-base);
+  font-weight: 600;
+}
+
+.skeleton-displaced__stat {
+  flex: 0 0 auto;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.skeleton-displaced__hint {
+  margin: 10px 0 0;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+}
+
+// ─── Cell action menu ──────────────────────────────────────────────────────
+// The menu panel itself renders in an overlay outside this component's DOM, so these rules are
+// applied via ::ng-deep on the panel class -- Angular's emulated ViewEncapsulation would
+// otherwise scope them to elements that never exist inside this component's template.
+::ng-deep .skeleton-cell-menu .skeleton-cell-menu__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 16px 6px;
+  border-bottom: 1px solid var(--cms-border-light);
+}
+
+::ng-deep .skeleton-cell-menu .skeleton-cell-menu__subject {
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+::ng-deep .skeleton-cell-menu .skeleton-cell-menu__slot {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+}
+
+::ng-deep .skeleton-cell-menu .skeleton-cell-menu__danger {
+  color: var(--cms-danger);
+}
