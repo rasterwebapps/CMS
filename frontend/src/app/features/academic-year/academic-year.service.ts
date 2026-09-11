@@ -297,17 +297,23 @@ export class AcademicYearService {
 
   /** Section-scoped counterpart of {@link getEligibleFaculty} — each candidate's remaining capacity
    *  is projected against just this section's own Theory hours rather than the whole offering's. */
-  getEligibleFacultyForSection(offeringId: number, cohortSectionId: number): Observable<EligibleFacultyCandidate[]> {
+  /** `classScheduleId` is optional and only for picking faculty for ONE already-placed session:
+   *  it makes each candidate carry `slotBlockedReason`, i.e. whether the save would actually
+   *  refuse them for that session's day and time. Omit it when staffing a whole offering. */
+  getEligibleFacultyForSection(offeringId: number, cohortSectionId: number, classScheduleId?: number): Observable<EligibleFacultyCandidate[]> {
     return this.http.get<EligibleFacultyCandidate[]>(
-      `${environment.apiUrl}/course-offerings/${offeringId}/sections/${cohortSectionId}/eligible-faculty`);
+      `${environment.apiUrl}/course-offerings/${offeringId}/sections/${cohortSectionId}/eligible-faculty`,
+      classScheduleId != null ? { params: { classScheduleId: classScheduleId.toString() } } : {});
   }
 
   /** Cohort-scoped counterpart of {@link getEligibleFacultyForSection} — for a cohort with no
    *  active section split, projecting each candidate's load against the cohort's whole
    *  theory+lab+clinical hours. */
-  getEligibleFacultyForCohort(offeringId: number, cohortId: number): Observable<EligibleFacultyCandidate[]> {
+  /** See {@link getEligibleFacultyForSection} for what `classScheduleId` adds. */
+  getEligibleFacultyForCohort(offeringId: number, cohortId: number, classScheduleId?: number): Observable<EligibleFacultyCandidate[]> {
     return this.http.get<EligibleFacultyCandidate[]>(
-      `${environment.apiUrl}/course-offerings/${offeringId}/cohorts/${cohortId}/eligible-faculty`);
+      `${environment.apiUrl}/course-offerings/${offeringId}/cohorts/${cohortId}/eligible-faculty`,
+      classScheduleId != null ? { params: { classScheduleId: classScheduleId.toString() } } : {});
   }
 
   updateCourseOfferingStatus(id: number, request: CourseOfferingStatusUpdateRequest): Observable<CourseOfferingStatusUpdateResponse> {

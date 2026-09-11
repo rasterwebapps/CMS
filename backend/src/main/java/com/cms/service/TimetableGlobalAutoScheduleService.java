@@ -512,6 +512,15 @@ public class TimetableGlobalAutoScheduleService {
      *  ({@link #checkFacultyCapacityForSection}). */
     @Transactional(readOnly = true)
     public List<EligibleFacultyCandidateDto> getEligibleFacultyForSection(Long offeringId, Long cohortSectionId) {
+        return getEligibleFacultyForSection(offeringId, cohortSectionId, null);
+    }
+
+    /** {@code classScheduleId} non-null additionally reports, per candidate, whether staffing THAT
+     *  session would be refused by the daily/weekly/continuous caps — see {@link
+     *  EligibleFacultyCandidateDto#slotBlockedReason}. Omit it when picking faculty for a whole
+     *  offering rather than one placed session. */
+    @Transactional(readOnly = true)
+    public List<EligibleFacultyCandidateDto> getEligibleFacultyForSection(Long offeringId, Long cohortSectionId, Long classScheduleId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
         Subject subject = offering.getSubject();
@@ -522,12 +531,21 @@ public class TimetableGlobalAutoScheduleService {
         double sectionHours = safe(offering.getCurriculumSemesterCourse() != null
             ? offering.getCurriculumSemesterCourse().getTheoryHours() : null);
         TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());
+        ClassSchedule targetCell = resolveTargetCell(classScheduleId);
         List<EligibleFacultyCandidateDto> candidates = new ArrayList<>();
         for (Faculty faculty : pool) {
             boolean alreadyHoldsSection = faculty.getId().equals(currentSectionFacultyId);
-            candidates.add(candidateDto(subject, faculty, demand, alreadyHoldsSection, sectionHours));
+            candidates.add(candidateDto(subject, faculty, demand, alreadyHoldsSection, sectionHours, targetCell));
         }
         return sortMostFreeFirst(candidates);
+    }
+
+    /** Null id means "no specific session" and is the norm for the offering-level pickers; a
+     *  non-null id that doesn't resolve is a caller error worth surfacing, not a silent null. */
+    private ClassSchedule resolveTargetCell(Long classScheduleId) {
+        return classScheduleId == null ? null
+            : classScheduleRepository.findById(classScheduleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
     }
 
     /** Cohort-scoped counterpart of {@link #getEligibleFacultyForSection} -- for a cohort with no
@@ -538,6 +556,13 @@ public class TimetableGlobalAutoScheduleService {
      *  #checkFacultyCapacityForCohort}) rather than one section's theory hours. */
     @Transactional(readOnly = true)
     public List<EligibleFacultyCandidateDto> getEligibleFacultyForCohort(Long offeringId, Long cohortId) {
+        return getEligibleFacultyForCohort(offeringId, cohortId, null);
+    }
+
+    /** See {@link #getEligibleFacultyForSection(Long, Long, Long)} for what {@code classScheduleId}
+     *  adds. */
+    @Transactional(readOnly = true)
+    public List<EligibleFacultyCandidateDto> getEligibleFacultyForCohort(Long offeringId, Long cohortId, Long classScheduleId) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
         Subject subject = offering.getSubject();
@@ -547,10 +572,11 @@ public class TimetableGlobalAutoScheduleService {
 
         double cohortHours = termHoursForOfferingInCohort(offering, cohortId, offering.getTermInstance().getId(), null).totalHours();
         TermDemandAggregation demand = computeTermDemand(offering.getTermInstance().getId());
+        ClassSchedule targetCell = resolveTargetCell(classScheduleId);
         List<EligibleFacultyCandidateDto> candidates = new ArrayList<>();
         for (Faculty faculty : pool) {
             boolean alreadyHoldsCohort = faculty.getId().equals(currentCohortFacultyId);
-            candidates.add(candidateDto(subject, faculty, demand, alreadyHoldsCohort, cohortHours));
+            candidates.add(candidateDto(subject, faculty, demand, alreadyHoldsCohort, cohortHours, targetCell));
         }
         return sortMostFreeFirst(candidates);
     }
@@ -634,6 +660,13 @@ public class TimetableGlobalAutoScheduleService {
 
     private EligibleFacultyCandidateDto candidateDto(Subject subject, Faculty faculty, TermDemandAggregation demand,
             boolean alreadyHoldsSlot, double slotHours) {
+        return candidateDto(subject, faculty, demand, alreadyHoldsSlot, slotHours, null);
+    }
+
+    /** {@code targetCell} non-null annotates each candidate with whether staffing THAT session
+     *  would actually be refused — see {@link EligibleFacultyCandidateDto#slotBlockedReason}. */
+    private EligibleFacultyCandidateDto candidateDto(Subject subject, Faculty faculty, TermDemandAggregation demand,
+            boolean alreadyHoldsSlot, double slotHours, ClassSchedule targetCell) {
         double currentDemand = demand.demandByFaculty().getOrDefault(faculty.getId(), 0.0);
         double projectedTotal = alreadyHoldsSlot ? currentDemand : currentDemand + slotHours;
         CapacityResolution capacity = resolveEffectiveTermCapacity(faculty, demand.workingDaysInTerm(), demand.weeksInTerm());
@@ -644,7 +677,21 @@ public class TimetableGlobalAutoScheduleService {
         boolean specialityMatch = subject != null && FacultyEligibility.specialityMatches(subject, faculty);
         boolean viaEligibleList = subject != null && FacultyEligibility.viaEligibleList(subject, faculty);
         return new EligibleFacultyCandidateDto(faculty.getId(), faculty.getFullName(), specialityMatch, viaEligibleList,
-            alreadyHoldsSlot, currentDemand, capacityHours, tier, remaining, overCapacity);
+            alreadyHoldsSlot, currentDemand, capacityHours, tier, remaining, overCapacity,
+            slotBlockedReason(faculty, targetCell));
+    }
+
+    /** Runs the save path's own daily/weekly/continuous cap check against one specific session, so
+     *  the picker can say up front what the save would say. Null when no session was named, when it
+     *  has no period to measure, or when nothing would be violated. */
+    private String slotBlockedReason(Faculty faculty, ClassSchedule targetCell) {
+        if (targetCell == null || targetCell.getPeriod() == null) {
+            return null;
+        }
+        List<ConstraintViolation> violations = timetableStaffingService.checkWithinWorkloadCaps(
+            faculty, targetCell, targetCell.getDayOfWeek(),
+            targetCell.getPeriod().getStartTime(), targetCell.getPeriod().getEndTime());
+        return violations.isEmpty() ? null : violations.get(0).message();
     }
 
     /** Uncapped candidates ({@code capacityTier == "NONE"}) sort first -- no configured limit reads
@@ -652,6 +699,16 @@ public class TimetableGlobalAutoScheduleService {
     private static List<EligibleFacultyCandidateDto> sortMostFreeFirst(List<EligibleFacultyCandidateDto> candidates) {
         return candidates.stream()
             .sorted((a, b) -> {
+                // Anyone the save would actually refuse for this session sinks below everyone it
+                // wouldn't, whatever their term figure says. Without this the head of the list --
+                // the value a picker naturally defaults to -- is chosen purely on term capacity and
+                // can be someone who cannot take this slot at all. Null (no session named, or no
+                // violation) sorts as assignable, so the offering-level pickers are unaffected.
+                boolean aBlocked = a.slotBlockedReason() != null;
+                boolean bBlocked = b.slotBlockedReason() != null;
+                if (aBlocked != bBlocked) {
+                    return aBlocked ? 1 : -1;
+                }
                 boolean aUncapped = "NONE".equals(a.capacityTier());
                 boolean bUncapped = "NONE".equals(b.capacityTier());
                 if (aUncapped != bUncapped) {

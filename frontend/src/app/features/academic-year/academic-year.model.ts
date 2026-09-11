@@ -402,6 +402,16 @@ export interface EligibleFacultyCandidate {
   capacityTier: string;
   remainingHours: number;
   overCapacity: boolean;
+  /** Why staffing one SPECIFIC session with this candidate would be refused, or null if it
+   *  wouldn't. Only populated when the request named a `classScheduleId`; null for every
+   *  offering-level picker.
+   *
+   *  Do not confuse with `overCapacity`: that is a TERM total, while this is the daily/weekly/
+   *  continuous cap for that one session's day and time. They regularly disagree — someone can
+   *  have hundreds of free term hours and still be unable to take a particular Monday morning
+   *  because a clinical duty already fills that day. Candidates with a non-null value here are
+   *  sorted last by the backend. */
+  slotBlockedReason: string | null;
 }
 
 /** Live pre-save capacity check for the Course Offering edit dialog's Faculty picker — mirrors

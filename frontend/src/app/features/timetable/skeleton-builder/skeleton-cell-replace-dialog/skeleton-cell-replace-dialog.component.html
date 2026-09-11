@@ -79,9 +79,13 @@
           (ngModelChange)="selectedFacultyId.set($event)">
           <option [ngValue]="null" disabled>Select a faculty member…</option>
           @for (f of faculty(); track f.facultyId) {
+            <!-- Blocked candidates stay selectable so the admin can read the exact reason; Save is
+                 what's gated. A disabled option would hide the explanation entirely. -->
             <option [ngValue]="f.facultyId">
               {{ f.facultyName }}
-              @if (f.capacityTier === 'NONE') {
+              @if (f.slotBlockedReason) {
+                — unavailable for this slot
+              } @else if (f.capacityTier === 'NONE') {
                 — no cap configured
               } @else if (f.overCapacity) {
                 — over capacity by {{ -f.remainingHours | number: '1.0-1' }}h
@@ -92,9 +96,22 @@
           }
         </select>
         <p class="field-hint">
-          Sorted with the most free capacity first. Remaining hours are measured against this
-          faculty member's whole term demand, not just this cohort.
+          Sorted with the most free capacity first, and anyone this slot can't take listed last.
+          Remaining hours are measured against this faculty member's whole term demand, not just
+          this cohort.
         </p>
+        @if (blockedCount() > 0) {
+          <p class="field-hint">
+            {{ blockedCount() }} of {{ faculty().length }} can't take this particular day and time —
+            their daily, weekly or continuous teaching cap is already met, which is separate from
+            having term hours left. Select one to see the exact reason.
+          </p>
+        }
+        @if (selectedFaculty(); as f) {
+          @if (f.slotBlockedReason) {
+            <p class="scr-callout scr-callout--warn">{{ f.slotBlockedReason }}</p>
+          }
+        }
         @if (selectedFaculty(); as f) {
           @if (f.overCapacity) {
             <p class="scr-callout scr-callout--warn">

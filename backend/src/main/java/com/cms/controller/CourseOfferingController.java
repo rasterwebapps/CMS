@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.dto.AutoAssignTheoryResult;
 import com.cms.dto.ClinicalShiftConfigUpdateRequest;
 import com.cms.dto.ConfirmFacultySubstitutionsRequest;
 import com.cms.dto.ConfirmFacultySubstitutionsResult;
@@ -104,18 +105,23 @@ public class CourseOfferingController {
     @GetMapping("/{id}/sections/{cohortSectionId}/eligible-faculty")
     @PreAuthorize("@perm.has('SECTION_FACULTY_VIEW')")
     public ResponseEntity<List<EligibleFacultyCandidateDto>> getEligibleFacultyForSection(
-            @PathVariable Long id, @PathVariable Long cohortSectionId) {
-        return ResponseEntity.ok(timetableGlobalAutoScheduleService.getEligibleFacultyForSection(id, cohortSectionId));
+            @PathVariable Long id, @PathVariable Long cohortSectionId,
+            @RequestParam(required = false) Long classScheduleId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.getEligibleFacultyForSection(id, cohortSectionId, classScheduleId));
     }
 
     /** Cohort-scoped counterpart of {@link #getEligibleFacultyForSection} — for a cohort with no
      *  active section split, projecting each candidate's load against this cohort's whole
      *  theory+lab+clinical hours rather than one section's theory hours. */
+    /** {@code classScheduleId} is optional and only meaningful when picking faculty for one
+     *  already-placed session: it makes each candidate carry whether staffing THAT session would
+     *  actually be refused, which the term-capacity figures on their own can't tell you. */
     @GetMapping("/{id}/cohorts/{cohortId}/eligible-faculty")
     @PreAuthorize("@perm.has('SECTION_FACULTY_VIEW')")
     public ResponseEntity<List<EligibleFacultyCandidateDto>> getEligibleFacultyForCohort(
-            @PathVariable Long id, @PathVariable Long cohortId) {
-        return ResponseEntity.ok(timetableGlobalAutoScheduleService.getEligibleFacultyForCohort(id, cohortId));
+            @PathVariable Long id, @PathVariable Long cohortId,
+            @RequestParam(required = false) Long classScheduleId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.getEligibleFacultyForCohort(id, cohortId, classScheduleId));
     }
 
     @PatchMapping("/{id}/status")
@@ -183,6 +189,15 @@ public class CourseOfferingController {
             @PathVariable Long cohortId,
             @RequestBody SectionFacultyUpsertRequest request) {
         return ResponseEntity.ok(sectionFacultyService.upsertForCohort(id, cohortId, request.facultyId(), request.version()));
+    }
+
+    /** Fills every currently-Unassigned Theory row in a term instance from the active faculty
+     *  pool, ranked least-loaded-first -- never touches a row someone already assigned, by hand or
+     *  by a prior run. See {@link CourseOfferingSectionFacultyService#autoAssignTheory}. */
+    @PostMapping("/faculty-auto-assign")
+    @PreAuthorize("@perm.has('SECTION_FACULTY_AUTO_ASSIGN')")
+    public ResponseEntity<AutoAssignTheoryResult> autoAssignFaculty(@RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(sectionFacultyService.autoAssignTheory(termInstanceId));
     }
 
     /** Batch "make it official" for one or more Global Auto-Schedule faculty-substitution tips the

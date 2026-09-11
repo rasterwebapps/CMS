@@ -118,7 +118,16 @@ export class SkeletonCellReplaceDialogComponent {
     this.faculty().find((f) => f.facultyId === this.selectedFacultyId()) ?? null);
 
   protected readonly canSave = computed(() =>
-    this.selectedOfferingId() != null && this.selectedFacultyId() != null && !this.loadingFaculty());
+    this.selectedOfferingId() != null
+    && this.selectedFacultyId() != null
+    && !this.loadingFaculty()
+    // Never offer to submit a pick the save is certain to refuse for this slot.
+    && this.selectedFaculty()?.slotBlockedReason == null);
+
+  /** How many candidates the save would refuse for this exact slot — stated plainly so a mostly
+   *  unavailable list doesn't read as broken. */
+  protected readonly blockedCount = computed(() =>
+    this.faculty().filter((f) => f.slotBlockedReason != null).length);
 
   /** The multi-period warning is worth showing before the fact: the backend replaces every row in
    *  the session group together (replacing one period of a 2-period block would leave the block
@@ -134,19 +143,25 @@ export class SkeletonCellReplaceDialogComponent {
 
     this.loadingFaculty.set(true);
     const sectionId = this.data.cell.cohortSectionId;
+    // The cell id makes each candidate carry whether the save would actually refuse them for this
+    // day and time. The slot doesn't move in a replace, so the check is valid even though the
+    // subject is changing — what's being tested is this person's load at that hour.
+    const cellId = this.data.cell.id;
     const request$ = sectionId != null
-      ? this.academicYearService.getEligibleFacultyForSection(offeringId, sectionId)
-      : this.academicYearService.getEligibleFacultyForCohort(offeringId, this.data.cohortId);
+      ? this.academicYearService.getEligibleFacultyForSection(offeringId, sectionId, cellId)
+      : this.academicYearService.getEligibleFacultyForCohort(offeringId, this.data.cohortId, cellId);
 
     request$.subscribe({
       next: (candidates) => {
         this.faculty.set(candidates);
         this.loadingFaculty.set(false);
-        // Backend sorts most-free-first, so the head of the list is the safest default. Never
-        // auto-pick someone already over capacity — that turns a convenience into a silent
-        // workload violation the user didn't choose.
+        // Backend sorts assignable-first, then most-free-first, so the head of the list is the
+        // safest default. Never auto-pick someone the save would refuse for this slot, nor someone
+        // already over capacity — either turns a convenience into a choice the user didn't make.
         const first = candidates[0];
-        if (first && !first.overCapacity) this.selectedFacultyId.set(first.facultyId);
+        if (first && !first.overCapacity && first.slotBlockedReason == null) {
+          this.selectedFacultyId.set(first.facultyId);
+        }
       },
       error: (err) => {
         this.loadingFaculty.set(false);

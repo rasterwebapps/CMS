@@ -57,11 +57,20 @@ export class SkeletonCellReassignFacultyDialogComponent {
     this.faculty().find((f) => f.currentlyAssigned) ?? null);
 
   /** Disabled until the pick actually differs — re-submitting the same person would spend a
-   *  round trip and a toast to change nothing. */
+   *  round trip and a toast to change nothing — and never on someone the save is certain to
+   *  refuse for this slot. */
   protected readonly canSave = computed(() => {
     const picked = this.selectedFacultyId();
-    return picked != null && !this.loading() && picked !== this.currentFaculty()?.facultyId;
+    return picked != null
+      && !this.loading()
+      && picked !== this.currentFaculty()?.facultyId
+      && this.selectedFaculty()?.slotBlockedReason == null;
   });
+
+  /** How many candidates the save would refuse for this exact slot. Worth stating plainly: a list
+   *  where most entries are unavailable looks broken otherwise. */
+  protected readonly blockedCount = computed(() =>
+    this.faculty().filter((f) => f.slotBlockedReason != null).length);
 
   protected readonly isMultiPeriod = computed(() => this.data.cell.sessionGroupId != null);
 
@@ -81,16 +90,20 @@ export class SkeletonCellReassignFacultyDialogComponent {
       return;
     }
 
+    // Passing the cell id makes each candidate carry whether the save would actually refuse them
+    // for THIS day and time — the term-capacity figures alone can't tell you that.
     const request$ = cell.sessionType === 'THEORY' && cell.cohortSectionId != null
-      ? this.academicYearService.getEligibleFacultyForSection(cell.courseOfferingId, cell.cohortSectionId)
-      : this.academicYearService.getEligibleFacultyForCohort(cell.courseOfferingId, this.data.cohortId);
+      ? this.academicYearService.getEligibleFacultyForSection(cell.courseOfferingId, cell.cohortSectionId, cell.id)
+      : this.academicYearService.getEligibleFacultyForCohort(cell.courseOfferingId, this.data.cohortId, cell.id);
 
     request$.subscribe({
       next: (candidates) => {
         this.faculty.set(candidates);
         this.loading.set(false);
         // Start on whoever holds it today, so the dropdown reads as "currently X" rather than an
-        // empty prompt, and Save stays disabled until something actually changes.
+        // empty prompt, and Save stays disabled until something actually changes. The current
+        // holder is exempt from the slot check by construction — `checkWithinWorkloadCaps`
+        // excludes this very row — so they can never be the blocked default.
         const current = candidates.find((c) => c.currentlyAssigned);
         if (current) this.selectedFacultyId.set(current.facultyId);
       },
