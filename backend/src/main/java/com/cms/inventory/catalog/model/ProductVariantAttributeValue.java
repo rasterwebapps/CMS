@@ -3,8 +3,6 @@ package com.cms.inventory.catalog.model;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import com.cms.inventory.catalog.model.enums.AttributeDataType;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -16,29 +14,23 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 /**
- * The EAV-style value a {@link Product} carries for one of its Category's {@link CategoryAttribute}
- * definitions (e.g. "Shelf Life" = "24 months" for a chemical product). Managed as a child
- * collection of its Product, replaced wholesale on every Product save. Stored in the typed column
- * matching the attribute's declared {@link AttributeDataType} — exactly one of
- * {@code textValue}/{@code numberValue}/{@code dateValue}/{@code booleanValue} is ever populated
- * per row, chosen by {@link #getAttribute()}'s data type, not stored redundantly. Parsing the raw
- * form/API string into the right typed column, and validating it against the attribute's declared
- * type (and, for {@code ENUM}, its allowed options), is done by {@code TypedAttributeValueSupport}
- * (called from {@code ProductService}) — this entity only knows how to hold and render whichever
- * typed value it was given, via the shared {@link TypedAttributeValue} interface (see the
- * 2026-09-11 "ProductVariant" decision-log entry for why this became an interface).
+ * The typed-EAV value a {@link ProductVariant} carries for one of its parent's Category's {@link
+ * CategoryAttribute} definitions — same shape as {@link ProductAttributeValue}, just keyed to a
+ * variant instead of a product directly (e.g. "Size" = "Large" on a specific variant, while
+ * non-variant-defining attributes are simply not overridden here and read from the parent
+ * product's own values instead — see {@code ProductVariantService}).
  */
 @Entity
-@Table(name = "product_attribute_values")
-public class ProductAttributeValue implements TypedAttributeValue {
+@Table(name = "product_variant_attribute_values")
+public class ProductVariantAttributeValue implements TypedAttributeValue {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @JoinColumn(name = "variant_id", nullable = false)
+    private ProductVariant variant;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "attribute_id", nullable = false)
@@ -59,8 +51,8 @@ public class ProductAttributeValue implements TypedAttributeValue {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) { this.product = product; }
+    public ProductVariant getVariant() { return variant; }
+    public void setVariant(ProductVariant variant) { this.variant = variant; }
 
     public CategoryAttribute getAttribute() { return attribute; }
     public void setAttribute(CategoryAttribute attribute) { this.attribute = attribute; }

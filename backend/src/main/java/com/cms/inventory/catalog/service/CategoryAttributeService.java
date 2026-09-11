@@ -13,6 +13,7 @@ import com.cms.inventory.catalog.model.CategoryAttribute;
 import com.cms.inventory.catalog.model.enums.AttributeDataType;
 import com.cms.inventory.catalog.repository.CategoryAttributeRepository;
 import com.cms.inventory.catalog.repository.ProductAttributeValueRepository;
+import com.cms.inventory.catalog.repository.ProductVariantAttributeValueRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -20,13 +21,16 @@ public class CategoryAttributeService {
 
     private final CategoryAttributeRepository attributeRepository;
     private final ProductAttributeValueRepository productAttributeValueRepository;
+    private final ProductVariantAttributeValueRepository variantAttributeValueRepository;
     private final CategoryService categoryService;
 
     public CategoryAttributeService(CategoryAttributeRepository attributeRepository,
                                      ProductAttributeValueRepository productAttributeValueRepository,
+                                     ProductVariantAttributeValueRepository variantAttributeValueRepository,
                                      CategoryService categoryService) {
         this.attributeRepository = attributeRepository;
         this.productAttributeValueRepository = productAttributeValueRepository;
+        this.variantAttributeValueRepository = variantAttributeValueRepository;
         this.categoryService = categoryService;
     }
 
@@ -80,6 +84,10 @@ public class CategoryAttributeService {
         if (productAttributeValueRepository.existsByAttributeId(attributeId)) {
             throw new IllegalArgumentException(
                 "Cannot delete attribute '" + attribute.getName() + "' — one or more products already carry a value for it");
+        }
+        if (variantAttributeValueRepository.existsByAttributeId(attributeId)) {
+            throw new IllegalArgumentException(
+                "Cannot delete attribute '" + attribute.getName() + "' — one or more product variants already carry a value for it");
         }
         attributeRepository.delete(attribute);
     }

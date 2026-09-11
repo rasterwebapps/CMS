@@ -1951,4 +1951,96 @@ both clean (pre-existing unrelated warnings only).
 `product-barcode-preview-dialog/` (mirrors Library's own dialog), `product-list.component.ts/html`
 (Print barcode label row action, search placeholder).
 
+---
+
+## 2026-09-11 — ProductVariant (final item of the Product/Inventory extension program)
+
+**Prompted by:** Phase 3 item #11 (final item) of the approved Product/Inventory extension
+program: "ProductVariant entity — parent/child SKU matrix, inheriting typed attributes, tracking
+mode, pricing, UOM templates, and barcode-per-variant from the phases above."
+
+**"Inheriting ... from the phases above" is copy-at-creation, never a live link** — same posture
+already established twice this program (`ProductUomChainVersion`'s pack-size snapshots,
+`UomConversionTemplate`'s "no live link once applied"). A new variant's create form pre-fills
+`trackingMode`/`standardCost`/`listPrice`/`attributeValues` from the parent `Product`'s *current*
+values; from that point on they're the variant's own independent columns/rows, and a later edit to
+the parent product never reaches a variant that already copied from it. This was the deciding
+design call for the whole item, since a genuine live-inheritance-with-override-resolution system
+would have been a substantially bigger (and, for a first slice, unjustified) feature.
+
+**"UOM templates ... so variants don't each redefine a chain from scratch" needed zero new
+schema:** a variant has no `baseUom` of its own — it shares its parent `Product`'s `baseUom` and
+therefore its parent's existing `ProductUomChainVersion` (both are keyed off `product.id`, which a
+variant never overrides). Whatever chain the parent got — built from scratch or pre-filled from a
+`UomConversionTemplate` — every variant of that product already gets it, for free, with nothing
+variant-specific to build. `category`/`brand`/`hsnSacCode`/`defaultTaxRuleId`/dimensions are
+likewise always the parent's; a variant doesn't override them (only `trackingMode`, pricing,
+barcode, and attribute values are variant-level, per the item's own list).
+
+**Typed EAV storage was extracted into a shared interface, not duplicated:** `ProductAttributeValue`
+now implements a new `TypedAttributeValue` interface (moved from a concrete class), and its
+parsing/validation logic moved from a `ProductService` private method into a new
+`TypedAttributeValueSupport` utility. `ProductVariantAttributeValue` implements the same
+interface and both `ProductService` and the new `ProductVariantService` call the same support
+class — avoiding a second ~50-line copy of the NUMBER/DATE/BOOLEAN/ENUM parsing switch. Unlike a
+product's own attribute values, a variant's submitted values don't need to cover every one of the
+parent category's `isRequired` definitions — only the attributes actually being overridden (e.g.
+"Size"/"Color"); the rest are read from the parent product's own values by callers, not
+duplicated per variant. `CategoryAttributeService`'s delete guard was extended to also check
+variant-level usage (a new `ProductVariantAttributeValueRepository.existsByAttributeId`), so an
+attribute already in use by a variant can't be deleted out from under it either.
+
+**Barcode-per-variant** reuses the existing `InventoryBarcodeService` from the "Barcode/GTIN" item
+as-is (it already took plain code/title/subtitle parameters, no change needed) — a new
+`ProductVariantLookupController` exposes `/inventory/product-variants/{id}/barcode.png` and
+`/by-barcode`, unnested from any parent productId (a barcode scan doesn't know it upfront), same
+reasoning as `ProductController`'s own barcode endpoints. The frontend's
+`ProductBarcodePreviewDialogComponent` (shipped in the "Barcode/GTIN" item) was generalized with
+an optional `fetchPng` function on its data input, so the *same* dialog renders either a Product's
+or a ProductVariant's label — the product-list caller is unchanged (it doesn't pass `fetchPng`, so
+the default `ProductService.getBarcodePng` still applies) while the new variants widget passes
+`ProductVariantService.getBarcodePng` instead.
+
+**Frontend shape:** a `ProductVariantsComponent` (a plain table, not the card+table toggle —
+matching this codebase's own precedent for simpler embedded/reference-style lists like
+`tax-rule-list`) embedded as a new "Variants" section in the product form, visible once the
+product is saved (same `savedProductId()`-gated posture as Unit Hierarchy and Product Images).
+"Add"/"Edit" navigate to a routed `ProductVariantFormComponent` (not a dialog) — consistent with
+every other data-entry form in this app being a routed page, dialogs reserved for
+preview/print-utility use like the barcode dialog.
+
+**Verified:** 15 new `ProductVariantServiceTest` cases and a new 8-case `CategoryAttributeServiceTest`
+(that service had no test file before — its delete-guard extension is exactly the kind of new
+logic this program's own testing convention requires covering) plus the full backend suite, all
+green — including re-running `ProductServiceTest` after the `TypedAttributeValueSupport`
+extraction to confirm it's behavior-preserving. `npx tsc -p tsconfig.app.json --noEmit` and `ng
+build --configuration production` both clean (one real template error caught by `ng build` that
+`tsc` alone missed — a missing `DecimalPipe` import — fixed before this entry; `ng build` is the
+build step this program has relied on throughout for exactly this reason). New permissions
+(`INVENTORY_PRODUCT_VARIANT_VIEW`/`MANAGE`) and routes registered; no new nav entry (variants are
+only ever reached from their parent product's own edit screen, same posture as Unit Hierarchy/
+Product Images).
+
+**Impact:** `V495__create_inventory_product_variants.sql`,
+`V496__seed_inventory_product_variant_permissions.sql`; new `TypedAttributeValue.java` (interface,
+extracted from `ProductAttributeValue`), `TypedAttributeValueSupport.java` (extracted from
+`ProductService`); `ProductAttributeValue.java` (implements the interface); new
+`ProductVariant.java`, `ProductVariantAttributeValue.java`, their repositories/DTOs,
+`ProductVariantService.java`, `ProductVariantController.java`, `ProductVariantLookupController.java`;
+`CategoryAttributeService.java` (extended delete guard); `ProductService.java` (delegates to the
+extracted support class); new `ProductVariantServiceTest.java`, `CategoryAttributeServiceTest.java`;
+frontend `features/inventory/product/product-variant/` (model, service, embedded list widget, routed
+form — new), `product-barcode-preview-dialog.component.ts` (generalized `fetchPng`),
+`product-form.component.ts/html` (new Variants section), `app.routes.ts`.
+
+**This closes Phase 3 (items #9–11: multi-currency FX, barcode/GTIN, ProductVariant) — and with
+it, the entire 11-item Product/Inventory extension program** approved at the start of this
+session (Phase 1: typed EAV storage, tracking-mode flag, vendor part-number/name, Brand master,
+dimensions/weight; Phase 2: product-level pricing, HSN/SAC + default tax rule, UOM conversion
+templates; Phase 3: multi-currency FX, barcode/GTIN, ProductVariant). Every item shipped as its
+own JIRA-tracked commit (OC-206 through OC-215, and OC-221 for this final item — ticket numbers
+aren't fully contiguous since other concurrent sessions were creating their own tickets in the
+same shared Jira project throughout) with backend + frontend tests, `tsc`/`ng build` verification,
+and a DECISION_LOG entry recording the design calls made along the way.
+
 *Next entry goes here — do not insert above this line.*

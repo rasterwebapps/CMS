@@ -1,10 +1,7 @@
 package com.cms.inventory.catalog.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +26,6 @@ import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductAlias;
 import com.cms.inventory.catalog.model.ProductAttributeValue;
 import com.cms.inventory.catalog.model.Uom;
-import com.cms.inventory.catalog.model.enums.AttributeDataType;
 import com.cms.inventory.catalog.model.enums.StockTrackingMode;
 import com.cms.inventory.catalog.repository.CategoryAttributeRepository;
 import com.cms.inventory.catalog.repository.ProductRepository;
@@ -253,55 +249,9 @@ public class ProductService {
             ProductAttributeValue pav = new ProductAttributeValue();
             pav.setProduct(product);
             pav.setAttribute(def);
-            applyTypedValue(pav, def, entry.getValue());
+            TypedAttributeValueSupport.applyTypedValue(pav, def, entry.getValue());
             product.getAttributeValues().add(pav);
         }
-    }
-
-    /**
-     * Parses {@code raw} (the plain string the form/API submits) per the attribute's declared
-     * {@link AttributeDataType} and stores it in the matching typed column — the "typed EAV
-     * storage" behavior; see the 2026-09-11 DECISION_LOG entry.
-     */
-    private void applyTypedValue(ProductAttributeValue pav, CategoryAttribute def, String raw) {
-        switch (def.getDataType()) {
-            case NUMBER -> {
-                try {
-                    pav.setNumberValue(new BigDecimal(raw));
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Attribute '" + def.getName() + "' expects a number");
-                }
-            }
-            case DATE -> {
-                try {
-                    pav.setDateValue(LocalDate.parse(raw));
-                } catch (DateTimeParseException e) {
-                    throw new IllegalArgumentException("Attribute '" + def.getName() + "' expects a date (yyyy-MM-dd)");
-                }
-            }
-            case BOOLEAN -> {
-                if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
-                    throw new IllegalArgumentException("Attribute '" + def.getName() + "' expects true or false");
-                }
-                pav.setBooleanValue(Boolean.parseBoolean(raw));
-            }
-            case ENUM -> {
-                List<String> options = parseEnumOptions(def.getEnumOptions());
-                if (!options.contains(raw)) {
-                    throw new IllegalArgumentException("Attribute '" + def.getName() + "' must be one of: " + String.join(", ", options));
-                }
-                pav.setTextValue(raw);
-            }
-            case TEXT -> pav.setTextValue(raw);
-        }
-    }
-
-    private static List<String> parseEnumOptions(String enumOptions) {
-        if (enumOptions == null) return List.of();
-        return Arrays.stream(enumOptions.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .toList();
     }
 
     Product findOrThrow(Long id) {

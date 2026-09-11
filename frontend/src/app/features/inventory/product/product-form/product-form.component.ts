@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CmsPreviewCardComponent } from '../../../../shared/preview-card/preview-card.component';
 import { ProductImagesComponent } from '../product-images/product-images.component';
+import { ProductVariantsComponent } from '../product-variant/product-variants.component';
 import { ProductService } from '../product.service';
 import {
   Product,
@@ -46,6 +47,7 @@ import { uniqueFieldValidator } from '../../../../shared/validators/unique-field
     MatProgressSpinnerModule,
     CmsPreviewCardComponent,
     ProductImagesComponent,
+    ProductVariantsComponent,
   ],
   templateUrl: './product-form.component.html',
   styleUrl: './product-form.component.scss',

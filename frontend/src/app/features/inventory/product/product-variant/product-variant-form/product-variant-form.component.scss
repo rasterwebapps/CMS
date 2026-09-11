@@ -1,0 +1,28 @@
+// Local (not global) — mirrors ProductFormComponent's own .prod-form-grid: Angular's emulated
+// ViewEncapsulation does not let a class defined in one component's SCSS style another
+// component's template.
+
+.pv-card {
+  max-width: 640px;
+}
+
+.pv-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.pv-active-checkbox {
+  align-self: end;
+  padding-bottom: 10px;
+}
+
+.pv-attrs-hdr {
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  color: var(--cms-text-primary);
+  margin: 18px 0 2px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cms-border-light);
+}

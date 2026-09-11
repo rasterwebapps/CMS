@@ -1,4 +1,5 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, input, output, signal } from '@angular/core';
+import { Observable } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CmsFlyoutPanelComponent } from '../../../../shared/flyout-panel/flyout-panel.component';
@@ -12,12 +13,17 @@ export interface ProductBarcodePreviewDialogData {
   /** The code actually encoded — the captured barcode/GTIN if present, else productCode; kept
    *  here rather than re-derived so the caption always matches what the backend rendered. */
   code: string;
+  /** Defaults to ProductService.getBarcodePng(id) — pass this to reuse the dialog for a
+   *  ProductVariant's own barcode.png endpoint instead (see ProductVariantsComponent). */
+  fetchPng?: (id: number) => Observable<Blob>;
 }
 
 /**
  * Mirrors LibraryBarcodePreviewDialogComponent's shape (same fetch-blob/object-URL/PrintService
  * pattern) but deliberately without its printer-mode/ZPL-transport machinery — Inventory's first
  * barcode slice is browser-print only. See the 2026-09-11 "Barcode/GTIN" decision-log entry.
+ * Reused for both Product and ProductVariant labels (see {@link ProductBarcodePreviewDialogData.fetchPng})
+ * — see the 2026-09-11 "ProductVariant" decision-log entry.
  */
 @Component({
   selector: 'app-product-barcode-preview-dialog',
@@ -41,7 +47,8 @@ export class ProductBarcodePreviewDialogComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const data = this.target()!;
-    this.productService.getBarcodePng(data.id).subscribe({
+    const fetchPng = data.fetchPng ?? ((id: number) => this.productService.getBarcodePng(id));
+    fetchPng(data.id).subscribe({
       next: blob => {
         this.imageUrl.set(URL.createObjectURL(blob));
         this.loading.set(false);

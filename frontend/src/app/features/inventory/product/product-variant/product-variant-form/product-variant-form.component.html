@@ -1,0 +1,148 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" [routerLink]="['/inventory/products', productId, 'edit']" aria-label="Back to product">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Variant</em></h1>
+      </div>
+      <p class="page-subtitle">
+        @if (parentProduct(); as p) {
+          {{ isEditMode() ? 'Update this variant of' : 'Add a new SKU variant of' }} "{{ p.productName }}" ({{ p.productCode }})
+        }
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-card entry-form-card--sectioned pv-card">
+      <div class="entry-form-card__hdr">
+        <div class="entry-form-card__hdr-ico">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <div>
+          <div class="entry-form-card__hdr-title">Variant Details</div>
+          <div class="entry-form-card__hdr-sub">Pre-filled from the parent product — edit freely, nothing here stays linked to it</div>
+        </div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+        <div class="entry-form-card__body">
+
+          <div class="pv-form-grid">
+            <div class="field-group">
+              <label for="pv-code" class="field-label">Variant Code (SKU) <span class="required-star">*</span></label>
+              <input id="pv-code" class="field-input" formControlName="variantCode" placeholder="e.g., SHIRT-001-RED-L" autocomplete="off"
+                [class.field-input--error]="form.get('variantCode')?.invalid && form.get('variantCode')?.touched" />
+              @if (form.get('variantCode')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('variantCode')?.invalid && form.get('variantCode')?.touched) {
+                <p class="field-error">{{ getErrorMessage('variantCode') }}</p>
+              } @else {
+                <p class="field-hint">Must be unique</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label for="pv-name" class="field-label">Variant Name <span class="required-star">*</span></label>
+              <input id="pv-name" class="field-input" formControlName="variantName" placeholder="e.g., Red / Large" autocomplete="off"
+                [class.field-input--error]="form.get('variantName')?.invalid && form.get('variantName')?.touched" />
+              @if (form.get('variantName')?.invalid && form.get('variantName')?.touched) {
+                <p class="field-error">{{ getErrorMessage('variantName') }}</p>
+              }
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="pv-barcode" class="field-label">Barcode / GTIN</label>
+            <input id="pv-barcode" class="field-input" formControlName="barcode" placeholder="e.g., 8901030826002" autocomplete="off"
+              [class.field-input--error]="form.get('barcode')?.invalid && form.get('barcode')?.touched" />
+            @if (form.get('barcode')?.pending) {
+              <p class="field-hint">Checking…</p>
+            } @else if (form.get('barcode')?.invalid && form.get('barcode')?.touched) {
+              <p class="field-error">{{ getErrorMessage('barcode') }}</p>
+            } @else {
+              <p class="field-hint">Optional — this variant's own real-world barcode, distinct from the parent product's</p>
+            }
+          </div>
+
+          <div class="pv-form-grid">
+            <div class="field-group">
+              <label for="pv-tracking-mode" class="field-label">Stock Tracking</label>
+              <select id="pv-tracking-mode" class="field-select" formControlName="trackingMode">
+                <option value="NONE">None — no batch/serial required</option>
+                <option value="BATCH">Batch — a batch number is required, many units per batch</option>
+                <option value="SERIAL">Serial — a unique serial number per unit, one unit per movement</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="checkbox-label pv-active-checkbox"><input type="checkbox" formControlName="isActive" class="field-checkbox" /> Active</label>
+            </div>
+          </div>
+
+          <div class="pv-form-grid">
+            <div class="field-group">
+              <label for="pv-standard-cost" class="field-label">Standard Cost</label>
+              <input id="pv-standard-cost" type="number" step="0.01" min="0" class="field-input" formControlName="standardCost" placeholder="Optional" />
+            </div>
+            <div class="field-group">
+              <label for="pv-list-price" class="field-label">List Price (MRP)</label>
+              <input id="pv-list-price" type="number" step="0.01" min="0" class="field-input" formControlName="listPrice" placeholder="Optional" />
+            </div>
+          </div>
+
+          @if (categoryAttributes().length > 0) {
+            <div class="pv-attrs-hdr">Category Attributes</div>
+            <p class="field-hint">Only attributes actually overridden here differ from the parent product — leave a field blank to keep using the parent's value.</p>
+            <div class="pv-form-grid" formArrayName="attributeValues">
+              @for (attr of categoryAttributes(); track attr.id; let i = $index) {
+                <div class="field-group" [formGroupName]="i">
+                  <label class="field-label">{{ attr.name }}</label>
+                  @if (attr.dataType === 'BOOLEAN') {
+                    <label class="checkbox-label">
+                      <input type="checkbox" class="field-checkbox"
+                        [checked]="attributeValueRows.at(i).get('value')?.value === 'true'"
+                        (change)="attributeValueRows.at(i).get('value')?.setValue($any($event.target).checked ? 'true' : 'false')" />
+                    </label>
+                  } @else if (attr.dataType === 'ENUM') {
+                    <select class="field-select" formControlName="value">
+                      <option value="">— parent's value —</option>
+                      @for (opt of attributeOptions(attr); track opt) {
+                        <option [value]="opt">{{ opt }}</option>
+                      }
+                    </select>
+                  } @else if (attr.dataType === 'DATE') {
+                    <input type="date" class="field-input" formControlName="value" />
+                  } @else if (attr.dataType === 'NUMBER') {
+                    <input type="number" class="field-input" formControlName="value" placeholder="— parent's value —" />
+                  } @else {
+                    <input type="text" class="field-input" formControlName="value" placeholder="— parent's value —" />
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <div class="entry-form-card__footer">
+            <a [routerLink]="['/inventory/products', productId, 'edit']" class="btn-secondary">Cancel</a>
+            <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+              @if (saving()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              }
+              {{ isEditMode() ? 'Update' : 'Save' }}
+            </button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  }
+
+</div>

@@ -232,6 +232,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'inventory/products/:productId/variants/new',
+    canActivate: withPermission('INVENTORY_PRODUCT_VARIANT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/product/product-variant/product-variant-form/product-variant-form.component').then(
+        (m) => m.ProductVariantFormComponent
+      ),
+  },
+  {
+    path: 'inventory/products/:productId/variants/:id/edit',
+    canActivate: withPermission('INVENTORY_PRODUCT_VARIANT_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/product/product-variant/product-variant-form/product-variant-form.component').then(
+        (m) => m.ProductVariantFormComponent
+      ),
+  },
+  {
     path: 'inventory/locations',
     canActivate: withPermission('INVENTORY_LOCATION_VIEW', 'INVENTORY_LOCATION_MANAGE'),
     loadComponent: () =>
