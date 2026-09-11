@@ -1732,4 +1732,51 @@ positions; full backend suite green. `npx tsc -p tsconfig.app.json --noEmit` and
 `ProductService.java`; `ProductServiceTest.java`; frontend `product.model.ts`,
 `product-form.component.ts/html` (new "Pricing (optional)" field group).
 
+---
+
+## 2026-09-11 — HSN/SAC + default TaxRule on Product
+
+**Prompted by:** Phase 2 item #7 of the approved Product/Inventory extension program — a
+classification code and a default tax rate a Purchase Order line can pre-fill from, with the
+line's own `taxRuleId` staying an override.
+
+**Module-boundary conflict caught before writing code:** the natural implementation — a
+`@ManyToOne` from `Product` to `TaxRule` — was rejected after checking
+`ER_DIAGRAM_AND_MODULE_BOUNDARIES.md`'s module graph, which has `CATALOG --> PROC` (Procurement
+depends on Catalog; every existing procurement entity — `VendorProductMapping`,
+`PurchaseOrderItem`, `RateContractLine` — imports `catalog.Product`/`Uom`, never the reverse).
+`TaxRule` lives in `com.cms.inventory.procurement.model`; a direct relationship from `Product`
+would have made `catalog` import from `procurement`, inverting that arrow into a cycle. Resolved
+the same way the doc's own `RequisitionLineItem.ChargeableCostObjectId` precedent does for a
+cross-boundary reference: `Product.defaultTaxRuleId` is a bare `Long`, never a JPA relationship —
+but *unlike* that precedent (deliberately FK-less because it's polymorphic across verticals),
+this always points at exactly one table, so it still gets a real DB-level `CHECK`-free `REFERENCES
+tax_rules(id)` constraint (V489) for integrity, just no Java-level import. `ProductService` never
+validates the id exists (documented on the field/DTO, not silently skipped); `PurchaseOrderService`
+— which already legitimately depends on both packages — resolves/validates it when it actually
+needs the `TaxRule`, leniently (a stale/deleted default just falls back to no tax on the line,
+same as if the product had no default at all, rather than blocking the line).
+
+**Pre-fill mechanics:** `PurchaseOrderService.addLine` now falls back to
+`product.getDefaultTaxRuleId()` only when `request.taxRuleId()` is null — an explicit id on the
+request always wins, so the override the item calls for was already inherent to the existing
+optional-parameter shape (same pattern as `unitPrice`'s vendor-rate fallback). On the frontend,
+`PurchaseOrderDetailComponent.onRequisitionLineChange()` fetches the selected line's product and
+sets `addTaxRuleId` from its `defaultTaxRuleId` — a plain `[(ngModel)]`-bound field, so the
+pre-filled value is visibly editable in the same select before "Add Line" is clicked.
+
+**Verified:** 3 new `PurchaseOrderServiceTest` cases (pre-fill from default, explicit id
+overrides default, stale default id resolves leniently to no tax) plus `ProductServiceTest`
+updated for the new constructor positions; full backend suite green. `npx tsc -p
+tsconfig.app.json --noEmit` and `ng build --configuration production` both clean (pre-existing
+unrelated warnings only).
+
+**Impact:** `V489__add_hsn_sac_and_default_tax_rule_to_products.sql`; `Product.java`;
+`ProductRequest`/`Response.java`; `ProductService.java`; `PurchaseOrderService.java`;
+`ProductServiceTest.java`, `PurchaseOrderServiceTest.java`; frontend `product.model.ts`,
+`product-form.component.ts/html` (new HSN/SAC + Default Tax Rule fields, loads
+`procurement/tax-rule` list — the one place Catalog's frontend reaches into Procurement, since
+Angular has no equivalent Gradle-module-extraction concern the backend boundary is protecting),
+`purchase-order-detail.component.ts` (pre-fill on requisition-line change).
+
 *Next entry goes here — do not insert above this line.*

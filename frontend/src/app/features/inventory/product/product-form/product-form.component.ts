@@ -25,6 +25,8 @@ import { UomService } from '../../uom/uom.service';
 import { Uom } from '../../uom/uom.model';
 import { BrandService } from '../../brand/brand.service';
 import { Brand } from '../../brand/brand.model';
+import { TaxRuleService } from '../../procurement/tax-rule/tax-rule.service';
+import { TaxRule } from '../../procurement/tax-rule/tax-rule.model';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../../shared/validators/cms-validators';
@@ -55,6 +57,7 @@ export class ProductFormComponent implements OnInit {
   private readonly attributeService = inject(CategoryAttributeService);
   private readonly uomService       = inject(UomService);
   private readonly brandService     = inject(BrandService);
+  private readonly taxRuleService   = inject(TaxRuleService);
   private readonly toast            = inject(ToastService);
   private readonly destroyRef       = inject(DestroyRef);
   private readonly http             = inject(HttpClient);
@@ -66,6 +69,7 @@ export class ProductFormComponent implements OnInit {
   protected readonly categories = signal<Category[]>([]);
   protected readonly uoms       = signal<Uom[]>([]);
   protected readonly brands     = signal<Brand[]>([]);
+  protected readonly taxRules   = signal<TaxRule[]>([]);
   protected readonly categoryAttributes = signal<CategoryAttribute[]>([]);
   protected readonly attributesLoading  = signal(false);
 
@@ -99,6 +103,8 @@ export class ProductFormComponent implements OnInit {
     reorderQty:   [null as number | null],
     standardCost: [null as number | null, [Validators.min(0)]],
     listPrice:    [null as number | null, [Validators.min(0)]],
+    hsnSacCode:      ['', [Validators.maxLength(20)]],
+    defaultTaxRuleId: [null as number | null],
     isAsset:      [false],
     isConsumable: [true],
     isService:    [false],
@@ -138,6 +144,7 @@ export class ProductFormComponent implements OnInit {
     this.categoryService.getAll(true).subscribe({ next: (c) => this.categories.set(c) });
     this.uomService.getAll(true).subscribe({ next: (u) => this.uoms.set(u) });
     this.brandService.getAll(true).subscribe({ next: (b) => this.brands.set(b) });
+    this.taxRuleService.getAll(true).subscribe({ next: (t) => this.taxRules.set(t) });
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -352,6 +359,8 @@ export class ProductFormComponent implements OnInit {
       reorderQty:   v.reorderQty,
       standardCost: v.standardCost,
       listPrice:    v.listPrice,
+      hsnSacCode:      v.hsnSacCode?.trim() || undefined,
+      defaultTaxRuleId: v.defaultTaxRuleId ?? undefined,
       isAsset:      !!v.isAsset,
       isConsumable: !!v.isConsumable,
       isService:    !!v.isService,
@@ -413,6 +422,8 @@ export class ProductFormComponent implements OnInit {
           reorderQty: p.reorderQty ?? null,
           standardCost: p.standardCost ?? null,
           listPrice: p.listPrice ?? null,
+          hsnSacCode: p.hsnSacCode || '',
+          defaultTaxRuleId: p.defaultTaxRuleId ?? null,
           isAsset: p.isAsset,
           isConsumable: p.isConsumable,
           isService: p.isService,

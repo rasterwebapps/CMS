@@ -38,6 +38,11 @@ export interface Product {
   standardCost?: number | null;
   /** List price / MRP — the default reference selling price. */
   listPrice?: number | null;
+  hsnSacCode?: string | null;
+  /** A TaxRule id a Purchase Order line pre-fills from when none is explicitly chosen — an
+   *  override always stays available on the line itself. Not resolved to a name here; look it
+   *  up in an already-loaded TaxRule list to display it. */
+  defaultTaxRuleId?: number | null;
   isAsset: boolean;
   isConsumable: boolean;
   isService: boolean;
@@ -72,6 +77,8 @@ export interface ProductRequest {
   reorderQty?: number | null;
   standardCost?: number | null;
   listPrice?: number | null;
+  hsnSacCode?: string | null;
+  defaultTaxRuleId?: number | null;
   isAsset?: boolean;
   isConsumable?: boolean;
   isService?: boolean;

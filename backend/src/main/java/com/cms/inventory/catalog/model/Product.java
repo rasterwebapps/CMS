@@ -79,6 +79,21 @@ public class Product {
     @Column(name = "list_price", precision = 14, scale = 2)
     private BigDecimal listPrice;
 
+    @Column(name = "hsn_sac_code", length = 20)
+    private String hsnSacCode;
+
+    /**
+     * The {@code TaxRule} id a Purchase Order line pre-fills from when none is explicitly chosen
+     * (see {@code PurchaseOrderService.addLine}) — an override always stays available on the line
+     * itself. Deliberately a bare id, never a {@code @ManyToOne} to {@code TaxRule}: that class
+     * lives in the {@code procurement} package, and ER_DIAGRAM_AND_MODULE_BOUNDARIES.md's module
+     * graph has {@code CATALOG --> PROC} (Procurement depends on Catalog) — a direct relationship
+     * here would invert that into a cycle. Still a real DB-level FK (V489); Procurement resolves
+     * the id via its own {@code TaxRuleRepository} when it actually needs the entity.
+     */
+    @Column(name = "default_tax_rule_id")
+    private Long defaultTaxRuleId;
+
     @Column(name = "is_asset", nullable = false)
     private Boolean isAsset = false;
 
@@ -165,6 +180,12 @@ public class Product {
 
     public BigDecimal getListPrice() { return listPrice; }
     public void setListPrice(BigDecimal listPrice) { this.listPrice = listPrice; }
+
+    public String getHsnSacCode() { return hsnSacCode; }
+    public void setHsnSacCode(String hsnSacCode) { this.hsnSacCode = hsnSacCode; }
+
+    public Long getDefaultTaxRuleId() { return defaultTaxRuleId; }
+    public void setDefaultTaxRuleId(Long defaultTaxRuleId) { this.defaultTaxRuleId = defaultTaxRuleId; }
 
     public Boolean getIsAsset() { return isAsset; }
     public void setIsAsset(Boolean isAsset) { this.isAsset = isAsset; }

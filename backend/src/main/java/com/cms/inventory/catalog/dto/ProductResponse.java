@@ -19,6 +19,11 @@ public record ProductResponse(
     BigDecimal reorderQty,
     BigDecimal standardCost,
     BigDecimal listPrice,
+    String hsnSacCode,
+    /** A TaxRule id, not resolved to a name here — see the field's javadoc on {@code Product}
+     *  for why Catalog doesn't hold a relationship to procurement's TaxRule. The frontend
+     *  resolves the display name from its own already-loaded tax-rule list. */
+    Long defaultTaxRuleId,
     Boolean isAsset,
     Boolean isConsumable,
     Boolean isService,

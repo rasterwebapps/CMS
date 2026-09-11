@@ -263,6 +263,76 @@ class PurchaseOrderServiceTest {
         assertThatThrownBy(() -> service.addLine(1L, req)).isInstanceOf(ResourceNotFoundException.class);
     }
 
+    // ── addLine — product default TaxRule pre-fill (2026-09-11 "HSN/SAC + default TaxRule") ──
+
+    @Test
+    void shouldPreFillTaxRuleFromProductDefaultWhenNoneChosen() {
+        PurchaseOrder order = order(1L, PurchaseOrderStatus.PENDING, supplier, location);
+        Product product = product(10L, tablet);
+        product.setDefaultTaxRuleId(2L);
+        PurchaseRequisitionItem reqItem = requisitionItem(5L, product, new BigDecimal("10"), location);
+        TaxRule gst = taxRule(2L, "GST 18%", new BigDecimal("18"));
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
+        when(taxRuleRepository.findById(2L)).thenReturn(Optional.of(gst));
+        when(jurisdictionService.resolve(supplier)).thenReturn(JurisdictionMode.INTRASTATE);
+        when(taxSubTypeService.requireCompleteSplit(2L, JurisdictionMode.INTRASTATE)).thenReturn(List.of(
+            subType("CGST", new BigDecimal("50")), subType("SGST", new BigDecimal("50"))));
+        when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
+        when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
+
+        // No taxRuleId on the request — pre-filled from the product's own default (id 2).
+        var req = new PurchaseOrderAddLineRequest(5L, new BigDecimal("10"), null, new BigDecimal("100"), null);
+        var res = service.addLine(1L, req);
+
+        assertThat(res.taxRuleId()).isEqualTo(2L);
+        assertThat(res.taxAmount()).isEqualByComparingTo("180.00");
+    }
+
+    @Test
+    void shouldPreferExplicitTaxRuleIdOverProductDefault() {
+        PurchaseOrder order = order(1L, PurchaseOrderStatus.PENDING, supplier, location);
+        Product product = product(10L, tablet);
+        product.setDefaultTaxRuleId(2L);
+        PurchaseRequisitionItem reqItem = requisitionItem(5L, product, new BigDecimal("10"), location);
+        TaxRule vat = taxRule(3L, "VAT 5%", new BigDecimal("5"));
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
+        when(taxRuleRepository.findById(3L)).thenReturn(Optional.of(vat));
+        when(jurisdictionService.resolve(supplier)).thenReturn(JurisdictionMode.INTRASTATE);
+        when(taxSubTypeService.requireCompleteSplit(3L, JurisdictionMode.INTRASTATE)).thenReturn(List.of(
+            subType("CGST", new BigDecimal("50")), subType("SGST", new BigDecimal("50"))));
+        when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
+        when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
+
+        // Explicit taxRuleId (3) overrides the product's default (2) — never even looked up.
+        var req = new PurchaseOrderAddLineRequest(5L, new BigDecimal("10"), null, new BigDecimal("100"), 3L);
+        var res = service.addLine(1L, req);
+
+        assertThat(res.taxRuleId()).isEqualTo(3L);
+        verify(taxRuleRepository, never()).findById(2L);
+    }
+
+    @Test
+    void shouldIgnoreStaleProductDefaultTaxRuleIdWhenItNoLongerResolves() {
+        PurchaseOrder order = order(1L, PurchaseOrderStatus.PENDING, supplier, location);
+        Product product = product(10L, tablet);
+        product.setDefaultTaxRuleId(99L);
+        PurchaseRequisitionItem reqItem = requisitionItem(5L, product, new BigDecimal("10"), location);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
+        when(taxRuleRepository.findById(99L)).thenReturn(Optional.empty());
+        when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
+        when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
+
+        var req = new PurchaseOrderAddLineRequest(5L, new BigDecimal("10"), null, new BigDecimal("100"), null);
+        var res = service.addLine(1L, req);
+
+        assertThat(res.taxRuleId()).isNull();
+        assertThat(res.taxAmount()).isEqualByComparingTo("0");
+        verify(jurisdictionService, never()).resolve(any());
+    }
+
     // ── removeLine ───────────────────────────────────────────────────────────
 
     @Test

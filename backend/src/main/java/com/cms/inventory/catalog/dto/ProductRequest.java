@@ -34,6 +34,15 @@ public record ProductRequest(
     /** List price / MRP — the default reference selling price. */
     BigDecimal listPrice,
 
+    @Size(max = 20, message = "HSN/SAC code must not exceed 20 characters")
+    String hsnSacCode,
+
+    /** A Purchase Order line pre-fills its tax from this TaxRule id when none is explicitly
+     *  chosen — an override always stays available on the line itself. Not validated for
+     *  existence here (see the field's javadoc on {@code Product} for the module-boundary
+     *  reason); Procurement resolves/validates it when it actually uses it. */
+    Long defaultTaxRuleId,
+
     Boolean isAsset,
     Boolean isConsumable,
     Boolean isService,

@@ -149,6 +149,7 @@ export class PurchaseOrderDetailComponent implements OnInit {
     const line = this.availableLines().find((l) => l.id === this.addRequisitionItemId);
     this.addQty = line ? line.requestedQty : null;
     this.addUomLevelId = null;
+    this.addTaxRuleId = null;
     this.uomLevels.set([]);
     if (!line) return;
     this.productService.getActiveUomChain(line.productId).subscribe({
@@ -159,6 +160,12 @@ export class PurchaseOrderDetailComponent implements OnInit {
         if (defaultLevel) this.addUomLevelId = defaultLevel.id;
       },
       error: () => { /* no hierarchy configured for this product — base unit only, not an error */ },
+    });
+    // Pre-fill the tax from the product's own default — still freely overridable in the select
+    // above before "Add Line" is clicked. See the "HSN/SAC + default TaxRule" decision-log entry.
+    this.productService.getById(line.productId).subscribe({
+      next: (product) => { if (product.defaultTaxRuleId != null) this.addTaxRuleId = product.defaultTaxRuleId; },
+      error: () => { /* no default configured, or fetch failed — leave the tax rule unset */ },
     });
   }
 

@@ -152,6 +152,8 @@ public class ProductService {
         product.setReorderQty(request.reorderQty());
         product.setStandardCost(request.standardCost());
         product.setListPrice(request.listPrice());
+        product.setHsnSacCode(trim(request.hsnSacCode()));
+        product.setDefaultTaxRuleId(request.defaultTaxRuleId());
         if (request.isAsset() != null) product.setIsAsset(request.isAsset());
         if (request.isConsumable() != null) product.setIsConsumable(request.isConsumable());
         if (request.isService() != null) product.setIsService(request.isService());
@@ -293,6 +295,7 @@ public class ProductService {
             category.getId(), category.getName(), uom.getId(), uom.getCode(), uom.getName(),
             brand != null ? brand.getId() : null, brand != null ? brand.getName() : null,
             p.getReorderLevel(), p.getReorderQty(), p.getStandardCost(), p.getListPrice(),
+            p.getHsnSacCode(), p.getDefaultTaxRuleId(),
             p.getIsAsset(), p.getIsConsumable(), p.getIsService(), p.getIsLoanable(),
             p.getTrackingMode().name(),
             p.getDepreciationRate(), p.getWarrantyPeriodMonths(),

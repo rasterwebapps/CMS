@@ -194,6 +194,13 @@ public class PurchaseOrderService {
         if (request.taxRuleId() != null) {
             taxRule = taxRuleRepository.findById(request.taxRuleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tax rule not found with id: " + request.taxRuleId()));
+        } else if (product.getDefaultTaxRuleId() != null) {
+            // Pre-fill from the product's own default — an explicit taxRuleId on the request
+            // always overrides this. Looked up leniently (no throw): a stale/deleted default
+            // shouldn't block adding the line, it just falls back to no tax, same as if the
+            // product had no default at all. See the "HSN/SAC + default TaxRule" decision-log
+            // entry for why Product only carries the id, not a TaxRule relationship.
+            taxRule = taxRuleRepository.findById(product.getDefaultTaxRuleId()).orElse(null);
         }
 
         // unitPrice prices one of whatever unit was entered (a carton's price, not one base-unit
