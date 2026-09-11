@@ -23,6 +23,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Batch;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
+import com.cms.model.ClinicalShiftGroup;
 import com.cms.model.ClinicalVenue;
 import com.cms.model.Cohort;
 import com.cms.model.CohortRoomAllocation;
@@ -504,7 +505,41 @@ public class CohortRoomAllocationService {
                 "Venture splits are for LAB/CLINICAL batches only — Theory sections are committed via the "
                     + "'sections' field.");
         }
+        inheritClinicalShiftGroupIfUnambiguous(batch, offering, section);
         batchRepository.save(batch);
+    }
+
+    /** Re-links a CLINICAL batch to its offering's Clinical Shift Group when the batch doesn't
+     *  already carry one. Every recommit used to create fresh {@link Batch} rows that silently lost
+     *  {@code clinicalShiftGroupId}, so after a few revert/recommit cycles a cohort's real clinical
+     *  duty stopped being tracked at all: {@code ClinicalShiftOccurrenceService} has nothing to
+     *  generate occurrences against for an unlinked batch, so delivery went unrecorded for
+     *  attendance and audit — a worse failure than a wrong dashboard number, and silent either way.
+     *  Local dev showed how far it had drifted: 1 of 27 active batches still had a link, against 30+
+     *  active shift groups. The name-match reuse path above already preserves the link whenever it
+     *  hits (a reused row keeps every field this method doesn't touch); this covers the genuinely
+     *  fresh insert, which is what a renamed or restructured split produces.
+     *
+     *  <p>Deliberately only links when the offering has exactly ONE active group that could apply.
+     *  An offering running Shift A (07:00) and Shift B (13:00) on the same day — real in this
+     *  dataset for the Internship offerings — gives no basis to guess which one this batch belongs
+     *  to, and guessing wrong is worse than leaving it unlinked: the batch would generate
+     *  occurrences for a duty window its students never attend, and {@link
+     *  ClinicalShiftGroupService#resolveActiveWindowsForBatch} would block the wrong half of the
+     *  day for them. Those stay null and are relinked by hand from the Manage Clinical Shift Groups
+     *  dialog, exactly as today. A section-scoped group only applies to its own section. */
+    private void inheritClinicalShiftGroupIfUnambiguous(Batch batch, CourseOffering offering, CohortSection section) {
+        if (batch.getClinicalShiftGroup() != null || batch.getClinicalVenue() == null) {
+            return;
+        }
+        List<ClinicalShiftGroup> candidates = clinicalShiftGroupRepository.findByCourseOfferingId(offering.getId()).stream()
+            .filter(g -> Boolean.TRUE.equals(g.getIsActive()))
+            .filter(g -> g.getCohortSection() == null
+                || (section != null && section.getId().equals(g.getCohortSection().getId())))
+            .toList();
+        if (candidates.size() == 1) {
+            batch.setClinicalShiftGroup(candidates.get(0));
+        }
     }
 
     private CohortRoomAllocationResponse toResponse(CohortRoomAllocation allocation) {

@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1376,6 +1377,101 @@ class TimetableGlobalAutoScheduleServiceTest {
 
     /** Minimal {@link SkeletonCellResponse} for Offering A / whole-cohort THEORY -- only {@code id}
      *  and {@code status} vary across the purge test's fixture cells. */
+    /** Two members of one elective group (ids 300/301, group 77), both Theory-bearing and both
+     *  unplaced, with the skeleton flagging the group so the run takes its elective branch. */
+    private void twoMemberElectiveGroup() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(300L, "Elective One"), offeringDto(301L, "Elective Two")));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        lenient().when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        List<CourseOffering> members = new java.util.ArrayList<>();
+        for (long id : new long[] {300L, 301L}) {
+            Subject subject = new Subject();
+            subject.setId(id);
+            subject.setName("Elective " + id);
+            CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
+            csc.setTheoryHours(10);
+            csc.setIsElective(true);
+            CourseOffering member = new CourseOffering();
+            member.setId(id);
+            member.setSubject(subject);
+            member.setCurriculumSemesterCourse(csc);
+            member.setTermInstance(termInstance);
+            member.setIsActive(true);
+            lenient().when(courseOfferingRepository.findById(id)).thenReturn(Optional.of(member));
+            lenient().when(timetableSkeletonService.isElectiveOffering(member)).thenReturn(true);
+            lenient().when(courseOfferingSectionFacultyService.getForOffering(id)).thenReturn(
+                new CourseOfferingSectionFacultyResponse(true, null, List.of(
+                    new SectionFacultyAssignment(1L, null, "Cohort 1", null, 500L + id, "Staff", 0L))));
+            lenient().when(courseRegistrationRepository.countByCourseOfferingIdAndStatus(eq(id), any())).thenReturn(20L);
+            members.add(member);
+        }
+        when(courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(10L, 77L))
+            .thenReturn(members);
+        lenient().when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(eq(10L), any()))
+            .thenReturn(List.of());
+
+        SkeletonSubjectResponse s1 = new SkeletonSubjectResponse(300L, "Elective One", "EL01", List.of(), 77L, "Group A");
+        SkeletonSubjectResponse s2 = new SkeletonSubjectResponse(301L, "Elective Two", "EL02", List.of(), 77L, "Group A");
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(
+            new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(s1, s2), List.of(), List.of(), List.of(),
+                25, 0L, List.of(), false, List.of()));
+    }
+
+    private Classroom classroom(Long id, String name) {
+        Classroom room = new Classroom(name, null, null, 60);
+        room.setId(id);
+        return room;
+    }
+
+    /** Regression for the elective room bug: the pass resolved ONE free classroom per candidate
+     *  slot and handed the same one to every member of the group. Every option in a group runs
+     *  simultaneously at the group's single shared slot, but they are different subjects taught by
+     *  different faculty and cannot share a room — local dev had all 9 ELEC-II options booked into
+     *  Library Hall at Monday Period 4 at once. Each member must now get its own room. */
+    @Test
+    void runGivesEveryElectiveGroupMemberItsOwnRoomRatherThanSharingOne() {
+        twoMemberElectiveGroup();
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc())
+            .thenReturn(List.of(classroom(1L, "Room A"), classroom(2L, "Room B")));
+        when(timetableStaffingService.checkRoomFree(eq(ClassSessionType.THEORY), anyLong(), any(), eq(10L),
+            isNull(), any(), any(), any())).thenReturn(Optional.empty());
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenAnswer(inv -> {
+            SkeletonCellPlacementRequest req = inv.getArgument(0);
+            return skeletonCell(9000L + req.courseOfferingId(), com.cms.model.enums.ClassScheduleStatus.DRAFT);
+        });
+
+        service.runGlobalAutoSchedule(10L, null);
+
+        ArgumentCaptor<StaffingAssignmentRequest> staffed = ArgumentCaptor.forClass(StaffingAssignmentRequest.class);
+        verify(timetableStaffingService, times(2)).staffCell(anyLong(), staffed.capture());
+        assertThat(staffed.getAllValues()).extracting(StaffingAssignmentRequest::classroomId)
+            .containsExactlyInAnyOrder(1L, 2L);
+    }
+
+    /** The institution simply not owning enough rooms to run every option at one shared slot is a
+     *  structural limit no rescheduling can fix, so the report has to name it — a bare "no slot
+     *  found" sends the admin hunting for staffing capacity that was never the constraint. */
+    @Test
+    void runReportsTheRoomShortfallByNameWhenAGroupHasMoreOptionsThanFreeRooms() {
+        twoMemberElectiveGroup();
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(classroom(1L, "Room A")));
+        when(timetableStaffingService.checkRoomFree(eq(ClassSessionType.THEORY), anyLong(), any(), eq(10L),
+            isNull(), any(), any(), any())).thenReturn(Optional.empty());
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.electiveUnplaced()).isNotEmpty();
+        assertThat(result.electiveUnplaced().get(0).reason())
+            .contains("2 options at one shared slot")
+            .contains("the best any day/period offered was 1");
+        verify(timetableStaffingService, never()).staffCell(anyLong(), any());
+    }
+
     private SkeletonCellResponse skeletonCell(Long id, com.cms.model.enums.ClassScheduleStatus status) {
         return skeletonCell(id, status, false);
     }

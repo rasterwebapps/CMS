@@ -623,9 +623,14 @@ public class TimetableSkeletonService {
      *  TimetableGlobalAutoScheduleService#tryPlaceAndStaff} already enforces for auto-schedule.
      *  Deliberately NOT folded into {@link TimetableBlockedPeriodChecker} — that check is
      *  institution-wide/cohort-agnostic by design, while this one is cohort-scoped. No-op (empty)
-     *  when the cohort's Program hasn't opted in. */
-    private Optional<ConstraintViolation> checkClinicalShiftBlocked(Long cohortId, DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
-        return clinicalShiftChecker.blockReason(cohortId, dayOfWeek, period, termInstance);
+     *  when the cohort's Program hasn't opted in.
+     *
+     *  <p>{@code batchId} narrows the check to that batch's own duty window where the session has
+     *  one — a LAB/CLINICAL row is attended by its batch alone, so another batch's shift should
+     *  never block it. Null (a Theory/elective/Library row, whose audience is the whole
+     *  cohort/section) keeps the conservative union of every window the cohort touches. */
+    private Optional<ConstraintViolation> checkClinicalShiftBlocked(Long cohortId, Long batchId, DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
+        return clinicalShiftChecker.blockReason(cohortId, batchId, dayOfWeek, period, termInstance);
     }
 
     /** Used by {@link #suggestCandidates} to silently skip a blocked slot rather than surfacing a
@@ -799,7 +804,8 @@ public class TimetableSkeletonService {
         // here rather than trusted because it was legal when originally placed.
         Long cohortId = audienceCohortId(cs);
         if (cohortId != null) {
-            checkClinicalShiftBlocked(cohortId, cs.getDayOfWeek(), period, cs.getTermInstance())
+            checkClinicalShiftBlocked(cohortId, cs.getBatch() != null ? cs.getBatch().getId() : null,
+                cs.getDayOfWeek(), period, cs.getTermInstance())
                 .ifPresent(violations::add);
         }
 
@@ -983,7 +989,7 @@ public class TimetableSkeletonService {
             }
 
             checkBlocked(request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
-            checkClinicalShiftBlocked(request.cohortId(), request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
+            checkClinicalShiftBlocked(request.cohortId(), request.batchId(), request.dayOfWeek(), spanPeriod, offering.getTermInstance()).ifPresent(violations::add);
         }
 
         // enforceBudgetCap was accepted, documented, and then never actually read here -- the cap ran
@@ -1408,7 +1414,8 @@ public class TimetableSkeletonService {
             checkCohortExclusivity(asPlacementRequest, offering, cs.getBatch(), cs.getCohortSection(), excludeCellId).ifPresent(violations::add);
         }
         checkBlocked(day, targetPeriod, offering.getTermInstance()).ifPresent(violations::add);
-        checkClinicalShiftBlocked(cohortId, day, targetPeriod, offering.getTermInstance()).ifPresent(violations::add);
+        checkClinicalShiftBlocked(cohortId, cs.getBatch() != null ? cs.getBatch().getId() : null,
+            day, targetPeriod, offering.getTermInstance()).ifPresent(violations::add);
 
         if (cs.getFaculty() != null) {
             LocalTime start = targetPeriod.getStartTime();
@@ -1674,7 +1681,7 @@ public class TimetableSkeletonService {
 
             checkAlreadyPlaced(offering, asPlacementRequest).ifPresent(violations::add);
             checkBlocked(request.dayOfWeek(), period, offering.getTermInstance()).ifPresent(violations::add);
-            checkClinicalShiftBlocked(request.cohortId(), request.dayOfWeek(), period, offering.getTermInstance()).ifPresent(violations::add);
+            checkClinicalShiftBlocked(request.cohortId(), null, request.dayOfWeek(), period, offering.getTermInstance()).ifPresent(violations::add);
 
             ClassSchedule cs = new ClassSchedule();
             cs.setSessionType(member.sessionType());

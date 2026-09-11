@@ -3815,18 +3815,23 @@ public class TimetableGlobalAutoScheduleService {
             // already requires of any other placement path.
             DayOfWeek day = anchor.getDayOfWeek();
             Period period = anchor.getPeriod();
-            Classroom classroom = period == null ? null
-                : firstFreeClassroom(activeClassrooms, registeredStrength, day, period, term);
-            if (period == null || classroom == null || !placeAndStaffElectiveMembers(unplacedTheoryMembers, day, period, classroom, term)) {
+            List<Classroom> rooms = period == null ? List.of()
+                : freeClassrooms(activeClassrooms, registeredStrength, day, period, term, unplacedTheoryMembers.size());
+            if (period == null || !placeAndStaffElectiveMembers(unplacedTheoryMembers, day, period, rooms, term)) {
+                String detail = period != null && rooms.size() < unplacedTheoryMembers.size()
+                    ? " — " + unplacedTheoryMembers.size() + " member(s) still need a room of their own at that slot "
+                        + "and only " + rooms.size() + " suitable room(s) are free then"
+                    : " — one or more new members can't join that exact slot";
                 unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
-                    "already scheduled for " + day + (period != null ? ", " + period.getName() : "")
-                        + " — one or more new members can't join that exact slot", null));
+                    "already scheduled for " + day + (period != null ? ", " + period.getName() : "") + detail, null));
                 return 0;
             }
             return unplacedTheoryMembers.size();
         }
 
         int dutyBlockedSlots = 0;
+        int roomShortSlots = 0;
+        int bestRoomsFound = 0;
         for (DayOfWeek day : DayOfWeek.values()) {
             for (Period period : periods) {
                 if (blockedPeriodChecker.blockReason(day, period.getStartTime(), period.getEndTime(), term).isPresent()) {
@@ -3844,23 +3849,34 @@ public class TimetableGlobalAutoScheduleService {
                     dutyBlockedSlots++;
                     continue;
                 }
-                Classroom classroom = firstFreeClassroom(activeClassrooms, registeredStrength, day, period, term);
-                if (classroom == null) {
+                // One room per member, not one room for the group -- see freeClassrooms().
+                List<Classroom> rooms = freeClassrooms(activeClassrooms, registeredStrength, day, period, term,
+                    unplacedTheoryMembers.size());
+                if (rooms.size() < unplacedTheoryMembers.size()) {
+                    bestRoomsFound = Math.max(bestRoomsFound, rooms.size());
+                    roomShortSlots++;
                     continue;
                 }
-                if (placeAndStaffElectiveMembers(unplacedTheoryMembers, day, period, classroom, term)) {
+                if (placeAndStaffElectiveMembers(unplacedTheoryMembers, day, period, rooms, term)) {
                     return unplacedTheoryMembers.size();
                 }
             }
         }
-        // Name clinical duty explicitly when it was a factor. Otherwise this reads as a
-        // faculty/room problem and sends the admin hunting for staffing capacity that isn't the
-        // actual constraint -- the group's students are simply off-campus for those slots.
-        String reason = dutyBlockedSlots > 0
-            ? "no day/period found where every member's bound faculty and a suitable room are all free"
-                + " (" + dutyBlockedSlots + " slot(s) were also ruled out because a participating cohort"
-                + " is away on Clinical Shift duty then)"
-            : "no day/period found where every member's bound faculty and a suitable room are all free";
+        // Name the actual constraint. A bare "no slot found" sends the admin hunting for staffing
+        // capacity when the real answer is often structural: the group's students are off-campus
+        // then (clinical duty), or the institution simply does not own enough rooms to run this
+        // many options at one shared slot -- which no amount of rescheduling can fix, and which the
+        // admin can only act on (split the group, retire an option, add a room) if told.
+        String reason = "no day/period found where every member's bound faculty and a suitable room are all free";
+        if (roomShortSlots > 0) {
+            reason = "this group runs " + unplacedTheoryMembers.size() + " options at one shared slot, so it needs "
+                + unplacedTheoryMembers.size() + " suitable rooms free at the same time — the best any day/period "
+                + "offered was " + bestRoomsFound;
+        }
+        if (dutyBlockedSlots > 0) {
+            reason += " (" + dutyBlockedSlots + " slot(s) were also ruled out because a participating cohort"
+                + " is away on Clinical Shift duty then)";
+        }
         unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
             reason, null));
         return 0;
@@ -3868,9 +3884,14 @@ public class TimetableGlobalAutoScheduleService {
 
     /** Attempts every member at the given slot/room, undoing everything on the first failure so a
      *  partially-placed group is never left behind for the caller's next candidate slot to build on. */
-    private boolean placeAndStaffElectiveMembers(List<CourseOffering> members, DayOfWeek day, Period period, Classroom classroom, TermInstance term) {
+    private boolean placeAndStaffElectiveMembers(List<CourseOffering> members, DayOfWeek day, Period period,
+                                                  List<Classroom> classrooms, TermInstance term) {
+        if (classrooms.size() < members.size()) {
+            return false; // caller reports the shortfall; never cram two options into one room
+        }
         List<Long> placedCellIds = new ArrayList<>();
-        for (CourseOffering member : members) {
+        for (int i = 0; i < members.size(); i++) {
+            CourseOffering member = members.get(i);
             SkeletonCellResponse placed;
             try {
                 placed = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
@@ -3881,7 +3902,9 @@ public class TimetableGlobalAutoScheduleService {
             }
             placedCellIds.add(placed.id());
             try {
-                timetableStaffingService.staffCell(placed.id(), new StaffingAssignmentRequest(resolveElectiveMemberFacultyId(member), classroom.getId()));
+                // Its OWN room -- see freeClassrooms() for why one room per group was wrong.
+                timetableStaffingService.staffCell(placed.id(),
+                    new StaffingAssignmentRequest(resolveElectiveMemberFacultyId(member), classrooms.get(i).getId()));
             } catch (TimetableConstraintViolationException | LifecycleConflictException | IllegalArgumentException ex) {
                 rollbackElectiveCells(placedCellIds);
                 return false;
@@ -3931,8 +3954,26 @@ public class TimetableGlobalAutoScheduleService {
         return facultyIds.size() == 1 ? facultyIds.iterator().next() : null;
     }
 
-    private Classroom firstFreeClassroom(List<Classroom> candidates, int requiredStrength, DayOfWeek day, Period period, TermInstance term) {
+    /** Up to {@code wanted} DISTINCT free classrooms at one (day, period), each big enough for
+     *  {@code requiredStrength}. Returns fewer than {@code wanted} when that many aren't free —
+     *  callers decide whether a partial answer is usable.
+     *
+     *  <p>Exists because an elective group needs one room PER member, not one room for the group.
+     *  Every option in a group runs simultaneously at the group's single shared slot (that is what
+     *  makes it a group), but they are different subjects taught by different faculty, so they
+     *  cannot share a room. The elective pass used to resolve one classroom and hand the same one
+     *  to every member: local dev had all 9 ELEC-II options booked into Library Hall at Monday
+     *  Period 4 and all 5 ELEC-III options into the same Library Hall at Period 2 — nine subjects,
+     *  nine faculty, one 30-seat room, at once. Nothing rejected it because the per-room conflict
+     *  check runs against cells already persisted, and each member was placed and staffed inside
+     *  the same pass before the next member looked. */
+    private List<Classroom> freeClassrooms(List<Classroom> candidates, int requiredStrength, DayOfWeek day,
+                                            Period period, TermInstance term, int wanted) {
+        List<Classroom> free = new ArrayList<>();
         for (Classroom classroom : candidates) {
+            if (free.size() >= wanted) {
+                break;
+            }
             if (classroom.getCapacity() != null && classroom.getCapacity() < requiredStrength) {
                 continue;
             }
@@ -3940,10 +3981,10 @@ public class TimetableGlobalAutoScheduleService {
                 ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), term.getId(), null,
                 day, period.getStartTime(), period.getEndTime());
             if (conflict.isEmpty()) {
-                return classroom;
+                free.add(classroom);
             }
         }
-        return null;
+        return free;
     }
 
     // ─────────────────────────────────────────────────────────────────────

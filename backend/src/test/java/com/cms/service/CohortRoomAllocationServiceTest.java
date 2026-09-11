@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,6 +28,8 @@ import com.cms.model.AcademicYear;
 import com.cms.model.Batch;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
+import com.cms.model.ClinicalShiftGroup;
+import com.cms.model.ClinicalVenue;
 import com.cms.model.Cohort;
 import com.cms.model.CohortRoomAllocation;
 import com.cms.model.CohortSection;
@@ -45,12 +48,12 @@ import com.cms.model.enums.TermType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
+import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
-import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.SessionOccurrenceRepository;
@@ -620,5 +623,128 @@ class CohortRoomAllocationServiceTest {
             .hasMessageContaining("already reverted");
 
         verify(batchRepository, never()).save(any());
+    }
+
+    /** Stubs everything a single-CLINICAL-split commit needs, and returns the Batch that was saved. */
+    private Batch commitOneClinicalSplitAndCaptureBatch() {
+        stubCohortAndTerm(60);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
+        ClinicalVenue venue = new ClinicalVenue();
+        venue.setId(30L);
+        venue.setName("SKS Hospital — Ward 3");
+        venue.setCapacity(60);
+        when(clinicalVenueRepository.findById(30L)).thenReturn(Optional.of(venue));
+        when(clinicalVenueRepository.getReferenceById(30L)).thenReturn(venue);
+        when(courseOfferingRepository.findById(5L)).thenReturn(Optional.of(offering));
+        when(allocationRepository.save(any(CohortRoomAllocation.class))).thenAnswer(inv -> {
+            CohortRoomAllocation a = inv.getArgument(0);
+            a.setId(100L);
+            return a;
+        });
+        when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> {
+            CohortSection s = inv.getArgument(0);
+            s.setId(500L);
+            return s;
+        });
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenAnswer(inv -> {
+            CohortSection s = new CohortSection(null, term, "Section 1", theoryClassroom, 60);
+            s.setId(500L);
+            return List.of(s);
+        });
+        when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 60);
+        VentureSplitRequest split = new VentureSplitRequest(5L, ClassSessionType.CLINICAL, 30L, "Clinical - Section 1 - Batch 1", 60, "Section 1");
+        service.commit(new CohortRoomAllocationCommitRequest(
+            1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of(split)), "admin");
+
+        ArgumentCaptor<Batch> saved = ArgumentCaptor.forClass(Batch.class);
+        verify(batchRepository).save(saved.capture());
+        return saved.getValue();
+    }
+
+    private ClinicalShiftGroup shiftGroup(Long id, String label, java.time.LocalTime start) {
+        ClinicalShiftGroup group = new ClinicalShiftGroup();
+        group.setId(id);
+        group.setLabel(label);
+        group.setCourseOffering(offering);
+        group.setTermInstance(term);
+        group.setDayOfWeek(com.cms.model.enums.DayOfWeek.MONDAY);
+        group.setClinicalStartTime(start);
+        group.setIsActive(true);
+        return group;
+    }
+
+    /** Every recommit created a fresh Batch that silently lost clinical_shift_group_id, so after a
+     *  few revert/recommit cycles a cohort's real clinical duty stopped generating occurrences at
+     *  all — unrecorded delivery for attendance and audit. Local dev had drifted to 1 linked batch
+     *  out of 27 active ones. A freshly created CLINICAL batch now inherits its offering's group. */
+    @Test
+    void shouldInheritTheOfferingsClinicalShiftGroupOnAFreshlyCreatedClinicalBatch() {
+        when(clinicalShiftGroupRepository.findByCourseOfferingId(5L))
+            .thenReturn(List.of(shiftGroup(7L, "Shift A", java.time.LocalTime.of(7, 0))));
+
+        Batch batch = commitOneClinicalSplitAndCaptureBatch();
+
+        assertThat(batch.getClinicalShiftGroup()).isNotNull();
+        assertThat(batch.getClinicalShiftGroup().getId()).isEqualTo(7L);
+    }
+
+    /** An offering running Shift A (07:00) and Shift B (13:00) gives no basis to guess which one a
+     *  new batch belongs to, and guessing wrong is worse than leaving it unlinked: the batch would
+     *  generate occurrences for a window its students never attend, and the wrong half of its day
+     *  would be blocked for on-campus teaching. Stays null, relinked by hand as today. */
+    @Test
+    void shouldNotGuessAClinicalShiftGroupWhenTheOfferingRunsTwoShifts() {
+        when(clinicalShiftGroupRepository.findByCourseOfferingId(5L)).thenReturn(List.of(
+            shiftGroup(7L, "Shift A", java.time.LocalTime.of(7, 0)),
+            shiftGroup(8L, "Shift B", java.time.LocalTime.of(13, 0))));
+
+        Batch batch = commitOneClinicalSplitAndCaptureBatch();
+
+        assertThat(batch.getClinicalShiftGroup()).isNull();
+    }
+
+    /** A LAB batch has no clinical duty to inherit — the offering's shift group must not leak onto
+     *  it just because the same offering also runs clinical sessions. */
+    @Test
+    void shouldNotAttachAClinicalShiftGroupToALabBatch() {
+        stubCohortAndTerm(60);
+        when(classroomRepository.findById(10L)).thenReturn(Optional.of(theoryClassroom));
+        Lab lab = new Lab();
+        lab.setId(20L);
+        lab.setName("Skills Lab");
+        lab.setCapacity(60);
+        when(labRepository.findById(20L)).thenReturn(Optional.of(lab));
+        when(labRepository.getReferenceById(20L)).thenReturn(lab);
+        when(courseOfferingRepository.findById(5L)).thenReturn(Optional.of(offering));
+        when(allocationRepository.save(any(CohortRoomAllocation.class))).thenAnswer(inv -> {
+            CohortRoomAllocation a = inv.getArgument(0);
+            a.setId(100L);
+            return a;
+        });
+        when(cohortSectionRepository.save(any(CohortSection.class))).thenAnswer(inv -> {
+            CohortSection s = inv.getArgument(0);
+            s.setId(500L);
+            return s;
+        });
+        when(cohortSectionRepository.findByCohortRoomAllocationId(100L)).thenAnswer(inv -> {
+            CohortSection s = new CohortSection(null, term, "Section 1", theoryClassroom, 60);
+            s.setId(500L);
+            return List.of(s);
+        });
+        when(batchRepository.save(any(Batch.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(batchRepository.findByCohortRoomAllocationId(100L)).thenReturn(List.of());
+
+        CohortSectionRequest section = new CohortSectionRequest("Section 1", 10L, 60);
+        VentureSplitRequest split = new VentureSplitRequest(5L, ClassSessionType.LAB, 20L, "Lab - Section 1 - Batch 1", 60, "Section 1");
+        service.commit(new CohortRoomAllocationCommitRequest(
+            1L, 1L, PlanningBasis.ENROLLED, List.of(section), List.of(split)), "admin");
+
+        ArgumentCaptor<Batch> saved = ArgumentCaptor.forClass(Batch.class);
+        verify(batchRepository).save(saved.capture());
+        assertThat(saved.getValue().getClinicalShiftGroup()).isNull();
+        verify(clinicalShiftGroupRepository, never()).findByCourseOfferingId(any());
     }
 }

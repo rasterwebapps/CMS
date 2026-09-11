@@ -184,6 +184,45 @@ public class ClinicalShiftGroupService {
             .toList();
     }
 
+    /**
+     * The duty windows that apply to ONE batch's students, rather than to every student in the
+     * cohort. {@link #resolveActiveWindowsForCohort} returns the union of every group the cohort
+     * touches, which is right for a session the whole cohort attends (Theory, an elective, Library:
+     * if any group is out, part of the audience is missing) but wrong for a batch-scoped LAB or
+     * CLINICAL session, where only that batch's own students need to be present.
+     *
+     * <p>The difference is not theoretical. An offering running Shift A (07:00) and Shift B (13:00)
+     * on the same day — real in this dataset for the Internship offerings — unions to roughly
+     * 06:00–20:00, so the cohort-wide view treats the entire teaching day as blocked even though
+     * each individual batch is away for only half of it. A batch on the 13:00 shift can perfectly
+     * well sit a 08:00 lab.
+     *
+     * <p>Falls back to the cohort-wide union when the batch carries no {@code clinicalShiftGroup}
+     * link, and that fallback is load-bearing rather than defensive: the link was dropped on every
+     * Cohort Room Allocation recommit until {@code CohortRoomAllocationService#
+     * inheritClinicalShiftGroupIfUnambiguous} started carrying it forward, so historical batches
+     * are overwhelmingly unlinked (1 of 27 active batches in local dev). Narrowing an unlinked
+     * batch to "no windows apply" would schedule classes straight through a duty window the
+     * students are genuinely away for — under-blocking, which is a real timetable defect, where
+     * over-blocking merely wastes a slot. Precision arrives per batch, as each one gets linked.
+     */
+    public List<ClinicalShiftWindow> resolveActiveWindowsForBatch(Long batchId, Long cohortId, Long termInstanceId) {
+        List<ClinicalShiftWindow> cohortWindows = resolveActiveWindowsForCohort(cohortId, termInstanceId);
+        if (batchId == null || cohortWindows.isEmpty()) {
+            return cohortWindows;
+        }
+        Long linkedGroupId = batchRepository.findById(batchId)
+            .map(Batch::getClinicalShiftGroup)
+            .map(ClinicalShiftGroup::getId)
+            .orElse(null);
+        if (linkedGroupId == null) {
+            return cohortWindows;
+        }
+        return cohortWindows.stream()
+            .filter(w -> linkedGroupId.equals(w.shiftGroupId()))
+            .toList();
+    }
+
     @Transactional
     public void linkBatch(Long shiftGroupId, Long batchId) {
         ClinicalShiftGroup group = getOrThrow(shiftGroupId);

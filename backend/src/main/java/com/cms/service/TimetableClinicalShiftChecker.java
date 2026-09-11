@@ -47,6 +47,16 @@ public class TimetableClinicalShiftChecker {
      *  part of {@code period} on {@code dayOfWeek}. Empty when the cohort is unknown, its Program
      *  hasn't opted in, or the slot is genuinely free. */
     public Optional<ConstraintViolation> blockReason(Long cohortId, DayOfWeek dayOfWeek, Period period, TermInstance termInstance) {
+        return blockReason(cohortId, null, dayOfWeek, period, termInstance);
+    }
+
+    /** Same check, narrowed to one batch's own duty window when {@code batchId} is given and that
+     *  batch is linked to a shift group — see {@link
+     *  ClinicalShiftGroupService#resolveActiveWindowsForBatch} for why an unlinked batch stays on
+     *  the conservative cohort-wide union. A null {@code batchId} means the session's audience is
+     *  the whole cohort/section, where the union is the correct reading. */
+    public Optional<ConstraintViolation> blockReason(Long cohortId, Long batchId, DayOfWeek dayOfWeek,
+                                                      Period period, TermInstance termInstance) {
         if (cohortId == null || period == null || termInstance == null) {
             return Optional.empty();
         }
@@ -55,8 +65,9 @@ public class TimetableClinicalShiftChecker {
             || !Boolean.TRUE.equals(cohort.getProgram().getUsesClinicalShiftScheduling())) {
             return Optional.empty();
         }
-        List<ClinicalShiftWindow> windows = clinicalShiftGroupService
-            .resolveActiveWindowsForCohort(cohortId, termInstance.getId());
+        List<ClinicalShiftWindow> windows = batchId == null
+            ? clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, termInstance.getId())
+            : clinicalShiftGroupService.resolveActiveWindowsForBatch(batchId, cohortId, termInstance.getId());
         return windows.stream()
             .filter(w -> w.dayOfWeek() == dayOfWeek && w.overlaps(period.getStartTime(), period.getEndTime()))
             .findFirst()
@@ -82,7 +93,10 @@ public class TimetableClinicalShiftChecker {
         }
         Long cohortId = audienceCohortId(cs);
         if (cohortId != null) {
-            return blockReason(cohortId, cs.getDayOfWeek(), cs.getPeriod(), cs.getTermInstance());
+            // A cell carrying a Batch is attended by that batch alone, so it is judged against that
+            // batch's own duty window rather than every window its cohort touches.
+            Long batchId = cs.getBatch() != null ? cs.getBatch().getId() : null;
+            return blockReason(cohortId, batchId, cs.getDayOfWeek(), cs.getPeriod(), cs.getTermInstance());
         }
         if (fallbackCohortIds == null || fallbackCohortIds.isEmpty()) {
             return Optional.empty();
