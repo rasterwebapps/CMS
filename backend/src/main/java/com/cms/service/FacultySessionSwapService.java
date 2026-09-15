@@ -52,6 +52,7 @@ public class FacultySessionSwapService {
 
     public List<StaffSwapCandidateResponse> findSwapCandidates(Long classScheduleId, LocalDate date) {
         ClassSchedule source = requirePublishedRealOccurrence(classScheduleId, date);
+        requireStaffed(source);
         LocalTime[] sourceTimes = resolveTimes(source);
 
         List<ClassSchedule> sameDay = classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(
@@ -60,6 +61,11 @@ public class FacultySessionSwapService {
         List<StaffSwapCandidateResponse> results = new ArrayList<>();
         for (ClassSchedule candidate : sameDay) {
             if (candidate.getId().equals(source.getId())) continue;
+            // LIBRARY (and any other deliberately-unstaffed session type -- see
+            // TimetableGlobalAutoScheduleService#fillLibraryGaps) publishes with no faculty at all,
+            // so it can never be a swap candidate -- skip it before dereferencing getFaculty(), which
+            // otherwise NPEs the moment a Library session lands on the same day as the source.
+            if (candidate.getFaculty() == null) continue;
             if (candidate.getFaculty().getId().equals(source.getFaculty().getId())) continue;
 
             LocalTime[] candidateTimes = resolveTimes(candidate);
@@ -80,6 +86,8 @@ public class FacultySessionSwapService {
     public void applySwap(Long sessionAId, Long sessionBId, LocalDate date, String actor) {
         ClassSchedule a = requirePublishedRealOccurrence(sessionAId, date);
         ClassSchedule b = requirePublishedRealOccurrence(sessionBId, date);
+        requireStaffed(a);
+        requireStaffed(b);
 
         // Never trust a stale candidate list -- re-validate mutual availability from scratch,
         // directly rather than by re-deriving through findSwapCandidates' own list-membership check
@@ -135,6 +143,16 @@ public class FacultySessionSwapService {
      *  already marked absent that day. */
     private List<ConstraintViolation> checkFacultyFreeToMove(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end, LocalDate date) {
         return timetableStaffingService.validateAssignment(cs, day, start, end, cs.getFaculty(), null, null, null, date).violations();
+    }
+
+    /** LIBRARY sessions (and any other deliberately-unstaffed session type) publish with no faculty
+     *  at all -- see TimetableGlobalAutoScheduleService#fillLibraryGaps -- so they have no faculty to
+     *  trade and must never reach a getFaculty().getId() call here. */
+    private void requireStaffed(ClassSchedule schedule) {
+        if (schedule.getFaculty() == null) {
+            throw new IllegalArgumentException(
+                "Session " + schedule.getId() + " has no faculty assigned and can't be staff-swapped");
+        }
     }
 
     private ClassSchedule requirePublishedRealOccurrence(Long classScheduleId, LocalDate date) {
