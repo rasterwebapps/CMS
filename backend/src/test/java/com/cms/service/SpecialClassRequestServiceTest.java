@@ -19,16 +19,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.DayRepeatRequest;
+import com.cms.dto.DayRepeatResult;
 import com.cms.dto.SpecialClassRequest;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Classroom;
+import com.cms.model.ClassSchedule;
+import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
 import com.cms.model.Period;
 import com.cms.model.SessionOccurrence;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
+import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.OccurrenceSource;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.repository.CalendarEventRepository;
@@ -98,7 +104,7 @@ class SpecialClassRequestServiceTest {
         period.setName("Period 1");
         period.setStartTime(LocalTime.of(9, 0));
         period.setEndTime(LocalTime.of(10, 0));
-        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        lenient().when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
 
         faculty = new Faculty();
         faculty.setId(100L);
@@ -371,5 +377,77 @@ class SpecialClassRequestServiceTest {
         assertThatThrownBy(() -> service.requestSingleSubject(requestOn(SUNDAY, List.of(10L, 11L)), 100L, "faculty"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("back-to-back in time");
+    }
+
+    // ── Day-repeat: same future-date/non-instruction-day gate as single-subject ─────────
+
+    /** A non-working Saturday -- term.workingSaturdayWeeks defaults to empty, so every Saturday
+     *  qualifies as a legitimate day-repeat target under requireNonInstructionDay, matching the
+     *  BR-55 example ("this Saturday follows Tuesday's schedule"). */
+    private static final LocalDate NON_WORKING_SATURDAY = LocalDate.of(2026, 9, 5).plusWeeks(4);
+
+    private CohortSection cohortSectionFor(long id, TermInstance term) {
+        CohortSection section = new CohortSection();
+        section.setId(id);
+        section.setTermInstance(term);
+        return section;
+    }
+
+    private DayRepeatRequest dayRepeatRequestOn(LocalDate targetDate) {
+        return new DayRepeatRequest(term.getId(), DayOfWeek.TUESDAY, targetDate, 300L, "Catch-up session");
+    }
+
+    @Test
+    void requestDayRepeat_copiesPublishedRowsOntoANonWorkingSaturday() {
+        CohortSection section = cohortSectionFor(300L, term);
+        when(cohortSectionRepository.findById(300L)).thenReturn(Optional.of(section));
+
+        ClassSchedule sourceRow = new ClassSchedule();
+        sourceRow.setId(900L);
+        sourceRow.setSubject(subject(1L, "Anatomy"));
+        sourceRow.setCourseOffering(offering(201L, term));
+        sourceRow.setCohortSection(section);
+        sourceRow.setPeriod(period);
+        sourceRow.setSessionType(ClassSessionType.THEORY);
+        sourceRow.setStatus(ClassScheduleStatus.PUBLISHED);
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(
+            term.getId(), ClassScheduleStatus.PUBLISHED, DayOfWeek.TUESDAY)).thenReturn(List.of(sourceRow));
+        when(sessionOccurrenceRepository.findByOccurrenceSourceInAndOccurrenceDateAndPeriod_Id(any(), any(), any()))
+            .thenReturn(List.of());
+        when(sessionOccurrenceRepository.saveAll(any())).thenAnswer(inv -> {
+            List<SessionOccurrence> toSave = inv.getArgument(0);
+            toSave.forEach(o -> o.setId(500L));
+            return toSave;
+        });
+
+        DayRepeatResult result = service.requestDayRepeat(dayRepeatRequestOn(NON_WORKING_SATURDAY), 100L, "faculty");
+
+        assertThat(result.created()).hasSize(1);
+        assertThat(result.skippedCount()).isZero();
+    }
+
+    @Test
+    void requestDayRepeat_rejectsAPastTargetDate() {
+        when(cohortSectionRepository.findById(300L)).thenReturn(Optional.of(cohortSectionFor(300L, term)));
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        assertThatThrownBy(() -> service.requestDayRepeat(dayRepeatRequestOn(yesterday), 100L, "faculty"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("today or a future date");
+    }
+
+    @Test
+    void requestDayRepeat_rejectsARegularInstructionDayTarget() {
+        when(cohortSectionRepository.findById(300L)).thenReturn(Optional.of(cohortSectionFor(300L, term)));
+        com.cms.model.AcademicYear academicYear = new com.cms.model.AcademicYear();
+        academicYear.setId(5L);
+        term.setAcademicYear(academicYear);
+        LocalDate monday = LocalDate.of(2026, 9, 7).plusWeeks(4);
+        when(calendarEventRepository.findOverlapping(eq(5L), eq(com.cms.model.enums.CalendarEventType.HOLIDAY), any(), any()))
+            .thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.requestDayRepeat(dayRepeatRequestOn(monday), 100L, "faculty"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("no regular instruction");
     }
 }

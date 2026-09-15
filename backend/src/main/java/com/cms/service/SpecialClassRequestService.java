@@ -185,6 +185,8 @@ public class SpecialClassRequestService {
             throw new IllegalArgumentException("Cohort section does not belong to the given term instance.");
         }
         requireNotLocked(term);
+        requireWithinTermAndFutureDate(request.targetDate(), term);
+        requireNonInstructionDay(request.targetDate(), term);
         DayOfWeek targetDay = dayOfWeek(request.targetDate());
 
         List<ClassSchedule> sourceRows = classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(
