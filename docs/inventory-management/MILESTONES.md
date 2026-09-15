@@ -4,7 +4,7 @@
 >
 > Looking for engineering-level detail (data model, technical decisions, open questions)? See [`README.md`](README.md) for the full documentation index. This file intentionally stays non-technical for sharing outside the engineering team.
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-15
 
 ---
 
@@ -19,7 +19,7 @@ Inventory Management is a new, standalone module being built for the platform �
 | Phase | Covers | Status |
 |---|---|---|
 | 0 | Discovery &amp; Design | 🟡 In Progress |
-| 1 | Foundation — Catalog, Stock Tracking &amp; Locations | 🟡 In Progress |
+| 1 | Foundation — Catalog, Stock Tracking &amp; Locations | ✅ Done |
 | 2 | Purchasing &amp; Suppliers | ✅ Done |
 | 3 | Receiving &amp; Stock Movement | ✅ Done |
 | 4 | Requests, Issues &amp; Returns | 🟡 In Progress (auto-restocking deliberately deferred — needs real product-policy input) |
@@ -47,23 +47,22 @@ Inventory Management is a new, standalone module being built for the platform �
 **Still to do:**
 - Design draft under review
 - One open question on how a future stand-alone version of this module (for a deployment that only needs Inventory and the location structure, nothing else) would be packaged — not yet decided, doesn't block the design review
-- A data-quality check needed against the existing lab-inventory feature before it can be migrated (see Phase 1)
 
 ---
 
 ## Phase 1 — Foundation: Catalog, Stock Tracking & Locations
 
-**Status: 🟡 In Progress**
+**Status: ✅ Done**
 
-**Covers:** The basic building blocks everything else depends on — a catalog of items (with categories, images, alternate names), units of measure, a record of what's in stock and where, and connecting stock locations to the platform's existing campus/location structure. Also includes bringing the platform's existing simple lab-inventory feature onto this new, more capable system.
+**Covers:** The basic building blocks everything else depends on — a catalog of items (with categories, images, alternate names), units of measure, a record of what's in stock and where, and connecting stock locations to the platform's existing campus/location structure. Also covers what to do with the platform's old, simple lab-inventory screen now that this new, more capable system exists.
 
-**Doing now:** The item catalog, the core stock-tracking record, and physical stock counts are all in place — items can be received, adjusted, or written off at a named stock location, with a running record of what's on hand and its value, and that record can now be checked against a physical count with variances reviewed before they're posted. Only the lab-inventory migration is left before this phase is fully done.
+**Shipped:** The item catalog, the core stock-tracking record, and physical stock counts are all in place — items can be received, adjusted, or written off at a named stock location, with a running record of what's on hand and its value, and that record can now be checked against a physical count with variances reviewed before they're posted. The old lab-inventory screen turned out to hold zero real data (confirmed against the database, not assumed) and was never actually used, so there was nothing to carry over — it was retired outright rather than migrated, with its unused permissions removed at the same time.
 
 **Todo:**
 - Item catalog with configurable categories (so different kinds of items — a lab chemical, a library book, an IT asset — can each carry the details relevant to them) — ✅ done (categories, units of measure, and the product catalog itself, each with its own screen; a product can now also carry one or more photos, one marked as the primary one)
 - Core stock-tracking record (what's on hand, where, in what batch, at what value) — ✅ done (stock locations tied to existing campus rooms, a Stock Balance report, and a way to record receipts/adjustments/write-offs; issuing stock to a requester and moving stock between locations wait on the workflows those depend on, which come in later phases)
 - Physical stock counts / reconciliation — ✅ done (a blind count against a location — the counter doesn't see the system's expected quantity — with any variance reviewed and either approved, which updates stock, or rejected as a counting error)
-- Migrate the existing simple lab-inventory feature onto the new system — confirmed deferred until the rest of the Foundation phase is in place; see "Not yet scheduled" note below
+- Old lab-inventory screen — ✅ retired (had zero real data; the new catalog/stock-tracking system above already covers everything it was meant to do)
 
 ---
 
