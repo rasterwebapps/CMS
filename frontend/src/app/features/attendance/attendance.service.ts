@@ -19,6 +19,10 @@ export class AttendanceService {
     return this.http.get<Attendance[]>(`${this.baseUrl}?studentId=${studentId}`);
   }
 
+  getMyAttendance(): Observable<Attendance[]> {
+    return this.http.get<Attendance[]>(`${this.baseUrl}/my`);
+  }
+
   getBySubject(subjectId: number): Observable<Attendance[]> {
     return this.http.get<Attendance[]>(`${this.baseUrl}?subjectId=${subjectId}`);
   }

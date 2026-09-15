@@ -30,6 +30,7 @@ export interface ExamResult {
   marksObtained?: number;
   grade?: string;
   status: string;
+  outcome?: string;
   createdAt: string;
   updatedAt: string;
 }

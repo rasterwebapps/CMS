@@ -1760,6 +1760,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'student/my-dashboard',
+    canActivate: withPermission('MY_ATTENDANCE_VIEW', 'MY_EXAM_RESULT_VIEW'),
+    loadComponent: () =>
+      import('./features/student-portal/student-dashboard/student-dashboard.component').then(
+        (m) => m.StudentDashboardComponent
+      ),
+  },
+  {
     path: 'timetable/draft-review',
     canActivate: withPermission('TIMETABLE_MANAGE'),
     loadComponent: () =>
