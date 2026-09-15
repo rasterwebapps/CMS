@@ -218,6 +218,55 @@ class FacultySessionSwapServiceTest {
     }
 
     @Test
+    void shouldSkipAnUnstaffedSameDaySessionRatherThanThrow() {
+        // A LIBRARY session publishes with no faculty at all (TimetableGlobalAutoScheduleService's
+        // Library fill never staffs it) -- it must be silently skipped as a candidate, not NPE.
+        ClassSchedule librarySession = new ClassSchedule();
+        librarySession.setId(302L);
+        librarySession.setFaculty(null);
+        librarySession.setSessionType(ClassSessionType.LIBRARY);
+        librarySession.setDayOfWeek(DayOfWeek.MONDAY);
+        librarySession.setTermInstance(termInstance);
+        librarySession.setPeriod(sessionB.getPeriod());
+        librarySession.setStatus(ClassScheduleStatus.PUBLISHED);
+
+        when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(sessionA));
+        when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(sessionA, sessionB, librarySession));
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(CLEAN);
+
+        List<StaffSwapCandidateResponse> candidates = service.findSwapCandidates(300L, date);
+
+        assertThat(candidates).extracting(StaffSwapCandidateResponse::classScheduleId).containsExactly(301L);
+    }
+
+    @Test
+    void shouldRejectFindCandidatesWhenTheSourceSessionItselfHasNoFaculty() {
+        sessionA.setFaculty(null);
+        when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(sessionA));
+        when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
+
+        assertThatThrownBy(() -> service.findSwapCandidates(300L, date))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("no faculty assigned");
+    }
+
+    @Test
+    void shouldRejectApplySwapWhenEitherSessionHasNoFaculty() {
+        sessionB.setFaculty(null);
+        when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(sessionA));
+        when(classScheduleRepository.findById(301L)).thenReturn(Optional.of(sessionB));
+        when(occurrenceService.occurrenceDatesFor(sessionA, date, date)).thenReturn(List.of(date));
+        when(occurrenceService.occurrenceDatesFor(sessionB, date, date)).thenReturn(List.of(date));
+
+        assertThatThrownBy(() -> service.applySwap(300L, 301L, date, "admin"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("no faculty assigned");
+    }
+
+    @Test
     void shouldRejectApplySwapBetweenSessionsTaughtByTheSameFaculty() {
         sessionB.setFaculty(facultyA);
         when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(sessionA));
