@@ -59,7 +59,7 @@ class TimetableOccurrenceServiceTest {
 
     @Test
     void shouldMergeHeldAndCancelledOccurrencesSortedByDate() {
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(schedule));
         when(occurrenceService.occurrenceDatesForSchedules(List.of(schedule), LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31)))
             .thenReturn(Map.of(100L, List.of(LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 19))));
@@ -83,7 +83,7 @@ class TimetableOccurrenceServiceTest {
 
     @Test
     void shouldReturnOnlyHeldWhenNothingIsCancelled() {
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(schedule));
         when(occurrenceService.occurrenceDatesForSchedules(List.of(schedule), LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31)))
             .thenReturn(Map.of(100L, List.of(LocalDate.of(2024, 8, 5))));
@@ -109,7 +109,7 @@ class TimetableOccurrenceServiceTest {
         substituted.setOccurrenceStatus(OccurrenceStatus.SUBSTITUTED);
         substituted.setEffectiveFaculty(substitute);
 
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(schedule));
         when(occurrenceService.occurrenceDatesForSchedules(List.of(schedule), LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31)))
             .thenReturn(Map.of(100L, List.of(LocalDate.of(2024, 8, 5), LocalDate.of(2024, 8, 19))));

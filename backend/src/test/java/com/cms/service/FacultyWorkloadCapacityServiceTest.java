@@ -56,7 +56,7 @@ class FacultyWorkloadCapacityServiceTest {
 
         when(termInstanceRepository.findById(10L)).thenReturn(java.util.Optional.of(term));
         lenient().when(timetableGlobalAutoScheduleService.getTermTotalDemandByFaculty(10L)).thenReturn(Map.of());
-        lenient().when(classScheduleRepository.findByTermInstanceIdAndStatus(eq(10L), org.mockito.ArgumentMatchers.any()))
+        lenient().when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(eq(10L), org.mockito.ArgumentMatchers.any()))
             .thenReturn(List.of());
     }
 
@@ -123,7 +123,7 @@ class FacultyWorkloadCapacityServiceTest {
         Faculty f = faculty(2L, "Sam", designation, null);
 
         // Two 60-minute weekly sessions => 2.0 hours/week committed.
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(schedule(f, 60), schedule(f, 60)));
         when(facultyRepository.findAllById(java.util.Set.of(2L))).thenReturn(List.of(f));
         when(facultyAvailabilityRepository.findByFacultyIdInOrderByDayOfWeekAscStartTimeAsc(List.of(2L)))
@@ -161,7 +161,7 @@ class FacultyWorkloadCapacityServiceTest {
         DesignationMaster designation = designation(10);
         Faculty f = faculty(4L, "Priya", designation, 25);
 
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(schedule(f, 60)));
         when(facultyRepository.findAllById(java.util.Set.of(4L))).thenReturn(List.of(f));
         when(facultyAvailabilityRepository.findByFacultyIdInOrderByDayOfWeekAscStartTimeAsc(List.of(4L)))
@@ -178,7 +178,7 @@ class FacultyWorkloadCapacityServiceTest {
         Faculty f = faculty(5L, "Ravi", designation, null);
 
         // 12 hours/week committed against a 10-hour capacity minus 2 hours blocked (net 8) => over.
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(schedule(f, 60 * 12)));
         when(facultyRepository.findAllById(java.util.Set.of(5L))).thenReturn(List.of(f));
         when(facultyAvailabilityRepository.findByFacultyIdInOrderByDayOfWeekAscStartTimeAsc(List.of(5L)))

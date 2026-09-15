@@ -69,7 +69,10 @@ public class TimetableConflictInspectorService {
         TermInstance term = termInstanceRepository.findById(termInstanceId)
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
 
-        List<ClassSchedule> cells = classScheduleRepository.findByTermInstanceId(termInstanceId).stream()
+        // Active rows only: every auto-schedule rebuild switches the previous run's draft off rather
+        // than deleting it, and each switched-off copy sits in the same slot as its replacement --
+        // scanning them reported every rebuilt session as a double-booking of itself.
+        List<ClassSchedule> cells = classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
             .filter(cs -> cs.getPeriod() != null)
             .toList();
 

@@ -2129,6 +2129,24 @@ class TimetableGlobalAutoScheduleServiceTest {
         verify(timetableSkeletonService, never()).getCohortSkeleton(anyLong(), anyLong());
     }
 
+    // ── Pre-run "would this overwrite existing draft content" check ────
+
+    @Test
+    void hasExistingDraftContent_true_whenAnActiveDraftRowExistsInTheTerm() {
+        when(classScheduleRepository.existsByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(true);
+
+        assertThat(service.hasExistingDraftContent(10L)).isTrue();
+    }
+
+    @Test
+    void hasExistingDraftContent_false_whenNoActiveDraftRowExistsInTheTerm() {
+        when(classScheduleRepository.existsByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(false);
+
+        assertThat(service.hasExistingDraftContent(10L)).isFalse();
+    }
+
     // ── Live single-(faculty, cohort) capacity check (Course Offerings) ─
 
     @Test

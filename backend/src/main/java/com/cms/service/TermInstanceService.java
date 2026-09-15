@@ -184,7 +184,7 @@ public class TermInstanceService {
                 .map(FeeDemandDto::outstandingAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             draftTimetableSessionCount = classScheduleRepository
-                .findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT).size();
+                .findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT).size();
         }
 
         return new TermAdvanceChecklistResponse(targetStatus, cohortsWithoutCurriculum,

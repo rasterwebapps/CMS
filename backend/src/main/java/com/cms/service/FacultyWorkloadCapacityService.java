@@ -78,7 +78,7 @@ public class FacultyWorkloadCapacityService {
         // hard-cap gate's own committed-hours count for the same faculty/term.
         Map<Long, Double> committedByFaculty = new HashMap<>();
         for (ClassSchedule schedule : Stream.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)
-                .flatMap(status -> classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, status).stream())
+                .flatMap(status -> classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, status).stream())
                 .toList()) {
             Faculty faculty = schedule.getFaculty();
             if (faculty == null || faculty.getId() == null || schedule.getPeriod() == null) {

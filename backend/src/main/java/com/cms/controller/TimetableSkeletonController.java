@@ -174,6 +174,17 @@ public class TimetableSkeletonController {
         return ResponseEntity.ok(timetableGlobalAutoScheduleService.checkPrerequisites(termInstanceId, cohortId));
     }
 
+    /** Read-only — whether this term already has any active DRAFT session placed, for any cohort.
+     *  The frontend calls this before opening the Global Auto-Schedule flyout for an "All cohorts"
+     *  run, to confirm with the admin up front that running will overwrite what's already there —
+     *  a single-cohort run answers the equivalent question from the grid already on screen instead,
+     *  with no extra call needed. */
+    @GetMapping("/global-auto-place/has-existing-draft")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE')")
+    public ResponseEntity<Boolean> hasExistingDraftContent(@RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.hasExistingDraftContent(termInstanceId));
+    }
+
     /** Read-only — sums every faculty's real total term-hour demand across every offering they're
      *  bound to, across every cohort in the term, against their real term capacity. The frontend
      *  must call this first and never call {@link #globalAutoPlace} if it comes back non-empty. */

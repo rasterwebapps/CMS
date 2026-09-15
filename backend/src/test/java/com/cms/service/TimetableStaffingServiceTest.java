@@ -159,7 +159,7 @@ class TimetableStaffingServiceTest {
         staffed.setSubject(subject);
         staffed.setPeriod(period);
 
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(cell, staffed));
 
         List<UnstaffedCellResponse> result = service.getUnstaffedCells(10L);

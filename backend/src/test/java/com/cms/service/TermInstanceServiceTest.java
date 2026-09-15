@@ -539,7 +539,7 @@ class TermInstanceServiceTest {
             outstandingDemand(java.math.BigDecimal.valueOf(2500))));
         com.cms.model.ClassSchedule draft1 = new com.cms.model.ClassSchedule();
         com.cms.model.ClassSchedule draft2 = new com.cms.model.ClassSchedule();
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(draft1, draft2));
 
         TermAdvanceChecklistResponse response = termInstanceService.getAdvanceChecklist(10L, TermInstanceStatus.LOCKED);
@@ -555,7 +555,7 @@ class TermInstanceServiceTest {
     void shouldReturnZeroesForLockedTargetWhenTermIsClean() {
         when(termInstanceRepository.existsById(10L)).thenReturn(true);
         when(feeDemandService.getOutstandingDemands(10L)).thenReturn(List.of());
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of());
 
         TermAdvanceChecklistResponse response = termInstanceService.getAdvanceChecklist(10L, TermInstanceStatus.LOCKED);

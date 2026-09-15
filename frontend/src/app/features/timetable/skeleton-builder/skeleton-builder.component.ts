@@ -454,6 +454,53 @@ export class SkeletonBuilderComponent implements OnInit {
     this.showGlobalAutoSchedule.set(true);
   }
 
+  /** Single entry point for the toolbar's one Run button, in both its shapes — "Run Automation"
+   *  for a single cohort, "Run Global Auto-Schedule" for "All cohorts" (same handler, same slot,
+   *  only the label swaps — see the template). A run's rebuild clears every non-pinned DRAFT cell
+   *  in scope before placing anything fresh, so this confirms with the admin FIRST whenever that
+   *  scope already has draft content — pinned or not, since either kind means the admin has already
+   *  put real work into this grid — rather than opening the existing prerequisite checklist flyout
+   *  straight away and letting the overwrite happen as a side effect of ticking through it. A single
+   *  cohort already has its grid on screen, so {@link hasNoCells} answers this instantly with no
+   *  extra call; "All cohorts" mode never loads a grid, so it asks the term-wide equivalent from the
+   *  backend instead. */
+  protected confirmAndOpenGlobalAutoSchedule(): void {
+    if (this.allCohortsSelected()) {
+      const termInstanceId = this.selectedTermInstanceId;
+      if (!termInstanceId) return;
+      this.skeletonService.hasExistingDraftContent(termInstanceId).subscribe({
+        next: (hasExisting) => {
+          if (hasExisting) {
+            this.confirmOverwrite('This term already has draft sessions placed for one or more cohorts.');
+          } else {
+            this.openGlobalAutoSchedule();
+          }
+        },
+        error: () => this.toast.error('Failed to check for existing draft sessions'),
+      });
+      return;
+    }
+    if (!this.hasNoCells()) {
+      const cohortName = this.skeleton()?.cohortName ?? 'This cohort';
+      this.confirmOverwrite(`${cohortName} already has draft sessions placed.`);
+      return;
+    }
+    this.openGlobalAutoSchedule();
+  }
+
+  private confirmOverwrite(situation: string): void {
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Overwrite Existing Draft?',
+        message: `${situation} Running automation now will clear everything that isn't pinned and rebuild from scratch — pinned sessions stay exactly where they are. Continue?`,
+        confirmText: 'Run Anyway',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.openGlobalAutoSchedule();
+    });
+  }
+
   protected onGlobalAutoScheduleClosed(): void {
     this.showGlobalAutoSchedule.set(false);
   }
@@ -506,11 +553,11 @@ export class SkeletonBuilderComponent implements OnInit {
   }
 
   /** Fires alongside {@link onWorkingSaturdaysSaved} only when the admin picked "Run Automation
-   *  now" on the flyout's post-save follow-up — opens the same Global Auto-Schedule flyout the
-   *  toolbar button does, so they don't have to close this one and go hunt for that button
+   *  now" on the flyout's post-save follow-up — routes through the same overwrite-confirmation gate
+   *  as the toolbar button, so they don't have to close this one and go hunt for that button
    *  themselves. */
   protected onWorkingSaturdaysRunAutomation(): void {
-    this.openGlobalAutoSchedule();
+    this.confirmAndOpenGlobalAutoSchedule();
   }
 
   ngOnInit(): void {
@@ -579,15 +626,25 @@ export class SkeletonBuilderComponent implements OnInit {
 
   /** Cohorts aren't scoped to a single academic year (an active cohort keeps appearing across
    *  every term it's still enrolled in), so this only needs to run once, mirroring Capacity
-   *  Planner's own cohort list. */
+   *  Planner's own cohort list. Defaults to "All cohorts…" for anyone who can actually run it —
+   *  placing every cohort's whole term shortfall at once is the main job this screen exists for,
+   *  not an afterthought reached by opening a dropdown. Falls back to the first individual cohort
+   *  for anyone without {@code TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE}, since the "All cohorts…"
+   *  option itself never appears in their dropdown (see the template's cohort `<select>`). */
   private loadCohorts(): void {
     this.cohortsLoading.set(true);
     this.academicYearService.getAllCohorts().subscribe({
       next: (cohorts) => {
         this.cohorts.set(cohorts);
         this.cohortsLoading.set(false);
-        this.selectedCohortId = cohorts[0]?.id ?? null;
-        this.cohortSelection = this.selectedCohortId;
+        if (this.canGlobalAutoPlace() && cohorts.length > 0) {
+          this.allCohortsSelected.set(true);
+          this.cohortSelection = 'ALL';
+          this.selectedCohortId = null;
+        } else {
+          this.selectedCohortId = cohorts[0]?.id ?? null;
+          this.cohortSelection = this.selectedCohortId;
+        }
         this.tryLoadSkeleton();
       },
       error: () => { this.toast.error('Failed to load cohorts'); this.cohortsLoading.set(false); },

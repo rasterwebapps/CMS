@@ -57,7 +57,7 @@ public class TimetableOccurrenceService {
             ProfileIdentity identity, Long termInstanceId, LocalDate from, LocalDate to, String scope) {
         List<ClassSchedule> schedules = "personal".equalsIgnoreCase(scope)
             ? personalTimetableService.findPublishedSchedules(identity, termInstanceId)
-            : classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
+            : classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.PUBLISHED);
 
         Map<Long, List<LocalDate>> datesBySchedule =
             occurrenceService.occurrenceDatesForSchedules(schedules, from, to);

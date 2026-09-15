@@ -1,6 +1,9 @@
+// .content-card carries a global `flex: 1` meant for the page's one table card. On this summary card
+// that let it shrink to a single line whenever the violations table below filled the page, clipping
+// the count tiles. It keeps its natural height; .mlp-page's own 16px gap already spaces it.
 .ci-summary-card {
+  flex: 0 0 auto;
   padding: 20px 24px;
-  margin-bottom: 16px;
 }
 
 .ci-summary-card__row {

@@ -99,12 +99,24 @@ public final class AutoScheduleRunCache {
     /** Called right after a real staffing save — mutates the cached copy of this cell (a different
      *  Java instance than {@code staffCell}'s own REQUIRES_NEW-transaction-scoped entity, since
      *  each call opens a fresh persistence context) so later workload/conflict checks in the same
-     *  run see the new faculty immediately. */
-    public void recordStaffing(Long classScheduleId, Faculty faculty) {
+     *  run see the new faculty immediately.
+     *
+     *  <p>The venue is copied too, not just the faculty: staffing is also the moment a placed cell
+     *  gets its committed Classroom/Lab/ClinicalVenue. Copying only the faculty left every cached
+     *  LAB cell venue-less for the rest of the run, so the room-free check saw an empty lab and
+     *  stacked the next batch into it at the same slot -- local dev had four 30-seat batches in
+     *  the one Computer lab at Monday Periods 7-8, invisible until the Conflict Inspector re-read
+     *  the real rows from the database. */
+    public void recordStaffing(ClassSchedule staffed) {
         cells.stream()
-            .filter(cs -> cs.getId().equals(classScheduleId))
+            .filter(cs -> cs.getId().equals(staffed.getId()))
             .findFirst()
-            .ifPresent(cs -> cs.setFaculty(faculty));
+            .ifPresent(cs -> {
+                cs.setFaculty(staffed.getFaculty());
+                cs.setClassroom(staffed.getClassroom());
+                cs.setLab(staffed.getLab());
+                cs.setClinicalVenue(staffed.getClinicalVenue());
+            });
     }
 
     /** Memoizes {@code TimetableBlockedPeriodChecker#blockReason}'s two-repository-call result by

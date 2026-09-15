@@ -203,3 +203,49 @@ This file is the append-only chronological record of scope/behaviour decisions b
 - **Schema (V512):** `timetable.library_sessions_per_week` 2 → 1 (guarded on the V412 seed value), its description updated, and a new `timetable.library_extra_session_min_free_periods` = 8. Non-destructive.
 - **`TimetableGlobalAutoScheduleService`:** default Library quota 1; new `fillExtraLibrarySession` pass after Sports, in the same most-constrained-cohort-first order; `fillLibraryGaps`' per-audience search moved into `placeLibraryBlocks`, shared by both passes; `weeklyFreePeriods` measures the week.
 - **Docs:** BR-56 change log and filler rules; manual test cases TC-GAS-005, TC-GAS-018 and new TC-GAS-024.
+
+---
+
+## 2026-09-15 — Switched-off sessions aren't part of the timetable; a run can't double-book a lab (bug fix)
+
+**Prompted by:** right after an automation run the Conflict Inspector listed dozens of clashes and said "Blocks publish". The user asked: *"Are these real issues? We ran auto schedule finally with all bugs fixed! Why this screen showing so many conflicts"*.
+
+**Evidence (local, 2026-2027 ODD):**
+- 2,713 placed rows, only 130 active. The other 2,583 were earlier runs' drafts, which every rebuild switches off instead of deleting (since OC-173). Each leftover sits in the same slot as its replacement, and the Inspector scanned them all, so every rebuilt session was reported as clashing with itself. Among the active rows there were no faculty double-bookings.
+- 32 real clash pairs across five labs, all 30-seat labs holding 30-seat batches: the Computer lab and the Nursing Foundation Lab each held four batches at Monday Periods 7–8; the Child Health and Medical Surgical Labs two each at Tuesday Periods 1–2; the OBG Lab two at Wednesday Periods 7–8.
+- Cause of the lab clashes: staffing is when a placed LAB row gets its lab, but the run's in-memory copy of the week (`AutoScheduleRunCache`) only took the new faculty across. For the rest of the run the lab looked empty, so the room check let the next batch into it. The Inspector reads the database, which is why only it saw them.
+
+**Decisions:**
+- A switched-off session is not part of a term's timetable anywhere: the Inspector, Approve and revert-to-draft, the unstaffed-sessions list, the draft and published views, the live calendar, faculty workload hours and the term checklist's draft count all ignore it. Discard still deletes, and counts, every row.
+- The run cache records the room committed at staffing (classroom, lab or clinical venue) together with the faculty.
+- Leftover rows stay in the database; nothing is deleted.
+
+**Impact:**
+- **`ClassScheduleRepository`:** `findByTermInstanceIdAndIsActiveTrue`, `findByTermInstanceIdAndStatusAndIsActiveTrue`.
+- **Switched to them:** `TimetableConflictInspectorService`, `TimetableGenerationService` (approve, revertToDraft), `TimetableStaffingService#getUnstaffedCells`, `ClassScheduleService#findByTermInstanceIdAndStatus` (`/timetables/draft` and the published list), `TimetableOccurrenceService`, `FacultyWorkloadCapacityService`, `TermInstanceService`.
+- **`AutoScheduleRunCache.recordStaffing(ClassSchedule)`** copies faculty, classroom, lab and clinical venue.
+- **Frontend:** the Conflict Inspector's summary card no longer collapses to one line and hides its counts.
+- **No schema change.**
+- **Tests:** new `AutoScheduleRunCacheTest`; regression tests in `TimetableConflictInspectorServiceTest` and `TimetableGenerationServiceTest`.
+- **Docs:** BR-56 change log; manual test case TC-GAS-025.
+
+---
+
+## 2026-09-15 — All cohorts by default; one Run button; confirm before overwriting a draft (OC-227 follow-up)
+
+**Prompted by:** the user asked for the Run Automation / Run Global Auto-Schedule button to always sit in the same spot on the right of the toolbar (relabeling by scope instead of two separately-placed buttons), for **All cohorts…** to be the cohort dropdown's default, and — after a specialist round on what "already generated content" should mean — for a confirmation before a run overwrites an already-placed draft.
+
+**Decisions (specialist review):**
+- **One button, one slot.** The toolbar's right side (next to Configure Working Saturdays) always shows a single button: **Run Global Auto-Schedule** while "All cohorts…" is selected, **Run Automation** for a single cohort — same click handler and slot either way. The All-cohorts empty-state card keeps its explanatory text but drops its own duplicate action button, since the toolbar one now covers it.
+- **Default selection.** The cohort dropdown defaults to **All cohorts…** on load for anyone holding `TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE` — placing every cohort's whole term shortfall at once is this screen's main job. Anyone without that permission (who never sees the "All cohorts…" option at all) still defaults to the first individual cohort, unchanged.
+- **What counts as "already generated content."** Per the user: any draft session already placed for the target scope, pinned or unpinned — not narrowed to only the non-pinned rows a rebuild would actually clear. A single cohort's own grid already answers this instantly (`hasNoCells`); an "All cohorts" run has no grid loaded, so a new read-only check answers the term-wide equivalent (any cohort with an active DRAFT row).
+- **Where the confirmation sits.** A plain confirm dialog fires first, before the existing prerequisite checklist flyout even opens — not folded in as one more checklist tick — so overwriting existing work is a decision made up front, not discovered partway through the routine capacity/faculty checklist. Cancel opens nothing; confirming opens the checklist exactly as before. Reused by the Working Saturdays flyout's "Run Automation now" follow-up too, since that path can just as easily be running back over existing content.
+
+**Impact:**
+- **`ClassScheduleRepository`:** `existsByTermInstanceIdAndStatusAndIsActiveTrue`.
+- **`TimetableGlobalAutoScheduleService.hasExistingDraftContent(termInstanceId)`** — read-only, checks for any active DRAFT row anywhere in the term.
+- **Endpoint:** `GET /timetables/skeleton/global-auto-place/has-existing-draft` (`TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE`).
+- **Frontend:** `SkeletonBuilderComponent.confirmAndOpenGlobalAutoSchedule()` is the one entry point for the toolbar button, both empty-state action buttons, and the Working Saturdays "Run Automation now" follow-up; `ConfirmDialogComponent` reused for the overwrite prompt. `loadCohorts()` defaults `cohortSelection`/`allCohortsSelected` to ALL when permitted.
+- **No schema change.**
+- **Tests:** `hasExistingDraftContent_true_whenAnActiveDraftRowExistsInTheTerm` / `_false_...` in `TimetableGlobalAutoScheduleServiceTest`.
+- **Docs:** BR-56 change log; manual test case TC-GAS-026.

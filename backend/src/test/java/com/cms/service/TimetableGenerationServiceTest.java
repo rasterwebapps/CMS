@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -137,7 +138,7 @@ class TimetableGenerationServiceTest {
         draft2.setFaculty(faculty);
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(draft1, draft2));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
         when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
@@ -148,6 +149,37 @@ class TimetableGenerationServiceTest {
         assertThat(draft1.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
         assertThat(draft2.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
         verify(auditLogService).record("admin", "TIMETABLE_APPROVED", "TermInstance", "10", "2 session(s) approved");
+    }
+
+    @Test
+    void shouldNeverPublishSwitchedOffLeftoversFromEarlierAutoScheduleRuns() {
+        // Every auto-schedule rebuild switches the previous draft off rather than deleting it. Those
+        // leftovers are still DRAFT, so an unfiltered draft query handed them to approve, which
+        // published every one of them onto the live timetable alongside the real week.
+        ClassSchedule current = new ClassSchedule();
+        current.setId(1L);
+        current.setStatus(ClassScheduleStatus.DRAFT);
+        current.setFaculty(faculty);
+        ClassSchedule leftover = new ClassSchedule();
+        leftover.setId(2L);
+        leftover.setStatus(ClassScheduleStatus.DRAFT);
+        leftover.setFaculty(faculty);
+        leftover.setIsActive(false);
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(current));
+        lenient().when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(current, leftover));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+
+        TimetableActionResponse response = service.approve(10L, "admin");
+
+        assertThat(response.affectedCount()).isEqualTo(1);
+        assertThat(current.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
+        assertThat(leftover.getStatus()).isEqualTo(ClassScheduleStatus.DRAFT);
+        verify(classScheduleRepository, never()).save(leftover);
     }
 
     @Test
@@ -174,7 +206,7 @@ class TimetableGenerationServiceTest {
         unstaffed.setStatus(ClassScheduleStatus.DRAFT);
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed, unstaffed));
 
         assertThatThrownBy(() -> service.approve(10L, "admin"))
@@ -194,7 +226,7 @@ class TimetableGenerationServiceTest {
         staffed.setFaculty(faculty);
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed));
         when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(10L)).thenReturn(List.of(
             new com.cms.dto.CourseOfferingFacultySummaryDto(1L, List.of(), com.cms.model.enums.OfferingAssignmentStatus.NONE)));
@@ -216,7 +248,7 @@ class TimetableGenerationServiceTest {
         staffed.setFaculty(faculty);
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed));
         ConstraintViolation violation = new ConstraintViolation(
             "STAFFING_FACULTY_CONFLICT", "This faculty member is already scheduled for another session at this exact day and time.");
@@ -237,7 +269,7 @@ class TimetableGenerationServiceTest {
     @Test
     void shouldThrowWhenApprovingWithNoDrafts() {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> service.approve(10L, "admin"))
@@ -254,7 +286,7 @@ class TimetableGenerationServiceTest {
         published2.setStatus(ClassScheduleStatus.PUBLISHED);
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(published1, published2));
         when(labAttendanceRepository.existsByLabScheduleTermInstanceId(10L)).thenReturn(false);
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -280,7 +312,7 @@ class TimetableGenerationServiceTest {
     @Test
     void shouldThrowWhenRevertingWithNoPublishedRows() {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> service.revertToDraft(10L, "admin"))
@@ -294,7 +326,7 @@ class TimetableGenerationServiceTest {
         published1.setStatus(ClassScheduleStatus.PUBLISHED);
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(published1));
         when(labAttendanceRepository.existsByLabScheduleTermInstanceId(10L)).thenReturn(true);
 

@@ -116,6 +116,15 @@ export class SkeletonBuilderService {
     return this.http.get<GlobalAutoSchedulePrerequisites>(`${this.baseUrl}/global-auto-place/prerequisites`, { params });
   }
 
+  /** Whether this term already has any active DRAFT session placed, for any cohort — checked before
+   *  opening the Global Auto-Schedule flyout for an "All cohorts" run, so the admin confirms
+   *  up front that running will overwrite what's already there. */
+  hasExistingDraftContent(termInstanceId: number): Observable<boolean> {
+    return this.http.get<boolean>(`${this.baseUrl}/global-auto-place/has-existing-draft`, {
+      params: { termInstanceId: termInstanceId.toString() },
+    });
+  }
+
   precheckGlobalAutoPlace(termInstanceId: number): Observable<GlobalCapacityPrecheckResult> {
     return this.http.get<GlobalCapacityPrecheckResult>(`${this.baseUrl}/global-auto-place/precheck`, {
       params: { termInstanceId: termInstanceId.toString() },

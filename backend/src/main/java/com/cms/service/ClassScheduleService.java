@@ -280,7 +280,7 @@ public class ClassScheduleService {
     }
 
     public List<ClassScheduleResponse> findByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status) {
-        return classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, status).stream()
+        return classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, status).stream()
             .map(this::toResponse).toList();
     }
 

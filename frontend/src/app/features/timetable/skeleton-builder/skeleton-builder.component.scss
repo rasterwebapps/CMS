@@ -2,6 +2,18 @@
 // Skeleton Builder
 // ─────────────────────────────────────────────────────────────
 
+// Pushes the Run Automation / Configure Working Saturdays buttons to the
+// right of the toolbar row, filters staying left — same local pattern as
+// receipts-list.component.scss's .toolbar-right (ViewEncapsulation means
+// that rule doesn't reach this component, so it's redefined here).
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
 .loading-container {
   display: flex;
   justify-content: center;

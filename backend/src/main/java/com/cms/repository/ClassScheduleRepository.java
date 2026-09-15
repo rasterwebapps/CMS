@@ -39,6 +39,15 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     List<ClassSchedule> findByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);
 
+    /** Active rows only. Every Global Auto-Schedule rebuild switches the previous run's DRAFT rows
+     *  off ({@code isActive = false}) instead of deleting them, so a term carries many inactive
+     *  copies of its week. Anything that means "this term's timetable" -- approve, the conflict
+     *  scan, counts, the draft/published views -- must read through these, not the unfiltered
+     *  finders above, or it acts on (and double-counts) every leftover copy. */
+    List<ClassSchedule> findByTermInstanceIdAndIsActiveTrue(Long termInstanceId);
+
+    List<ClassSchedule> findByTermInstanceIdAndStatusAndIsActiveTrue(Long termInstanceId, ClassScheduleStatus status);
+
     List<ClassSchedule> findByTermInstanceIdAndStatusAndDayOfWeek(
         Long termInstanceId, ClassScheduleStatus status, DayOfWeek dayOfWeek);
 
@@ -85,6 +94,12 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     boolean existsByCourseOffering_Subject_Id(Long subjectId);
 
     boolean existsByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);
+
+    /** Powers the Skeleton Builder's pre-run "you're about to overwrite what's already there"
+     *  confirmation for an All-Cohorts Global Auto-Schedule run — {@code isActive = true} excludes
+     *  rows an earlier rebuild already soft-deleted, so a stale deactivated DRAFT row never falsely
+     *  triggers the warning. */
+    boolean existsByTermInstanceIdAndStatusAndIsActiveTrue(Long termInstanceId, ClassScheduleStatus status);
 
     void deleteByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);
 

@@ -223,3 +223,21 @@
 |-------------|-------|
 | **Action**  | Run automation on a term where one cohort's week is tight (e.g. Sem 3/5/7 with hospital duty three days a week) and another has plenty of spare periods (e.g. BSc Nursing 2025-2029). Then set `timetable.library_extra_session_min_free_periods` to 99 on System Configuration and run again |
 | **Expected**| Every section has one 2-period Library session. A section whose week still had 8 or more free periods after curriculum, Library and Sports also has a second Library session on another day; the tight cohort has only one, with no note or warning about it. With the setting at 99, no section gets a second session and the report is otherwise unchanged. |
+
+---
+
+### TC-GAS-025: No lab double-booking, and the Conflict Inspector ignores earlier runs
+
+| Field       | Value |
+|-------------|-------|
+| **Action**  | In a draft term where two subjects each split a section into Batch 1 and Batch 2 in the same lab (e.g. NRST405 and EDUC315 in the Computer lab), run automation twice in a row. Open Conflict Inspector for the term, then Timetable Draft Review and click **Approve** |
+| **Expected**| No lab holds two batches at the same day and period. Conflict Inspector's summary card shows its three counts, only this run's sessions are counted in "Sessions scanned", and the term reads "Clean — ready to publish" (no "already scheduled for another session" rows left over from the first run). Approve publishes only this run's sessions; the live Timetable shows each session once. |
+
+---
+
+### TC-GAS-026: All cohorts by default; one Run button on the right; confirm before overwriting a draft
+
+| Field       | Value |
+|-------------|-------|
+| **Action**  | Open Skeleton Builder as an admin who holds `TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE`. Note the cohort dropdown and the toolbar's right-hand button. Switch to a single cohort that already has draft sessions placed (pinned or not) and click the button; Cancel, then click again and confirm. Switch back to **All cohorts…** on a term where at least one cohort already has draft content and click the button; Cancel, then confirm. Finally pick a cohort/term combination with an empty grid and click the button. Repeat the initial page load as an admin who holds `TIMETABLE_WORKING_SATURDAYS_MANAGE` but not `TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE` |
+| **Expected**| On load, the cohort dropdown defaults to **All cohorts…** and the toolbar's right-hand button reads **Run Global Auto-Schedule**, in the same slot next to the card border as **Configure Working Saturdays**. Selecting a single cohort relabels that same button **Run Automation**, still in the same slot. Clicking it against a cohort with existing draft content shows an "Overwrite Existing Draft?" confirmation naming that cohort; Cancel leaves the grid untouched and opens nothing; confirming opens the usual prerequisite checklist. The same confirmation, worded for the whole term, appears for an **All cohorts** run when any cohort in the term already has draft content. Against an empty grid, the checklist opens directly with no confirmation. The centered "Global Auto-Schedule" card in All-cohorts view no longer has its own action button — only the toolbar one. For the admin without the Global Auto-Place permission, the dropdown has no "All cohorts…" option and defaults to the first individual cohort, matching pre-existing behavior. |

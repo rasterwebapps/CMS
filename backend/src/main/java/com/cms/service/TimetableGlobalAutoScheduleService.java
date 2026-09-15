@@ -1003,6 +1003,19 @@ public class TimetableGlobalAutoScheduleService {
     // Prerequisite check
     // ─────────────────────────────────────────────────────────────────────
 
+    /** Backs the Skeleton Builder's pre-run confirmation for an All-Cohorts Global Auto-Schedule
+     *  run: does this term already have ANY active DRAFT session placed, for any cohort? A
+     *  single-cohort run answers the same question client-side from the grid already on screen
+     *  (see {@code hasNoCells} on the frontend), but "All cohorts" mode never loads a grid, so there
+     *  is nothing local to check against — this is the cheap, term-wide equivalent, checked BEFORE
+     *  the existing prerequisite checklist even opens, so the admin sees the "this will overwrite
+     *  what's already there" warning up front rather than buried among capacity/faculty checks. */
+    @Transactional(readOnly = true)
+    public boolean hasExistingDraftContent(Long termInstanceId) {
+        return classScheduleRepository.existsByTermInstanceIdAndStatusAndIsActiveTrue(
+            termInstanceId, ClassScheduleStatus.DRAFT);
+    }
+
     /** Consolidated, read-only "is this term/cohort ready for automation" report — combines every
      *  known-in-advance gap (offerings/elective members with no faculty bound, faculty over
      *  capacity) into one call so the frontend can show all shortfalls as actionable links up front

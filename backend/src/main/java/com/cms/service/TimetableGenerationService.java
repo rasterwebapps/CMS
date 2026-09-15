@@ -96,7 +96,7 @@ public class TimetableGenerationService {
     public TimetableActionResponse approve(Long termInstanceId, String actor) {
         TermInstance term = requireTermInstance(termInstanceId);
         requireNotLocked(term);
-        List<ClassSchedule> drafts = classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT);
+        List<ClassSchedule> drafts = classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT);
         if (drafts.isEmpty()) {
             throw new ResourceNotFoundException("No draft timetable found for term instance id: " + termInstanceId);
         }
@@ -107,7 +107,7 @@ public class TimetableGenerationService {
         // `drafts` list above is now stale for whichever rows it just staffed -- re-fetch before
         // computing what's still actually missing.
         timetableStaffingAutoAssignService.autoStaff(termInstanceId);
-        drafts = classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT);
+        drafts = classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT);
         // A skeleton cell with no faculty yet would otherwise fail with a raw
         // chk_class_schedule_session_shape violation the moment its status flips to PUBLISHED --
         // catch it here first with a message that actually tells the admin what to go do (open
@@ -174,7 +174,7 @@ public class TimetableGenerationService {
     public TimetableActionResponse revertToDraft(Long termInstanceId, String actor) {
         TermInstance term = requireTermInstance(termInstanceId);
         requireNotLocked(term);
-        List<ClassSchedule> published = classScheduleRepository.findByTermInstanceIdAndStatus(
+        List<ClassSchedule> published = classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(
             termInstanceId, ClassScheduleStatus.PUBLISHED);
         if (published.isEmpty()) {
             throw new ResourceNotFoundException("No published timetable found for term instance id: " + termInstanceId);

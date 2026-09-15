@@ -115,7 +115,7 @@ public class TimetableStaffingService {
     }
 
     public List<UnstaffedCellResponse> getUnstaffedCells(Long termInstanceId) {
-        return classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT)
+        return classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT)
             .stream()
             .filter(cs -> cs.getFaculty() == null)
             // LIBRARY rows are deliberately saved with faculty=null forever (see
@@ -184,7 +184,7 @@ public class TimetableStaffingService {
             stagings.get(i).applyRoom().run();
             member.setFaculty(faculty);
             classScheduleRepository.save(member);
-            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordStaffing(member.getId(), faculty));
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordStaffing(member));
         }
         return toResponse(cs);
     }
