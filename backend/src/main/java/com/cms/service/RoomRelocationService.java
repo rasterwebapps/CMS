@@ -106,7 +106,7 @@ public class RoomRelocationService {
                     }
                 }
             }
-            case LIBRARY -> {
+            case LIBRARY, SPORTS -> {
                 for (Classroom c : classroomRepository.findByIsActiveTrueOrderByNameAsc()) {
                     if (checkConflicts(schedule, date, c.getId(), c.getRoom()).isEmpty()) {
                         results.add(new VenueCandidate(c.getId(), c.getName(), c.getCapacity()));
@@ -241,7 +241,7 @@ public class RoomRelocationService {
                     .orElseThrow(() -> new ResourceNotFoundException("Clinical venue not found with id: " + venueId));
                 yield new VenueResolution(v.getId(), v.getRoom(), v.getCapacity(), null, null, v);
             }
-            case LIBRARY -> {
+            case LIBRARY, SPORTS -> {
                 Classroom c = classroomRepository.findById(venueId)
                     .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id: " + venueId));
                 yield new VenueResolution(c.getId(), c.getRoom(), c.getCapacity(), c, null, null);
@@ -251,7 +251,7 @@ public class RoomRelocationService {
 
     private void applyVenue(SessionOccurrence occurrence, ClassSessionType sessionType, VenueResolution venue) {
         switch (sessionType) {
-            case THEORY, LIBRARY -> occurrence.setClassroom(venue.classroom());
+            case THEORY, LIBRARY, SPORTS -> occurrence.setClassroom(venue.classroom());
             case LAB -> occurrence.setLab(venue.lab());
             case CLINICAL -> occurrence.setClinicalVenue(venue.clinicalVenue());
         }

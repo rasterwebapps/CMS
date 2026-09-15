@@ -36,5 +36,14 @@ public record ClinicalResidualItem(
     double hoursPerDutyDay,
     /** Extra duty occurrences needed to cover {@code residualHours} — what the admin actually adds. */
     int extraDutyDays,
-    String remedy
+    String remedy,
+    /** The offering's current duty length, in minutes. */
+    Integer currentDurationMinutes,
+    /** The other remedy (OC-227): the shortest duty length, rounded up to 5 minutes, at which the
+     *  EXISTING roster alone delivers every curriculum Clinical hour — no extra duty days needed.
+     *  Null when lengthening the duty can't help. */
+    Integer suggestedDurationMinutes,
+    /** True when that longer duty still has students back before any period that's free today — it
+     *  costs zero timetable periods (e.g. 07:00 + 6h10m + 60 min bus = 14:10, when Period 6 starts). */
+    boolean suggestedDurationCostsNoPeriods
 ) {}

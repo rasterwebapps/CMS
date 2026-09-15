@@ -30,10 +30,10 @@ interface ReplacementOption {
   courseOfferingId: number;
   subjectName: string;
   subjectCode: string;
-  requiredSessionsPerWeek: number;
-  placedSessionsPerWeek: number;
-  /** True when this subject already has at least every session its curriculum requires for this
-   *  section. Purely informational — it is NOT a block. A replace is hour-neutral (one slot changes
+  requiredHours: number;
+  placedHours: number;
+  /** True when this subject's placed sessions already deliver its curriculum hours for this
+   *  section across the term. Purely informational — it is NOT a block. A replace is hour-neutral (one slot changes
    *  hands, the term total is unchanged), so the backend deliberately applies no budget cap to it;
    *  this only sorts under-quota subjects to the top, since those are what an admin is realistically
    *  moving a slot to. */
@@ -72,9 +72,9 @@ export class SkeletonCellReplaceDialogComponent {
   /** Every non-elective Theory offering in this cohort except the one already in the slot, with
    *  quota resolved against this cell's own section.
    *
-   *  <p>Electives are excluded on both sides: the backend refuses them outright, because every
-   *  member of an elective group shares a single slot and re-pointing one member here would
-   *  desynchronise the group. Place Elective Block is the tool for that. */
+   *  <p>Electives are never offered as the replacement: an institution-decided elective runs only
+   *  its chosen option (already placed by Run Automation), and a student-choice group's options
+   *  must keep sharing one slot, which the backend enforces. */
   protected readonly options = computed<ReplacementOption[]>(() => {
     const currentOfferingId = this.data.cell.courseOfferingId;
     const sectionId = this.data.cell.cohortSectionId;
@@ -94,9 +94,9 @@ export class SkeletonCellReplaceDialogComponent {
           courseOfferingId: s.courseOfferingId,
           subjectName: s.subjectName,
           subjectCode: s.subjectCode,
-          requiredSessionsPerWeek: budget.requiredSessionsPerWeek,
-          placedSessionsPerWeek: budget.placedSessionsPerWeek,
-          atQuota: budget.placedSessionsPerWeek >= budget.requiredSessionsPerWeek,
+          requiredHours: budget.totalHours,
+          placedHours: budget.deliveredHours,
+          atQuota: budget.deliveredTermRuns >= budget.requiredTermRuns,
         } satisfies ReplacementOption;
       })
       .filter((o): o is ReplacementOption => o !== null)

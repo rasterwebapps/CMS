@@ -18,11 +18,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.AutoStaffResult;
+import com.cms.dto.CourseOfferingSectionFacultyResponse;
 import com.cms.dto.FacultyCapacityCheckResult;
+import com.cms.dto.SectionFacultyAssignment;
 import com.cms.dto.StaffingAssignmentRequest;
 import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
+import com.cms.model.Classroom;
 import com.cms.model.CourseOffering;
 import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.Faculty;
@@ -30,6 +33,7 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.ClassroomRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.FacultyRepository;
@@ -40,8 +44,10 @@ class TimetableStaffingAutoAssignServiceTest {
     @Mock private TimetableStaffingService timetableStaffingService;
     @Mock private FacultyRepository facultyRepository;
     @Mock private ClassScheduleRepository classScheduleRepository;
+    @Mock private ClassroomRepository classroomRepository;
     @Mock private CourseOfferingRepository courseOfferingRepository;
     @Mock private CourseOfferingSectionFacultyRepository courseOfferingSectionFacultyRepository;
+    @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
     @Mock private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
 
     private TimetableStaffingAutoAssignService service;
@@ -49,7 +55,14 @@ class TimetableStaffingAutoAssignServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableStaffingAutoAssignService(timetableStaffingService, facultyRepository, classScheduleRepository,
-            courseOfferingRepository, courseOfferingSectionFacultyRepository, timetableGlobalAutoScheduleService);
+            classroomRepository, courseOfferingRepository, courseOfferingSectionFacultyRepository,
+            courseOfferingSectionFacultyService, timetableGlobalAutoScheduleService);
+    }
+
+    private Classroom classroom(Long id, Integer capacity) {
+        Classroom c = new Classroom("Room " + id, null, null, capacity);
+        c.setId(id);
+        return c;
     }
 
     private UnstaffedCellResponse cell(Long id, Long offeringId, String subjectName, Long specialityId, Long venueId, boolean elective) {
@@ -94,14 +107,39 @@ class TimetableStaffingAutoAssignServiceTest {
     }
 
     @Test
-    void shouldSkipElectiveCells() {
+    void shouldAutoStaffAnElectiveWithItsAssignedFacultyAndBestFitRoom() {
+        // Electives carry no speciality (deliberately NULL for all 15 of them) so they're never
+        // run through the department-pool branch -- faculty comes from whatever's already assigned
+        // via Assign Faculty (mirrors TimetableGlobalAutoScheduleService#resolveElectiveMemberFacultyId),
+        // and the room is picked tightest-fit-first since electives can never have one pre-committed
+        // in Capacity Planner (no single owning cohort).
         when(timetableStaffingService.getUnstaffedCells(10L))
-            .thenReturn(List.of(cell(1L, 100L, "Elective Subject", 5L, null, true)));
+            .thenReturn(List.of(cell(1L, 100L, "Elective Subject", null, null, true)));
+        when(courseOfferingSectionFacultyService.getForOffering(100L)).thenReturn(
+            new CourseOfferingSectionFacultyResponse(true, null,
+                List.of(new SectionFacultyAssignment(1L, null, "Cohort", null, 70L, "Dr. X", 1L))));
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc())
+            .thenReturn(List.of(classroom(9L, 100), classroom(8L, 45)));
+
+        AutoStaffResult result = service.autoStaff(10L);
+
+        assertThat(result.staffedCount()).isEqualTo(1);
+        assertThat(result.unplaced()).isEmpty();
+        // requiredStrength is 40 (see cell()) -- the 45-seat room is the tighter fit of the two.
+        verify(timetableStaffingService).staffCell(1L, new StaffingAssignmentRequest(70L, 8L));
+    }
+
+    @Test
+    void shouldReportElectiveUnplacedWhenNoSingleFacultyIsAssigned() {
+        when(timetableStaffingService.getUnstaffedCells(10L))
+            .thenReturn(List.of(cell(1L, 100L, "Elective Subject", null, null, true)));
+        when(courseOfferingSectionFacultyService.getForOffering(100L))
+            .thenReturn(new CourseOfferingSectionFacultyResponse(true, null, List.of()));
 
         AutoStaffResult result = service.autoStaff(10L);
 
         assertThat(result.staffedCount()).isZero();
-        assertThat(result.unplaced()).isEmpty();
+        assertThat(result.unplaced()).hasSize(1);
         verify(timetableStaffingService, times(0)).staffCell(any(), any());
     }
 

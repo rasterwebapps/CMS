@@ -6,21 +6,15 @@
         <h1 class="mlp-title">Timetable <em>Skeleton Builder</em></h1>
         <cms-tour-button tourKey="skeleton-builder" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="page-subtitle">Run Automation places every Theory, Lab, and Clinical session for a cohort's whole term at once — staff and rooms are assigned afterward. Drag a placed session to move it, or click it to remove.</p>
+      <p class="page-subtitle">Run Automation places every Theory, Lab, and Clinical session for a cohort's whole term at once — staff and rooms are assigned afterward. Drag a session onto empty periods to move it or onto other sessions to swap them — a multi-period block moves whole — drag a Clinical duty banner to change its day, or click a session for more options.</p>
       <p class="page-subtitle">Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
     </div>
-    @if (selectedTermInstanceId && (canManageRotation() || (canGlobalAutoPlace() && selectedCohortId && !allCohortsSelected()) || (canPlaceElectiveGroup() && hasElectiveGroup()) || canManageWorkingSaturdays())) {
+    @if (selectedTermInstanceId && ((canGlobalAutoPlace() && selectedCohortId && !allCohortsSelected()) || canManageWorkingSaturdays())) {
       <div class="mlp-hdr-right">
         @if (canGlobalAutoPlace() && selectedCohortId && !allCohortsSelected()) {
           <button type="button" class="btn-secondary" [disabled]="termTimetablePublished()"
             [title]="termTimetablePublished() ? 'This term\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
             (click)="openGlobalAutoSchedule()">Run Automation</button>
-        }
-        @if (canManageRotation()) {
-          <button type="button" class="btn-secondary" (click)="openRotationSetup()">Set up Rotation</button>
-        }
-        @if (canPlaceElectiveGroup() && hasElectiveGroup()) {
-          <button type="button" class="btn-secondary" (click)="openElectiveBlock()">Place Elective Block</button>
         }
         @if (canManageWorkingSaturdays()) {
           <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
@@ -39,30 +33,6 @@
       (saved)="onWorkingSaturdaysSaved()"
       (runAutomation)="onWorkingSaturdaysRunAutomation()">
     </app-working-saturdays-flyout>
-  }
-
-  @if (showRotationSetup() && selectedTermInstanceId) {
-    <app-rotation-setup-flyout
-      [termInstanceId]="selectedTermInstanceId"
-      [periods]="periods()"
-      [days]="days"
-      [dayLabels]="dayLabels"
-      (closed)="onRotationSetupClosed()"
-      (saved)="onRotationSaved()">
-    </app-rotation-setup-flyout>
-  }
-
-  @if (showElectiveBlock() && selectedTermInstanceId && selectedCohortId && skeleton(); as loadedSkeleton) {
-    <app-elective-slot-block-flyout
-      [termInstanceId]="selectedTermInstanceId"
-      [cohortId]="selectedCohortId"
-      [periods]="periods()"
-      [days]="days"
-      [dayLabels]="dayLabels"
-      [skeleton]="loadedSkeleton"
-      (closed)="onElectiveBlockClosed()"
-      (saved)="onElectiveBlockSaved()">
-    </app-elective-slot-block-flyout>
   }
 
   @if (showGlobalAutoSchedule() && selectedTermInstanceId && selectedAcademicYearId) {
@@ -148,7 +118,7 @@
     @if (hoursSummary(); as hours) {
       <div class="skeleton-hours-summary anim-rise anim-rise--d2">
         <div class="stat-grid skeleton-hours-summary__row">
-          <div class="stat-card" title="Raw weekly-grid capacity for one section across the whole term — Theory's real ceiling; Lab/Clinical can exceed it since batches run in parallel rooms.">
+          <div class="stat-card" title="Every working day's clock time for one section across the term: all periods, plus Clinical duty time outside them. Monday–Friday every week; Saturday only on working Saturdays.">
             <div class="stat-label">Total Hours Available (Term)</div>
             <div class="stat-value">{{ hours.availableHours | number: '1.0-1' }}h</div>
           </div>
@@ -156,9 +126,12 @@
             <div class="stat-label">Total Hours Required (Term)</div>
             <div class="stat-value">{{ hours.overall.total | number: '1.0-1' }}h</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card" title="Curriculum hours placed, counted up to each subject's own requirement. Hours beyond a subject's curriculum are shown as extra.">
             <div class="stat-label">Total Assigned</div>
             <div class="stat-value">{{ hours.overall.assigned | number: '1.0-1' }}h</div>
+            @if (hours.overall.extra > 0.05) {
+              <div class="text-muted skeleton-hours-extra">+{{ hours.overall.extra | number: '1.0-1' }}h extra beyond curriculum</div>
+            }
           </div>
           <div class="stat-card" [class.stat-card--accent]="hours.overall.unassigned > 0.05">
             <div class="stat-label">Total Unassigned</div>
@@ -174,6 +147,9 @@
               @if (hours.theory.unassigned > 0.05) {
                 <div class="stat-value penalty skeleton-hours-gap">{{ hours.theory.unassigned | number: '1.0-1' }}h unassigned</div>
               }
+              @if (hours.theory.extra > 0.05) {
+                <div class="text-muted skeleton-hours-extra">+{{ hours.theory.extra | number: '1.0-1' }}h extra</div>
+              }
             </div>
           }
           @if (hours.lab.total > 0) {
@@ -183,6 +159,9 @@
               @if (hours.lab.unassigned > 0.05) {
                 <div class="stat-value penalty skeleton-hours-gap">{{ hours.lab.unassigned | number: '1.0-1' }}h unassigned</div>
               }
+              @if (hours.lab.extra > 0.05) {
+                <div class="text-muted skeleton-hours-extra">+{{ hours.lab.extra | number: '1.0-1' }}h extra</div>
+              }
             </div>
           }
           @if (hours.clinical.total > 0) {
@@ -191,6 +170,9 @@
               <div class="stat-value">{{ hours.clinical.assigned | number: '1.0-1' }}h <span class="text-muted">/ {{ hours.clinical.total | number: '1.0-1' }}h</span></div>
               @if (hours.clinical.unassigned > 0.05) {
                 <div class="stat-value penalty skeleton-hours-gap">{{ hours.clinical.unassigned | number: '1.0-1' }}h unassigned</div>
+              }
+              @if (hours.clinical.extra > 0.05) {
+                <div class="text-muted skeleton-hours-extra">+{{ hours.clinical.extra | number: '1.0-1' }}h extra</div>
               }
             </div>
           }
@@ -228,8 +210,8 @@
                 @if (d.cohortSectionLabel) { — {{ d.cohortSectionLabel }} }
               </span>
               <span class="skeleton-displaced__stat">
-                {{ d.placedSessionsPerWeek }} of {{ d.requiredSessionsPerWeek }} weekly sessions placed ·
-                {{ d.shortfallSessions }} short
+                {{ d.placedHours }} of {{ d.requiredHours }} h placed ·
+                {{ d.shortfallHours }} h short
               </span>
               <button type="button" class="skeleton-displaced__dismiss"
                 [attr.aria-label]="'Dismiss shortfall notice for ' + d.subjectName"
@@ -262,8 +244,14 @@
                 @for (seg of rowSegments(day); track seg.key) {
                   @if (seg.kind === 'shift') {
                     <td class="skeleton-grid__cell skeleton-grid__cell--shift" [attr.colspan]="seg.span">
+                      <!-- Its own drop list only so the banner joins the grid's cdkDropListGroup and can
+                           be dragged onto another day's periods; nothing is dropped onto it. -->
+                      <div class="skeleton-shift-drop" cdkDropList [cdkDropListSortingDisabled]="true">
                       <div class="skeleton-shift-block skeleton-shift-block--wide"
-                        [title]="seg.window.label + (seg.window.busDepart && seg.window.busReturn ? ' — ' + seg.window.busDepart + '–' + seg.window.busReturn + ' incl. buffer' : '')">
+                        [class.skeleton-shift-block--draggable]="canMoveDutyDay()"
+                        cdkDrag [cdkDragData]="{ dutyWindow: seg.window }" [cdkDragDisabled]="!canMoveDutyDay()"
+                        (cdkDragStarted)="onDutyDragStarted(seg.window)" (cdkDragEnded)="onDragEnded()"
+                        [title]="(canMoveDutyDay() ? 'Drag to another day to move this duty. ' : '') + seg.window.label + (seg.window.busDepart && seg.window.busReturn ? ' — ' + seg.window.busDepart + '–' + seg.window.busReturn + ' incl. buffer' : '')">
                         <span class="skeleton-shift-block__label">{{ seg.window.label }}</span>
                         <span class="skeleton-shift-block__duty">{{ seg.window.clinicalStart }}{{ seg.window.clinicalEnd ? '–' + seg.window.clinicalEnd : '' }}</span>
                         @if (shiftDurationLabel(seg.window); as dur) {
@@ -296,12 +284,14 @@
                           }
                         }
                       </div>
+                      </div>
                     </td>
                   } @else {
                     <td class="skeleton-grid__cell"
                       [attr.data-period-id]="seg.period.id" [attr.data-day]="day">
                       <div class="skeleton-cell-stack" cdkDropList (cdkDropListDropped)="onCellDrop($event, day, seg.period.id)"
-                        [class.skeleton-cell-stack--drop-valid]="slotPreviewState(day, seg.period.id) === 'valid'"
+                        [class.skeleton-cell-stack--drop-valid]="slotPreviewState(day, seg.period.id) === 'move'"
+                        [class.skeleton-cell-stack--drop-swap]="slotPreviewState(day, seg.period.id) === 'swap'"
                         [class.skeleton-cell-stack--drop-invalid]="slotPreviewState(day, seg.period.id) === 'invalid'"
                         [title]="slotPreviewReason(day, seg.period.id) ?? ''">
                         @if (hasAdvisory(day, seg.period.id)) {
@@ -312,17 +302,18 @@
                         }
                         @for (cell of cellsFor(day, seg.period.id); track cell.id) {
                           <button type="button" class="skeleton-cell"
-                            [style.--subject-color]="subjectColor(cell.electiveGroupId ?? cell.courseOfferingId)"
+                            [style.--subject-color]="cellColor(cell)"
                             [class.skeleton-cell--theory]="cell.sessionType === 'THEORY'"
                             [class.skeleton-cell--lab]="cell.sessionType === 'LAB'"
                             [class.skeleton-cell--clinical]="cell.sessionType === 'CLINICAL'"
+                            [class.skeleton-cell--sports]="cell.sessionType === 'SPORTS'"
                             [class.skeleton-cell--staffed]="cell.isStaffed"
                             [class.skeleton-cell--joined-next]="hasMatchingAdjacent(cell, 1)"
                             [class.skeleton-cell--joined-prev]="hasMatchingAdjacent(cell, -1)"
                             [disabled]="!canManage()"
                             cdkDrag
                             [cdkDragData]="cell"
-                            [cdkDragDisabled]="!canManage() || !canMove() || !!cell.sessionGroupId"
+                            [cdkDragDisabled]="!canManage() || !canMove()"
                             (cdkDragStarted)="onDragStarted(cell)"
                             (cdkDragEnded)="onDragEnded()"
                             [matMenuTriggerFor]="cellMenu"
@@ -339,6 +330,7 @@
                             } @else if (cell.batchName) {
                               <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
                             }
+                            @if (cell.electiveGroupId != null) { <span class="skeleton-cell__elective-tag">Elective</span> }
                             @if (cell.isStaffed) { <span class="cms-badge cms-badge--green">staffed</span> }
                             @if (cell.pinned) { <span class="cms-badge cms-badge--amber">pinned</span> }
                             @if (canPin() && cell.status === 'DRAFT') {
@@ -357,7 +349,7 @@
                                 (keydown.enter)="onTogglePin($event, cell)"
                                 (keydown.space)="onTogglePin($event, cell)"></span>
                             }
-                            @if (!cell.isStaffed && canManage() && !cell.sessionGroupId && cell.sessionType !== 'LIBRARY') {
+                            @if (!cell.isStaffed && canManage() && !cell.sessionGroupId && cell.sessionType !== 'LIBRARY' && cell.sessionType !== 'SPORTS') {
                               <span class="skeleton-cell__resize-handle" title="Drag to extend into the next period(s)"
                                 (mousedown)="onResizeHandleMouseDown($event, cell)" (click)="$event.stopPropagation()"></span>
                             }
@@ -410,9 +402,9 @@
     }
 
     @if (canSwapCell(cell)) {
-      <button mat-menu-item type="button" (click)="openSwapDialog(cell)">Swap with another session…</button>
+      <button mat-menu-item type="button" (click)="openSwapDialog(cell)">Move or swap…</button>
     } @else if (swapBlockedReason(cell); as reason) {
-      <button mat-menu-item type="button" disabled [title]="reason">Swap with another session…</button>
+      <button mat-menu-item type="button" disabled [title]="reason">Move or swap…</button>
     }
 
     @if (canPin() && cell.status === 'DRAFT') {

@@ -47,6 +47,19 @@ public final class CurriculumHoursCalculator {
         return (int) Math.ceil(sessionsNeededOverTerm / weeksInTerm);
     }
 
+    /** Total session occurrences the whole term needs to deliver {@code totalHours} — the
+     *  term-wide figure behind {@link #sessionsPerWeek}, before it is spread across weeks. A
+     *  subject is fully placed once its sessions' real runs across the term (see {@link
+     *  WorkingSaturdayCalculator#runsInTerm}) reach this, whichever working days they sit on.
+     *  0 when there's nothing to deliver. */
+    public static int sessionsOverTerm(int totalHours, double slotDurationMinutes, int blockSizePeriods) {
+        if (totalHours <= 0) {
+            return 0;
+        }
+        double sessionDurationMinutes = slotDurationMinutes * Math.max(1, blockSizePeriods);
+        return (int) Math.ceil((totalHours * 60.0) / sessionDurationMinutes);
+    }
+
     /** How many WEEKLY occurrences of a fixed-length recurring session (e.g. one Clinical Shift
      *  duty day, always exactly 1/week) are needed before cumulative delivered hours first reach
      *  {@code totalHours} — the last such week still genuinely owes real content, so nothing
@@ -92,9 +105,10 @@ public final class CurriculumHoursCalculator {
             case LAB -> subject.getLabSessionBlockPeriods();
             case CLINICAL -> subject.getClinicalSessionBlockPeriods();
             case THEORY -> 1;
-            case LIBRARY -> throw new IllegalStateException(
-                "Library has no curriculum Subject/block-size — its block size comes from the "
-                    + "timetable.library_block_size_periods system configuration, not CurriculumHoursCalculator.");
+            case LIBRARY, SPORTS -> throw new IllegalStateException(
+                "Library/Sports have no curriculum Subject/block-size — their block sizes come from the "
+                    + "timetable.library_block_size_periods / timetable.sports_block_size_periods system configuration, "
+                    + "not CurriculumHoursCalculator.");
         };
         return configured != null && configured >= 1 ? configured : 1;
     }

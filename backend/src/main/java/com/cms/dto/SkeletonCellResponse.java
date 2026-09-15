@@ -43,5 +43,10 @@ public record SkeletonCellResponse(
     /** True when a human positioned this cell on purpose, which makes it survive the next
      *  Global Auto-Schedule rebuild instead of being cleared with the rest of the DRAFT grid.
      *  Drives the pin affordance and badge in the Skeleton Builder. */
-    boolean pinned
+    boolean pinned,
+
+    /** True for an institution-decided (management-selected) elective: only the chosen option
+     *  runs, as a common cohort subject, so it moves, swaps and is replaced like any subject. False
+     *  for a student-choice elective, whose options must keep sharing one slot. */
+    boolean commonElective
 ) {}

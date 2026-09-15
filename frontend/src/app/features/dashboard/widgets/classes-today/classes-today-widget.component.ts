@@ -7,7 +7,7 @@ interface ClassesTodayItem {
   classScheduleId: number;
   subjectName:     string;
   subjectCode:     string;
-  sessionType:     'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
+  sessionType:     'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
   slotName:        string | null;
   startTime:       string | null;
   endTime:         string | null;
@@ -49,6 +49,6 @@ export class ClassesTodayWidgetComponent implements OnInit {
   }
 
   protected sessionTypeLabel(type: ClassesTodayItem['sessionType']): string {
-    return type === 'THEORY' ? 'Theory' : type === 'LAB' ? 'Lab' : type === 'LIBRARY' ? 'Library' : 'Clinical';
+    return type === 'THEORY' ? 'Theory' : type === 'LAB' ? 'Lab' : type === 'LIBRARY' ? 'Library' : type === 'SPORTS' ? 'Sports' : 'Clinical';
   }
 }

@@ -209,7 +209,7 @@ public class TimetableStaffingService {
             switch (cs.getSessionType()) {
                 case THEORY -> {
                     Classroom classroom = isElectiveOffering(cs)
-                        ? requireRequestedClassroom(request)
+                        ? requireRequestedClassroom(cs, request)
                         : requireCommittedTheoryClassroom(cs);
                     violations.addAll(validateAssignment(cs, day, start, end, null, null,
                         new RoomCheckSpec(ClassSessionType.THEORY, classroom.getId(), classroom.getRoom(), RoomMode.STRICT), null, null).violations());
@@ -233,6 +233,9 @@ public class TimetableStaffingService {
                 case LIBRARY -> throw new IllegalStateException(
                     "Library sessions have no faculty to staff — they are placed with their room already "
                         + "assigned and faculty_id left null by Run Automation's fillLibraryGaps pass.");
+                // Placed with its Sports-tagged classroom already booked (fillSportsGaps checks that
+                // room is free first) -- only the PE faculty side, validated above, is left to stage.
+                case SPORTS -> applyRoom = () -> { };
             }
         }
         return new CellStaging(violations, applyRoom);
@@ -260,6 +263,17 @@ public class TimetableStaffingService {
     public AssignmentValidationResult validateAssignment(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end,
                                                            Faculty faculty, Long alsoExcludeId,
                                                            RoomCheckSpec roomCheck, Long audienceId, LocalDate date) {
+        return validateAssignmentExcluding(cs, day, start, end, faculty,
+            alsoExcludeId == null ? Set.of() : Set.of(alsoExcludeId), roomCheck, audienceId, date);
+    }
+
+    /** {@link #validateAssignment} with any number of extra rows left out of the faculty and
+     *  room/audience scans — Skeleton Builder's block relocation moves several rows at once (a whole
+     *  multi-period block, its parallel batches, and whatever it swaps with), and none of those rows
+     *  may count as a blocker against the others while they all change places. */
+    public AssignmentValidationResult validateAssignmentExcluding(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end,
+                                                                    Faculty faculty, Set<Long> alsoExcludeIds,
+                                                                    RoomCheckSpec roomCheck, Long audienceId, LocalDate date) {
         List<ConstraintViolation> violations = new ArrayList<>();
         checkBlocked(day, start, end, cs.getTermInstance()).ifPresent(violations::add);
 
@@ -268,13 +282,13 @@ public class TimetableStaffingService {
             if (date != null) {
                 checkFacultyAbsent(faculty.getId(), date).ifPresent(violations::add);
             }
-            checkFacultyFree(faculty.getId(), cs, day, start, end, alsoExcludeId).ifPresent(violations::add);
+            checkFacultyFree(faculty.getId(), cs, day, start, end, alsoExcludeIds).ifPresent(violations::add);
             violations.addAll(checkWithinWorkloadCaps(faculty, cs, day, start, end));
         }
 
         ClassSchedule swapPartner = null;
         if (roomCheck != null) {
-            RoomAudienceScanResult scan = scanRoomAndAudience(cs, day, start, end, roomCheck, audienceId, alsoExcludeId);
+            RoomAudienceScanResult scan = scanRoomAndAudience(cs, day, start, end, roomCheck, audienceId, alsoExcludeIds);
             violations.addAll(scan.violations());
             swapPartner = scan.swapPartnerOccupant();
         }
@@ -311,7 +325,7 @@ public class TimetableStaffingService {
      *  {@link Room}) — previously invisible to {@link TimetableSwapService}, which only compared
      *  virtual room ids. */
     private RoomAudienceScanResult scanRoomAndAudience(ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end,
-                                                         RoomCheckSpec roomCheck, Long audienceId, Long alsoExcludeId) {
+                                                         RoomCheckSpec roomCheck, Long audienceId, Set<Long> alsoExcludeIds) {
         List<ConstraintViolation> violations = new ArrayList<>();
         ClassSchedule swapPartner = null;
         boolean roomConflictAlreadyFlagged = false;
@@ -320,7 +334,7 @@ public class TimetableStaffingService {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = findOverlappingCached(day, cs.getTermInstance().getId(), start, end, status, cs.getId());
             for (ClassSchedule other : overlapping) {
-                if (alsoExcludeId != null && other.getId().equals(alsoExcludeId)) {
+                if (isExcluded(alsoExcludeIds, other.getId())) {
                     continue;
                 }
                 if (!roomConflictAlreadyFlagged && conflictsOnRoom(other, roomCheck.type(), roomCheck.venueId(), roomCheck.physicalRoom())) {
@@ -404,22 +418,34 @@ public class TimetableStaffingService {
         return rotationResolverService.anyAssignmentForSlot(cs.getId()).map(RotationMemberAssignment::getBatch);
     }
 
-    /** Electives have no single owning cohort by design (that's the whole point of an elective —
-     *  students from different cohorts/sections opt in), so they're exempt from the Theory
-     *  hard-lock below and keep a free classroom pick, mirroring Capacity Planner's own exclusion
-     *  of electives from Cohort Room Allocation. */
+    /** Student-choice electives have no single owning cohort by design (students from different
+     *  cohorts/sections opt in), so they're exempt from the Theory hard-lock below and keep a free
+     *  classroom pick, mirroring Capacity Planner's own exclusion of electives from Cohort Room
+     *  Allocation. A management-selected elective is the opposite (OC-227): the chosen option is a
+     *  common subject for the whole cohort, so it is taught in the section's own committed room like
+     *  any other Theory session — it is deliberately NOT treated as an elective here. */
     private boolean isElectiveOffering(ClassSchedule cs) {
         CourseOffering offering = cs.getCourseOffering();
         return offering != null && offering.getCurriculumSemesterCourse() != null
-            && Boolean.TRUE.equals(offering.getCurriculumSemesterCourse().getIsElective());
+            && Boolean.TRUE.equals(offering.getCurriculumSemesterCourse().getIsElective())
+            && !TimetableSkeletonService.isCommonCohortElective(offering);
     }
 
-    private Classroom requireRequestedClassroom(StaffingAssignmentRequest request) {
-        if (request.classroomId() == null) {
-            throw new IllegalArgumentException("A classroom is required to staff a THEORY session");
+    /** A fresh {@code classroomId} always wins (a first-time staff, or a deliberate room change).
+     *  When none is sent, falls back to whatever room this elective session is already staffed
+     *  with — this is what lets Skeleton Builder's in-grid Reassign Faculty dialog (which only ever
+     *  carries a facultyId, see {@link StaffingAssignmentRequest}) change who teaches an
+     *  already-staffed elective without also forcing a room re-pick. Throws only when this is a
+     *  genuine first-time staff with no room supplied at all. */
+    private Classroom requireRequestedClassroom(ClassSchedule cs, StaffingAssignmentRequest request) {
+        if (request.classroomId() != null) {
+            return classroomRepository.findById(request.classroomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id: " + request.classroomId()));
         }
-        return classroomRepository.findById(request.classroomId())
-            .orElseThrow(() -> new ResourceNotFoundException("Classroom not found with id: " + request.classroomId()));
+        if (cs.getClassroom() != null) {
+            return cs.getClassroom();
+        }
+        throw new IllegalArgumentException("A classroom is required to staff this elective session for the first time");
     }
 
     /** Non-elective Theory sessions are hard-locked the same way LAB/CLINICAL is, but Theory has
@@ -522,18 +548,19 @@ public class TimetableStaffingService {
      *  rather than read from {@code cs.getDayOfWeek()} so {@link TimetableSkeletonService#moveCell}
      *  can re-check a *target* day for an already-staffed cell without first mutating it. */
     Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
-        return checkFacultyFree(facultyId, cs, day, start, end, null);
+        return checkFacultyFree(facultyId, cs, day, start, end, Set.of());
     }
 
-    /** Overload adding a second excluded row (besides {@code cs} itself) — used by {@link
-     *  #validateAssignment} for the reverse-swap-partner case, where that row must never count as a
-     *  blocker against itself. {@code alsoExcludeId} null reproduces the 5-arg overload above exactly. */
+    /** Overload excluding further rows (besides {@code cs} itself) — used by {@link
+     *  #validateAssignmentExcluding} for a swap partner or the other rows of a block relocation,
+     *  which must never count as blockers against each other. An empty set reproduces the 5-arg
+     *  overload above exactly. */
     private Optional<ConstraintViolation> checkFacultyFree(Long facultyId, ClassSchedule cs, DayOfWeek day, LocalTime start,
-                                                            LocalTime end, Long alsoExcludeId) {
+                                                            LocalTime end, Set<Long> alsoExcludeIds) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
             List<ClassSchedule> overlapping = findOverlappingCached(day, cs.getTermInstance().getId(), start, end, status, cs.getId());
             boolean conflict = overlapping.stream()
-                .filter(other -> alsoExcludeId == null || !other.getId().equals(alsoExcludeId))
+                .filter(other -> !isExcluded(alsoExcludeIds, other.getId()))
                 .anyMatch(other -> other.getFaculty() != null && other.getFaculty().getId().equals(facultyId));
             if (conflict) {
                 return Optional.of(new ConstraintViolation("STAFFING_FACULTY_CONFLICT",
@@ -541,6 +568,11 @@ public class TimetableStaffingService {
             }
         }
         return Optional.empty();
+    }
+
+    /** Null-safe: an unsaved row (no id yet) is never one of the excluded rows. */
+    private static boolean isExcluded(Set<Long> excludedIds, Long id) {
+        return id != null && excludedIds.contains(id);
     }
 
     /** Cache-through wrapper around {@code ClassScheduleRepository#findOverlapping} — reads from
@@ -801,7 +833,7 @@ public class TimetableStaffingService {
 
     static Long venueIdOf(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
-            case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getId() : null;
+            case THEORY, LIBRARY, SPORTS -> cs.getClassroom() != null ? cs.getClassroom().getId() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getId() : null;
             case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getId() : null;
         };
@@ -809,7 +841,7 @@ public class TimetableStaffingService {
 
     static Room physicalRoomOf(ClassSchedule cs) {
         return switch (cs.getSessionType()) {
-            case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getRoom() : null;
+            case THEORY, LIBRARY, SPORTS -> cs.getClassroom() != null ? cs.getClassroom().getRoom() : null;
             case LAB -> cs.getLab() != null ? cs.getLab().getRoom() : null;
             case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getRoom() : null;
         };
@@ -842,7 +874,7 @@ public class TimetableStaffingService {
             case THEORY -> cs.getCourseOffering() == null ? null
                 : (int) courseRegistrationRepository.countByCourseOfferingIdAndStatus(
                     cs.getCourseOffering().getId(), RegistrationStatus.REGISTERED);
-            case LIBRARY -> cs.getCohortSection() == null ? null : cs.getCohortSection().getPlannedSize();
+            case LIBRARY, SPORTS -> cs.getCohortSection() == null ? null : cs.getCohortSection().getPlannedSize();
             case LAB, CLINICAL -> {
                 if (cs.getBatch() != null) {
                     yield (int) batchRepository.countStudents(cs.getBatch().getId());

@@ -30,7 +30,7 @@
       @for (o of options(); track o.courseOfferingId) {
         <option [ngValue]="o.courseOfferingId">
           {{ o.subjectCode }} — {{ o.subjectName }}
-          ({{ o.placedSessionsPerWeek }}/{{ o.requiredSessionsPerWeek }} per week placed{{ o.atQuota ? ' — already at quota' : '' }})
+          ({{ o.placedHours }} of {{ o.requiredHours }} h placed{{ o.atQuota ? ' — already at quota' : '' }})
         </option>
       }
     </select>
@@ -44,8 +44,8 @@
         Subjects still owing sessions are listed first. Replacing doesn't change how many hours the
         week delivers — one slot simply changes hands — so a subject already at its quota can still
         receive it; the figures are shown so you can see what you're adding to. Electives aren't
-        listed: an elective group shares one slot across all its members, so it's re-placed with
-        Place Elective Block.
+        listed: an institution-decided elective runs only its chosen option, and a student-choice
+        group shares one slot that Run Automation places.
       </p>
     }
     @if (allAtQuota()) {

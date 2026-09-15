@@ -42,7 +42,7 @@ export interface ResourceGridCell {
   startTime: string;
   endTime: string;
   slotName: string;
-  sessionType: 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
+  sessionType: 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
   status: 'DRAFT' | 'PUBLISHED';
   /** True only for a synthetic Clinical Shift cell (bus-depart through bus-return) — it has no
    *  backing ClassSchedule row, so `sessionId` is a negative, non-clickable placeholder id. */

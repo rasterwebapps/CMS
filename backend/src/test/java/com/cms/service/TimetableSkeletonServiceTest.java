@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -817,6 +818,41 @@ class TimetableSkeletonServiceTest {
         verify(classScheduleRepository, never()).save(any());
     }
 
+    /** Hours are planned against the term's total (2026-09-15). 54 Theory hours at 50-minute periods
+     *  need 65 runs. Monday + Tuesday + a first-Saturday-only Saturday deliver 27 + 27 + 6 = 60, so
+     *  the subject is still short and a Thursday session must be accepted -- the old weekly count
+     *  called it "3 of 3" and refused, leaving the subject 5 h short with no way to close it. Once
+     *  every Saturday is working, the same three sessions deliver 81 runs and a fourth is refused. */
+    @Test
+    void aFirstSaturdaySessionCountsOnlyItsRealRuns_soAnotherWeekdaySessionIsStillAllowed() {
+        termInstance.setWorkingSaturdayWeeks(java.util.Set.of(com.cms.model.enums.WeekOfMonth.FIRST));
+        ClassSchedule s1 = existingRow(ClassSessionType.THEORY, null, false);
+        s1.setDayOfWeek(DayOfWeek.MONDAY);
+        ClassSchedule s2 = existingRow(ClassSessionType.THEORY, null, false);
+        s2.setDayOfWeek(DayOfWeek.TUESDAY);
+        ClassSchedule s3 = existingRow(ClassSessionType.THEORY, null, false);
+        s3.setDayOfWeek(DayOfWeek.SATURDAY);
+
+        SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(
+            100L, ClassSessionType.THEORY, DayOfWeek.THURSDAY, 1L, null, 5L, null, null);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(s1, s2, s3));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> {
+            ClassSchedule saved = inv.getArgument(0);
+            saved.setId(4243L);
+            return saved;
+        });
+
+        assertThat(service.placeCell(request).dayOfWeek()).isEqualTo(DayOfWeek.THURSDAY);
+
+        termInstance.setWorkingSaturdayWeeks(java.util.EnumSet.allOf(com.cms.model.enums.WeekOfMonth.class));
+        assertThatThrownBy(() -> service.placeCell(request))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("budget is already met");
+    }
+
     /** Counterpart to the test above, and a regression for a long-lived silent defect: {@code
      *  placeCell(request, enforceBudgetCap)} accepted the flag and documented that {@code false}
      *  skips the budget cap, but never actually read it -- {@code checkBudgetNotExceeded} ran
@@ -1418,6 +1454,215 @@ class TimetableSkeletonServiceTest {
         verify(classScheduleRepository, never()).save(any());
     }
 
+    private CurriculumElectiveGroup electiveGroup(Long id, com.cms.model.enums.ElectiveSelectionMode mode) {
+        CurriculumElectiveGroup group = new CurriculumElectiveGroup();
+        group.setId(id);
+        group.setSelectionMode(mode);
+        return group;
+    }
+
+    /** An institution-decided elective runs only its chosen option, as a common cohort subject
+     *  (2026-09-15), so it is replaced like any subject now that Place Elective Block is gone. */
+    @Test
+    void shouldReplaceWithAnInstitutionDecidedElective_likeAnyCommonSubject() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(100L);
+        cs.setTermInstance(termInstance);
+        Classroom room = new Classroom("A-101", null, null, 60);
+        room.setId(70L);
+        cs.setClassroom(room);
+        CourseOffering chosenElective = electiveOffering(300L,
+            electiveGroup(12L, com.cms.model.enums.ElectiveSelectionMode.INSTITUTION_DECIDED));
+        Faculty newFaculty = new Faculty();
+        newFaculty.setId(42L);
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(chosenElective));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
+        when(classScheduleRepository.findByCourseOfferingId(300L)).thenReturn(List.of());
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(300L, 42L));
+
+        assertThat(cs.getCourseOffering()).isSameAs(chosenElective);
+        assertThat(response.cell().commonElective()).isTrue();
+    }
+
+    /** A student-choice group's options must keep sharing one slot, so replacing one in place is
+     *  still refused — only Run Automation places and moves the whole group. */
+    @Test
+    void shouldStillRejectReplacingWithAStudentChoiceElective() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(100L);
+        CourseOffering option = electiveOffering(300L,
+            electiveGroup(14L, com.cms.model.enums.ElectiveSelectionMode.STUDENT_CHOICE));
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(option));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(300L, 42L)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Student-choice elective");
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    // ── Block relocation and Clinical duty-day moves (2026-09-15) ──────────────────────────────
+
+    private ClassSchedule blockRow(CourseOffering off, DayOfWeek day, Period p, java.util.UUID sessionGroupId, long id) {
+        ClassSchedule cs = rowFor(off, ClassSessionType.THEORY, null, day, p);
+        cs.setId(id);
+        cs.setTermInstance(termInstance);
+        cs.setSessionGroupId(sessionGroupId);
+        return cs;
+    }
+
+    /** The cohort's two offerings and every row they own, the way cohortCellsAtSlot reads them. */
+    private void stubCohortRows(List<ClassSchedule> rows) {
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
+            .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
+        lenient().when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(eq(10L), any())).thenReturn(rows);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2));
+    }
+
+    @Test
+    void relocateMovesAWholeTwoPeriodBlockIntoAnEmptyWindow_andPinsIt() {
+        java.util.UUID block = java.util.UUID.randomUUID();
+        ClassSchedule first = blockRow(offering, DayOfWeek.MONDAY, period, block, 101L);
+        ClassSchedule second = blockRow(offering, DayOfWeek.MONDAY, period2, block, 102L);
+        stubCohortRows(List.of(first, second));
+        when(classScheduleRepository.findById(101L)).thenReturn(Optional.of(first));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(block)).thenReturn(List.of(first, second));
+
+        List<SkeletonCellResponse> moved = service.relocate(101L,
+            new com.cms.dto.SkeletonRelocateRequest(DayOfWeek.TUESDAY, 1L, 5L));
+
+        assertThat(moved).hasSize(2);
+        assertThat(first.getDayOfWeek()).isEqualTo(DayOfWeek.TUESDAY);
+        assertThat(first.getPeriod()).isEqualTo(period);
+        assertThat(second.getDayOfWeek()).isEqualTo(DayOfWeek.TUESDAY);
+        assertThat(second.getPeriod()).isEqualTo(period2);
+        assertThat(first.isPinned()).isTrue();
+        assertThat(second.isPinned()).isTrue();
+    }
+
+    @Test
+    void relocateRefusesAWindowThatRunsPastTheEndOfTheDay() {
+        java.util.UUID block = java.util.UUID.randomUUID();
+        ClassSchedule first = blockRow(offering, DayOfWeek.MONDAY, period, block, 101L);
+        ClassSchedule second = blockRow(offering, DayOfWeek.MONDAY, period2, block, 102L);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2));
+        when(classScheduleRepository.findById(101L)).thenReturn(Optional.of(first));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(block)).thenReturn(List.of(first, second));
+
+        assertThatThrownBy(() -> service.relocate(101L, new com.cms.dto.SkeletonRelocateRequest(DayOfWeek.TUESDAY, 2L, 5L)))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("past the end of the day");
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    /** The user's own example: a 2-period block swapped with two Theory sessions — the block takes
+     *  their window and they take its periods, in the same order. */
+    @Test
+    void relocateSwapsTheBlockWithTheSessionsFillingTheWindow_inTheSameOrder() {
+        java.util.UUID block = java.util.UUID.randomUUID();
+        ClassSchedule first = blockRow(offering, DayOfWeek.MONDAY, period, block, 101L);
+        ClassSchedule second = blockRow(offering, DayOfWeek.MONDAY, period2, block, 102L);
+        ClassSchedule tuesdayFirst = blockRow(otherOffering, DayOfWeek.TUESDAY, period, null, 201L);
+        ClassSchedule tuesdaySecond = blockRow(otherOffering, DayOfWeek.TUESDAY, period2, null, 202L);
+        stubCohortRows(List.of(first, second, tuesdayFirst, tuesdaySecond));
+        when(classScheduleRepository.findById(101L)).thenReturn(Optional.of(first));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(block)).thenReturn(List.of(first, second));
+
+        var tuesdayWindow = service.previewRelocation(101L, 5L).stream()
+            .filter(p -> p.dayOfWeek() == DayOfWeek.TUESDAY && p.startPeriodId().equals(1L))
+            .findFirst().orElseThrow();
+        assertThat(tuesdayWindow.valid()).isTrue();
+        assertThat(tuesdayWindow.kind()).isEqualTo("SWAP");
+        assertThat(tuesdayWindow.moves()).hasSize(3);
+
+        service.relocate(101L, new com.cms.dto.SkeletonRelocateRequest(DayOfWeek.TUESDAY, 1L, 5L));
+
+        assertThat(first.getDayOfWeek()).isEqualTo(DayOfWeek.TUESDAY);
+        assertThat(first.getPeriod()).isEqualTo(period);
+        assertThat(second.getPeriod()).isEqualTo(period2);
+        assertThat(tuesdayFirst.getDayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
+        assertThat(tuesdayFirst.getPeriod()).isEqualTo(period);
+        assertThat(tuesdaySecond.getDayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
+        assertThat(tuesdaySecond.getPeriod()).isEqualTo(period2);
+        assertThat(List.of(first, second, tuesdayFirst, tuesdaySecond)).allMatch(ClassSchedule::isPinned);
+    }
+
+    @Test
+    void previewRefusesAWindowThatWouldSplitAnotherBlock() {
+        ClassSchedule single = blockRow(offering, DayOfWeek.MONDAY, period, null, 101L);
+        java.util.UUID otherBlock = java.util.UUID.randomUUID();
+        ClassSchedule blockFirst = blockRow(otherOffering, DayOfWeek.TUESDAY, period, otherBlock, 201L);
+        ClassSchedule blockSecond = blockRow(otherOffering, DayOfWeek.TUESDAY, period2, otherBlock, 202L);
+        stubCohortRows(List.of(single, blockFirst, blockSecond));
+        when(classScheduleRepository.findById(101L)).thenReturn(Optional.of(single));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(otherBlock))
+            .thenReturn(List.of(blockFirst, blockSecond));
+
+        var window = service.previewRelocation(101L, 5L).stream()
+            .filter(p -> p.dayOfWeek() == DayOfWeek.TUESDAY && p.startPeriodId().equals(2L))
+            .findFirst().orElseThrow();
+
+        assertThat(window.valid()).isFalse();
+        assertThat(window.reason()).contains("runs past this window");
+    }
+
+    private com.cms.model.ClinicalShiftGroup duty(Long id, String label, DayOfWeek day) {
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(id);
+        group.setCourseOffering(offering);
+        group.setTermInstance(termInstance);
+        group.setLabel(label);
+        group.setDayOfWeek(day);
+        group.setClinicalStartTime(LocalTime.of(9, 0));
+        return group;
+    }
+
+    /** "It is almost similar to swap": moving Friday's duty to Monday sends Monday's sessions inside
+     *  the duty window to the same periods on Friday. */
+    @Test
+    void movingADutyDaySwapsThatDaysSessionsInsideTheWindowIntoTheDayItLeaves() {
+        offering.setClinicalShiftDurationMinutes(50);   // 09:00–09:50: Period 1 only
+        offering.setClinicalTravelBufferMinutes(0);
+        com.cms.model.ClinicalShiftGroup fridayDuty = duty(7L, "Anatomy Clinical Shift (Friday)", DayOfWeek.FRIDAY);
+        ClassSchedule mondayTheory = blockRow(otherOffering, DayOfWeek.MONDAY, period, null, 201L);
+        stubCohortRows(List.of(mondayTheory));
+        when(clinicalShiftGroupRepository.findById(7L)).thenReturn(Optional.of(fridayDuty));
+
+        service.moveDutyDay(7L, new com.cms.dto.DutyDayMoveRequest(DayOfWeek.MONDAY, 5L));
+
+        assertThat(fridayDuty.getDayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
+        assertThat(fridayDuty.getLabel()).isEqualTo("Anatomy Clinical Shift (Monday)");
+        assertThat(mondayTheory.getDayOfWeek()).isEqualTo(DayOfWeek.FRIDAY);
+        assertThat(mondayTheory.getPeriod()).isEqualTo(period);
+        assertThat(mondayTheory.isPinned()).isTrue();
+    }
+
+    @Test
+    void aDutyCantMoveToADayTheCohortIsAlreadyAwayOnAnotherDutyAtThatTime() {
+        offering.setClinicalShiftDurationMinutes(50);
+        offering.setClinicalTravelBufferMinutes(0);
+        com.cms.model.ClinicalShiftGroup fridayDuty = duty(7L, "Anatomy Clinical Shift (Friday)", DayOfWeek.FRIDAY);
+        com.cms.model.ClinicalShiftGroup mondayDuty = duty(8L, "Other Shift (Monday)", DayOfWeek.MONDAY);
+        when(clinicalShiftGroupRepository.findById(7L)).thenReturn(Optional.of(fridayDuty));
+        when(clinicalShiftGroupRepository.findById(8L)).thenReturn(Optional.of(mondayDuty));
+        when(clinicalShiftGroupService.resolveActiveWindowsForCohort(5L, 10L)).thenReturn(List.of(
+            com.cms.dto.ClinicalShiftWindow.from(fridayDuty), com.cms.dto.ClinicalShiftWindow.from(mondayDuty)));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2));
+
+        assertThatThrownBy(() -> service.moveDutyDay(7L, new com.cms.dto.DutyDayMoveRequest(DayOfWeek.MONDAY, 5L)))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("already away on Other Shift (Monday)");
+        assertThat(fridayDuty.getDayOfWeek()).isEqualTo(DayOfWeek.FRIDAY);
+    }
+
     @Test
     void shouldPinAndUnpinADraftCell() {
         ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
@@ -1600,7 +1845,7 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(timetableStaffingService.validateAssignmentExcluding(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
 
         SkeletonCellResponse response = service.moveCell(100L, request);
@@ -1620,8 +1865,8 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(timetableStaffingService.validateAssignment(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
-                eq(period2.getEndTime()), eq(faculty), isNull(), isNull(), isNull(), isNull()))
+        when(timetableStaffingService.validateAssignmentExcluding(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
+                eq(period2.getEndTime()), eq(faculty), eq(Set.of()), isNull(), isNull(), isNull()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
                 List.of(new ConstraintViolation("STAFFING_FACULTY_CONFLICT", "Already busy")), null));
 
@@ -1644,8 +1889,8 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(timetableStaffingService.validateAssignment(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
-                eq(period2.getEndTime()), eq(faculty), isNull(), any(), isNull(), isNull()))
+        when(timetableStaffingService.validateAssignmentExcluding(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
+                eq(period2.getEndTime()), eq(faculty), eq(Set.of()), any(), isNull(), isNull()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
                 List.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT", "Room busy")), null));
 
@@ -1665,8 +1910,8 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(timetableStaffingService.validateAssignment(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
-                eq(period2.getEndTime()), eq(faculty), isNull(), isNull(), isNull(), isNull()))
+        when(timetableStaffingService.validateAssignmentExcluding(eq(cs), eq(DayOfWeek.TUESDAY), eq(period2.getStartTime()),
+                eq(period2.getEndTime()), eq(faculty), eq(Set.of()), isNull(), isNull(), isNull()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
                 List.of(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED", "Over cap")), null));
 

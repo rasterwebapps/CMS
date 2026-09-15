@@ -13,7 +13,7 @@ import { AcademicYear, CohortSummary, TermInstance } from '../../academic-year/a
 import { PeriodService } from '../../period/period.service';
 import { Period } from '../../period/period.model';
 import { SkeletonBuilderService } from './skeleton-builder.service';
-import { ClinicalShiftWindow, DisplacedSubjectShortfall, SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonSessionType, SkeletonSlotPreview, SkeletonSubject } from './skeleton-builder.model';
+import { ClinicalShiftWindow, DisplacedSubjectShortfall, DutyDayMovePreview, SkeletonBuilderResponse, SkeletonCell, SkeletonCellPlacementRequest, SkeletonRelocationPlan, SkeletonSessionType, SkeletonSubject } from './skeleton-builder.model';
 import { SkeletonCellReplaceDialogComponent, SkeletonCellReplaceDialogData, SkeletonCellReplaceDialogResult } from './skeleton-cell-replace-dialog/skeleton-cell-replace-dialog.component';
 import { SkeletonCellReassignFacultyDialogComponent, SkeletonCellReassignFacultyDialogData, SkeletonCellReassignFacultyDialogResult } from './skeleton-cell-reassign-faculty-dialog/skeleton-cell-reassign-faculty-dialog.component';
 import { SkeletonCellSwapDialogComponent, SkeletonCellSwapDialogData, SkeletonCellSwapDialogResult } from './skeleton-cell-swap-dialog/skeleton-cell-swap-dialog.component';
@@ -22,24 +22,47 @@ import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
-import { RotationSetupFlyoutComponent } from '../rotation-setup/rotation-setup-flyout.component';
-import { ElectiveSlotBlockFlyoutComponent } from './elective-slot-block-flyout.component';
 import { GlobalAutoScheduleReportFlyoutComponent } from './global-auto-schedule-report-flyout.component';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
-import { colorForSubject, LIBRARY_CELL_COLOR } from './subject-color.util';
+import { colorForSubject, LIBRARY_CELL_COLOR, SPORTS_CELL_COLOR } from './subject-color.util';
 import { violationText } from '../../../shared/util/violation-text';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { SKELETON_BUILDER_TOUR, SKELETON_BUILDER_FLOW_MAP } from '../../../shared/tour/tours/skeleton-builder.tours';
 
+/** "HH:mm[:ss]" -> minutes since midnight. */
+function minutesOfDay(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+
 /** "HH:mm:ss" -> decimal hours between two times on the same day. */
 function hoursBetween(startTime: string, endTime: string): number {
-  const toMinutes = (t: string) => {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  };
-  return (toMinutes(endTime) - toMinutes(startTime)) / 60;
+  return (minutesOfDay(endTime) - minutesOfDay(startTime)) / 60;
+}
+
+/** Clock minutes covered by any of `intervals` ([start, end) in minutes) — overlaps count once. */
+function unionMinutes(intervals: [number, number][]): number {
+  const sorted = intervals.filter(([start, end]) => end > start).sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  let runStart = -1;
+  let runEnd = -1;
+  for (const [start, end] of sorted) {
+    if (start > runEnd) {
+      total += runEnd - runStart;
+      runStart = start;
+      runEnd = end;
+    } else if (end > runEnd) {
+      runEnd = end;
+    }
+  }
+  return total + (runEnd - runStart);
+}
+
+/** What a dragged Clinical duty banner carries, telling a drop apart from a dragged session. */
+interface DutyDragData {
+  dutyWindow: ClinicalShiftWindow;
 }
 
 /** One cell in a Skeleton Builder day-row — see {@link SkeletonBuilderComponent#rowSegments}. */
@@ -47,18 +70,23 @@ type SkeletonRowSegment =
   | { kind: 'period'; key: string; period: Period }
   | { kind: 'shift'; key: string; span: number; window: ClinicalShiftWindow };
 
+/** {@code assigned} is curriculum hours placed, capped at each subject's own requirement, so it
+ *  never exceeds {@code total}; {@code extra} is whatever a subject got beyond its curriculum (the
+ *  extra-hours filler); {@code unassigned} is summed per subject, so one subject's extra hours can
+ *  never mask another subject's real gap. */
 interface HoursBreakdown {
   total: number;
   assigned: number;
   unassigned: number;
+  extra: number;
 }
 
 interface HoursSummary {
-  /** Raw weekly-grid capacity for a single section's timetable — every active period's own
-   *  duration, summed across Monday-Friday plus this term's real working-Saturday count, over the
-   *  whole term. This is the ceiling Theory (one exclusive session per slot) is actually bound by;
-   *  Lab/Clinical can exceed it since multiple batches run the same slot in parallel rooms, so
-   *  don't read "unassigned > available" as impossible for those two. */
+  /** Every working day's real clock time for one section across the term: each period, plus the
+   *  Clinical duty time that falls outside the periods (a 07:00 duty starts before Period 1),
+   *  overlaps counted once. Monday-Friday recur every week; Saturday only on the term's working
+   *  Saturdays. Every assigned hour — a period cell or duty time — sits inside this, so assigned
+   *  can never exceed it. */
   availableHours: number;
   /** Sum of theory+lab+clinical — "how many hours this term needs/has in total", independent of
    *  session type. */
@@ -71,7 +99,7 @@ interface HoursSummary {
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, RouterLink, MatDialogModule, MatMenuModule, MatProgressSpinnerModule, RotationSetupFlyoutComponent, ElectiveSlotBlockFlyoutComponent, GlobalAutoScheduleReportFlyoutComponent, WorkingSaturdaysFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent],
+  imports: [FormsModule, DecimalPipe, RouterLink, MatDialogModule, MatMenuModule, MatProgressSpinnerModule, GlobalAutoScheduleReportFlyoutComponent, WorkingSaturdaysFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -99,7 +127,15 @@ export class SkeletonBuilderComponent implements OnInit {
    *  live legality in O(1) while rendering the grid. Null whenever nothing is being dragged, or the
    *  preview call hasn't returned yet (no highlight flicker on slow networks; the grid just stays
    *  unhighlighted a moment longer). */
-  protected readonly dragPreview = signal<Map<string, SkeletonSlotPreview> | null>(null);
+  protected readonly dragPreview = signal<Map<string, SkeletonRelocationPlan> | null>(null);
+  /** Per-day legality of moving a dragged Clinical duty banner there (see {@link onDutyDragStarted}). */
+  protected readonly dutyPreview = signal<Map<string, DutyDayMovePreview> | null>(null);
+  /** What's being dragged right now. Highlights show only during a drag, while the preview data
+   *  outlives the gesture — CDK fires the drop after `cdkDragEnded`, and the drop needs it. */
+  protected readonly dragKind = signal<'cell' | 'duty' | null>(null);
+  /** For a multi-period block, which of its periods was grabbed: the window starts that many
+   *  periods before the drop, so the grabbed row lands exactly where it's dropped. */
+  private dragOffset = 0;
 
   protected readonly termsLoading = signal(false);
   protected readonly cohortsLoading = signal(false);
@@ -120,8 +156,8 @@ export class SkeletonBuilderComponent implements OnInit {
 
   /** Bound to the cohort `<select>` directly — mirrors {@link selectedCohortId} except it can also
    *  hold the `'ALL'` sentinel for the "All cohorts" option. Kept separate from {@link
-   *  selectedCohortId} deliberately: that field flows unchanged into placeCell/moveCell/the
-   *  elective flyout's `[cohortId]` input and must never hold a fake id. */
+   *  selectedCohortId} deliberately: that field flows unchanged into placeCell/moveCell and must
+   *  never hold a fake id. */
   protected cohortSelection: number | 'ALL' | null = null;
   protected readonly allCohortsSelected = signal(false);
   protected readonly showGlobalAutoSchedule = signal(false);
@@ -129,11 +165,7 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly days = WEEK_GRID_DAYS;
   protected readonly dayLabels = WEEK_GRID_DAY_LABELS;
 
-  protected readonly showRotationSetup = signal(false);
-  protected readonly showElectiveBlock = signal(false);
   protected readonly showWorkingSaturdays = signal(false);
-  protected readonly hasElectiveGroup = computed(() =>
-    (this.skeleton()?.subjects ?? []).some((s) => s.electiveGroupId != null));
   /** Drives the single-cohort "no schedule yet, run automation?" CTA — the grid itself still
    *  renders unconditionally underneath, this only decides whether the CTA is prominent. */
   protected readonly hasNoCells = computed(() => (this.skeleton()?.cells.length ?? 0) === 0);
@@ -289,6 +321,8 @@ export class SkeletonBuilderComponent implements OnInit {
     // all four types since Library cells appear for real in the grid below.
     const total: Record<'THEORY' | 'LAB' | 'CLINICAL', number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
     const assigned: Record<'THEORY' | 'LAB' | 'CLINICAL', number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
+    const unassigned: Record<'THEORY' | 'LAB' | 'CLINICAL', number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
+    const extra: Record<'THEORY' | 'LAB' | 'CLINICAL', number> = { THEORY: 0, LAB: 0, CLINICAL: 0 };
 
     const occurrencesFor = (cell: SkeletonCell) =>
       cell.dayOfWeek === 'SATURDAY' ? sk.workingSaturdayCount : sk.weeksInTerm;
@@ -302,6 +336,7 @@ export class SkeletonBuilderComponent implements OnInit {
 
     for (const group of subjectGroups.values()) {
       const offeringIds = new Set(group.map((s) => s.courseOfferingId));
+      const isElectiveGroup = group[0].electiveGroupId != null;
 
       for (const type of ['THEORY', 'LAB', 'CLINICAL'] as const) {
         const rows = group.flatMap((s) => s.budgets.filter((b) => b.sessionType === type && appliesToFilter(b.cohortSectionId)));
@@ -313,10 +348,25 @@ export class SkeletonBuilderComponent implements OnInit {
           if (bucket) bucket.push(row); else bySection.set(row.cohortSectionId, [row]);
         }
 
+        let subjectTotal = 0;
+        let subjectAssigned = 0;
         for (const [sectionId, sectionRows] of bySection) {
-          total[type] += sectionRows[0].totalHours;
-          const cellAssigned = sk.cells
-            .filter((c) => c.courseOfferingId != null && offeringIds.has(c.courseOfferingId) && c.sessionType === type && c.cohortSectionId === sectionId)
+          subjectTotal += sectionRows[0].totalHours;
+          // A cell with no section (e.g. an elective group's shared slot) is one class the whole
+          // cohort attends, so it counts toward every section's bucket -- the same "applies to every
+          // section" rule the grid uses. Matching only the exact section id read a placed elective
+          // as 0h assigned.
+          const sectionCells = sk.cells
+            .filter((c) => c.courseOfferingId != null && offeringIds.has(c.courseOfferingId) && c.sessionType === type
+              && (c.cohortSectionId === sectionId || c.cohortSectionId == null));
+          // An elective group's hours are its distinct slots: student-choice options all run at one
+          // shared slot, and a management-selected group runs only its chosen option (OC-227).
+          // Summing every option and dividing by the option count under-counted the latter by
+          // however many options management didn't pick.
+          const countedCells = isElectiveGroup
+            ? [...new Map(sectionCells.map((c) => [`${c.dayOfWeek}|${c.periodId}`, c] as const)).values()]
+            : sectionCells;
+          const cellAssigned = countedCells
             .reduce((sum, c) => sum + hoursBetween(c.startTime, c.endTime) * occurrencesFor(c), 0);
           // Clinical Shift Group hours (OC-177) never produce a grid cell — they're reported
           // separately, already converted to hours, and only ever apply to CLINICAL. Only a
@@ -327,23 +377,31 @@ export class SkeletonBuilderComponent implements OnInit {
                 .filter((h) => offeringIds.has(h.courseOfferingId) && h.cohortSectionId === sectionId)
                 .reduce((sum, h) => sum + h.assignedHours, 0)
             : 0;
-          assigned[type] += (cellAssigned + shiftAssigned) / sectionRows.length;
+          subjectAssigned += isElectiveGroup ? cellAssigned + shiftAssigned : (cellAssigned + shiftAssigned) / sectionRows.length;
         }
 
         // Cohort-wide Clinical Shift Group hours (no cohortSectionId) aren't scoped to any one
         // section bucket above — add them once here instead of repeating/dividing them per section.
         if (type === 'CLINICAL') {
-          assigned.CLINICAL += sk.clinicalShiftHours
+          subjectAssigned += sk.clinicalShiftHours
             .filter((h) => offeringIds.has(h.courseOfferingId) && h.cohortSectionId === null)
             .reduce((sum, h) => sum + h.assignedHours, 0);
         }
+
+        // Capped per subject: its extra-hours filler shows as "extra", never as curriculum placed,
+        // and never offsets a different subject's shortfall.
+        total[type] += subjectTotal;
+        assigned[type] += Math.min(subjectAssigned, subjectTotal);
+        extra[type] += Math.max(0, subjectAssigned - subjectTotal);
+        unassigned[type] += Math.max(0, subjectTotal - subjectAssigned);
       }
     }
 
     const breakdown = (type: 'THEORY' | 'LAB' | 'CLINICAL'): HoursBreakdown => ({
       total: total[type],
       assigned: assigned[type],
-      unassigned: Math.max(0, total[type] - assigned[type]),
+      unassigned: unassigned[type],
+      extra: extra[type],
     });
     const theory = breakdown('THEORY');
     const lab = breakdown('LAB');
@@ -352,10 +410,21 @@ export class SkeletonBuilderComponent implements OnInit {
       total: theory.total + lab.total + clinical.total,
       assigned: theory.assigned + lab.assigned + clinical.assigned,
       unassigned: theory.unassigned + lab.unassigned + clinical.unassigned,
+      extra: theory.extra + lab.extra + clinical.extra,
     };
 
-    const dailyGridHours = this.periods().reduce((sum, p) => sum + p.durationMinutes / 60, 0);
-    const availableHours = dailyGridHours * (5 * sk.weeksInTerm + sk.workingSaturdayCount);
+    // Every working day's real clock time: each period, plus Clinical duty time outside the periods
+    // (a 07:00-13:10 duty starts two hours before Period 1), overlaps counted once. The bus travel
+    // buffer isn't teaching time, so it's left out. Saturday counts only on working Saturdays.
+    const periodIntervals = this.periods()
+      .map((p) => [minutesOfDay(p.startTime), minutesOfDay(p.endTime)] as [number, number]);
+    const availableHours = WEEK_GRID_DAYS.reduce((sum, day) => {
+      const dutyIntervals = sk.clinicalShiftWindows
+        .filter((w) => w.dayOfWeek === day && w.clinicalEnd != null)
+        .map((w) => [minutesOfDay(w.clinicalStart), minutesOfDay(w.clinicalEnd!)] as [number, number]);
+      const occurrences = day === 'SATURDAY' ? sk.workingSaturdayCount : sk.weeksInTerm;
+      return sum + (unionMinutes([...periodIntervals, ...dutyIntervals]) / 60) * occurrences;
+    }, 0);
 
     return { availableHours, overall, theory, lab, clinical };
   });
@@ -372,9 +441,10 @@ export class SkeletonBuilderComponent implements OnInit {
     return this.permissionService.has('TIMETABLE_SKELETON_PIN');
   }
 
-  protected canPlaceElectiveGroup(): boolean {
-    return this.permissionService.has('TIMETABLE_SKELETON_ELECTIVE_PLACE');
+  protected canMoveDutyDay(): boolean {
+    return this.permissionService.has('TIMETABLE_SKELETON_DUTY_DAY_MOVE');
   }
+
 
   protected canGlobalAutoPlace(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE');
@@ -414,36 +484,6 @@ export class SkeletonBuilderComponent implements OnInit {
     this.cohortSelection = fallbackCohortId;
     this.selectedCohortId = fallbackCohortId;
     this.onCohortChange();
-  }
-
-  protected openElectiveBlock(): void {
-    this.showElectiveBlock.set(true);
-  }
-
-  protected onElectiveBlockClosed(): void {
-    this.showElectiveBlock.set(false);
-  }
-
-  protected onElectiveBlockSaved(): void {
-    this.showElectiveBlock.set(false);
-    this.reloadSkeleton();
-  }
-
-  protected canManageRotation(): boolean {
-    return this.permissionService.has('TIMETABLE_ROTATION_MANAGE');
-  }
-
-  protected openRotationSetup(): void {
-    this.showRotationSetup.set(true);
-  }
-
-  protected onRotationSetupClosed(): void {
-    this.showRotationSetup.set(false);
-  }
-
-  protected onRotationSaved(): void {
-    this.showRotationSetup.set(false);
-    this.reloadSkeleton();
   }
 
   protected canManageWorkingSaturdays(): boolean {
@@ -611,8 +651,12 @@ export class SkeletonBuilderComponent implements OnInit {
       sectionFilter === 'ALL' || c.cohortSectionId == null || c.cohortSectionId === sectionFilter) ?? [];
   }
 
-  protected subjectColor(courseOfferingId: number | null): string {
-    return courseOfferingId == null ? LIBRARY_CELL_COLOR : colorForSubject(courseOfferingId);
+  /** A cell's accent: its own fixed Sports colour, otherwise its subject's (an elective group shares
+   *  one), with Library's fixed slate for the other offering-less cell. */
+  protected cellColor(cell: SkeletonCell): string {
+    if (cell.sessionType === 'SPORTS') return SPORTS_CELL_COLOR;
+    const colorKey = cell.electiveGroupId ?? cell.courseOfferingId;
+    return colorKey == null ? LIBRARY_CELL_COLOR : colorForSubject(colorKey);
   }
 
   /** Whether {@code cell} has a same-subject/type/occupant cell in the immediately adjacent period
@@ -760,7 +804,7 @@ export class SkeletonBuilderComponent implements OnInit {
     return this.canReplace()
       && cell.sessionType === 'THEORY'
       && cell.status === 'DRAFT'
-      && cell.electiveGroupId == null
+      && (cell.electiveGroupId == null || cell.commonElective)
       && cell.courseOfferingId != null;
   }
 
@@ -769,8 +813,8 @@ export class SkeletonBuilderComponent implements OnInit {
   protected replaceBlockedReason(cell: SkeletonCell): string | null {
     if (!this.canReplace()) return 'You don\'t have permission to replace a session.';
     if (cell.status !== 'DRAFT') return 'Published sessions can\'t be changed here.';
-    if (cell.electiveGroupId != null) return 'Electives share one slot — use Place Elective Block.';
-    if (cell.courseOfferingId == null) return 'A Library slot has no subject to replace.';
+    if (cell.electiveGroupId != null && !cell.commonElective) return 'Student-choice electives share one slot — Run Automation places the whole group.';
+    if (cell.courseOfferingId == null) return 'A Library or Sports slot has no subject to replace.';
     if (cell.sessionType !== 'THEORY') return 'Only Theory sessions can be replaced — change a Lab/Clinical batch in Capacity Planner.';
     return null;
   }
@@ -832,23 +876,28 @@ export class SkeletonBuilderComponent implements OnInit {
 
   /** Whether Reassign Faculty is offered for this cell, mirroring what {@code staffCell} accepts.
    *  DRAFT only (a published session is immutable), and it must have a subject to be taught — a
-   *  Library slot has no offering and no faculty. Elective Theory is excluded for a different
-   *  reason: it's the one session type whose room is a free pick rather than resolved from the
-   *  committed allocation, so reassigning it properly needs a classroom field this dialog
-   *  deliberately doesn't carry. The Staffing screen has that picker. */
+   *  Library slot has no offering and no faculty, and Sports is staffed by Run Automation from the
+   *  Sports subject's PE faculty. A student-choice elective's room is a free pick rather than
+   *  resolved from the committed allocation, but the backend now reuses whatever room it's already
+   *  staffed with when this dialog sends no classroomId (see {@code requireRequestedClassroom}), so
+   *  it's offered here too as long as it's already been staffed once (by Run Automation or the
+   *  Approve auto-staff pass) — a never-staffed elective has no room to fall back to yet. */
   protected canReassignFacultyCell(cell: SkeletonCell): boolean {
     return this.canReassignFaculty()
       && cell.status === 'DRAFT'
       && cell.courseOfferingId != null
-      && cell.electiveGroupId == null;
+      && (cell.electiveGroupId == null || cell.commonElective || cell.isStaffed);
   }
 
   /** Why Reassign Faculty is unavailable, for the disabled menu item. Null when it IS available. */
   protected reassignBlockedReason(cell: SkeletonCell): string | null {
     if (!this.canReassignFaculty()) return 'You don\'t have permission to change staffing.';
     if (cell.status !== 'DRAFT') return 'Published sessions can\'t be changed here.';
+    if (cell.sessionType === 'SPORTS') return 'Sports is staffed by Run Automation from the Sports subject\'s PE faculty.';
     if (cell.courseOfferingId == null) return 'A Library slot has no faculty to reassign.';
-    if (cell.electiveGroupId != null) return 'Elective sessions also need a classroom — reassign them on the Staffing screen.';
+    if (cell.electiveGroupId != null && !cell.commonElective && !cell.isStaffed) {
+      return 'This elective has no room yet — approve the term (or re-run automation) to auto-staff it first.';
+    }
     return null;
   }
 
@@ -876,50 +925,62 @@ export class SkeletonBuilderComponent implements OnInit {
     });
   }
 
-  /** Whether Swap is offered for this cell, mirroring {@code swapCells}: DRAFT on both sides, and
-   *  neither may be a multi-period session — the backend refuses those outright. Shares
-   *  {@code TIMETABLE_SKELETON_MOVE} with drag-to-swap because it is literally the same operation
+  /** Whether "Move or swap…" is offered for this cell, mirroring {@code relocate}: DRAFT, and not a
+   *  student-choice elective. A multi-period block moves whole, with its parallel batches. Shares
+   *  {@code TIMETABLE_SKELETON_MOVE} with dragging because it is literally the same operation
    *  reached a different way, not a distinct capability. */
   protected canSwapCell(cell: SkeletonCell): boolean {
     return this.canMove()
       && cell.status === 'DRAFT'
-      && cell.sessionGroupId == null
-      && cell.electiveGroupId == null;
+      && (cell.electiveGroupId == null || cell.commonElective);
   }
 
   /** Why Swap is unavailable, for the disabled menu item. Null when it IS available. */
   protected swapBlockedReason(cell: SkeletonCell): string | null {
     if (!this.canMove()) return 'You don\'t have permission to move sessions.';
     if (cell.status !== 'DRAFT') return 'Published sessions can\'t be moved here.';
-    if (cell.sessionGroupId != null) return 'Multi-period sessions can\'t be swapped yet — remove and re-place instead.';
-    // Moving one member out of a shared elective slot splits the group, which the backend refuses
-    // outright — the whole group's slot moves together via Place Elective Block instead.
-    if (cell.electiveGroupId != null) return 'Electives share one slot — move the whole group with Place Elective Block.';
+    // Moving one option out of a student-choice group's shared slot splits the group, which the
+    // backend refuses outright. An institution-decided elective runs alone, so it swaps freely.
+    if (cell.electiveGroupId != null && !cell.commonElective) return 'Student-choice electives share one slot — Run Automation moves the whole group.';
     return null;
   }
 
-  /** Exchange this session's day/period with another one's. Dragging a cell onto an occupied slot
-   *  already does this and stays the quicker gesture when both are visible; this covers the case
-   *  dragging is bad at — two cells far apart on a scrolling grid — and is keyboard-reachable. */
+  /** Lists every legal place this session can go, whole block included — a move into empty periods
+   *  or a swap with the sessions there — and applies the chosen one. Dragging does the same and stays
+   *  quicker when both places are visible; this covers far-apart slots and is keyboard-reachable. */
   protected openSwapDialog(cell: SkeletonCell): void {
-    const sk = this.skeleton();
     const cohortId = this.selectedCohortId;
-    if (!sk || !cohortId || !this.canSwapCell(cell)) return;
-
-    this.dialog.open(SkeletonCellSwapDialogComponent, {
-      width: '560px',
-      maxWidth: '95vw',
-      data: { cell, cells: sk.cells } satisfies SkeletonCellSwapDialogData,
-    }).afterClosed().subscribe((result: SkeletonCellSwapDialogResult | undefined) => {
-      if (!result) return;
-      this.skeletonService.swapCells(cell.id, { targetCellId: result.targetCellId, cohortId }).subscribe({
-        next: () => {
-          this.toast.success('Swapped — both sessions pinned, so Run Automation will keep them.');
-          this.reloadSkeleton();
-        },
-        error: (err) => this.toast.error(violationText(err) ?? 'Failed to swap sessions'),
-      });
+    if (!cohortId || !this.canSwapCell(cell)) return;
+    this.skeletonService.previewRelocation(cell.id, cohortId).subscribe({
+      next: (plans) => {
+        this.dialog.open(SkeletonCellSwapDialogComponent, {
+          width: '560px',
+          maxWidth: '95vw',
+          data: {
+            title: 'Move or swap session',
+            subtitle: this.cellSubtitle(cell),
+            options: plans,
+            chosen: null,
+            periodNames: this.periodNames(),
+            confirmText: 'Apply',
+          } satisfies SkeletonCellSwapDialogData,
+        }).afterClosed().subscribe((result: SkeletonCellSwapDialogResult | undefined) => {
+          if (result) this.applyRelocation(cell, result.plan, cohortId);
+        });
+      },
+      error: (err) => this.toast.error(violationText(err) ?? 'Failed to load where this session can go'),
     });
+  }
+
+  private cellSubtitle(cell: SkeletonCell): string {
+    const occupant = cell.cohortSectionLabel ?? cell.batchName;
+    return `${cell.subjectCode} · ${cell.sessionType} — ${this.dayLabels[cell.dayOfWeek]}, ${cell.slotName}`
+      + (occupant ? ` · ${occupant}` : '');
+  }
+
+  /** Period id → the name the grid shows, for the move/swap preview's before → after rows. */
+  private periodNames(): Record<number, string> {
+    return Object.fromEntries(this.periods().map((p) => [p.id, p.name]));
   }
 
   private recordDisplaced(displaced: DisplacedSubjectShortfall): void {
@@ -952,89 +1013,174 @@ export class SkeletonBuilderComponent implements OnInit {
     return `${day}|${periodId}`;
   }
 
-  /** Fired once per drag gesture (CDK's `cdkDragStarted`, bound per-cell in the template) — fetches
-   *  every grid slot's live legality for moving THIS cell there and stashes it in {@link
-   *  dragPreview} so every `.skeleton-cell-stack` in the grid can highlight itself while the drag is
-   *  in progress. A cell with no move permission or mid-periodSpan never starts a drag in the first
-   *  place ({@code cdkDragDisabled} on the template's `cdkDrag`), so there's nothing to guard here
-   *  beyond the cohort actually being loaded. Silently no-ops on request failure — the grid just
-   *  shows no highlight for that drag, falling back to today's drop-and-find-out behavior rather
-   *  than blocking the gesture over a preview-only call. */
+  /** Fired once per drag gesture — fetches the legality of every same-length window for moving THIS
+   *  session there with its whole block (MOVE into empty periods, SWAP with the sessions there, or
+   *  why not) and stashes it in {@link dragPreview} so the grid highlights itself while the drag is
+   *  in progress. Silently no-ops on request failure: the grid shows no highlight, and a drop asks
+   *  the user to try again rather than guessing. */
   protected onDragStarted(cell: SkeletonCell): void {
     const cohortId = this.selectedCohortId;
     if (!cohortId) return;
-    this.skeletonService.previewMoveTargets(cell.id, cohortId).subscribe({
-      next: (slots) => {
-        const map = new Map<string, SkeletonSlotPreview>();
-        for (const slot of slots) {
-          map.set(this.previewKey(slot.dayOfWeek, slot.periodId), slot);
-        }
-        this.dragPreview.set(map);
-      },
+    this.dragKind.set('cell');
+    this.dragOffset = this.blockOffset(cell);
+    this.dragPreview.set(null);
+    this.skeletonService.previewRelocation(cell.id, cohortId).subscribe({
+      next: (plans) => this.dragPreview.set(new Map(plans.map((p) => [this.previewKey(p.dayOfWeek, p.startPeriodId), p]))),
       error: () => this.dragPreview.set(null),
     });
   }
 
-  protected onDragEnded(): void {
-    this.dragPreview.set(null);
-  }
-
-  /** Template helper — 'valid'/'invalid' drives the drop-target highlight class on a grid slot's
-   *  `.skeleton-cell-stack`, or null while nothing is being dragged (or for the dragged cell's own
-   *  current slot, which the preview list never includes — see {@code previewMoveTargets}). */
-  protected slotPreviewState(day: string, periodId: number): 'valid' | 'invalid' | null {
-    const slot = this.dragPreview()?.get(this.previewKey(day, periodId));
-    if (!slot) return null;
-    return slot.valid ? 'valid' : 'invalid';
-  }
-
-  /** Tooltip text for a highlighted-invalid drop target — the backend's own violation message
-   *  (already user-facing prose, same text {@link onCellDrop}'s error toast would show on a real
-   *  rejected drop), so hovering explains why without having to attempt the drop first. */
-  protected slotPreviewReason(day: string, periodId: number): string | null {
-    return this.dragPreview()?.get(this.previewKey(day, periodId))?.reason ?? null;
-  }
-
-  /** Drops onto the same slot the cell was already in are a no-op — CDK still fires the event
-   *  for a same-list drop, so this guards it before ever calling the backend. A target slot with
-   *  exactly one existing cell triggers an atomic swap (exchange both cells' day/period) instead
-   *  of a plain move — dropping onto an occupied slot used to just fail with a conflict violation,
-   *  so this is the only way to actually exchange two sessions rather than remove-then-re-place
-   *  twice. A slot with more than one occupant is ambiguous (which one is the swap partner?), so
-   *  that's left as an error rather than guessing. Reloads the whole skeleton on success rather
-   *  than patching cells locally, matching the reload-after-mutation pattern {@link doRemove}
-   *  already uses. */
-  protected onCellDrop(event: CdkDragDrop<unknown>, day: string, periodId: number): void {
-    const cell = event.item.data as SkeletonCell;
+  /** The same for a dragged Clinical duty banner: which other days its duty could move to. */
+  protected onDutyDragStarted(window: ClinicalShiftWindow): void {
     const cohortId = this.selectedCohortId;
-    if (!cell || !cohortId || (cell.dayOfWeek === day && cell.periodId === periodId)) return;
+    if (!cohortId) return;
+    this.dragKind.set('duty');
+    this.dutyPreview.set(null);
+    this.skeletonService.previewDutyDayMove(window.shiftGroupId, cohortId).subscribe({
+      next: (days) => this.dutyPreview.set(new Map(days.map((d) => [d.dayOfWeek, d]))),
+      error: () => this.dutyPreview.set(null),
+    });
+  }
 
-    const occupants = this.cellsFor(day, periodId);
-    if (occupants.length > 1) {
-      this.toast.error('This slot already has more than one session — remove one first before moving here.');
+  protected onDragEnded(): void {
+    this.dragKind.set(null);
+  }
+
+  /** Position of the grabbed row within its multi-period block (0 for a single-period session). */
+  private blockOffset(cell: SkeletonCell): number {
+    if (!cell.sessionGroupId) return 0;
+    const order = this.periods().map((p) => p.id);
+    const first = Math.min(...(this.skeleton()?.cells ?? [])
+      .filter((c) => c.sessionGroupId === cell.sessionGroupId)
+      .map((c) => order.indexOf(c.periodId)));
+    return Math.max(0, order.indexOf(cell.periodId) - first);
+  }
+
+  /** The plan for dropping the dragged session with its grabbed row at (day, periodId). */
+  private planForDrop(day: string, periodId: number): SkeletonRelocationPlan | null {
+    const periods = this.periods();
+    const startIndex = periods.findIndex((p) => p.id === periodId) - this.dragOffset;
+    if (startIndex < 0) return null;
+    return this.dragPreview()?.get(this.previewKey(day, periods[startIndex].id)) ?? null;
+  }
+
+  /** Template helper — a grid slot's drop highlight while something is being dragged: 'move' (an
+   *  empty window), 'swap' (the sessions there trade places), 'invalid', or null. A dragged duty
+   *  banner lights up whole days. */
+  protected slotPreviewState(day: string, periodId: number): 'move' | 'swap' | 'invalid' | null {
+    const kind = this.dragKind();
+    if (kind === 'duty') {
+      const preview = this.dutyPreview()?.get(day);
+      return preview ? (preview.valid ? 'move' : 'invalid') : null;
+    }
+    if (kind !== 'cell') return null;
+    const plan = this.planForDrop(day, periodId);
+    if (!plan) return null;
+    return !plan.valid ? 'invalid' : plan.kind === 'SWAP' ? 'swap' : 'move';
+  }
+
+  /** Tooltip for a highlighted drop target — the backend's own reason when it's refused (so hovering
+   *  explains why without attempting the drop), or what it would swap with. */
+  protected slotPreviewReason(day: string, periodId: number): string | null {
+    const kind = this.dragKind();
+    if (kind === 'duty') return this.dutyPreview()?.get(day)?.reason ?? null;
+    if (kind !== 'cell') return null;
+    const plan = this.planForDrop(day, periodId);
+    if (!plan) return null;
+    if (!plan.valid) return plan.reason;
+    return plan.kind === 'SWAP' ? 'Swap with ' + plan.moves.slice(1).map((m) => m.subjectCode).join(', ') : 'Move here';
+  }
+
+  /** A drop onto the grid. A dragged session goes, whole block included, to the window its grabbed
+   *  row lands in — a move into empty periods or a swap with the sessions there — after a preview of
+   *  exactly what will move. A dragged Clinical duty banner moves that duty to the dropped-on day.
+   *  Reloads the whole skeleton on success, matching {@link doRemove}'s reload-after-mutation. */
+  protected onCellDrop(event: CdkDragDrop<unknown>, day: string, periodId: number): void {
+    const data = event.item.data as SkeletonCell | DutyDragData | undefined;
+    const cohortId = this.selectedCohortId;
+    if (!data || !cohortId) return;
+    if ('dutyWindow' in data) {
+      this.confirmDutyDayMove(data.dutyWindow, day, cohortId);
       return;
     }
-    if (occupants.length === 1) {
-      this.skeletonService.swapCells(cell.id, { targetCellId: occupants[0].id, cohortId }).subscribe({
-        next: () => {
-          this.toast.success('Swapped');
-          this.reloadSkeleton();
-        },
-        error: (err) => {
-          this.toast.error(violationText(err) ?? 'Failed to swap sessions');
-        },
-      });
+    if (data.dayOfWeek === day && data.periodId === periodId) return;
+    const plan = this.planForDrop(day, periodId);
+    if (!plan) {
+      this.toast.info('Still checking where this session can go — try the drop again in a moment.');
       return;
     }
+    if (!plan.valid) {
+      this.toast.error(plan.reason ?? 'This session can\'t go there.');
+      return;
+    }
+    const swap = plan.kind === 'SWAP';
+    this.dialog.open(SkeletonCellSwapDialogComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      data: {
+        title: swap ? 'Swap sessions' : 'Move session',
+        subtitle: this.cellSubtitle(data),
+        options: [],
+        chosen: plan,
+        periodNames: this.periodNames(),
+        confirmText: swap ? 'Swap' : 'Move',
+      } satisfies SkeletonCellSwapDialogData,
+    }).afterClosed().subscribe((result: SkeletonCellSwapDialogResult | undefined) => {
+      if (result) this.applyRelocation(data, result.plan, cohortId);
+    });
+  }
 
-    this.skeletonService.moveCell(cell.id, { dayOfWeek: day, periodId, cohortId }).subscribe({
+  private applyRelocation(cell: SkeletonCell, plan: SkeletonRelocationPlan, cohortId: number): void {
+    this.skeletonService.relocate(cell.id, { dayOfWeek: plan.dayOfWeek, startPeriodId: plan.startPeriodId, cohortId }).subscribe({
       next: () => {
-        this.toast.success('Moved');
+        this.toast.success(plan.kind === 'SWAP'
+          ? 'Swapped — everything that moved is pinned, so Run Automation will keep it.'
+          : 'Moved — pinned, so Run Automation will keep it here.');
         this.reloadSkeleton();
       },
-      error: (err) => {
-        this.toast.error(violationText(err) ?? 'Failed to move session');
-      },
+      error: (err) => this.toast.error(violationText(err) ?? 'Failed to move the session'),
+    });
+  }
+
+  /** Confirms and applies moving a Clinical duty to another day — the new day's sessions inside
+   *  the duty window swap into the day it leaves, shown in the preview first. */
+  private confirmDutyDayMove(window: ClinicalShiftWindow, day: string, cohortId: number): void {
+    if (day === window.dayOfWeek) return;
+    const preview = this.dutyPreview()?.get(day);
+    if (!preview) {
+      this.toast.info('Still checking which days this duty can move to — try the drop again in a moment.');
+      return;
+    }
+    if (!preview.valid) {
+      this.toast.error(preview.reason ?? 'The duty can\'t move to that day.');
+      return;
+    }
+    const plan: SkeletonRelocationPlan = {
+      dayOfWeek: day, startPeriodId: 0, periodIds: [], kind: preview.moves.length > 0 ? 'SWAP' : 'MOVE',
+      valid: true, reason: null, moves: preview.moves,
+    };
+    this.dialog.open(SkeletonCellSwapDialogComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      data: {
+        title: 'Move clinical duty',
+        subtitle: `${window.label}: ${this.dayLabels[window.dayOfWeek]} → ${this.dayLabels[day]}`,
+        options: [],
+        chosen: plan,
+        periodNames: this.periodNames(),
+        confirmText: 'Move duty',
+      } satisfies SkeletonCellSwapDialogData,
+    }).afterClosed().subscribe((result: SkeletonCellSwapDialogResult | undefined) => {
+      if (!result) return;
+      this.skeletonService.moveDutyDay(window.shiftGroupId, { dayOfWeek: day, cohortId }).subscribe({
+        next: () => {
+          this.toast.success(preview.moves.length > 0
+            ? `Duty moved to ${this.dayLabels[day]} — the sessions it displaced now run on ${this.dayLabels[window.dayOfWeek]} and are pinned.`
+            : `Duty moved to ${this.dayLabels[day]}.`);
+          this.reloadSkeleton();
+        },
+        error: (err) => this.toast.error(violationText(err) ?? 'Failed to move the duty'),
+      });
     });
   }
 

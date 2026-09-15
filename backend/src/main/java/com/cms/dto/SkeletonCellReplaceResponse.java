@@ -17,17 +17,17 @@ public record SkeletonCellReplaceResponse(
     DisplacedSubjectShortfall displaced
 ) {
 
-    /** How far below its weekly curriculum requirement the displaced subject now sits, for this
-     *  exact audience (section). {@code shortfallSessions} is always at least 1 when present —
-     *  it is the number of sessions per week still to be placed elsewhere. */
+    /** How far below its curriculum Theory hours the displaced subject now sits across the term,
+     *  for this exact audience (section). {@code shortfallHours} is always above 0 when present —
+     *  what its remaining placed sessions no longer deliver. */
     public record DisplacedSubjectShortfall(
         Long courseOfferingId,
         String subjectName,
         String subjectCode,
         Long cohortSectionId,
         String cohortSectionLabel,
-        int requiredSessionsPerWeek,
-        int placedSessionsPerWeek,
-        int shortfallSessions
+        int requiredHours,
+        double placedHours,
+        double shortfallHours
     ) {}
 }

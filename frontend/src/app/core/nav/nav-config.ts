@@ -121,13 +121,18 @@ export const NAV_ENTRIES: NavEntry[] = [
       // links) rather than adding a 2nd top-level entry for what's largely the same job.
       { label: 'Capacity Auto-Plan',  icon: 'auto_awesome',       route: '/timetable/capacity-auto-plan', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
       { label: 'Assign Faculty',      icon: 'person_edit',        route: '/assign-faculty',      permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
-      { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
-      // -- Timetable build -- (Faculty Availability + Workload Rules first: TimetableStaffingService's
-      // validateAssignment() checks both directly, so they gate Staffing, not the other way round)
+      // -- Timetable build -- (Faculty Availability first: TimetableStaffingService's
+      // validateAssignment() checks it directly, so it gates Staffing, not the other way round.
+      // Faculty Workload Rules is a Staffing input too, but it's a one-time institution-wide
+      // config screen like Periods/Classrooms, so it lives under Preferences > Academics masters.)
       { label: 'Faculty Availability', icon: 'event_busy',        route: '/faculty-availability', permissions: ['FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'] },
-      { label: 'Faculty Workload Rules', icon: 'rule',            route: '/timetable/workload-rules', permissions: ['TIMETABLE_WORKLOAD_RULES_VIEW', 'TIMETABLE_WORKLOAD_RULES_MANAGE'] },
       { label: 'Skeleton Builder',    icon: 'grid_on',            route: '/timetable/skeleton-builder', permissions: ['TIMETABLE_VIEW'] },
-      { label: 'Staffing',            icon: 'assignment_ind',     route: '/timetable/staffing',   permissions: ['TIMETABLE_VIEW'] },
+      // Lab Schedules is a manual CRUD screen over the same ClassSchedule rows Skeleton Builder
+      // places (see ClassScheduleController's route-naming comment) -- it belongs right after the
+      // tool that actually generates that data, not up in the Term-offering group before it exists.
+      // No standalone Staffing nav entry -- Approve now auto-staffs the draft itself (OC-230), and
+      // any leftover unstaffed cell is fixed in-grid via Skeleton Builder's Reassign Faculty dialog.
+      { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
       { label: 'Conflict Inspector',  icon: 'fact_check',         route: '/timetable/conflict-inspector', permissions: ['TIMETABLE_CONFLICT_INSPECTOR_VIEW'] },
       { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_MANAGE'] },
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
@@ -352,6 +357,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Courses',            icon: 'menu_book',         route: '/courses',                 permissions: ['COURSE_VIEW', 'COURSE_CREATE', 'COURSE_EDIT', 'COURSE_DELETE', 'COURSE_EXPORT', 'COURSE_MANAGE'], modules: ['ACADEMICS'] },
       { label: 'Faculty',            icon: 'groups',            route: '/faculty',                 permissions: ['FACULTY_VIEW', 'FACULTY_CREATE', 'FACULTY_EDIT', 'FACULTY_DELETE', 'FACULTY_EXPORT', 'FACULTY_MANAGE'], modules: ['ACADEMICS'] },
       { label: 'Faculty Doc Config', icon: 'rule',              route: '/faculty/document-config', permissions: ['FACULTY_DOC_CONFIG_VIEW', 'FACULTY_DOC_CONFIG_MANAGE'], modules: ['ACADEMICS'] },
+      { label: 'Faculty Workload Rules', icon: 'rule',          route: '/timetable/workload-rules', permissions: ['TIMETABLE_WORKLOAD_RULES_VIEW', 'TIMETABLE_WORKLOAD_RULES_MANAGE'], modules: ['ACADEMICS'] },
       { label: 'Holiday Templates',  icon: 'event_repeat',      route: '/holiday-templates',       permissions: ['HOLIDAY_TEMPLATE_VIEW', 'HOLIDAY_TEMPLATE_MANAGE'], modules: ['ACADEMICS'] },
       { label: 'Labs',               icon: 'science',           route: '/labs',                    permissions: ['LAB_VIEW', 'LAB_CREATE', 'LAB_EDIT', 'LAB_DELETE', 'LAB_EXPORT', 'LAB_MANAGE'], modules: ['ACADEMICS'] },
       { label: 'Periods',            icon: 'schedule',          route: '/periods',                 permissions: ['PERIOD_VIEW', 'PERIOD_MANAGE'], modules: ['ACADEMICS'] },

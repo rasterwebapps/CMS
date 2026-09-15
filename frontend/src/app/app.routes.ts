@@ -1776,14 +1776,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'timetable/staffing',
-    canActivate: withPermission('TIMETABLE_VIEW'),
-    loadComponent: () =>
-      import('./features/timetable/staffing/staffing.component').then(
-        (m) => m.StaffingComponent
-      ),
-  },
-  {
     path: 'timetable/capacity-planner',
     canActivate: withPermission('TIMETABLE_CAPACITY_PLANNER_VIEW'),
     loadComponent: () =>

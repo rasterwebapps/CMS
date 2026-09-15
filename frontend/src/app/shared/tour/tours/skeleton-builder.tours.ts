@@ -37,7 +37,7 @@ export const SKELETON_BUILDER_TOUR: TourDefinition = {
       popover: {
         title: '✅ Automate, then fine-tune',
         description:
-          'Use Run Automation to place and staff a cohort\'s (or every cohort\'s) shortfall in one shot, Set up Rotation for week-parity batches, or Place Elective Block to bulk-place a term\'s elective group.',
+          'Use Run Automation to place and staff a cohort\'s (or every cohort\'s) whole term in one shot — Lab rotations, electives, Library and Sports included — then drag, swap or pin sessions to fine-tune.',
         side: 'over',
         align: 'center',
       },
@@ -60,7 +60,7 @@ export const SKELETON_BUILDER_FLOW_MAP: TourFlowMap = {
   steps: [
     { label: 'Pick a Term & Cohort', icon: 'search', detail: 'Select the academic year, term, and cohort whose skeleton you\'re building — or all cohorts at once.' },
     { label: 'Run Automation', icon: 'send', detail: 'Places and staffs the shortfall in one shot, checking prerequisites and faculty capacity first.' },
-    { label: 'Edit the Result', icon: 'open', detail: 'Drag a session to move it, or click it to remove it — rerun automation to refill any shortfall.' },
-    { label: 'Fine-Tune', icon: 'checklist', detail: 'Use Set up Rotation for week-parity batches, or Place Elective Block for a term\'s elective group.' },
+    { label: 'Edit the Result', icon: 'open', detail: 'Drag a session (a whole block moves together) onto empty periods to move it or onto other sessions to swap them, or drag a Clinical duty banner to another day — every change is previewed first.' },
+    { label: 'Fine-Tune', icon: 'checklist', detail: 'Pin a session to keep it where you put it — the next Run Automation schedules everything else around it.' },
   ],
 };

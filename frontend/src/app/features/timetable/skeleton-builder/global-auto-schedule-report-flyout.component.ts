@@ -16,7 +16,7 @@ import { CapacityPlannerService } from '../capacity-planner/capacity-planner.ser
 import { FacultyWorkloadOverviewReport } from '../capacity-planner/capacity-planner.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { TeachingAssignmentDialogComponent, TeachingAssignmentDialogData } from '../../assign-faculty/teaching-assignment-dialog/teaching-assignment-dialog.component';
-import { ClinicalShiftDayShortfall, FacultyOverCapacity, FacultySubstitutionTip, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult, VenueCapacityGap, VenueOverCapacity, VenueTightCapacity } from './skeleton-builder.model';
+import { ClinicalResidualItem, ClinicalShiftDayShortfall, FacultyOverCapacity, FacultySubstitutionTip, FacultyTightCapacity, GlobalAutoSchedulePrerequisites, GlobalAutoScheduleResult, VenueCapacityGap, VenueOverCapacity, VenueTightCapacity } from './skeleton-builder.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { SpecialClassRequestFlyoutComponent } from '../special-classes/special-class-request-flyout/special-class-request-flyout.component';
@@ -136,6 +136,31 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
   protected readonly canManageWorkloadRules = computed(() => this.permissionService.has('TIMETABLE_WORKLOAD_RULES_MANAGE'));
   protected readonly canManageWorkingSaturdays = computed(() => this.permissionService.has('TIMETABLE_WORKING_SATURDAYS_MANAGE'));
   protected readonly canManageFaculty = computed(() => this.permissionService.has('FACULTY_MANAGE'));
+  protected readonly canApplyDutyFit = computed(() => this.permissionService.has('TIMETABLE_SKELETON_CLINICAL_DUTY_FIT'));
+  /** Offering whose duty-length fit is being applied right now (one at a time), or null. */
+  protected readonly dutyFitApplyingId = signal<number | null>(null);
+  private readonly appliedDutyFits = signal<ReadonlySet<number>>(new Set());
+
+  protected isDutyFitApplied(courseOfferingId: number): boolean {
+    return this.appliedDutyFits().has(courseOfferingId);
+  }
+
+  /** Applies the report's clinical duty-length fit (OC-227). The server recomputes the minutes; the
+   *  grid's hours only change on the next automation run, which the confirmation line says. */
+  protected applyDutyFit(residual: ClinicalResidualItem): void {
+    this.dutyFitApplyingId.set(residual.courseOfferingId);
+    this.skeletonService.applyClinicalDutyFit(residual.courseOfferingId).subscribe({
+      next: () => {
+        this.dutyFitApplyingId.set(null);
+        this.appliedDutyFits.update((applied) => new Set(applied).add(residual.courseOfferingId));
+        this.toast.success(`${residual.subjectName}: clinical duty set to ${residual.suggestedDurationMinutes} minutes`);
+      },
+      error: (err) => {
+        this.dutyFitApplyingId.set(null);
+        this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to update the clinical duty length — nothing was changed');
+      },
+    });
+  }
   protected readonly workloadRules = signal<FacultyWorkloadRules | null>(null);
   protected readonly editingWorkloadRules = signal(false);
   protected readonly draftMaxDailyHours = signal<number | null>(null);
@@ -178,13 +203,16 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     this.acknowledged.update((v) => !v);
   }
 
-  /** True the moment ANY session went unplaced — the run's own shortfall alert (Saturday /
-   *  Special Class options) shows whenever this is true, regardless of whether it narrows down to
-   *  one single subject. */
+  /** True only when some curriculum hours went unplaced for lack of a free slot
+   *  ({@code slotShortfall}) — the one kind the shortfall alert's Saturday / Special Class options
+   *  can close. Library and idle-batch fallbacks, Self-Study/gap-fill notes and a missing faculty or
+   *  elective selection are still listed per cohort, but counting them here told admins to open more
+   *  Saturdays on a run where every Theory subject already met its hours (2026-09-15). */
   protected readonly hasShortfall = computed(() => {
     const r = this.result();
     if (!r) return false;
-    return r.electiveUnplaced.length > 0 || r.cohortSummaries.some((c) => c.unplaced.length > 0);
+    return r.electiveUnplaced.some((u) => u.slotShortfall)
+      || r.cohortSummaries.some((c) => c.unplaced.some((u) => u.slotShortfall));
   });
 
   /** True only when this run genuinely couldn't staff some periods even after trying every
@@ -256,11 +284,12 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  alongside an otherwise-clean run still counts as "not a single remaining subject". */
   protected readonly singleShortfallSubject = computed<SingleShortfallSubject | null>(() => {
     const r = this.result();
-    if (!r || r.electiveUnplaced.length > 0) return null;
+    if (!r || r.electiveUnplaced.some((u) => u.slotShortfall)) return null;
     const bySubject = new Map<string, SingleShortfallSubject>();
     for (const summary of r.cohortSummaries) {
       for (const item of summary.unplaced) {
-        if (item.courseOfferingId == null) continue;
+        // Gap-fill notes carry an offering id only to deep-link; they're not a subject that's short.
+        if (item.courseOfferingId == null || !item.slotShortfall) continue;
         bySubject.set(`${item.courseOfferingId}|${item.sessionType}`, {
           cohortId: summary.cohortId,
           courseOfferingId: item.courseOfferingId,
@@ -779,6 +808,7 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
       case 'CLINICAL': return 'Clinical';
       case 'LAB_CLINICAL': return 'Lab/Clinical';
       case 'LIBRARY': return 'Library';
+      case 'SPORTS': return 'Sports';
       default: return '—';
     }
   }

@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Set;
 
 import com.cms.model.TermInstance;
+import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.WeekOfMonth;
 
 /** Pure, stateless helper deciding whether a given calendar Saturday counts as a real working day
@@ -49,28 +50,19 @@ final class WorkingSaturdayCalculator {
         return ordinalWeek != null && allowed.contains(ordinalWeek);
     }
 
-    /** Total Saturdays falling inside [termStart, termEnd], ignoring the opt-in pattern entirely —
-     *  the denominator {@link #isEverySaturdayWorking} compares {@link #workingSaturdayCount}
-     *  against. */
-    static long totalSaturdayCount(TermInstance term) {
-        LocalDate firstSaturday = term.getStartDate()
-            .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SATURDAY));
-        return firstSaturday.isAfter(term.getEndDate()) ? 0
-            : ChronoUnit.WEEKS.between(firstSaturday, term.getEndDate()) + 1;
-    }
-
-    /** True when EVERY Saturday in the term is a designated working day — i.e. a session placed on
-     *  Saturday fires exactly as often as one placed on any Monday-Friday day, so it delivers its
-     *  full curriculum hours and needs no special handling. False both for a term that hasn't opted
-     *  in at all and for a partial pattern like "1st Saturday only", where a Saturday-placed weekly
-     *  session genuinely under-delivers and {@code TimetableGlobalAutoScheduleService}'s Phase 5
-     *  mending should still try to move real curriculum content back onto a full-frequency weekday. */
-    static boolean isEverySaturdayWorking(TermInstance term) {
-        if (term.getWorkingSaturdayWeeks().isEmpty()) {
-            return false;
+    /** How many times a weekly slot on {@code day} really runs across the term: every week for
+     *  Monday-Friday ({@code weeksInTerm}), and only the chosen working Saturdays for Saturday (0
+     *  when the term hasn't chosen any). A subject's hours are planned against the term's total of
+     *  these runs, so a weekday slot and a working-Saturday slot are the same kind of capacity, just
+     *  worth a different number of runs. */
+    static int runsInTerm(DayOfWeek day, TermInstance term, int weeksInTerm) {
+        if (day != DayOfWeek.SATURDAY) {
+            return weeksInTerm;
         }
-        long total = totalSaturdayCount(term);
-        return total > 0 && workingSaturdayCount(term) >= total;
+        if (term.getWorkingSaturdayWeeks().isEmpty()) {
+            return 0;
+        }
+        return (int) Math.min(workingSaturdayCount(term), weeksInTerm);
     }
 
     /** How many of {@code date}'s Saturdays within [termStart, termEnd] are real working days

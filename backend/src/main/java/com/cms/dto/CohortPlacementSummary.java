@@ -3,17 +3,17 @@ package com.cms.dto;
 import java.util.List;
 
 /** {@code unplaced} lists every shortfall unit this cohort couldn't place/staff this run (best-
- *  effort — see {@code TimetableGlobalAutoScheduleService#runGlobalAutoSchedule}); {@code
- *  usedSaturday} flags whether any of {@code placedCount} landed on Saturday. Saturday is no
- *  longer a deprioritized fallback — when the term has working-Saturday weeks configured, it
- *  competes for content on the same least-loaded-day-first footing as any weekday (see
- *  {@code TimetableGlobalAutoScheduleService#tryPlaceAndStaff}) — so this flag is purely
- *  informational now, not a signal that something unusual happened. */
+ *  effort — see {@code TimetableGlobalAutoScheduleService#runGlobalAutoSchedule}), reconciled
+ *  against the finished grid in real term hours. {@code usedSaturday} flags whether any of
+ *  {@code placedCount} landed on Saturday — a regular working day whenever the term has chosen
+ *  working Saturdays. {@code infoNotes} are neutral, expected outcomes (e.g. Library shrinking to
+ *  fit a full week) — never warnings. */
 public record CohortPlacementSummary(
     Long cohortId,
     String cohortName,
     int placedCount,
     int staffedCount,
     List<AutoPlaceUnplacedItem> unplaced,
-    boolean usedSaturday
+    boolean usedSaturday,
+    List<String> infoNotes
 ) {}

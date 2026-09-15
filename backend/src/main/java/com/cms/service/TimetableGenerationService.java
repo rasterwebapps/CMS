@@ -38,19 +38,22 @@ public class TimetableGenerationService {
     private final AuditLogService auditLogService;
     private final TimetableConflictInspectorService timetableConflictInspectorService;
     private final CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
+    private final TimetableStaffingAutoAssignService timetableStaffingAutoAssignService;
 
     public TimetableGenerationService(ClassScheduleRepository classScheduleRepository,
                                        TermInstanceRepository termInstanceRepository,
                                        LabAttendanceRepository labAttendanceRepository,
                                        AuditLogService auditLogService,
                                        TimetableConflictInspectorService timetableConflictInspectorService,
-                                       CourseOfferingSectionFacultyService courseOfferingSectionFacultyService) {
+                                       CourseOfferingSectionFacultyService courseOfferingSectionFacultyService,
+                                       TimetableStaffingAutoAssignService timetableStaffingAutoAssignService) {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.labAttendanceRepository = labAttendanceRepository;
         this.auditLogService = auditLogService;
         this.timetableConflictInspectorService = timetableConflictInspectorService;
         this.courseOfferingSectionFacultyService = courseOfferingSectionFacultyService;
+        this.timetableStaffingAutoAssignService = timetableStaffingAutoAssignService;
     }
 
     /** A LOCKED term's timetable is immutable — clear/approve/revert all refuse once the term
@@ -97,10 +100,18 @@ public class TimetableGenerationService {
         if (drafts.isEmpty()) {
             throw new ResourceNotFoundException("No draft timetable found for term instance id: " + termInstanceId);
         }
+        // Confirming the timetable is what finalizes staffing now -- auto-resolve whatever Skeleton
+        // Builder's own placement pass couldn't (see TimetableStaffingAutoAssignService), so the
+        // common case never needs a manual detour before Approve. Each staffCell call inside this
+        // runs its own REQUIRES_NEW transaction/persistence context (see staffCell's own doc), so the
+        // `drafts` list above is now stale for whichever rows it just staffed -- re-fetch before
+        // computing what's still actually missing.
+        timetableStaffingAutoAssignService.autoStaff(termInstanceId);
+        drafts = classScheduleRepository.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT);
         // A skeleton cell with no faculty yet would otherwise fail with a raw
         // chk_class_schedule_session_shape violation the moment its status flips to PUBLISHED --
-        // catch it here first with a message that actually tells the admin what to go do (visit
-        // the Staffing screen) instead of a database error.
+        // catch it here first with a message that actually tells the admin what to go do (open
+        // Skeleton Builder and reassign faculty on the flagged session) instead of a database error.
         // LIBRARY rows are deliberately never staffed (see
         // TimetableGlobalAutoScheduleService#fillLibraryGaps) -- they publish with just a
         // classroom, no faculty, so they must not count as "still needs staffing" here.
@@ -110,7 +121,7 @@ public class TimetableGenerationService {
             .count();
         if (unstaffedCount > 0) {
             throw new LifecycleConflictException(
-                unstaffedCount + " session(s) in this draft still need faculty/room assigned via the Staffing screen before it can be approved.",
+                unstaffedCount + " session(s) couldn't be auto-staffed and still need faculty assigned in Skeleton Builder before this can be approved.",
                 "TIMETABLE_UNSTAFFED_CELLS", "TermInstance", termInstanceId, (int) unstaffedCount);
         }
         // Distinct from unstaffedCount above: that gate only inspects ClassSchedule rows that

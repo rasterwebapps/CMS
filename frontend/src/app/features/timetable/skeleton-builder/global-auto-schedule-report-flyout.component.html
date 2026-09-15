@@ -366,14 +366,13 @@
           }
           @if (r.clinicalResiduals.length > 0) {
             <div class="gas-prereq-group">
-              <div class="gas-prereq-group__title">Clinical hours still owed — add duty days, not grid sessions</div>
+              <div class="gas-prereq-group__title">Clinical hours still owed — lengthen the duty or add duty days</div>
               <p class="field-hint">
-                A Clinical Shift group runs one duty day a week, so three duty days over a term deliver three
-                occurrences a week and no more. Where that lands just short of a subject's curriculum hours, the
-                leftover can't be placed on the weekly grid at all — the smallest weekly Clinical row would
-                overshoot it several times over and take a slot another subject needs. This run left those rows
-                off the grid on purpose. Close each one by adding a Clinical Shift group with Effective From/To
-                set to the number of weeks shown.
+                A Clinical Shift group runs one duty day a week, so a roster delivers duty length × weeks. Where
+                that lands just short of a subject's curriculum hours, the weekly grid can't close it — its smallest
+                Clinical row would overshoot several times over and take a slot another subject needs, so this run
+                left those rows off the grid on purpose. Close each one either way: lengthen every duty by a few
+                minutes, or add a Clinical Shift group with Effective From/To set to the extra duty days shown.
               </p>
               <ul class="gas-contributors">
                 @for (residual of r.clinicalResiduals; track residual.courseOfferingId) {
@@ -383,6 +382,27 @@
                     <span> — {{ residual.residualHours }}h still owed
                       = {{ residual.extraDutyDays }} more duty day(s) of {{ residual.hoursPerDutyDay }}h.</span>
                     <span class="gas-residual-remedy">{{ residual.remedy }}</span>
+                    @if (residual.suggestedDurationMinutes) {
+                      <span class="gas-residual-remedy">
+                        Or lengthen each duty from {{ residual.currentDurationMinutes }} to {{ residual.suggestedDurationMinutes }} minutes —
+                        @if (residual.suggestedDurationCostsNoPeriods) {
+                          students are still back before the next free period, so it costs no timetable periods.
+                        } @else {
+                          note: students return later, so this also blocks at least one more period on duty days.
+                        }
+                      </span>
+                      @if (canApplyDutyFit()) {
+                        <div class="gas-shortfall__actions">
+                          @if (isDutyFitApplied(residual.courseOfferingId)) {
+                            <span class="field-hint">✓ Duty set to {{ residual.suggestedDurationMinutes }} minutes — run automation again to see these hours close.</span>
+                          } @else {
+                            <button type="button" class="btn-secondary" [disabled]="dutyFitApplyingId() !== null" (click)="applyDutyFit(residual)">
+                              @if (dutyFitApplyingId() === residual.courseOfferingId) { Applying… } @else { Apply duty length }
+                            </button>
+                          }
+                        </div>
+                      }
+                    }
                   </li>
                 }
               </ul>
@@ -454,11 +474,17 @@
             @for (c of r.cohortSummaries; track c.cohortId) {
               <li>
                 {{ c.cohortName }} — {{ c.placedCount }} session(s)
-                @if (c.usedSaturday) { <span class="gas-warning"> (some placed on Saturday — Mon–Fri didn't have room)</span> }
                 @if (c.unplaced.length > 0) {
                   <ul class="gas-contributors">
                     @for (u of c.unplaced; track u.subjectName + '-' + u.sessionType + '-' + u.reason) {
                       <li class="gas-warning">{{ u.subjectName }} ({{ u.sessionType }}{{ u.occupantLabel ? ' · ' + u.occupantLabel : '' }}) — {{ u.reason }}</li>
+                    }
+                  </ul>
+                }
+                @if (c.infoNotes.length > 0) {
+                  <ul class="gas-contributors">
+                    @for (note of c.infoNotes; track note) {
+                      <li class="field-hint">{{ note }}</li>
                     }
                   </ul>
                 }

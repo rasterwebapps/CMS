@@ -172,9 +172,21 @@ export class ElectiveAssignmentComponent implements OnInit {
 
   private loadGroupSummaries(termInstanceId: number): void {
     this.academicYearService.getElectiveGroupSummaries(termInstanceId).subscribe({
-      next: (summaries) => this.groupSummaries.set(summaries),
+      next: (summaries) => { this.groupSummaries.set(summaries); this.maybeAutoSelectFirstGroup(); },
       error: () => this.groupSummaries.set([]),
     });
+  }
+
+  /** Elective group options and group summaries load via two independent calls — whichever
+   *  resolves last has both arrays populated, so the auto-select fires from both callbacks
+   *  but only actually selects once a matching summary for the first group is available. */
+  private maybeAutoSelectFirstGroup(): void {
+    if (this.selectedElectiveGroupId !== null) return;
+    const first = this.electiveGroupOptions()[0];
+    if (!first) return;
+    const summary = this.groupSummaries().find((s) => s.electiveGroupId === first.electiveGroupId);
+    if (!summary) return;
+    this.selectGroupFromSummary(summary);
   }
 
   protected onGroupChange(): void {
@@ -362,6 +374,7 @@ export class ElectiveAssignmentComponent implements OnInit {
         }
         this.electiveGroupOptions.set(Array.from(groupsById.values()));
         this.loading.set(false);
+        this.maybeAutoSelectFirstGroup();
       },
       error: () => { this.toast.error('Failed to load elective groups for this term'); this.loading.set(false); },
     });

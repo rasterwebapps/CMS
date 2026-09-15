@@ -726,7 +726,7 @@ public class WidgetDataController {
                 continue;
             }
             String roomName = switch (cs.getSessionType()) {
-                case THEORY, LIBRARY -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
+                case THEORY, LIBRARY, SPORTS -> cs.getClassroom() != null ? cs.getClassroom().getName() : null;
                 case LAB -> cs.getLab() != null ? cs.getLab().getName() : null;
                 case CLINICAL -> cs.getClinicalVenue() != null ? cs.getClinicalVenue().getName() : null;
             };
@@ -1239,6 +1239,7 @@ public class WidgetDataController {
     /** Cohort retention by term using StudentTermEnrollment status. */
     @GetMapping("/cohort-retention")
     @PreAuthorize("@perm.hasAny('STUDENT_VIEW','REPORT_VIEW')")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<CohortRetentionRow>> getCohortRetention() {
         Map<Long, List<StudentTermEnrollment>> byCohort = new HashMap<>();
         for (StudentTermEnrollment e : studentTermEnrollmentRepository.findAll()) {
@@ -1436,6 +1437,7 @@ public class WidgetDataController {
      * Online status is always false (no realtime presence tracking).
      */
     @GetMapping("/connections")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<ConnectionItem>> getConnections() {
         List<ConnectionItem> list = facultyRepository.findAll().stream()
             .filter(f -> f.getStatus() == FacultyStatus.ACTIVE)

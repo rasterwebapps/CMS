@@ -47,6 +47,7 @@ class TimetableGenerationServiceTest {
     @Mock private AuditLogService auditLogService;
     @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
     @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
+    @Mock private TimetableStaffingAutoAssignService timetableStaffingAutoAssignService;
 
     private TimetableGenerationService service;
 
@@ -60,7 +61,7 @@ class TimetableGenerationServiceTest {
     void setUp() {
         service = new TimetableGenerationService(classScheduleRepository, termInstanceRepository,
             labAttendanceRepository, auditLogService, timetableConflictInspectorService,
-            courseOfferingSectionFacultyService);
+            courseOfferingSectionFacultyService, timetableStaffingAutoAssignService);
 
         Speciality speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);

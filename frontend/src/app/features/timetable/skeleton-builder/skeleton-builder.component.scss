@@ -41,6 +41,13 @@
   font-weight: 600;
 }
 
+// "+N h extra" — hours beyond a subject's curriculum (extra-hours filler); informational, muted.
+.skeleton-hours-extra {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 // ── Section filter tabs (mirrors Capacity Planner's .cap-tab-toggle pattern) ──────
 .skeleton-section-tabs {
   display: flex;
@@ -149,6 +156,20 @@
   padding: 6px 8px;
 }
 
+// Only there so the banner joins the grid's drop-list group; it must not change the cell's layout.
+.skeleton-shift-drop {
+  height: 100%;
+}
+
+.skeleton-shift-block--draggable {
+  cursor: grab;
+
+  &.cdk-drag-preview {
+    box-shadow: var(--cms-shadow-xl);
+    cursor: grabbing;
+  }
+}
+
 .skeleton-shift-block__label {
   font-weight: 700;
 }
@@ -188,6 +209,13 @@
     background: var(--cms-success-light);
     border-radius: 8px;
     box-shadow: inset 0 0 0 1px var(--cms-success);
+  }
+
+  // A swap target: the sessions there trade places with the dragged one.
+  &.skeleton-cell-stack--drop-swap {
+    background: var(--cms-info-light);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--cms-info);
   }
 
   &.skeleton-cell-stack--drop-invalid {
@@ -266,6 +294,12 @@
     border-style: solid;
     background: var(--cms-badge-green-bg);
   }
+  // A light tint of SPORTS_CELL_COLOR (#65a30d), like Lab's tint rather than a solid fill, so the
+  // page-surface text tokens keep reading in both themes.
+  &--sports {
+    border-style: solid;
+    background: rgba(101, 163, 13, 0.14);
+  }
 
   // Theory and Clinical fill with a SOLID badge colour (`--cms-badge-blue-bg` #1d4ed8 light /
   // #2563eb dark; `--cms-badge-green-bg` #059669), dark and saturated in BOTH themes. Lab is only
@@ -281,7 +315,8 @@
   &--clinical {
     .skeleton-cell__subject,
     .skeleton-cell__type,
-    .skeleton-cell__batch {
+    .skeleton-cell__batch,
+    .skeleton-cell__elective-tag {
       color: #f8fafc;
     }
 
@@ -403,6 +438,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+/* Small marker keeping an elective recognizable once a management-selected one renders as a
+   regular cohort cell (OC-227). */
+.skeleton-cell__elective-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
 }
 
 

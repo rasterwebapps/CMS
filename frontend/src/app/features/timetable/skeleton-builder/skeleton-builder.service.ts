@@ -3,8 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
 import {
-  ElectiveGroupPlacementRequest,
+  DutyDayMovePreview,
+  DutyDayMoveRequest,
   ElectiveGroupScheduleResponse,
+  SkeletonRelocateRequest,
+  SkeletonRelocationPlan,
   GlobalAutoSchedulePrerequisites,
   GlobalAutoScheduleResult,
   GlobalCapacityPrecheckResult,
@@ -79,8 +82,26 @@ export class SkeletonBuilderService {
     });
   }
 
-  placeElectiveGroup(request: ElectiveGroupPlacementRequest): Observable<SkeletonCell[]> {
-    return this.http.post<SkeletonCell[]>(`${this.baseUrl}/elective-groups/place`, request);
+  /** Every same-length window this session could go to with its whole block — MOVE, SWAP, or why not. */
+  previewRelocation(id: number, cohortId: number): Observable<SkeletonRelocationPlan[]> {
+    return this.http.get<SkeletonRelocationPlan[]>(`${this.baseUrl}/cells/${id}/relocate-preview`, {
+      params: { cohortId: cohortId.toString() },
+    });
+  }
+
+  /** Move or swap a session with its whole block, all-or-nothing; everything moved is pinned. */
+  relocate(id: number, request: SkeletonRelocateRequest): Observable<SkeletonCell[]> {
+    return this.http.put<SkeletonCell[]>(`${this.baseUrl}/cells/${id}/relocate`, request);
+  }
+
+  previewDutyDayMove(shiftGroupId: number, cohortId: number): Observable<DutyDayMovePreview[]> {
+    return this.http.get<DutyDayMovePreview[]>(`${this.baseUrl}/clinical-shift-groups/${shiftGroupId}/day-preview`, {
+      params: { cohortId: cohortId.toString() },
+    });
+  }
+
+  moveDutyDay(shiftGroupId: number, request: DutyDayMoveRequest): Observable<SkeletonCell[]> {
+    return this.http.put<SkeletonCell[]>(`${this.baseUrl}/clinical-shift-groups/${shiftGroupId}/day`, request);
   }
 
   getElectiveGroupSchedule(electiveGroupId: number, termInstanceId: number): Observable<ElectiveGroupScheduleResponse> {
@@ -105,5 +126,11 @@ export class SkeletonBuilderService {
     const params: Record<string, string> = { termInstanceId: termInstanceId.toString() };
     if (cohortId != null) params['cohortId'] = cohortId.toString();
     return this.http.post<GlobalAutoScheduleResult>(`${this.baseUrl}/global-auto-place`, null, { params });
+  }
+
+  /** Applies the run report's clinical duty-length fit to one Course Offering (OC-227). The server
+   *  recomputes the minutes itself — nothing but the offering id is sent. */
+  applyClinicalDutyFit(courseOfferingId: number): Observable<unknown> {
+    return this.http.post<unknown>(`${this.baseUrl}/clinical-duty-fit/${courseOfferingId}`, null);
   }
 }

@@ -7,7 +7,7 @@ export interface TimetableConflictRow {
   classScheduleId: number;
   subjectName: string;
   subjectCode: string;
-  sessionType: 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
+  sessionType: 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
   dayOfWeek: string;
   periodLabel: string | null;
   startTime: string;

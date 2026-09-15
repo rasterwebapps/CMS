@@ -15,6 +15,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.CourseOfferingDto;
+import com.cms.dto.DutyDayMovePreviewResponse;
+import com.cms.dto.DutyDayMoveRequest;
+import com.cms.dto.SkeletonRelocateRequest;
+import com.cms.dto.SkeletonRelocationPlanResponse;
 import com.cms.dto.ElectiveGroupPlacementRequest;
 import com.cms.dto.ElectiveGroupScheduleResponse;
 import com.cms.dto.GlobalAutoScheduleResult;
@@ -124,6 +129,40 @@ public class TimetableSkeletonController {
         return ResponseEntity.ok(timetableSkeletonService.swapCells(id, request));
     }
 
+    /** Drag-highlight and Swap-menu data for moving a session with its whole block: every
+     *  same-length window, legal or not (with the reason), and what would move where. A read-only
+     *  preview of {@link #relocate}, so it shares {@code TIMETABLE_SKELETON_MOVE}. */
+    @GetMapping("/cells/{id}/relocate-preview")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_MOVE')")
+    public ResponseEntity<List<SkeletonRelocationPlanResponse>> previewRelocation(@PathVariable Long id, @RequestParam Long cohortId) {
+        return ResponseEntity.ok(timetableSkeletonService.previewRelocation(id, cohortId));
+    }
+
+    /** Move (into empty periods) or swap (with the sessions already there) a session together with
+     *  its whole block — the same drag gesture as {@link #moveCell}/{@link #swapCells}, so it shares
+     *  {@code TIMETABLE_SKELETON_MOVE}. */
+    @PutMapping("/cells/{id}/relocate")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_MOVE')")
+    public ResponseEntity<List<SkeletonCellResponse>> relocate(@PathVariable Long id, @Valid @RequestBody SkeletonRelocateRequest request) {
+        return ResponseEntity.ok(timetableSkeletonService.relocate(id, request));
+    }
+
+    /** Which other days a Clinical Shift group's duty could move to, and what would swap. */
+    @GetMapping("/clinical-shift-groups/{id}/day-preview")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_DUTY_DAY_MOVE')")
+    public ResponseEntity<List<DutyDayMovePreviewResponse>> previewDutyDayMove(@PathVariable Long id, @RequestParam Long cohortId) {
+        return ResponseEntity.ok(timetableSkeletonService.previewDutyDayMove(id, cohortId));
+    }
+
+    /** Move a Clinical Shift group's duty to another day; that day's sessions inside the duty
+     *  window swap into the day it leaves. Its own permission: it changes which day students are
+     *  off campus on hospital duty all term. */
+    @PutMapping("/clinical-shift-groups/{id}/day")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_DUTY_DAY_MOVE')")
+    public ResponseEntity<List<SkeletonCellResponse>> moveDutyDay(@PathVariable Long id, @Valid @RequestBody DutyDayMoveRequest request) {
+        return ResponseEntity.ok(timetableSkeletonService.moveDutyDay(id, request));
+    }
+
     /** Read-only, consolidated "is this ready to automate" report — offerings/elective members with
      *  no faculty bound, plus every faculty over capacity. Call this first and surface every
      *  shortfall as an actionable link before offering the Run action, rather than discovering gaps
@@ -154,6 +193,15 @@ public class TimetableSkeletonController {
     public ResponseEntity<GlobalAutoScheduleResult> globalAutoPlace(
             @RequestParam Long termInstanceId, @RequestParam(required = false) Long cohortId) {
         return ResponseEntity.ok(timetableGlobalAutoScheduleService.runGlobalAutoSchedule(termInstanceId, cohortId));
+    }
+
+    /** The run report's "Apply duty length" (OC-227): sets one Course Offering's clinical shift
+     *  duration to the minimum that lets its existing duty roster deliver every curriculum Clinical
+     *  hour. The minutes are recomputed server-side, never taken from the request. */
+    @PostMapping("/clinical-duty-fit/{courseOfferingId}")
+    @PreAuthorize("@perm.has('TIMETABLE_SKELETON_CLINICAL_DUTY_FIT')")
+    public ResponseEntity<CourseOfferingDto> applyClinicalDutyFit(@PathVariable Long courseOfferingId) {
+        return ResponseEntity.ok(timetableGlobalAutoScheduleService.applyClinicalDutyFit(courseOfferingId));
     }
 
     @PostMapping("/elective-groups/place")

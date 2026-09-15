@@ -19,3 +19,7 @@ export function colorForSubject(courseOfferingId: number): string {
  *  palette above, so Library always reads as its own consistent category rather than colliding
  *  with whatever real subject happens to hash to the same palette slot. */
 export const LIBRARY_CELL_COLOR = '#64748b';
+
+/** SPORTS cells have no CourseOffering either (see TimetableGlobalAutoScheduleService
+ *  #fillSportsGaps) — a fixed field-green outside the subject palette, for the same reason. */
+export const SPORTS_CELL_COLOR = '#65a30d';

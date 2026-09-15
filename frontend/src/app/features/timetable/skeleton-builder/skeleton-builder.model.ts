@@ -1,6 +1,6 @@
 import { SubstitutionAffectedSection } from '../../academic-year/academic-year.model';
 
-export type SkeletonSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
+export type SkeletonSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
 export type SkeletonCellStatus = 'DRAFT' | 'PUBLISHED';
 
 export interface SkeletonSubjectBudget {
@@ -17,6 +17,12 @@ export interface SkeletonSubjectBudget {
   weeksInTerm: number;
   requiredSessionsPerWeek: number;
   placedSessionsPerWeek: number;
+  /** Planned against the term's total hours: session occurrences the curriculum hours need across
+   *  the term, and what the placed sessions really run (a weekday session every week, a
+   *  working-Saturday one only on the chosen Saturdays). Met once delivered reaches required. */
+  requiredTermRuns: number;
+  deliveredTermRuns: number;
+  deliveredHours: number;
 }
 
 export interface SkeletonSubject {
@@ -51,13 +57,18 @@ export interface SkeletonCell {
    *  those (there's no single fixed occupant); rotatingBatchNames lists who alternates through it. */
   rotationGroupLabel: string | null;
   rotatingBatchNames: string[];
-  /** Null only for a LIBRARY cell — it has no CourseOffering at all (see
-   *  TimetableGlobalAutoScheduleService#fillLibraryGaps). Every other session type always has one. */
+  /** Null only for a LIBRARY or SPORTS cell — neither has a CourseOffering (see
+   *  TimetableGlobalAutoScheduleService#fillLibraryGaps/#fillSportsGaps). Every other session type
+   *  always has one. */
   courseOfferingId: number | null;
   subjectName: string;
   subjectCode: string;
   electiveGroupId: number | null;
   electiveGroupName: string | null;
+  /** True for an institution-decided elective: only its chosen option runs, as a common cohort
+   *  subject, so it moves, swaps and is replaced like any subject. A student-choice elective
+   *  (false) keeps every option in one shared slot, which only Run Automation moves. */
+  commonElective: boolean;
   /** Non-null only for a cell that's part of a multi-period session (periodSpan) — every sibling
    *  cell sharing this id was placed/staffed/removed together as one atomic unit. */
   sessionGroupId: string | null;
@@ -184,6 +195,51 @@ export interface SkeletonCellSwapRequest {
   cohortId: number;
 }
 
+/** One session (a single period or a whole block, with every parallel batch that moves alongside
+ *  it) that a relocation or Clinical duty-day change would move — a before → after preview row. */
+export interface SkeletonPlannedMove {
+  subjectCode: string;
+  sessionType: SkeletonSessionType;
+  /** Section or batch names, e.g. "Section 1" or "Batch A, Batch B". */
+  occupantLabel: string | null;
+  fromDay: string;
+  fromPeriodIds: number[];
+  toDay: string;
+  toPeriodIds: number[];
+}
+
+/** Whether a session could go, whole block included, to the same-length window starting at
+ *  dayOfWeek/startPeriodId: MOVE into empty periods, SWAP with the sessions there (they take its
+ *  periods), or invalid with the reason. `moves` lists the dragged session first. */
+export interface SkeletonRelocationPlan {
+  dayOfWeek: string;
+  startPeriodId: number;
+  periodIds: number[];
+  kind: 'MOVE' | 'SWAP' | null;
+  valid: boolean;
+  reason: string | null;
+  moves: SkeletonPlannedMove[];
+}
+
+export interface SkeletonRelocateRequest {
+  dayOfWeek: string;
+  startPeriodId: number;
+  cohortId: number;
+}
+
+/** Whether a Clinical duty could move to this day, and which sessions would swap into the day it leaves. */
+export interface DutyDayMovePreview {
+  dayOfWeek: string;
+  valid: boolean;
+  reason: string | null;
+  moves: SkeletonPlannedMove[];
+}
+
+export interface DutyDayMoveRequest {
+  dayOfWeek: string;
+  cohortId: number;
+}
+
 /** Hands a placed Theory cell's slot to a different subject, keeping its day/period/audience.
  *  THEORY only, DRAFT only, and never an elective on either side — an elective group shares one
  *  slot across all its members, so it's re-placed via Place Elective Block instead. */
@@ -192,8 +248,8 @@ export interface SkeletonCellReplaceRequest {
   facultyId: number;
 }
 
-/** How far below its weekly curriculum requirement the subject we just displaced now sits, for
- *  this exact section. `shortfallSessions` is always at least 1 when present — it's what still
+/** How far below its curriculum Theory hours the subject we just displaced now sits across the
+ *  term, for this exact section. `shortfallHours` is always above 0 when present — it's what still
  *  needs re-placing elsewhere in the week. Mirrors the backend's
  *  `SkeletonCellReplaceResponse.DisplacedSubjectShortfall` exactly. */
 export interface DisplacedSubjectShortfall {
@@ -202,9 +258,9 @@ export interface DisplacedSubjectShortfall {
   subjectCode: string;
   cohortSectionId: number | null;
   cohortSectionLabel: string | null;
-  requiredSessionsPerWeek: number;
-  placedSessionsPerWeek: number;
-  shortfallSessions: number;
+  requiredHours: number;
+  placedHours: number;
+  shortfallHours: number;
 }
 
 /** `displaced` is null when the replacement cost nothing that matters: the cell had no previous
@@ -223,6 +279,10 @@ export interface AutoPlaceUnplacedItem {
   /** Null only for a whole-elective-group failure (no single offering to point at) — used to
    *  deep-link a Special Class request pre-filled with the right subject. */
   courseOfferingId: number | null;
+  /** True only when curriculum hours went unplaced because the week had no free slot left — the
+   *  one kind more working Saturdays or a Special Class can close. Library/idle-batch fallbacks,
+   *  Self-Study/gap-fill notes, a missing faculty or elective selection, and a room ceiling are false. */
+  slotShortfall: boolean;
 }
 
 
@@ -334,9 +394,12 @@ export interface CohortPlacementSummary {
   placedCount: number;
   staffedCount: number;
   unplaced: AutoPlaceUnplacedItem[];
-  /** True if any of placedCount landed on Saturday — Monday-Friday is always tried first, so this
-   *  is a visible "the automation had to overflow into Saturday" fact, not silently absorbed. */
+  /** True if any of placedCount landed on Saturday — a regular working day whenever the term has
+   *  chosen working Saturdays, counted for the runs it really has. Informational only. */
   usedSaturday: boolean;
+  /** Neutral, expected outcomes (e.g. Library shrinking to fit a full week) — shown grey, never as
+   *  warnings. */
+  infoNotes: string[];
 }
 
 export interface GlobalAutoScheduleResult {
@@ -407,6 +470,13 @@ export interface ClinicalResidualItem {
   hoursPerDutyDay: number;
   extraDutyDays: number;
   remedy: string;
+  currentDurationMinutes: number | null;
+  /** The other remedy (OC-227): the shortest duty length at which the existing roster alone delivers
+   *  every curriculum Clinical hour. Null when lengthening the duty can't help. */
+  suggestedDurationMinutes: number | null;
+  /** True when that longer duty costs zero timetable periods (students are still back before any
+   *  period that's free today). */
+  suggestedDurationCostsNoPeriods: boolean;
 }
 
 /** One subject this run had to fall back off {@code originalFacultyName} onto {@code

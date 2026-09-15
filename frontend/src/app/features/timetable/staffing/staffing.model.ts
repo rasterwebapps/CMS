@@ -1,4 +1,4 @@
-export type StaffingSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
+export type StaffingSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
 
 export interface UnstaffedCell {
   id: number;
