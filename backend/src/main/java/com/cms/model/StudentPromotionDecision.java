@@ -51,7 +51,7 @@ public class StudentPromotionDecision {
     private TermInstance toTermInstance;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     private PromotionOutcome outcome;
 
     @ElementCollection(fetch = FetchType.EAGER)
