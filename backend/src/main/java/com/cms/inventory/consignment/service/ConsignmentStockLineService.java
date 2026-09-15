@@ -79,7 +79,7 @@ public class ConsignmentStockLineService {
         stockMovementService.recordMovement(new StockMovementRequest(
             product.getId(), null, agreement.getLocation().getId(), null, null,
             "RECEIPT", null, request.quantity(), request.consignmentPrice(),
-            "Consignment receipt — agreement " + agreement.getAgreementNumber() + (request.notes() != null ? " — " + request.notes() : "")
+            "Consignment receipt — agreement " + agreement.getAgreementNumber() + (request.notes() != null ? " — " + request.notes() : ""), null
         ), performedBy);
 
         return toResponse(line);

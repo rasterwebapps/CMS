@@ -12,6 +12,8 @@ import { CmsProductPickerComponent } from '../../../../../shared/product-picker/
 import { ToastService } from '../../../../../core/toast/toast.service';
 import { ProductVariantService } from '../../../product/product-variant/product-variant.service';
 import { ProductVariant } from '../../../product/product-variant/product-variant.model';
+import { InventoryRackService } from '../../../rack/inventory-rack.service';
+import { InventoryBin } from '../../../rack/inventory-rack.model';
 
 @Component({
   selector: 'app-stock-transfer-detail',
@@ -35,6 +37,7 @@ export class StockTransferDetailComponent implements OnInit {
   private readonly dialog          = inject(MatDialog);
   private readonly toast           = inject(ToastService);
   private readonly variantService  = inject(ProductVariantService);
+  private readonly rackService     = inject(InventoryRackService);
 
   protected readonly loading  = signal(false);
   protected readonly busy     = signal(false);
@@ -43,6 +46,12 @@ export class StockTransferDetailComponent implements OnInit {
   protected readonly addVariantId = signal<number | null>(null);
   protected readonly addQty       = signal<number | null>(null);
   protected readonly variants     = signal<ProductVariant[]>([]);
+  protected readonly addSourceBinId      = signal<number | null>(null);
+  protected readonly addDestinationBinId = signal<number | null>(null);
+  // Active bins in the transfer's source/destination locations — a line's source/destination bin
+  // is always within the matching one of these two.
+  protected readonly sourceBins      = signal<InventoryBin[]>([]);
+  protected readonly destinationBins = signal<InventoryBin[]>([]);
 
   private transferId!: number;
 
@@ -54,7 +63,14 @@ export class StockTransferDetailComponent implements OnInit {
   protected load(): void {
     this.loading.set(true);
     this.transferService.getById(this.transferId).subscribe({
-      next: (t) => { this.transfer.set(t); this.loading.set(false); },
+      next: (t) => {
+        this.transfer.set(t);
+        this.loading.set(false);
+        if (t.status === 'DRAFT' && !this.sourceBins().length && !this.destinationBins().length) {
+          this.rackService.getBins(undefined, t.sourceLocationId, true).subscribe({ next: (b) => this.sourceBins.set(b) });
+          this.rackService.getBins(undefined, t.destinationLocationId, true).subscribe({ next: (b) => this.destinationBins.set(b) });
+        }
+      },
       error: () => { this.toast.error('Failed to load stock transfer'); this.loading.set(false); },
     });
   }
@@ -79,11 +95,19 @@ export class StockTransferDetailComponent implements OnInit {
       return;
     }
     this.busy.set(true);
-    this.transferService.addLine(this.transferId, { productId, variantId: this.addVariantId() ?? undefined, quantity }).subscribe({
+    this.transferService.addLine(this.transferId, {
+      productId,
+      variantId: this.addVariantId() ?? undefined,
+      quantity,
+      sourceBinId: this.addSourceBinId() ?? undefined,
+      destinationBinId: this.addDestinationBinId() ?? undefined,
+    }).subscribe({
       next: () => {
         this.addProductId.set(null);
         this.addVariantId.set(null);
         this.addQty.set(null);
+        this.addSourceBinId.set(null);
+        this.addDestinationBinId.set(null);
         this.variants.set([]);
         this.toast.success('Product added to the transfer');
         this.busy.set(false);

@@ -81,6 +81,17 @@
             <label class="field-label">Expiry Date</label>
             <input type="date" class="field-input" [(ngModel)]="addExpiryDate" />
           </div>
+          @if (bins().length > 0) {
+            <div class="field-group gr-add-bin">
+              <label class="field-label">Bin</label>
+              <select class="field-select" [(ngModel)]="addBinId">
+                <option [ngValue]="null">Unassigned</option>
+                @for (b of bins(); track b.id) {
+                  <option [ngValue]="b.id">{{ b.rackName }} / {{ b.name }}</option>
+                }
+              </select>
+            </div>
+          }
           <button class="btn-secondary" [disabled]="addPoItemId == null || !addQty || busy()" (click)="addLine()">Add Line</button>
         </div>
         @if (!receivableLines().length) {
@@ -101,6 +112,7 @@
               <th class="cell-align-right">Unit Cost</th>
               <th>Batch / Serial</th>
               <th>Expiry</th>
+              <th>Bin</th>
               @if (r.status === 'DRAFT') {
                 <th class="actions-header"></th>
               }
@@ -123,6 +135,7 @@
                 <td class="cell-align-right">{{ line.unitCost != null ? (line.unitCost | number: '1.2-2') : '—' }}</td>
                 <td>{{ line.batchOrSerialNo || '—' }}</td>
                 <td>{{ line.expiryDate ? (line.expiryDate | date: 'mediumDate') : '—' }}</td>
+                <td>{{ line.binName || '—' }}</td>
                 @if (r.status === 'DRAFT') {
                   <td>
                     <button class="gr-remove-btn" (click)="removeLine(line)" [disabled]="busy()" aria-label="Remove line">
@@ -132,7 +145,7 @@
                 }
               </tr>
             } @empty {
-              <tr><td colspan="7" class="gr-empty-row">No lines on this receipt yet.</td></tr>
+              <tr><td colspan="8" class="gr-empty-row">No lines on this receipt yet.</td></tr>
             }
           </tbody>
         </table>

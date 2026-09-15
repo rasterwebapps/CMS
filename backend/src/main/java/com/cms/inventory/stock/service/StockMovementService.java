@@ -24,14 +24,18 @@ import com.cms.inventory.stock.dto.StockBalanceResponse;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockMovementResponse;
 import com.cms.inventory.stock.dto.VariantConvertRequest;
+import com.cms.inventory.stock.model.InventoryBin;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.model.StockBatch;
+import com.cms.inventory.stock.model.StockBinAllocation;
 import com.cms.inventory.stock.model.StockLedger;
 import com.cms.inventory.stock.model.enums.StockTxnType;
+import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
 import com.cms.inventory.stock.repository.StockBalanceRepository;
 import com.cms.inventory.stock.repository.StockBatchRepository;
+import com.cms.inventory.stock.repository.StockBinAllocationRepository;
 import com.cms.inventory.stock.repository.StockLedgerRepository;
 
 /**
@@ -60,6 +64,8 @@ public class StockMovementService {
     private final StockBalanceRepository balanceRepository;
     private final ProductUomChainVersionRepository uomChainVersionRepository;
     private final ProductVariantRepository variantRepository;
+    private final InventoryBinRepository binRepository;
+    private final StockBinAllocationRepository binAllocationRepository;
 
     public StockMovementService(ProductRepository productRepository,
                                  InventoryLocationRepository locationRepository,
@@ -67,7 +73,9 @@ public class StockMovementService {
                                  StockLedgerRepository ledgerRepository,
                                  StockBalanceRepository balanceRepository,
                                  ProductUomChainVersionRepository uomChainVersionRepository,
-                                 ProductVariantRepository variantRepository) {
+                                 ProductVariantRepository variantRepository,
+                                 InventoryBinRepository binRepository,
+                                 StockBinAllocationRepository binAllocationRepository) {
         this.productRepository = productRepository;
         this.locationRepository = locationRepository;
         this.batchRepository = batchRepository;
@@ -75,6 +83,8 @@ public class StockMovementService {
         this.balanceRepository = balanceRepository;
         this.uomChainVersionRepository = uomChainVersionRepository;
         this.variantRepository = variantRepository;
+        this.binRepository = binRepository;
+        this.binAllocationRepository = binAllocationRepository;
     }
 
     @Transactional
@@ -148,8 +158,47 @@ public class StockMovementService {
 
         balanceRepository.upsertBalance(product.getId(), variantId, location.getId(), batchId, qtyDelta, valueDelta);
 
+        if (request.binId() != null) {
+            applyBinAllocation(request.binId(), location, product.getId(), variantId, batchId, qtyDelta);
+        }
+
         return new StockMovementResponse(ledger.getId(), product.getId(), variantId, location.getId(), batchId,
             txnType.name(), qtyDelta, currentQty.add(qtyDelta), currentValue.add(valueDelta), ledger.getTxnDate());
+    }
+
+    /**
+     * Applies this movement's quantity delta to the per-bin breakdown, once a bin was supplied.
+     * Only ever called after {@link StockBalanceRepository#upsertBalance} in the same transaction,
+     * so the parent {@link StockBalance} row is guaranteed to exist by the time this re-fetches it.
+     * Guards against a bin's own allocation going negative the same way {@link #recordMovement}
+     * guards the balance itself — a decrease can only draw down what was actually allocated to
+     * that specific bin, not just what's on hand anywhere in the location.
+     */
+    private void applyBinAllocation(Long binId, InventoryLocation location, Long productId, Long variantId, Long batchId, BigDecimal qtyDelta) {
+        InventoryBin bin = binRepository.findById(binId)
+            .orElseThrow(() -> new ResourceNotFoundException("Bin not found with id: " + binId));
+        if (!bin.getRack().getLocation().getId().equals(location.getId())) {
+            throw new IllegalArgumentException(
+                "Bin '" + bin.getName() + "' does not belong to location '" + location.getVirtualName() + "'");
+        }
+
+        StockBalance balance = findBalance(productId, variantId, location.getId(), batchId);
+        if (balance == null) {
+            throw new IllegalStateException("Stock balance not found after upsert for product " + productId + " at location " + location.getId());
+        }
+
+        if (qtyDelta.signum() < 0) {
+            BigDecimal currentBinQty = binAllocationRepository.findByStockBalanceIdAndBinId(balance.getId(), binId)
+                .map(StockBinAllocation::getQty)
+                .orElse(BigDecimal.ZERO);
+            if (currentBinQty.add(qtyDelta).signum() < 0) {
+                throw new IllegalArgumentException(
+                    "This movement would leave a negative allocation in bin '" + bin.getName()
+                        + "' (only " + currentBinQty + " is currently allocated there) — check the bin selected");
+            }
+        }
+
+        binAllocationRepository.upsertAllocation(balance.getId(), binId, qtyDelta);
     }
 
     public Page<StockBalanceResponse> findBalancePage(Long productId, Long locationId, Pageable pageable) {

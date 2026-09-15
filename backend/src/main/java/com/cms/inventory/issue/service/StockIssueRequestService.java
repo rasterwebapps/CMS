@@ -171,7 +171,7 @@ public class StockIssueRequestService {
             line.getProduct().getId(), line.getVariant() != null ? line.getVariant().getId() : null,
             issueRequest.getIssuingLocation().getId(), null, null,
             "ISSUE", null, line.getRequestedQty(), null,
-            "Stock Issue Request #" + issueRequest.getId() + " to " + issueRequest.getRequestingLocation().getVirtualName()
+            "Stock Issue Request #" + issueRequest.getId() + " to " + issueRequest.getRequestingLocation().getVirtualName(), null
         ), resolvedBy);
 
         line.setStatus(StockIssueRequestItemStatus.APPROVED);
@@ -320,7 +320,7 @@ public class StockIssueRequestService {
             issueRequest.getIssuingLocation().getId(), null, null,
             "RETURN", "INCREASE", request.returnedQty(), null,
             "Internal Return — Stock Issue Request #" + issueRequest.getId() + " line #" + line.getId()
-                + (request.notes() != null ? " — " + request.notes() : "")
+                + (request.notes() != null ? " — " + request.notes() : ""), null
         ), actor);
 
         line.setReturnedQty(line.getReturnedQty().add(request.returnedQty()));

@@ -11,6 +11,8 @@ import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/stat
 import { ToastService } from '../../../../../core/toast/toast.service';
 import { ProductService } from '../../../product/product.service';
 import { ProductUomLevel } from '../../../product/product.model';
+import { InventoryRackService } from '../../../rack/inventory-rack.service';
+import { InventoryBin } from '../../../rack/inventory-rack.model';
 
 @Component({
   selector: 'app-goods-receipt-detail',
@@ -34,6 +36,7 @@ export class GoodsReceiptDetailComponent implements OnInit {
   private readonly dialog         = inject(MatDialog);
   private readonly toast          = inject(ToastService);
   private readonly productService = inject(ProductService);
+  private readonly rackService    = inject(InventoryRackService);
 
   protected readonly loading          = signal(false);
   protected readonly busy             = signal(false);
@@ -42,6 +45,8 @@ export class GoodsReceiptDetailComponent implements OnInit {
   // Non-base levels of the selected line's product's active unit-of-measure chain — need not
   // match the unit the PO line was ordered in (a line can be split across several units).
   protected readonly uomLevels        = signal<ProductUomLevel[]>([]);
+  // Active bins within this receipt's own PO location — a line's bin is always within it.
+  protected readonly bins             = signal<InventoryBin[]>([]);
 
   protected addPoItemId: number | null = null;
   protected addQty: number | null = null;
@@ -49,6 +54,7 @@ export class GoodsReceiptDetailComponent implements OnInit {
   protected addUnitCost: number | null = null;
   protected addBatchOrSerialNo = '';
   protected addExpiryDate = '';
+  protected addBinId: number | null = null;
 
   private receiptId!: number;
 
@@ -63,9 +69,19 @@ export class GoodsReceiptDetailComponent implements OnInit {
       next: (r) => {
         this.receipt.set(r);
         this.loading.set(false);
-        if (r.status === 'DRAFT') this.loadReceivableLines(r.purchaseOrderId);
+        if (r.status === 'DRAFT') {
+          this.loadReceivableLines(r.purchaseOrderId);
+          if (!this.bins().length) this.loadBins(r.locationId);
+        }
       },
       error: () => { this.toast.error('Failed to load goods receipt'); this.loading.set(false); },
+    });
+  }
+
+  private loadBins(locationId: number): void {
+    this.rackService.getBins(undefined, locationId, true).subscribe({
+      next: (bins) => this.bins.set(bins),
+      error: () => this.toast.error('Failed to load bins for this location'),
     });
   }
 
@@ -105,6 +121,7 @@ export class GoodsReceiptDetailComponent implements OnInit {
       unitCost: this.addUnitCost ?? undefined,
       batchOrSerialNo: this.addBatchOrSerialNo.trim() || undefined,
       expiryDate: this.addExpiryDate || undefined,
+      binId: this.addBinId ?? undefined,
     }).subscribe({
       next: () => {
         this.addPoItemId = null;
@@ -113,6 +130,7 @@ export class GoodsReceiptDetailComponent implements OnInit {
         this.addUnitCost = null;
         this.addBatchOrSerialNo = '';
         this.addExpiryDate = '';
+        this.addBinId = null;
         this.uomLevels.set([]);
         this.toast.success('Line added to the receipt');
         this.busy.set(false);

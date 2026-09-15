@@ -39,5 +39,11 @@ public record StockMovementRequest(
     BigDecimal unitCost,
 
     @Size(max = 500, message = "Notes must not exceed 500 characters")
-    String notes
+    String notes,
+
+    /** Optional — the specific {@code InventoryBin} this movement's leg allocates against, within
+     *  {@code locationId}. Null means this leg doesn't touch the per-bin breakdown at all (the
+     *  stock stays "unbinned" as far as {@code StockBinAllocation} is concerned); it never blocks
+     *  the movement itself. See {@code StockMovementService.recordMovement}. */
+    Long binId
 ) {}

@@ -34,7 +34,9 @@ import com.cms.inventory.receiving.model.enums.GoodsReceiptStatus;
 import com.cms.inventory.receiving.repository.GoodsReceiptLineRepository;
 import com.cms.inventory.receiving.repository.GoodsReceiptRepository;
 import com.cms.inventory.stock.dto.StockMovementRequest;
+import com.cms.inventory.stock.model.InventoryBin;
 import com.cms.inventory.stock.model.InventoryLocation;
+import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.service.StockMovementService;
 
 /**
@@ -62,19 +64,22 @@ public class GoodsReceiptService {
     private final PurchaseOrderService purchaseOrderService;
     private final StockMovementService stockMovementService;
     private final ProductUomChainService uomChainService;
+    private final InventoryBinRepository binRepository;
 
     public GoodsReceiptService(GoodsReceiptRepository receiptRepository,
                                 GoodsReceiptLineRepository lineRepository,
                                 PurchaseOrderItemRepository purchaseOrderItemRepository,
                                 PurchaseOrderService purchaseOrderService,
                                 StockMovementService stockMovementService,
-                                ProductUomChainService uomChainService) {
+                                ProductUomChainService uomChainService,
+                                InventoryBinRepository binRepository) {
         this.receiptRepository = receiptRepository;
         this.lineRepository = lineRepository;
         this.purchaseOrderItemRepository = purchaseOrderItemRepository;
         this.purchaseOrderService = purchaseOrderService;
         this.stockMovementService = stockMovementService;
         this.uomChainService = uomChainService;
+        this.binRepository = binRepository;
     }
 
     @Transactional
@@ -157,6 +162,8 @@ public class GoodsReceiptService {
                 "Received quantity (" + receivedQty + ") exceeds what's still open on this order line (" + openQty + ")");
         }
 
+        InventoryBin bin = resolveBin(request.binId(), receipt.getPurchaseOrder().getLocation().getId());
+
         GoodsReceiptLine line = new GoodsReceiptLine();
         line.setGoodsReceipt(receipt);
         line.setPurchaseOrderItem(poItem);
@@ -167,6 +174,7 @@ public class GoodsReceiptService {
         line.setBatchOrSerialNo(trim(request.batchOrSerialNo()));
         line.setExpiryDate(request.expiryDate());
         line.setNotes(trim(request.notes()));
+        line.setBin(bin);
         line = lineRepository.save(line);
 
         receipt.setUpdatedAt(Instant.now());
@@ -210,7 +218,8 @@ public class GoodsReceiptService {
                 poItem.getProduct().getId(), variant != null ? variant.getId() : null, location.getId(),
                 line.getBatchOrSerialNo(), line.getExpiryDate(),
                 "RECEIPT", null, line.getReceivedQty(), line.getUnitCost(),
-                "Goods Receipt #" + receipt.getId() + (line.getNotes() != null ? " — " + line.getNotes() : "")
+                "Goods Receipt #" + receipt.getId() + (line.getNotes() != null ? " — " + line.getNotes() : ""),
+                line.getBin() != null ? line.getBin().getId() : null
             ), actor);
 
             poItem.setReceivedQty(poItem.getReceivedQty().add(line.getReceivedQty()));
@@ -249,6 +258,19 @@ public class GoodsReceiptService {
         }
     }
 
+    /** {@code binId} must belong to the same location the receipt's PO (and therefore every
+     *  line's stock movement) posts against — a bin from a different location would silently
+     *  misattribute where the stock physically is. */
+    private InventoryBin resolveBin(Long binId, Long locationId) {
+        if (binId == null) return null;
+        InventoryBin bin = binRepository.findById(binId)
+            .orElseThrow(() -> new ResourceNotFoundException("Bin not found with id: " + binId));
+        if (!bin.getRack().getLocation().getId().equals(locationId)) {
+            throw new IllegalArgumentException("Bin '" + bin.getName() + "' does not belong to this receipt's location");
+        }
+        return bin;
+    }
+
     private GoodsReceiptStatus parseStatus(String value) {
         try {
             return GoodsReceiptStatus.valueOf(value.trim().toUpperCase(Locale.ROOT));
@@ -284,6 +306,7 @@ public class GoodsReceiptService {
         Product product = poItem.getProduct();
         ProductVariant variant = poItem.getVariant();
         ProductUomLevel uomLevel = line.getUomLevel();
+        InventoryBin bin = line.getBin();
         return new GoodsReceiptLineResponse(
             line.getId(), poItem.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             variant != null ? variant.getId() : null, variant != null ? variant.getVariantCode() : null, variant != null ? variant.getVariantName() : null,
@@ -292,6 +315,7 @@ public class GoodsReceiptService {
             uomLevel != null ? uomLevel.getId() : null,
             uomLevel != null ? uomLevel.getUom().getCode() : null,
             line.getEnteredQty(),
-            line.getUnitCost(), line.getBatchOrSerialNo(), line.getExpiryDate(), line.getNotes());
+            line.getUnitCost(), line.getBatchOrSerialNo(), line.getExpiryDate(), line.getNotes(),
+            bin != null ? bin.getId() : null, bin != null ? bin.getName() : null);
     }
 }

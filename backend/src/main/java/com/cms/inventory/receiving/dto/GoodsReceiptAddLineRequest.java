@@ -22,5 +22,7 @@ public record GoodsReceiptAddLineRequest(
     BigDecimal unitCost,
     @Size(max = 100) String batchOrSerialNo,
     LocalDate expiryDate,
-    @Size(max = 500) String notes
+    @Size(max = 500) String notes,
+    /** Optional — must belong to the receipt's own PO location. */
+    Long binId
 ) {}

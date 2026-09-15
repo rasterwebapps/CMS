@@ -11,5 +11,9 @@ public record StockTransferAddLineRequest(
     /** Required once the product has any active {@code ProductVariant}. */
     Long variantId,
     @NotNull @DecimalMin(value = "0.001", message = "Quantity must be greater than zero") BigDecimal quantity,
-    @Size(max = 500) String notes
+    @Size(max = 500) String notes,
+    /** Optional — must belong to the transfer's source location. */
+    Long sourceBinId,
+    /** Optional — must belong to the transfer's destination location. */
+    Long destinationBinId
 ) {}

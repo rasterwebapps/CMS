@@ -22,5 +22,7 @@ public record GoodsReceiptLineResponse(
     BigDecimal unitCost,
     String batchOrSerialNo,
     LocalDate expiryDate,
-    String notes
+    String notes,
+    Long binId,
+    String binName
 ) {}

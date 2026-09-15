@@ -44,6 +44,18 @@ public class StockTransferLine {
     @Column(length = 500)
     private String notes;
 
+    /** Optional — the bin this line's quantity is decreased from, within the transfer's source
+     *  location. Null means the source leg stays unbinned. See {@code StockBinAllocation}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_bin_id")
+    private InventoryBin sourceBin;
+
+    /** Optional — the bin this line's quantity is increased into, within the transfer's
+     *  destination location. Null means the destination leg stays unbinned. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "destination_bin_id")
+    private InventoryBin destinationBin;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -61,4 +73,10 @@ public class StockTransferLine {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public InventoryBin getSourceBin() { return sourceBin; }
+    public void setSourceBin(InventoryBin sourceBin) { this.sourceBin = sourceBin; }
+
+    public InventoryBin getDestinationBin() { return destinationBin; }
+    public void setDestinationBin(InventoryBin destinationBin) { this.destinationBin = destinationBin; }
 }

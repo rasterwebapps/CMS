@@ -141,7 +141,7 @@ public class AssetService {
             stockMovementService.recordMovement(new StockMovementRequest(
                 asset.getProduct().getId(), null, asset.getLocation().getId(), null, null,
                 "DISPOSAL", null, BigDecimal.ONE, null,
-                "Asset disposal — " + asset.getAssetTag() + (request.reason() != null ? " — " + request.reason() : "")
+                "Asset disposal — " + asset.getAssetTag() + (request.reason() != null ? " — " + request.reason() : ""), null
             ), actor);
         }
 

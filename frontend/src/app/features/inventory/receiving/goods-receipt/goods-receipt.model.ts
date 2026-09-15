@@ -28,6 +28,8 @@ export interface GoodsReceiptAddLineRequest {
   batchOrSerialNo?: string;
   expiryDate?: string;
   notes?: string;
+  /** Optional — must belong to the receipt's own PO location. */
+  binId?: number;
 }
 
 export interface GoodsReceiptLine {
@@ -52,6 +54,8 @@ export interface GoodsReceiptLine {
   batchOrSerialNo: string | null;
   expiryDate: string | null;
   notes: string | null;
+  binId: number | null;
+  binName: string | null;
 }
 
 export interface GoodsReceipt {

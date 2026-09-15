@@ -23,6 +23,10 @@ export interface StockTransferAddLineRequest {
   variantId?: number;
   quantity: number;
   notes?: string;
+  /** Optional — must belong to the transfer's source location. */
+  sourceBinId?: number;
+  /** Optional — must belong to the transfer's destination location. */
+  destinationBinId?: number;
 }
 
 export interface StockTransferLine {
@@ -36,6 +40,10 @@ export interface StockTransferLine {
   uomCode: string | null;
   quantity: number;
   notes: string | null;
+  sourceBinId: number | null;
+  sourceBinName: string | null;
+  destinationBinId: number | null;
+  destinationBinName: string | null;
 }
 
 export interface StockTransfer {

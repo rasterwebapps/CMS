@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 import com.cms.inventory.catalog.model.ProductUomLevel;
 import com.cms.inventory.procurement.model.PurchaseOrderItem;
+import com.cms.inventory.stock.model.InventoryBin;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -72,6 +73,12 @@ public class GoodsReceiptLine {
     @Column(length = 500)
     private String notes;
 
+    /** Optional — the bin this line's received stock is shelved into, within the receipt's PO
+     *  location. Null means the stock stays unbinned. See {@code StockBinAllocation}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bin_id")
+    private InventoryBin bin;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -101,4 +108,7 @@ public class GoodsReceiptLine {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public InventoryBin getBin() { return bin; }
+    public void setBin(InventoryBin bin) { this.bin = bin; }
 }

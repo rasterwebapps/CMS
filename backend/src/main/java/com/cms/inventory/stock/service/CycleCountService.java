@@ -190,7 +190,7 @@ public class CycleCountService {
         StockMovementRequest movementRequest = new StockMovementRequest(
             line.getProduct().getId(), null, count.getLocation().getId(), null, null,
             "ADJUSTMENT", variance.signum() > 0 ? "INCREASE" : "DECREASE", variance.abs(), null,
-            "Cycle Count #" + count.getId() + " variance");
+            "Cycle Count #" + count.getId() + " variance", null);
         try {
             var movement = stockMovementService.recordMovement(movementRequest, resolvedBy);
             line.setLedgerRefId(movement.ledgerId());

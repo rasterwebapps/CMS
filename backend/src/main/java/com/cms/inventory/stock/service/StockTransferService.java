@@ -23,10 +23,12 @@ import com.cms.inventory.stock.dto.StockTransferAddLineRequest;
 import com.cms.inventory.stock.dto.StockTransferCreateRequest;
 import com.cms.inventory.stock.dto.StockTransferLineResponse;
 import com.cms.inventory.stock.dto.StockTransferResponse;
+import com.cms.inventory.stock.model.InventoryBin;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.StockTransfer;
 import com.cms.inventory.stock.model.StockTransferLine;
 import com.cms.inventory.stock.model.enums.StockTransferStatus;
+import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
 import com.cms.inventory.stock.repository.StockBalanceRepository;
 import com.cms.inventory.stock.repository.StockTransferLineRepository;
@@ -56,6 +58,7 @@ public class StockTransferService {
     private final StockBalanceRepository balanceRepository;
     private final StockMovementService stockMovementService;
     private final ProductVariantRepository variantRepository;
+    private final InventoryBinRepository binRepository;
 
     public StockTransferService(StockTransferRepository transferRepository,
                                  StockTransferLineRepository lineRepository,
@@ -63,7 +66,8 @@ public class StockTransferService {
                                  ProductRepository productRepository,
                                  StockBalanceRepository balanceRepository,
                                  StockMovementService stockMovementService,
-                                 ProductVariantRepository variantRepository) {
+                                 ProductVariantRepository variantRepository,
+                                 InventoryBinRepository binRepository) {
         this.transferRepository = transferRepository;
         this.lineRepository = lineRepository;
         this.locationRepository = locationRepository;
@@ -71,6 +75,7 @@ public class StockTransferService {
         this.balanceRepository = balanceRepository;
         this.stockMovementService = stockMovementService;
         this.variantRepository = variantRepository;
+        this.binRepository = binRepository;
     }
 
     @Transactional
@@ -127,12 +132,17 @@ public class StockTransferService {
             throw new IllegalArgumentException("This product is already on the transfer");
         }
 
+        InventoryBin sourceBin = resolveBin(request.sourceBinId(), transfer.getSourceLocation());
+        InventoryBin destinationBin = resolveBin(request.destinationBinId(), transfer.getDestinationLocation());
+
         StockTransferLine line = new StockTransferLine();
         line.setStockTransfer(transfer);
         line.setProduct(product);
         line.setVariant(variant);
         line.setQuantity(request.quantity());
         line.setNotes(trim(request.notes()));
+        line.setSourceBin(sourceBin);
+        line.setDestinationBin(destinationBin);
         line = lineRepository.save(line);
 
         transfer.setUpdatedAt(Instant.now());
@@ -169,13 +179,15 @@ public class StockTransferService {
             stockMovementService.recordMovement(new StockMovementRequest(
                 productId, variantId, source.getId(), null, null,
                 "TRANSFER", "DECREASE", line.getQuantity(), unitCost,
-                "Stock Transfer #" + transfer.getId() + " to " + destination.getVirtualName()
+                "Stock Transfer #" + transfer.getId() + " to " + destination.getVirtualName(),
+                line.getSourceBin() != null ? line.getSourceBin().getId() : null
             ), actor);
 
             stockMovementService.recordMovement(new StockMovementRequest(
                 productId, variantId, destination.getId(), null, null,
                 "TRANSFER", "INCREASE", line.getQuantity(), unitCost,
-                "Stock Transfer #" + transfer.getId() + " from " + source.getVirtualName()
+                "Stock Transfer #" + transfer.getId() + " from " + source.getVirtualName(),
+                line.getDestinationBin() != null ? line.getDestinationBin().getId() : null
             ), actor);
         }
 
@@ -224,6 +236,20 @@ public class StockTransferService {
                 "'" + product.getProductName() + "' has active variants — select one for this line");
         }
         return null;
+    }
+
+    /** {@code binId} must belong to {@code expectedLocation} — a bin from the wrong side of the
+     *  transfer (e.g. a source-location bin picked as the destination bin) would silently
+     *  misattribute where the stock physically ends up. */
+    private InventoryBin resolveBin(Long binId, InventoryLocation expectedLocation) {
+        if (binId == null) return null;
+        InventoryBin bin = binRepository.findById(binId)
+            .orElseThrow(() -> new ResourceNotFoundException("Bin not found with id: " + binId));
+        if (!bin.getRack().getLocation().getId().equals(expectedLocation.getId())) {
+            throw new IllegalArgumentException(
+                "Bin '" + bin.getName() + "' does not belong to location '" + expectedLocation.getVirtualName() + "'");
+        }
+        return bin;
     }
 
     private StockTransfer requireTransfer(Long id) {
@@ -281,10 +307,14 @@ public class StockTransferService {
     private StockTransferLineResponse toLineResponse(StockTransferLine line) {
         Product product = line.getProduct();
         ProductVariant variant = line.getVariant();
+        InventoryBin sourceBin = line.getSourceBin();
+        InventoryBin destinationBin = line.getDestinationBin();
         return new StockTransferLineResponse(
             line.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             variant != null ? variant.getId() : null, variant != null ? variant.getVariantCode() : null, variant != null ? variant.getVariantName() : null,
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
-            line.getQuantity(), line.getNotes());
+            line.getQuantity(), line.getNotes(),
+            sourceBin != null ? sourceBin.getId() : null, sourceBin != null ? sourceBin.getName() : null,
+            destinationBin != null ? destinationBin.getId() : null, destinationBin != null ? destinationBin.getName() : null);
     }
 }

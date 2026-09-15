@@ -4736,6 +4736,28 @@ html.dark-theme .detail-card {
   flex-wrap: wrap;
 }
 
+// "Back to X" link above a drill-down list page's title (e.g. Library Shelves -> Racks,
+// Inventory Bins -> Racks). Was local-only to library-shelf-list.component.scss (Angular
+// ViewEncapsulation means it didn't reach any other component); extracted here once a second
+// screen needed the identical rule, per the "reuse shared CSS before inventing local" gate.
+.mlp-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-text-muted);
+  text-decoration: none;
+  margin-bottom: 6px;
+  transition: color 0.15s ease;
+
+  svg { flex-shrink: 0; }
+
+  &:hover {
+    color: var(--cms-primary);
+  }
+}
+
 // ── Universal compact list-page headers ───────────────────────────────────
 // List pages are data-dense: headers must be minimal so the table fills
 // the viewport. No card background, no border, no shadow — just spacing.

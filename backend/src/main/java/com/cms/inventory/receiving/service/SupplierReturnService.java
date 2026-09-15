@@ -195,7 +195,7 @@ public class SupplierReturnService {
             stockMovementService.recordMovement(new StockMovementRequest(
                 receiptLine.getPurchaseOrderItem().getProduct().getId(), variant != null ? variant.getId() : null, location.getId(), null, null,
                 "RETURN", "DECREASE", line.getReturnedQty(), receiptLine.getUnitCost(),
-                "Supplier Return #" + ret.getId() + (line.getNotes() != null ? " — " + line.getNotes() : "")
+                "Supplier Return #" + ret.getId() + (line.getNotes() != null ? " — " + line.getNotes() : ""), null
             ), actor);
 
             PurchaseOrderItem poItem = receiptLine.getPurchaseOrderItem();

@@ -73,7 +73,7 @@ public class InventoryStockLocalDataSeeder {
                 stockMovementService.recordMovement(new StockMovementRequest(
                     product.getId(), null, mainStore.getId(), null, null,
                     "RECEIPT", null, new BigDecimal("50"), new BigDecimal("10.00"),
-                    "Opening balance (local dev seed)"
+                    "Opening balance (local dev seed)", null
                 ), "seed-data");
                 seeded++;
             }

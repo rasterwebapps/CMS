@@ -271,6 +271,56 @@ export const routes: Routes = [
         (m) => m.LocationFormComponent
       ),
   },
+  // OC-229: Inventory Rack -> Bin sub-locations within an InventoryLocation. Structurally
+  // mirrors Library's /library/racks + /library/racks/:rackId/shelves pattern.
+  {
+    path: 'inventory/racks',
+    canActivate: withPermission('INVENTORY_RACK_VIEW', 'INVENTORY_RACK_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/rack/rack-list/rack-list.component').then(
+        (m) => m.RackListComponent
+      ),
+  },
+  {
+    path: 'inventory/racks/new',
+    canActivate: withPermission('INVENTORY_RACK_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/rack/rack-form/rack-form.component').then(
+        (m) => m.RackFormComponent
+      ),
+  },
+  {
+    path: 'inventory/racks/:id/edit',
+    canActivate: withPermission('INVENTORY_RACK_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/rack/rack-form/rack-form.component').then(
+        (m) => m.RackFormComponent
+      ),
+  },
+  {
+    path: 'inventory/racks/:rackId/bins',
+    canActivate: withPermission('INVENTORY_BIN_VIEW', 'INVENTORY_BIN_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/rack/bin-list/bin-list.component').then(
+        (m) => m.BinListComponent
+      ),
+  },
+  {
+    path: 'inventory/racks/:rackId/bins/new',
+    canActivate: withPermission('INVENTORY_BIN_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/rack/bin-form/bin-form.component').then(
+        (m) => m.BinFormComponent
+      ),
+  },
+  {
+    path: 'inventory/racks/:rackId/bins/:id/edit',
+    canActivate: withPermission('INVENTORY_BIN_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/rack/bin-form/bin-form.component').then(
+        (m) => m.BinFormComponent
+      ),
+  },
   // Phase 8 "Reporting & Dashboards" — Inventory Dashboard (first slice).
   {
     path: 'inventory/dashboard',

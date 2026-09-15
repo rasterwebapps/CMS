@@ -65,6 +65,28 @@
             <label class="field-label">Quantity</label>
             <input type="number" step="0.001" min="0" class="field-input" [ngModel]="addQty()" (ngModelChange)="addQty.set($event)" placeholder="0.000" />
           </div>
+          @if (sourceBins().length > 0) {
+            <div class="field-group st-add-source-bin">
+              <label class="field-label">Source Bin</label>
+              <select class="field-select" [ngModel]="addSourceBinId()" (ngModelChange)="addSourceBinId.set($event)">
+                <option [ngValue]="null">Unassigned</option>
+                @for (b of sourceBins(); track b.id) {
+                  <option [ngValue]="b.id">{{ b.rackName }} / {{ b.name }}</option>
+                }
+              </select>
+            </div>
+          }
+          @if (destinationBins().length > 0) {
+            <div class="field-group st-add-destination-bin">
+              <label class="field-label">Destination Bin</label>
+              <select class="field-select" [ngModel]="addDestinationBinId()" (ngModelChange)="addDestinationBinId.set($event)">
+                <option [ngValue]="null">Unassigned</option>
+                @for (b of destinationBins(); track b.id) {
+                  <option [ngValue]="b.id">{{ b.rackName }} / {{ b.name }}</option>
+                }
+              </select>
+            </div>
+          }
           <button class="btn-secondary" [disabled]="addProductId() == null || !addQty() || (variants().length > 0 && addVariantId() == null) || busy()" (click)="addLine()">Add to Transfer</button>
         </div>
       </div>
@@ -79,6 +101,8 @@
               <th>Product</th>
               <th>UOM</th>
               <th class="cell-align-right">Quantity</th>
+              <th>Source Bin</th>
+              <th>Destination Bin</th>
               @if (t.status === 'DRAFT') {
                 <th class="actions-header"></th>
               }
@@ -93,6 +117,8 @@
                 </td>
                 <td>{{ line.uomCode || '—' }}</td>
                 <td class="cell-align-right">{{ line.quantity }}</td>
+                <td>{{ line.sourceBinName || '—' }}</td>
+                <td>{{ line.destinationBinName || '—' }}</td>
                 @if (t.status === 'DRAFT') {
                   <td>
                     <button class="st-remove-btn" (click)="removeLine(line)" [disabled]="busy()" aria-label="Remove line">
@@ -102,7 +128,7 @@
                 }
               </tr>
             } @empty {
-              <tr><td colspan="4" class="st-empty-row">No products on this transfer yet.</td></tr>
+              <tr><td colspan="6" class="st-empty-row">No products on this transfer yet.</td></tr>
             }
           </tbody>
         </table>

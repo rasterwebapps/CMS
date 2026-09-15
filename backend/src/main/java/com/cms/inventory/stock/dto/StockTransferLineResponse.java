@@ -12,5 +12,9 @@ public record StockTransferLineResponse(
     String variantName,
     String uomCode,
     BigDecimal quantity,
-    String notes
+    String notes,
+    Long sourceBinId,
+    String sourceBinName,
+    Long destinationBinId,
+    String destinationBinName
 ) {}
