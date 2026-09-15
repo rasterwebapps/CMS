@@ -2259,4 +2259,56 @@ frontend `stock.model.ts` (`productHasActiveVariants`, `VariantConvertRequest`),
 (`convertToVariant`), new `convert-to-variant-dialog/` (`ConvertToVariantDialogComponent`),
 `stock-balance-list.component.ts/html/scss` (badge, action column, dialog wiring).
 
+## 2026-09-15 — Location-role gate on Stock Issue Request / Stock Transfer, plus a zero-cost Internal Return fix
+
+**Prompted by:** a routine screen audit of Stock Issue Request, Loanable Item Issue, and Stock
+Transfer (structural/badge/permission gates — all clean, no changes needed there) that turned up
+two real gaps while reading `StockIssueRequestService`/`StockTransferService` end to end.
+
+**Bug: Internal Return posted at zero cost.** `StockIssueRequestService.returnLine` posted its
+`RETURN`/`INCREASE` movement with `unitCost = null`. `StockMovementService.recordMovement` defaults
+a null cost to `BigDecimal.ZERO` on an increase (by design — a `RECEIPT`'s cost is meant to come
+from the caller). `StockTransferService.complete` already avoids this exact trap for its own
+increase leg via `currentUnbatchedUnitCost` (see the "Stock Transfer slice" entry above); `returnLine`
+was missing the same guard, so every Internal Return silently diluted the issuing location's
+weighted-average cost (qty up, value flat). Fixed by giving `StockIssueRequestService` its own copy
+of the same lookup and passing a real `unitCost` into the `RETURN` movement. The existing test for
+this path never asserted `unitCost` at all, which is how it shipped uncaught — updated to assert it.
+
+**Gap: no location-pair restriction at all.** Neither `create()` method checked `InventoryLocation.
+locationRole` (`STORE` / `REQUESTING_POINT` / `BOTH`, already modeled and already used to seed
+"Main Store" + "Lab Requesting Point" in local dev) — any active location could request from, or
+transfer to/from, any other. Asked the user for the intended topology (role-based gate vs. an
+explicit parent-location mapping) and scope (both screens vs. Transfer only); answer was the
+role-based gate, applied to both.
+
+**Why the two screens got different rules, not one shared check:** Stock Issue Request has an
+inherent direction — a request always flows sister → store, so it's a strict, asymmetric gate:
+`requestingLocation` must be `REQUESTING_POINT`/`BOTH` (a `STORE` never requests),
+`issuingLocation` must be `STORE`/`BOTH` (a `REQUESTING_POINT` never issues). Stock Transfer has no
+such inherent direction — it's a plain push either way, and a sister returning surplus stock
+straight back to the store (`REQUESTING_POINT` → `STORE`) is legitimate, unlike on Issue Request
+where that direction doesn't exist as a concept. So Transfer's gate is symmetric: reject only when
+*both* source and destination are `REQUESTING_POINT` (sister-to-sister, bypassing the store
+entirely); either side being `STORE`/`BOTH` is fine in either direction. Loanable Item Issue is
+single-location (a borrower, not a second `InventoryLocation`) and was out of scope for this gate.
+
+**Frontend:** Stock Issue Request's New form now filters its two location `<select>`s by role
+(`requestingLocations`/`issuingLocations` computed signals) so a user can't even pick an invalid
+pair in the UI, not just get bounced by a backend 400. Stock Transfer's New form was deliberately
+left unfiltered — the symmetric rule means either dropdown may legitimately hold the store side —
+and relies on the existing generic error-toast wiring to surface the backend's rejection message;
+revisit if that reads as confusing in practice.
+
+**Verified:** New unit tests for both the role gate (reject + allow cases on each service) and the
+Internal Return cost fix; full existing `StockIssueRequestServiceTest`/`StockTransferServiceTest`
+suites green. `npx tsc -p tsconfig.app.json --noEmit` clean. **Not verified by a full app boot** or
+manual click-through — pending per this program's "no self-run visual verification" convention.
+
+**Impact:** `StockIssueRequestService.java` (`currentUnbatchedUnitCost`, `requireCanRequest`,
+`requireCanIssue`, `StockBalanceRepository` now injected); `StockTransferService.java`
+(`requireAtLeastOneStore`); `StockIssueRequestServiceTest.java`, `StockTransferServiceTest.java`
+(new cases); frontend `stock-issue-request-new.component.ts/html` (`requestingLocations`/
+`issuingLocations` computed signals feeding the two selects).
+
 *Next entry goes here — do not insert above this line.*

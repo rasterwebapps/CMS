@@ -31,6 +31,7 @@ import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.model.StockTransfer;
 import com.cms.inventory.stock.model.StockTransferLine;
+import com.cms.inventory.stock.model.enums.LocationRole;
 import com.cms.inventory.stock.model.enums.StockTransferStatus;
 import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
@@ -67,6 +68,38 @@ class StockTransferServiceTest {
         assertThatThrownBy(() -> service.create(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("must be different");
+    }
+
+    @Test
+    void shouldRejectCreateBetweenTwoRequestingPointSisters() {
+        InventoryLocation wardA = location(3L, "Ward A");
+        wardA.setLocationRole(LocationRole.REQUESTING_POINT);
+        InventoryLocation wardB = location(4L, "Ward B");
+        wardB.setLocationRole(LocationRole.REQUESTING_POINT);
+        when(locationRepository.findById(3L)).thenReturn(Optional.of(wardA));
+        when(locationRepository.findById(4L)).thenReturn(Optional.of(wardB));
+
+        var req = new StockTransferCreateRequest(3L, 4L, LocalDate.now(), null);
+        assertThatThrownBy(() -> service.create(req, "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("at least one side must be a store");
+    }
+
+    @Test
+    void shouldAllowCreateFromRequestingPointBackToStore() {
+        InventoryLocation wardA = location(3L, "Ward A");
+        wardA.setLocationRole(LocationRole.REQUESTING_POINT);
+        InventoryLocation mainStore = location(4L, "Main Store");
+        mainStore.setLocationRole(LocationRole.STORE);
+        when(locationRepository.findById(3L)).thenReturn(Optional.of(wardA));
+        when(locationRepository.findById(4L)).thenReturn(Optional.of(mainStore));
+        when(transferRepository.save(any(StockTransfer.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(lineRepository.findByStockTransferIdOrderByIdAsc(any())).thenReturn(List.of());
+
+        var req = new StockTransferCreateRequest(3L, 4L, LocalDate.now(), null);
+        service.create(req, "clerk");
+
+        verify(transferRepository).save(any(StockTransfer.class));
     }
 
     @Test
