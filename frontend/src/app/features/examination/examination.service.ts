@@ -37,7 +37,11 @@ export class ExaminationService {
   }
 
   getResults(examinationId: number): Observable<ExamResult[]> {
-    return this.http.get<ExamResult[]>(`${this.resultUrl}?examinationId=${examinationId}`);
+    return this.http.get<ExamResult[]>(`${this.resultUrl}/examination/${examinationId}`);
+  }
+
+  getMyResults(): Observable<ExamResult[]> {
+    return this.http.get<ExamResult[]>(`${this.resultUrl}/my`);
   }
 
   createResult(request: ExamResultRequest): Observable<ExamResult> {
