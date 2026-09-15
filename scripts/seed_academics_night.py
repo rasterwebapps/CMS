@@ -189,12 +189,139 @@ def seed_staff_swaps(token: str, class_schedule_ids_by_day: dict, target: int = 
     print(f'  applied {applied} real faculty swaps (each writes real session_occurrences exception rows for both sides)')
 
 
+
+# Real (subjectId, courseOfferingId, cohortSectionId, classroomId, facultyId) THEORY tuples
+# for term_instance_id=1, confirmed via a direct read of published class_schedules rows.
+SPECIAL_CLASS_THEORY_TUPLES = [
+    (36, 65, 51, 4, 37), (27, 59, 49, 7, 33), (78, 64, 49, 7, 33), (28, 60, 49, 7, 32),
+    (26, 58, 49, 7, 26), (29, 61, 49, 7, 35), (39, 68, 51, 4, 34), (31, 63, 49, 7, 32),
+    (37, 66, 51, 4, 30), (80, 69, 51, 4, 36), (38, 67, 51, 4, 36), (30, 62, 49, 7, 33),
+    (61, 70, 51, 4, 36),
+]
+SPECIAL_CLASS_PERIODS = [9, 10, 11, 12, 13, 14, 15, 16]
+SPECIAL_CLASS_REASONS = [
+    'Portion completion catch-up', 'Pre-exam revision session', 'Makeup for holiday-affected week',
+    'Extra practical demonstration session', 'Remedial class for weak performers', 'Guest lecture rescheduled',
+]
+REQUESTING_FACULTY_ID = 29  # devadmin's own linked Faculty row -- see session log 00:05 entry
+
+
+def _first_sunday_on_or_after(d: date) -> date:
+    days_to_sunday = (6 - d.weekday()) % 7  # Python: Monday=0 .. Sunday=6
+    return d + timedelta(days=days_to_sunday)
+
+
+def _first_saturday_on_or_after(d: date) -> date:
+    days_to_saturday = (5 - d.weekday()) % 7
+    return d + timedelta(days=days_to_saturday)
+
+
+def seed_special_class_single_subject_requests(token: str, target: int = 30):
+    """BR-55 single-subject mode, as the faculty (id 29) devadmin is linked to. Every request
+    targets a distinct Sunday+period pair so none of tonight's own requests can collide with
+    each other (SPECIAL_CLASS_DUPLICATE_REQUEST/_ROOM_CONFLICT/_FACULTY_CONFLICT), and Sunday
+    is a day the recurring weekly template structurally has no entries for, so the harder
+    weekly-template faculty/room availability checks don't come into play either -- this keeps
+    the seed focused on exercising the special-class-specific conflict logic, not on hand-
+    resolving real faculty schedules."""
+    print('\n== Special Classes: single-subject requests ==')
+    term_start = date(2026, 10, 1)
+    first_sunday = _first_sunday_on_or_after(term_start)
+    created = 0
+    request_ids = []
+    for attempt in range(target):
+        date_idx, period_idx = divmod(attempt, len(SPECIAL_CLASS_PERIODS))
+        occurrence_date = (first_sunday + timedelta(weeks=date_idx)).isoformat()
+        period_id = SPECIAL_CLASS_PERIODS[period_idx]
+        subject_id, course_offering_id, cohort_section_id, classroom_id, faculty_id = \
+            SPECIAL_CLASS_THEORY_TUPLES[attempt % len(SPECIAL_CLASS_THEORY_TUPLES)]
+        resp = api('POST', '/timetables/special-classes/single-subject', token, {
+            'occurrenceDate': occurrence_date, 'periodIds': [period_id],
+            'subjectId': subject_id, 'courseOfferingId': course_offering_id,
+            'cohortSectionId': cohort_section_id, 'sessionType': 'THEORY',
+            'classroomId': classroom_id, 'requestedFacultyId': faculty_id,
+            'reason': SPECIAL_CLASS_REASONS[attempt % len(SPECIAL_CLASS_REASONS)],
+        })
+        if isinstance(resp, dict) and '__error__' in resp:
+            print(f'  [{attempt}] {occurrence_date} p{period_id} subj{subject_id}: HTTP {resp["__error__"]} {resp["__details__"][:160]}')
+            continue
+        created += len(resp) if isinstance(resp, list) else 1
+        if isinstance(resp, list):
+            request_ids.extend(o['id'] for o in resp)
+    print(f'  created {created} single-subject special-class SessionOccurrence rows ({len(request_ids)} requests)')
+    return request_ids
+
+
+def seed_special_class_day_repeats(token: str, target_calls: int = 10):
+    """BR-55 whole-day-repeat mode onto non-working Saturdays (term has no working-Saturday
+    pattern configured, so every Saturday qualifies) -- the exact BR-55 example scenario
+    ('this Saturday follows Tuesday's schedule'). Copies every published row from a real
+    weekday onto a distinct target Saturday for cohort 49 or 51, both of which have a full
+    real Mon-Fri THEORY/LAB/LIBRARY timetable already published."""
+    print('\n== Special Classes: whole-day-repeat requests ==')
+    term_start = date(2026, 10, 1)
+    first_saturday = _first_saturday_on_or_after(term_start)
+    source_days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY']
+    cohorts = [49, 51]
+    created = 0
+    calls_ok = 0
+    for i in range(target_calls):
+        target_date = (first_saturday + timedelta(weeks=i)).isoformat()
+        source_day = source_days[i % len(source_days)]
+        cohort_section_id = cohorts[i % len(cohorts)]
+        resp = api('POST', '/timetables/special-classes/day-repeat', token, {
+            'termInstanceId': 1, 'sourceDayOfWeek': source_day, 'targetDate': target_date,
+            'cohortSectionId': cohort_section_id, 'reason': f'{source_day.title()} schedule repeated on {target_date}',
+        })
+        if isinstance(resp, dict) and '__error__' in resp:
+            print(f'  [{i}] {source_day} -> {target_date} cohort {cohort_section_id}: HTTP {resp["__error__"]} {resp["__details__"][:200]}')
+            continue
+        n = len(resp.get('created', []))
+        created += n
+        calls_ok += 1
+        print(f'  {source_day} -> {target_date} cohort {cohort_section_id}: {n} occurrences created, {resp.get("skippedCount", 0)} skipped')
+    print(f'  {calls_ok}/{target_calls} day-repeat calls succeeded, {created} SessionOccurrence rows created')
+    return created
+
+
+def seed_special_class_approvals(token: str, approve_count: int = 8, reject_count: int = 4):
+    """Exercises the admin side (approve/reject) of the same workflow -- devadmin's role
+    (DEV_ADMIN) also carries TIMETABLE_SPECIAL_CLASS_APPROVE, so the one login can act as both
+    the requesting faculty and the approving admin, which is exactly what let item 7 (BLOCKED
+    at the 19:34 checkpoint for lack of any faculty login) become exercisable end to end."""
+    print('\n== Special Classes: approve/reject ==')
+    queue = api('GET', '/timetables/special-classes/approval-queue', token) or []
+    if isinstance(queue, dict) and '__error__' in queue:
+        print(f'  approval-queue read failed: HTTP {queue["__error__"]} {queue["__details__"][:160]}')
+        return
+    pending = [o for o in queue if o.get('approvalStatus') == 'PENDING']
+    approved = 0
+    for occ in pending[:approve_count]:
+        resp = api('PUT', f'/timetables/special-classes/{occ["id"]}/approve', token)
+        if isinstance(resp, dict) and '__error__' in resp:
+            print(f'  approve {occ["id"]}: HTTP {resp["__error__"]} {resp["__details__"][:160]}')
+            continue
+        approved += 1
+    rejected = 0
+    for occ in pending[approve_count:approve_count + reject_count]:
+        resp = api('PUT', f'/timetables/special-classes/{occ["id"]}/reject', token,
+                    {'rejectionReason': 'Clashes with a higher-priority clinical posting this week'})
+        if isinstance(resp, dict) and '__error__' in resp:
+            print(f'  reject {occ["id"]}: HTTP {resp["__error__"]} {resp["__details__"][:160]}')
+            continue
+        rejected += 1
+    print(f'  approved {approved}, rejected {rejected} (of {len(pending)} pending found in queue)')
+
+
 def main() -> int:
     print('Academics overnight top-up seeding — connecting as devadmin')
     token = get_token()
     seed_faculty_absences(token)
     seed_escort_pools(token)
     seed_student_promotions(token)
+    seed_special_class_single_subject_requests(token)
+    seed_special_class_day_repeats(token)
+    seed_special_class_approvals(token)
     return 0
 
 
