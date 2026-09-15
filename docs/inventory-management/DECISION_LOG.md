@@ -2311,4 +2311,77 @@ manual click-through — pending per this program's "no self-run visual verifica
 (new cases); frontend `stock-issue-request-new.component.ts/html` (`requestingLocations`/
 `issuingLocations` computed signals feeding the two selects).
 
+## 2026-09-15 — Bulk demo data for Stock Management + overnight screen-checkup kickoff
+
+**Prompted by:** a request to generate realistic local dev data (masters, locations, 100+
+products, batches, Stock Issue Requests, Stock Transfers) and run a complete structural/badge/
+permission checkup of all 16 screens under the "Stock Management" nav group, continuing
+unattended overnight since only 3 of the 16 screens (Stock Issue Requests, Loanable Item Issues,
+Stock Transfers — see the entry above) had been covered in the live session.
+
+**Bulk seeder:** `InventoryBulkDemoDataSeeder` (new, `cms.seed.bulk-inventory-demo=true`, opt-in,
+never fires on a normal boot). Seeds 5 more categories, 10 brands, 7 more sister
+`REQUESTING_POINT` locations plus a second `STORE` ("Pharmacy Store") — respecting today's earlier
+location-role gate — 105 more products (112 total) across a realistic nursing-college spread
+(nursing/lab/housekeeping/office/pharmacy consumables, IT and medical assets, some loanable),
+opening stock balances with 21 batch/expiry-tracked lots, and lifecycle-complete Stock Issue
+Requests (DRAFT/SUBMITTED/COMPLETED/rejected-line/returned/CANCELLED — 6), Stock Transfers
+(DRAFT/COMPLETED/CANCELLED/sister-returning-to-store — 4), and Loanable Item Issues
+(issued/overdue/returned — 3).
+
+**Real gap found while building it, not fixed:** neither `StockIssueRequestAddLineRequest` nor
+`StockTransferAddLineRequest` carries a batch/serial number. `approveLine()`/`complete()` then
+fail `StockMovementService.requireTrackingModeCompliance` for any `BATCH`/`SERIAL`-tracked
+product — first hit when the seeder tried to transfer "Alcohol Swabs" (batch-tracked). A
+`BATCH`/`SERIAL`-tracked product simply cannot be issued or transferred today, only received,
+adjusted, or disposed. Worked around in the seeder (route demo Issue Requests/Transfers only
+through `NONE`-tracked products); the underlying gap is unfixed and queued for the overnight
+screen-audit session to consider, not silently patched here — it changes two API contracts
+(new optional `batchOrSerialNo`/`expiryDate` fields end to end: DTO → service → frontend form),
+which is new-capability work, not a bug fix.
+
+**Getting this to actually finish — three real retries, each its own lesson:**
+1. First run crashed on the tracking-mode gap above, after categories/brands/locations/products/
+   balances/Issue Requests had already committed (each phase's own `@Transactional` method commits
+   independently — the top-level `CommandLineRunner`'s own `@Transactional` does **not** wrap the
+   whole run, since it only applies to invoking the `@Bean` factory method during bean creation,
+   not to the runner's `run(args)` Spring invokes later).
+2. Made the seeder idempotent **per phase** (skip stock-movements/Issue-Requests/Transfers/
+   Loanable-Issues independently once each phase's own table has any rows) instead of one
+   `productRepo.count() >= 100` gate — but the first fix still returned the *wrong* product list
+   on a resumed run: `seedProducts()`'s return value is only the products created *that* call
+   (empty once they already exist), yet every downstream phase used that return value to pick demo
+   lines — so a resumed run silently no-opped every remaining phase (each phase's own internal
+   `if (list too small) return;` guard swallowed it with no log line and no error). Fixed by
+   re-reading the full catalog from `productRepo.findAll()` after `seedProducts()` instead of
+   using its return value.
+3. The "sister returns surplus to the store" transfer tried to move stock out of Ward B, which
+   never has an opening balance (only Main Store gets one) — hit `recordMovement`'s real negative-
+   stock guard. Fixed by giving Ward B a small opening balance of its own first.
+   A stray partial `DRAFT` transfer left behind by each crash had to be deleted (`stock_transfers`/
+   `stock_transfer_lines`, pure seed data, zero real history) before each retry, since the
+   idempotency check is per-table, not per-row.
+
+**Overnight continuation:** the remaining 13 Stock Management screens, restructured per the user's
+request into three unattended passes (~21:00 kickoff, ~02:00 midpoint, ~07:00 final, wrapping up
+by 10:00) instead of one — running in an isolated git worktree
+(`.worktrees/inventory-overnight`, branch `inventory-overnight-2026-09-15`) after a second,
+unrelated Claude Code session was found actively branch-switching in the shared main checkout
+(working on OC-227 timetable). A published Artifact progress dashboard is kept updated across all
+three passes so the user has something to open on screen at 10:00 rather than only a markdown log.
+Auto-restocking policy, Library→Inventory migration, and stand-alone module packaging are
+explicitly out of scope for the overnight run — genuinely gated on decisions only the user can
+make, logged as `BLOCKED` rather than guessed at, same as this repo's R2-4.0.2/R2-4.2 precedent.
+A stretch-goal ask (Quotation Request/Approval → Purchase Order → Purchase-against-PO → stock
+update) was added mid-session, explicitly lowest priority, only attempted after the 13-screen
+floor is met, and only as an investigation-first, clearly-logged slice — not to be rushed.
+
+**Verified:** All `com.cms.inventory.*` backend tests green after the seeder settled. Final counts
+confirmed directly against Postgres: 112 products, 9 locations, 11 categories, 10 brands, 21
+batches, 6 Issue Requests, 4 Transfers, 3 Loanable Item Issues.
+
+**Impact:** `InventoryBulkDemoDataSeeder.java` (new); `.gitignore` (`.worktrees/`);
+`scripts/inventory-overnight-run.sh`, `scripts/inventory-overnight-prompt-*.md` (new, overnight
+cron mechanism); local dev Postgres data only — no migration, no schema change.
+
 *Next entry goes here — do not insert above this line.*
