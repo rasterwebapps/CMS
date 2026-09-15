@@ -8,6 +8,8 @@ import { CycleCountService } from '../cycle-count.service';
 import { CycleCount, CycleCountLine } from '../cycle-count.model';
 import { ProductService } from '../../product/product.service';
 import { Product } from '../../product/product.model';
+import { InventoryRackService } from '../../rack/inventory-rack.service';
+import { InventoryBin } from '../../rack/inventory-rack.model';
 import { ConfirmDialogComponent } from '../../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
 import { PermissionService } from '../../../../core/permissions/permission.service';
@@ -32,6 +34,7 @@ export class CycleCountDetailComponent implements OnInit {
   private readonly router            = inject(Router);
   private readonly cycleCountService = inject(CycleCountService);
   private readonly productService    = inject(ProductService);
+  private readonly rackService       = inject(InventoryRackService);
   private readonly dialog            = inject(MatDialog);
   private readonly permissionService = inject(PermissionService);
   private readonly toast             = inject(ToastService);
@@ -41,6 +44,8 @@ export class CycleCountDetailComponent implements OnInit {
   protected readonly count    = signal<CycleCount | null>(null);
   protected readonly allProducts = signal<Product[]>([]);
   protected readonly addProductId = signal<number | null>(null);
+  protected readonly bins = signal<InventoryBin[]>([]);
+  protected readonly addBinId = signal<number | null>(null);
 
   protected readonly canApprove = computed(() => this.permissionService.has('INVENTORY_CYCLE_COUNT_APPROVE'));
 
@@ -61,7 +66,13 @@ export class CycleCountDetailComponent implements OnInit {
   protected load(): void {
     this.loading.set(true);
     this.cycleCountService.getById(this.countId).subscribe({
-      next: (c) => { this.count.set(c); this.loading.set(false); },
+      next: (c) => {
+        this.count.set(c);
+        this.loading.set(false);
+        if (this.bins().length === 0) {
+          this.rackService.getBins(undefined, c.locationId, true).subscribe({ next: (b) => this.bins.set(b) });
+        }
+      },
       error: () => { this.toast.error('Failed to load cycle count'); this.loading.set(false); },
     });
   }
@@ -70,9 +81,10 @@ export class CycleCountDetailComponent implements OnInit {
     const productId = this.addProductId();
     if (productId == null) return;
     this.busy.set(true);
-    this.cycleCountService.addLine(this.countId, { productId }).subscribe({
+    this.cycleCountService.addLine(this.countId, { productId, binId: this.addBinId() ?? undefined }).subscribe({
       next: () => {
         this.addProductId.set(null);
+        this.addBinId.set(null);
         this.toast.success('Product added to the count sheet');
         this.busy.set(false);
         this.load();

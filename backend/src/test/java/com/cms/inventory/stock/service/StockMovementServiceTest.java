@@ -32,9 +32,11 @@ import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.model.StockBatch;
 import com.cms.inventory.stock.model.StockLedger;
+import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
 import com.cms.inventory.stock.repository.StockBalanceRepository;
 import com.cms.inventory.stock.repository.StockBatchRepository;
+import com.cms.inventory.stock.repository.StockBinAllocationRepository;
 import com.cms.inventory.stock.repository.StockLedgerRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +49,8 @@ class StockMovementServiceTest {
     @Mock private StockBalanceRepository balanceRepository;
     @Mock private ProductUomChainVersionRepository uomChainVersionRepository;
     @Mock private ProductVariantRepository variantRepository;
+    @Mock private InventoryBinRepository binRepository;
+    @Mock private StockBinAllocationRepository binAllocationRepository;
     private StockMovementService service;
 
     private final Product product = product(10L);
@@ -55,7 +59,7 @@ class StockMovementServiceTest {
     @BeforeEach
     void setUp() {
         service = new StockMovementService(productRepository, locationRepository, batchRepository, ledgerRepository,
-            balanceRepository, uomChainVersionRepository, variantRepository);
+            balanceRepository, uomChainVersionRepository, variantRepository, binRepository, binAllocationRepository);
         // lenient: several tests below throw before ever reaching the ledger save.
         lenient().when(ledgerRepository.save(any(StockLedger.class))).thenAnswer(inv -> { StockLedger l = inv.getArgument(0); l.setId(900L); return l; });
     }
@@ -66,7 +70,7 @@ class StockMovementServiceTest {
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(10L, 1L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "RECEIPT", null, new BigDecimal("50"), new BigDecimal("2.00"), null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "RECEIPT", null, new BigDecimal("50"), new BigDecimal("2.00"), null, null);
         var res = service.recordMovement(req, "clerk");
 
         assertThat(res.qtyDelta()).isEqualByComparingTo("50");
@@ -85,7 +89,7 @@ class StockMovementServiceTest {
         when(batchRepository.save(any(StockBatch.class))).thenAnswer(inv -> { StockBatch b = inv.getArgument(0); b.setId(200L); return b; });
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchId(10L, 1L, 200L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(10L, null, 1L, "BATCH-1", LocalDate.of(2027, 1, 1), "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, null, 1L, "BATCH-1", LocalDate.of(2027, 1, 1), "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null, null);
         service.recordMovement(req, "clerk");
 
         org.mockito.ArgumentCaptor<StockBatch> captor = org.mockito.ArgumentCaptor.forClass(StockBatch.class);
@@ -102,7 +106,7 @@ class StockMovementServiceTest {
         when(batchRepository.save(any(StockBatch.class))).thenAnswer(inv -> { StockBatch b = inv.getArgument(0); b.setId(201L); return b; });
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchId(10L, 1L, 201L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(10L, null, 1L, "BATCH-2", null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, null, 1L, "BATCH-2", null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null, null);
         service.recordMovement(req, "clerk");
 
         org.mockito.ArgumentCaptor<StockBatch> captor = org.mockito.ArgumentCaptor.forClass(StockBatch.class);
@@ -119,7 +123,7 @@ class StockMovementServiceTest {
         when(batchRepository.findByProductAndVariantAndBatchOrSerialNo(10L, null, "BATCH-3")).thenReturn(Optional.of(existingBatch));
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchId(10L, 1L, 300L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(10L, null, 1L, "BATCH-3", null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, null, 1L, "BATCH-3", null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null, null);
         service.recordMovement(req, "clerk");
 
         verify(uomChainVersionRepository, never()).findByProductIdAndIsActiveTrue(any());
@@ -132,7 +136,7 @@ class StockMovementServiceTest {
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(10L, 1L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null, null);
         service.recordMovement(req, "clerk");
 
         verify(batchRepository, never()).findByProductAndVariantAndBatchOrSerialNo(any(), any(), any());
@@ -146,7 +150,7 @@ class StockMovementServiceTest {
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
         when(variantRepository.existsByProductIdAndIsActiveTrue(10L)).thenReturn(true);
 
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("has active variants");
@@ -158,7 +162,7 @@ class StockMovementServiceTest {
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
         when(variantRepository.findByIdAndProductId(55L, 10L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(10L, 55L, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, 55L, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("does not belong to");
@@ -172,7 +176,7 @@ class StockMovementServiceTest {
         when(variantRepository.findByIdAndProductId(55L, 10L)).thenReturn(Optional.of(variant));
         when(balanceRepository.findByProductIdAndVariantIdAndLocationIdAndBatchIsNull(10L, 55L, 1L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(10L, 55L, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, 55L, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null, null);
         var res = service.recordMovement(req, "clerk");
 
         assertThat(res.variantId()).isEqualTo(55L);
@@ -188,7 +192,7 @@ class StockMovementServiceTest {
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
         when(variantRepository.findByIdAndProductId(56L, 10L)).thenReturn(Optional.of(variant));
 
-        var req = new StockMovementRequest(10L, 56L, 1L, null, null, "RECEIPT", null, BigDecimal.ONE, BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, 56L, 1L, null, null, "RECEIPT", null, BigDecimal.ONE, BigDecimal.ONE, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("serial number is required");
@@ -203,7 +207,7 @@ class StockMovementServiceTest {
         when(productRepository.findById(20L)).thenReturn(Optional.of(batchTracked));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
 
-        var req = new StockMovementRequest(20L, null, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(20L, null, 1L, null, null, "RECEIPT", null, new BigDecimal("10"), BigDecimal.ONE, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("batch number is required");
@@ -216,7 +220,7 @@ class StockMovementServiceTest {
         when(productRepository.findById(21L)).thenReturn(Optional.of(serialTracked));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
 
-        var req = new StockMovementRequest(21L, null, 1L, null, null, "RECEIPT", null, BigDecimal.ONE, BigDecimal.ONE, null);
+        var req = new StockMovementRequest(21L, null, 1L, null, null, "RECEIPT", null, BigDecimal.ONE, BigDecimal.ONE, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("serial number is required");
@@ -229,7 +233,7 @@ class StockMovementServiceTest {
         when(productRepository.findById(22L)).thenReturn(Optional.of(serialTracked));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
 
-        var req = new StockMovementRequest(22L, null, 1L, "SN-001", null, "RECEIPT", null, new BigDecimal("2"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(22L, null, 1L, "SN-001", null, "RECEIPT", null, new BigDecimal("2"), BigDecimal.ONE, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("quantity must be exactly 1");
@@ -246,7 +250,7 @@ class StockMovementServiceTest {
         when(batchRepository.save(any(StockBatch.class))).thenAnswer(inv -> { StockBatch b = inv.getArgument(0); b.setId(400L); return b; });
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchId(23L, 1L, 400L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(23L, null, 1L, "SN-001", null, "RECEIPT", null, BigDecimal.ONE, BigDecimal.ONE, null);
+        var req = new StockMovementRequest(23L, null, 1L, "SN-001", null, "RECEIPT", null, BigDecimal.ONE, BigDecimal.ONE, null, null);
         var res = service.recordMovement(req, "clerk");
 
         assertThat(res.qtyDelta()).isEqualByComparingTo("1");
@@ -263,7 +267,7 @@ class StockMovementServiceTest {
         when(batchRepository.save(any(StockBatch.class))).thenAnswer(inv -> { StockBatch b = inv.getArgument(0); b.setId(401L); return b; });
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchId(24L, 1L, 401L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(24L, null, 1L, "LOT-1", null, "RECEIPT", null, new BigDecimal("50"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(24L, null, 1L, "LOT-1", null, "RECEIPT", null, new BigDecimal("50"), BigDecimal.ONE, null, null);
         var res = service.recordMovement(req, "clerk");
 
         assertThat(res.qtyDelta()).isEqualByComparingTo("50");
@@ -275,7 +279,7 @@ class StockMovementServiceTest {
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(10L, 1L)).thenReturn(Optional.of(balance(new BigDecimal("5"), new BigDecimal("10"))));
 
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "ISSUE", null, new BigDecimal("20"), null, null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "ISSUE", null, new BigDecimal("20"), null, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("negative on-hand quantity");
@@ -288,7 +292,7 @@ class StockMovementServiceTest {
         // 100 units on hand worth 250 total -> weighted average 2.50/unit.
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(10L, 1L)).thenReturn(Optional.of(balance(new BigDecimal("100"), new BigDecimal("250.00"))));
 
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "ISSUE", null, new BigDecimal("10"), null, null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "ISSUE", null, new BigDecimal("10"), null, null, null);
         service.recordMovement(req, "clerk");
 
         // 10 units x 2.50 = 25.00 removed.
@@ -301,7 +305,7 @@ class StockMovementServiceTest {
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(10L, 1L)).thenReturn(Optional.empty());
 
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "ADJUSTMENT", "INCREASE", new BigDecimal("5"), BigDecimal.ONE, null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "ADJUSTMENT", "INCREASE", new BigDecimal("5"), BigDecimal.ONE, null, null);
         assertThat(service.recordMovement(req, "clerk").qtyDelta()).isEqualByComparingTo("5");
     }
 
@@ -311,7 +315,7 @@ class StockMovementServiceTest {
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
         when(balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(10L, 1L)).thenReturn(Optional.of(balance(new BigDecimal("10"), new BigDecimal("10"))));
 
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "ADJUSTMENT", "DECREASE", new BigDecimal("5"), null, null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "ADJUSTMENT", "DECREASE", new BigDecimal("5"), null, null, null);
         assertThat(service.recordMovement(req, "clerk").qtyDelta()).isEqualByComparingTo("-5");
     }
 
@@ -319,7 +323,7 @@ class StockMovementServiceTest {
     void shouldRejectInvalidTxnTypeValue() {
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "NOT_A_TYPE", null, BigDecimal.ONE, null, null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "NOT_A_TYPE", null, BigDecimal.ONE, null, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk")).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -327,7 +331,7 @@ class StockMovementServiceTest {
     void shouldRejectTxnTypeNotYetReachableThroughThisApi() {
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
         when(locationRepository.findById(1L)).thenReturn(Optional.of(location));
-        var req = new StockMovementRequest(10L, null, 1L, null, null, "CONSIGNMENT_CONSUMPTION", null, BigDecimal.ONE, null, null);
+        var req = new StockMovementRequest(10L, null, 1L, null, null, "CONSIGNMENT_CONSUMPTION", null, BigDecimal.ONE, null, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("not yet available");
@@ -336,7 +340,7 @@ class StockMovementServiceTest {
     @Test
     void shouldThrowWhenProductNotFound() {
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
-        var req = new StockMovementRequest(99L, null, 1L, null, null, "RECEIPT", null, BigDecimal.ONE, null, null);
+        var req = new StockMovementRequest(99L, null, 1L, null, null, "RECEIPT", null, BigDecimal.ONE, null, null, null);
         assertThatThrownBy(() -> service.recordMovement(req, "clerk")).isInstanceOf(ResourceNotFoundException.class);
     }
 

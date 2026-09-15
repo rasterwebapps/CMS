@@ -7,7 +7,7 @@ import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/p
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject, Subscription } from 'rxjs';
 import { StockService } from '../stock.service';
-import { StockBalance } from '../stock.model';
+import { StockBalance, StockBalanceBinBreakdown } from '../stock.model';
 import { ProductService } from '../../product/product.service';
 import { Product } from '../../product/product.model';
 import { InventoryLocationService } from '../../location/inventory-location.service';
@@ -58,11 +58,16 @@ export class StockBalanceListComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = ['productCode', 'productName', 'locationVirtualName', 'batchOrSerialNo', 'expiryDate', 'qtyOnHand', 'valueOnHand', 'lastUpdated', 'actions'];
+  protected readonly displayedColumns = ['productCode', 'productName', 'locationVirtualName', 'batchOrSerialNo', 'expiryDate', 'qtyOnHand', 'valueOnHand', 'lastUpdated', 'actions', 'expand'];
   protected readonly dataSource = new MatTableDataSource<StockBalance>([]);
   protected readonly loading = signal(false);
   protected readonly products = signal<Product[]>([]);
   protected readonly locations = signal<InventoryLocation[]>([]);
+
+  // ── Bin breakdown (expand row) ──────────────────────────────────────────
+  protected readonly expandedRow = signal<StockBalance | null>(null);
+  protected readonly binBreakdowns = signal<Record<number, StockBalanceBinBreakdown>>({});
+  protected readonly loadingBinBreakdown = signal<number | null>(null);
 
   protected productFilter: number | null = null;
   protected locationFilter: number | null = null;
@@ -96,6 +101,30 @@ export class StockBalanceListComponent implements OnInit, OnDestroy {
    *  2026-09-15 "null-variant stock is stranded" decision-log entry. */
   protected isStranded(row: StockBalance): boolean {
     return row.variantId == null && row.productHasActiveVariants;
+  }
+
+  protected isExpanded(row: StockBalance): boolean {
+    return this.expandedRow() === row;
+  }
+
+  protected toggleRow(row: StockBalance): void {
+    if (this.expandedRow() === row) {
+      this.expandedRow.set(null);
+      return;
+    }
+    this.expandedRow.set(row);
+    if (this.binBreakdowns()[row.id]) return;
+    this.loadingBinBreakdown.set(row.id);
+    this.stockService.getBinAllocations(row.id).subscribe({
+      next: (breakdown) => {
+        this.binBreakdowns.update((m) => ({ ...m, [row.id]: breakdown }));
+        this.loadingBinBreakdown.set(null);
+      },
+      error: () => {
+        this.toast.error('Failed to load bin breakdown');
+        this.loadingBinBreakdown.set(null);
+      },
+    });
   }
 
   protected convertToVariant(row: StockBalance): void {

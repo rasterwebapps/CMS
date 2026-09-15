@@ -75,6 +75,19 @@
                 <p class="field-error">{{ getErrorMessage('locationId') }}</p>
               }
             </div>
+
+            @if (bins().length > 0) {
+              <div class="field-group">
+                <label for="mv-bin" class="field-label">Bin</label>
+                <select id="mv-bin" class="field-select" formControlName="binId">
+                  <option [ngValue]="null">Not bin-tracked</option>
+                  @for (b of bins(); track b.id) {
+                    <option [ngValue]="b.id">{{ b.rackName }} / {{ b.name }} ({{ b.code }})</option>
+                  }
+                </select>
+                <p class="field-hint">Optional — updates this bin's own breakdown alongside the location total</p>
+              </div>
+            }
           </div>
 
           <div class="field-group">

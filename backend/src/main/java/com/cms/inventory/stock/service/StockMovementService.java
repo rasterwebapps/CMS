@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
@@ -20,7 +21,9 @@ import com.cms.inventory.catalog.model.enums.StockTrackingMode;
 import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.catalog.repository.ProductUomChainVersionRepository;
 import com.cms.inventory.catalog.repository.ProductVariantRepository;
+import com.cms.inventory.stock.dto.StockBalanceBinBreakdownResponse;
 import com.cms.inventory.stock.dto.StockBalanceResponse;
+import com.cms.inventory.stock.dto.StockBinAllocationResponse;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockMovementResponse;
 import com.cms.inventory.stock.dto.VariantConvertRequest;
@@ -199,6 +202,27 @@ public class StockMovementService {
         }
 
         binAllocationRepository.upsertAllocation(balance.getId(), binId, qtyDelta);
+    }
+
+    /**
+     * The per-bin breakdown of one {@link StockBalance}'s quantity — read-only counterpart to
+     * {@link #applyBinAllocation}. Written to since OC-229 (Goods Receipt lines, Stock Transfer
+     * lines, and any {@link StockMovementRequest#binId} caller) but never previously surfaced
+     * anywhere; this is the first read path. A zero-qty allocation (a bin fully drawn down but
+     * never deleted, per {@link StockBinAllocationRepository#upsertAllocation}'s upsert-only
+     * design) is omitted rather than shown as a stale zero row.
+     */
+    public StockBalanceBinBreakdownResponse getBinAllocations(Long balanceId) {
+        StockBalance balance = balanceRepository.findById(balanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Stock balance not found with id: " + balanceId));
+        List<StockBinAllocation> allocations = binAllocationRepository.findByStockBalanceId(balanceId);
+        BigDecimal allocated = allocations.stream().map(StockBinAllocation::getQty).reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<StockBinAllocationResponse> lines = allocations.stream()
+            .filter(a -> a.getQty().signum() > 0)
+            .map(a -> new StockBinAllocationResponse(
+                a.getBin().getId(), a.getBin().getCode(), a.getBin().getName(), a.getBin().getRack().getName(), a.getQty()))
+            .toList();
+        return new StockBalanceBinBreakdownResponse(balanceId, balance.getQtyOnHand(), balance.getQtyOnHand().subtract(allocated), lines);
     }
 
     public Page<StockBalanceResponse> findBalancePage(Long productId, Long locationId, Pageable pageable) {

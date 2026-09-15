@@ -19,6 +19,19 @@ public interface StockBinAllocationRepository extends JpaRepository<StockBinAllo
 
     Optional<StockBinAllocation> findByStockBalanceIdAndBinId(Long stockBalanceId, Long binId);
 
+    /** A product's total quantity allocated to one specific bin, summed across every {@link
+     *  com.cms.inventory.stock.model.StockBalance} row (variant/batch) that bin holds any of --
+     *  used by {@code CycleCountService.addLine} for a bin-scoped count line's system snapshot,
+     *  the same way {@code StockBalanceRepository.sumQtyForProductAndLocation} works for a
+     *  whole-location line. Returns {@code null} (not zero) if the bin holds none of this
+     *  product. */
+    @Query("""
+        SELECT SUM(a.qty)
+        FROM StockBinAllocation a
+        WHERE a.bin.id = :binId AND a.stockBalance.product.id = :productId
+        """)
+    BigDecimal sumQtyForProductAndBin(@Param("productId") Long productId, @Param("binId") Long binId);
+
     /**
      * Atomic upsert against the {@code (stock_balance_id, bin_id)} unique constraint — adds the
      * given delta to whatever is already there, or creates the row starting from it. Never call

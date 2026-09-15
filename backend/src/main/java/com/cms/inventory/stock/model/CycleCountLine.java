@@ -41,6 +41,13 @@ public class CycleCountLine {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    /** Optional — pins this line's count to one specific bin instead of the whole location. Null
+     *  (the default) counts the product's entire location-wide balance, unchanged from before this
+     *  field existed. See {@code CycleCountService.addLine}/{@code approveLine}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bin_id")
+    private InventoryBin bin;
+
     @Column(name = "system_qty_snapshot", nullable = false, precision = 14, scale = 3)
     private BigDecimal systemQtySnapshot;
 
@@ -83,6 +90,9 @@ public class CycleCountLine {
 
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
+
+    public InventoryBin getBin() { return bin; }
+    public void setBin(InventoryBin bin) { this.bin = bin; }
 
     public BigDecimal getSystemQtySnapshot() { return systemQtySnapshot; }
     public void setSystemQtySnapshot(BigDecimal systemQtySnapshot) { this.systemQtySnapshot = systemQtySnapshot; }

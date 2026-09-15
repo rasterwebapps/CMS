@@ -21,6 +21,9 @@ export interface CycleCountCreateRequest {
 
 export interface CycleCountAddLineRequest {
   productId: number;
+  /** Optional — pins this line's count to one specific bin within the count's location instead
+   *  of the whole location. */
+  binId?: number;
   notes?: string;
 }
 
@@ -44,6 +47,11 @@ export interface CycleCountLine {
   productCode: string;
   productName: string;
   uomCode: string | null;
+  /** Set when this line is pinned to one specific bin rather than counting the whole location —
+   *  shown even while DRAFT, since the counter needs to know which bin to physically count. */
+  binId: number | null;
+  binCode: string | null;
+  binName: string | null;
   systemQtySnapshot: number | null;
   countedQty: number | null;
   varianceQty: number | null;

@@ -67,6 +67,14 @@
               <option [ngValue]="p.id">{{ p.productName }} ({{ p.productCode }})</option>
             }
           </select>
+          @if (bins().length > 0) {
+            <select class="field-select cc-add-select" [ngModel]="addBinId()" (ngModelChange)="addBinId.set($event)" aria-label="Optionally scope the count to one bin">
+              <option [ngValue]="null">Whole location</option>
+              @for (b of bins(); track b.id) {
+                <option [ngValue]="b.id">{{ b.rackName }} / {{ b.name }} ({{ b.code }})</option>
+              }
+            </select>
+          }
           <button class="btn-secondary" [disabled]="addProductId() == null || busy()" (click)="addProduct()">Add to Sheet</button>
         </div>
       </div>
@@ -99,6 +107,9 @@
                 <td>
                   <div class="cc-product-name">{{ line.productName }}</div>
                   <div class="cc-product-code">{{ line.productCode }}</div>
+                  @if (line.binName) {
+                    <div class="cc-product-bin">Bin: {{ line.binName }} ({{ line.binCode }})</div>
+                  }
                 </td>
                 <td>{{ line.uomCode || '—' }}</td>
 

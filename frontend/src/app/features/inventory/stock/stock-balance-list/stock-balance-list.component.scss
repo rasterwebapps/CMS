@@ -28,3 +28,55 @@
   margin-left: 8px;
   vertical-align: middle;
 }
+
+// ── Bin breakdown (expand row) ──────────────────────────────────────────────
+// Row/detail-row mechanics (.cms-table__row--expanded, .cms-table__detail-row, .cms-expand-toggle,
+// the cell-expanded padding/border reset) live in the shared block in styles.scss — this is only
+// the detail panel's own content styling.
+.bal-bin-detail {
+  margin: 16px;
+  padding: 16px;
+  background: var(--cms-bg-muted);
+  border: 1px solid rgba(var(--cms-primary-rgb), .5);
+  border-radius: 8px;
+
+  &__loading,
+  &__empty {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--cms-text-secondary);
+  }
+
+  &__empty {
+    font-style: italic;
+  }
+}
+
+.bal-bin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+
+  th, td {
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  th {
+    font-weight: 700;
+    color: var(--cms-text-secondary);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  &__unallocated td {
+    color: var(--cms-text-secondary);
+    font-style: italic;
+  }
+}

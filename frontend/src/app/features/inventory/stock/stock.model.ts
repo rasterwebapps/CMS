@@ -30,6 +30,21 @@ export interface StockBalance {
   lastUpdated: string;
 }
 
+export interface StockBinAllocation {
+  binId: number;
+  binCode: string;
+  binName: string;
+  rackName: string;
+  qty: number;
+}
+
+export interface StockBalanceBinBreakdown {
+  balanceId: number;
+  qtyOnHand: number;
+  unallocatedQty: number;
+  allocations: StockBinAllocation[];
+}
+
 export type StockTxnType = 'RECEIPT' | 'ADJUSTMENT' | 'DISPOSAL';
 export type AdjustmentDirection = 'INCREASE' | 'DECREASE';
 
@@ -45,6 +60,8 @@ export interface StockMovementRequest {
   quantity: number;
   unitCost?: number;
   notes?: string;
+  /** Optional — the specific bin within locationId this movement's leg allocates against. */
+  binId?: number;
 }
 
 export interface StockMovementResponse {

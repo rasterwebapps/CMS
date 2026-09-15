@@ -34,7 +34,7 @@
 
   <div class="content-card mlp-table-card">
     <div class="table-wrapper">
-    <table mat-table [dataSource]="dataSource" class="bal-table">
+    <table mat-table [dataSource]="dataSource" multiTemplateDataRows class="bal-table">
       <ng-container matColumnDef="productCode">
         <th mat-header-cell *matHeaderCellDef>Code</th>
         <td mat-cell *matCellDef="let row">{{ row.productCode }}</td>
@@ -85,8 +85,66 @@
           }
         </td>
       </ng-container>
+      <ng-container matColumnDef="expand">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">
+          <button type="button" class="cms-expand-toggle" [class.cms-expand-toggle--open]="isExpanded(row)"
+            [attr.aria-label]="isExpanded(row) ? 'Hide bin breakdown' : 'View bin breakdown'"
+            [title]="isExpanded(row) ? 'Hide bin breakdown' : 'View bin breakdown'"
+            (click)="toggleRow(row)">
+            <span class="material-symbols-rounded">expand_more</span>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="expandedDetail">
+        <td mat-cell *matCellDef="let row" [attr.colspan]="displayedColumns.length" class="cell-expanded">
+          @if (isExpanded(row)) {
+            <div class="bal-bin-detail">
+              @if (loadingBinBreakdown() === row.id) {
+                <p class="bal-bin-detail__loading">Loading bin breakdown…</p>
+              } @else if (binBreakdowns()[row.id]; as breakdown) {
+                @if (breakdown.allocations.length === 0) {
+                  <p class="bal-bin-detail__empty">No stock in this balance has ever been allocated to a bin — it's all "unbinned".</p>
+                } @else {
+                  <table class="bal-bin-table">
+                    <thead>
+                      <tr>
+                        <th>Rack</th>
+                        <th>Bin</th>
+                        <th class="cell-align-right">Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (a of breakdown.allocations; track a.binId) {
+                        <tr>
+                          <td>{{ a.rackName }}</td>
+                          <td>{{ a.binName }} ({{ a.binCode }})</td>
+                          <td class="cell-align-right">{{ a.qty }}</td>
+                        </tr>
+                      }
+                      @if (breakdown.unallocatedQty > 0) {
+                        <tr class="bal-bin-table__unallocated">
+                          <td colspan="2">Unallocated (no bin recorded)</td>
+                          <td class="cell-align-right">{{ breakdown.unallocatedQty }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              }
+            </div>
+          }
+        </td>
+      </ng-container>
+
       <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+          class="cms-table__row"
+          [class.cms-table__row--expanded]="isExpanded(row)"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['expandedDetail'];"
+          class="cms-table__detail-row"
+          [class.cms-table__detail-row--collapsed]="!isExpanded(row)"></tr>
       <tr class="mat-row" *matNoDataRow>
         <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
           <cms-empty-state

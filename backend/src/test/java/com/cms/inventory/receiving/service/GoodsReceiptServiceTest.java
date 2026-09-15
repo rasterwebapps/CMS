@@ -37,6 +37,7 @@ import com.cms.inventory.receiving.repository.GoodsReceiptLineRepository;
 import com.cms.inventory.receiving.repository.GoodsReceiptRepository;
 import com.cms.inventory.stock.dto.StockMovementResponse;
 import com.cms.inventory.stock.model.InventoryLocation;
+import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.service.StockMovementService;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +49,7 @@ class GoodsReceiptServiceTest {
     @Mock private PurchaseOrderService purchaseOrderService;
     @Mock private StockMovementService stockMovementService;
     @Mock private ProductUomChainService uomChainService;
+    @Mock private InventoryBinRepository binRepository;
     private GoodsReceiptService service;
 
     private final InventoryLocation location = location(1L, "Main Store");
@@ -57,7 +59,7 @@ class GoodsReceiptServiceTest {
     @BeforeEach
     void setUp() {
         service = new GoodsReceiptService(receiptRepository, lineRepository, purchaseOrderItemRepository,
-            purchaseOrderService, stockMovementService, uomChainService);
+            purchaseOrderService, stockMovementService, uomChainService, binRepository);
     }
 
     // ── addLine — base flow ──────────────────────────────────────────────────
@@ -71,7 +73,7 @@ class GoodsReceiptServiceTest {
         when(lineRepository.sumReceivedQtyInReceiptForItem(1L, 50L)).thenReturn(BigDecimal.ZERO);
         when(lineRepository.save(any(GoodsReceiptLine.class))).thenAnswer(inv -> { GoodsReceiptLine l = inv.getArgument(0); l.setId(500L); return l; });
 
-        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("10"), null, null, null, null, null);
+        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("10"), null, null, null, null, null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.receivedQty()).isEqualByComparingTo("10");
@@ -93,7 +95,7 @@ class GoodsReceiptServiceTest {
         when(lineRepository.save(any(GoodsReceiptLine.class))).thenAnswer(inv -> { GoodsReceiptLine l = inv.getArgument(0); l.setId(500L); return l; });
 
         // Receiving 3 boxes (100 tablets each) against a line with 1000 base units still open.
-        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("3"), 3L, null, null, null, null);
+        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("3"), 3L, null, null, null, null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.receivedQty()).isEqualByComparingTo("300");
@@ -116,7 +118,7 @@ class GoodsReceiptServiceTest {
         when(lineRepository.sumReceivedQtyInReceiptForItem(1L, 50L)).thenReturn(BigDecimal.ZERO);
 
         // 1 box = 100 base units, but only 50 are open.
-        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("1"), 3L, null, null, null, null);
+        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("1"), 3L, null, null, null, null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("exceeds what's still open");
@@ -130,7 +132,7 @@ class GoodsReceiptServiceTest {
         when(receiptRepository.findById(1L)).thenReturn(Optional.of(receipt));
         when(purchaseOrderItemRepository.findById(50L)).thenReturn(Optional.of(poItem));
 
-        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("10"), null, null, null, null, null);
+        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("10"), null, null, null, null, null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("does not belong to this receipt's order");
@@ -140,7 +142,7 @@ class GoodsReceiptServiceTest {
     void shouldRejectAddingLineToNonDraftReceipt() {
         GoodsReceipt receipt = receipt(1L, GoodsReceiptStatus.CONFIRMED, order(1L, PurchaseOrderStatus.COMPLETED));
         when(receiptRepository.findById(1L)).thenReturn(Optional.of(receipt));
-        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("10"), null, null, null, null, null);
+        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("10"), null, null, null, null, null, null);
         assertThatThrownBy(() -> service.addLine(1L, req)).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -154,7 +156,7 @@ class GoodsReceiptServiceTest {
         when(lineRepository.sumReceivedQtyInReceiptForItem(1L, 50L)).thenReturn(BigDecimal.ZERO);
         when(lineRepository.save(any(GoodsReceiptLine.class))).thenAnswer(inv -> { GoodsReceiptLine l = inv.getArgument(0); l.setId(500L); return l; });
 
-        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("5"), null, null, null, null, null);
+        var req = new GoodsReceiptAddLineRequest(50L, new BigDecimal("5"), null, null, null, null, null, null);
         assertThat(service.addLine(1L, req).unitCost()).isEqualByComparingTo("12.50");
     }
 

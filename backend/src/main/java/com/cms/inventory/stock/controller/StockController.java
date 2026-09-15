@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.inventory.stock.dto.StockBalanceBinBreakdownResponse;
 import com.cms.inventory.stock.dto.StockBalanceResponse;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockMovementResponse;
@@ -51,6 +52,12 @@ public class StockController {
             @RequestParam(required = false) Long locationId,
             @PageableDefault(size = 25, sort = "lastUpdated", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(stockMovementService.findBalancePage(productId, locationId, pageable));
+    }
+
+    @GetMapping("/balances/{id}/bin-allocations")
+    @PreAuthorize("@perm.hasAny('INVENTORY_STOCK_VIEW', 'INVENTORY_STOCK_MANAGE')")
+    public ResponseEntity<StockBalanceBinBreakdownResponse> getBinAllocations(@PathVariable Long id) {
+        return ResponseEntity.ok(stockMovementService.getBinAllocations(id));
     }
 
     @PostMapping("/balances/{id}/convert-to-variant")

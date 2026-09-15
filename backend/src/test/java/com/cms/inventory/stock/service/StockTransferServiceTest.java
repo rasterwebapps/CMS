@@ -32,6 +32,7 @@ import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.model.StockTransfer;
 import com.cms.inventory.stock.model.StockTransferLine;
 import com.cms.inventory.stock.model.enums.StockTransferStatus;
+import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
 import com.cms.inventory.stock.repository.StockBalanceRepository;
 import com.cms.inventory.stock.repository.StockTransferLineRepository;
@@ -47,6 +48,7 @@ class StockTransferServiceTest {
     @Mock private StockBalanceRepository balanceRepository;
     @Mock private StockMovementService stockMovementService;
     @Mock private ProductVariantRepository variantRepository;
+    @Mock private InventoryBinRepository binRepository;
     private StockTransferService service;
 
     private final InventoryLocation source = location(1L, "Main Store");
@@ -56,7 +58,7 @@ class StockTransferServiceTest {
     @BeforeEach
     void setUp() {
         service = new StockTransferService(transferRepository, lineRepository, locationRepository, productRepository,
-            balanceRepository, stockMovementService, variantRepository);
+            balanceRepository, stockMovementService, variantRepository, binRepository);
     }
 
     @Test
@@ -75,7 +77,7 @@ class StockTransferServiceTest {
         when(lineRepository.existsByStockTransferIdAndProductIdAndVariantIsNull(1L, 10L)).thenReturn(false);
         when(lineRepository.save(any(StockTransferLine.class))).thenAnswer(inv -> { StockTransferLine l = inv.getArgument(0); l.setId(50L); return l; });
 
-        var req = new StockTransferAddLineRequest(10L, null, new BigDecimal("5"), null);
+        var req = new StockTransferAddLineRequest(10L, null, new BigDecimal("5"), null, null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.variantId()).isNull();
@@ -89,7 +91,7 @@ class StockTransferServiceTest {
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
         when(variantRepository.existsByProductIdAndIsActiveTrue(10L)).thenReturn(true);
 
-        var req = new StockTransferAddLineRequest(10L, null, new BigDecimal("5"), null);
+        var req = new StockTransferAddLineRequest(10L, null, new BigDecimal("5"), null, null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("has active variants");
@@ -102,7 +104,7 @@ class StockTransferServiceTest {
         when(productRepository.findById(10L)).thenReturn(Optional.of(product));
         when(variantRepository.findByIdAndProductId(77L, 10L)).thenReturn(Optional.empty());
 
-        var req = new StockTransferAddLineRequest(10L, 77L, new BigDecimal("5"), null);
+        var req = new StockTransferAddLineRequest(10L, 77L, new BigDecimal("5"), null, null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("does not belong to");
@@ -118,7 +120,7 @@ class StockTransferServiceTest {
         when(lineRepository.existsByStockTransferIdAndProductIdAndVariantId(1L, 10L, 77L)).thenReturn(false);
         when(lineRepository.save(any(StockTransferLine.class))).thenAnswer(inv -> { StockTransferLine l = inv.getArgument(0); l.setId(51L); return l; });
 
-        var req = new StockTransferAddLineRequest(10L, 77L, new BigDecimal("5"), null);
+        var req = new StockTransferAddLineRequest(10L, 77L, new BigDecimal("5"), null, null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.variantId()).isEqualTo(77L);
@@ -134,7 +136,7 @@ class StockTransferServiceTest {
         when(variantRepository.findByIdAndProductId(77L, 10L)).thenReturn(Optional.of(variant));
         when(lineRepository.existsByStockTransferIdAndProductIdAndVariantId(1L, 10L, 77L)).thenReturn(true);
 
-        var req = new StockTransferAddLineRequest(10L, 77L, new BigDecimal("5"), null);
+        var req = new StockTransferAddLineRequest(10L, 77L, new BigDecimal("5"), null, null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("already on the transfer");

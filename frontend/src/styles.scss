@@ -623,6 +623,80 @@ app-root {
 }
 
 // ──────────────────────────────────────────────────
+// Shared expandable mat-table row (Angular Material multiTemplateDataRows).
+// Originated as a local mechanism in commission-explorer-list.component.scss; promoted here once
+// a second screen (Stock Balance List) needed the same row/detail-row/toggle chrome, per this
+// project's "extract shared CSS the moment you'd hand-roll it twice" convention. Consumers still
+// author their own detail-panel *content* styling locally (this only covers the row mechanics) —
+// pair `.cms-expand-toggle` with a click handler, mark the data row `.cms-table__row` +
+// `[class.cms-table__row--expanded]`, and the detail `<tr>` `.cms-table__detail-row` +
+// `[class.cms-table__detail-row--collapsed]="!expanded"` with its single `<td class="cell-expanded"
+// [attr.colspan]="displayedColumns.length">`. commission-explorer-list keeps its own local
+// `.ce-*`-named copy of this same mechanism (higher-specificity scoped selectors there win over
+// these, so it's unaffected) rather than being migrated, to avoid re-verifying an unrelated screen.
+// ──────────────────────────────────────────────────
+.cms-expand-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--cms-text-secondary);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+
+  .material-symbols-rounded, mat-icon {
+    font-size: 20px;
+    transition: transform .2s ease;
+  }
+
+  &:hover { background: var(--cms-bg-muted); color: var(--cms-text-primary); }
+
+  &--open {
+    color: var(--cms-primary);
+    .material-symbols-rounded, mat-icon { transform: rotate(180deg); }
+  }
+}
+
+// See commission-explorer-list.component.scss's own copy of this rule for the full explanation —
+// a real <table> reserves at least one line-height for an empty <td> even at height:0, so display:
+// none is the only way to get a true zero-height collapsed row.
+.cms-table__detail-row--collapsed { display: none; }
+
+td.mat-mdc-cell.cell-expanded {
+  padding: 0 !important;
+  border-bottom: none;
+}
+
+// Two concentric rounded borders (expanded row + detail panel read as one unbroken shape) via
+// box-shadow rather than border, since border-collapse silently drops/misapplies border-radius on
+// <td> — see commission-explorer-list.component.scss for the full explanation.
+.cms-table__row--expanded td.mat-mdc-cell {
+  background: var(--cms-bg-muted) !important;
+  box-shadow: inset 0 1px 0 0 var(--cms-primary);
+
+  &:first-child {
+    box-shadow: inset 0 1px 0 0 var(--cms-primary), inset 1px 0 0 0 var(--cms-primary);
+    border-top-left-radius: 8px;
+  }
+
+  &:last-child {
+    box-shadow: inset 0 1px 0 0 var(--cms-primary), inset -1px 0 0 0 var(--cms-primary);
+    border-top-right-radius: 8px;
+  }
+}
+
+.cms-table__detail-row:not(.cms-table__detail-row--collapsed) td.cell-expanded {
+  box-shadow: inset 1px 0 0 0 var(--cms-primary), inset -1px 0 0 0 var(--cms-primary), inset 0 -1px 0 0 var(--cms-primary);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+// ──────────────────────────────────────────────────
 // Global Card Enhancements
 // ──────────────────────────────────────────────────
 .mat-mdc-card {

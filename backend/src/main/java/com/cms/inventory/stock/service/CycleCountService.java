@@ -24,15 +24,18 @@ import com.cms.inventory.stock.dto.CycleCountResponse;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.model.CycleCount;
 import com.cms.inventory.stock.model.CycleCountLine;
+import com.cms.inventory.stock.model.InventoryBin;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.enums.CycleCountLineStatus;
 import com.cms.inventory.stock.model.enums.CycleCountScope;
 import com.cms.inventory.stock.model.enums.CycleCountStatus;
 import com.cms.inventory.stock.repository.CycleCountLineRepository;
 import com.cms.inventory.stock.repository.CycleCountRepository;
+import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
 import com.cms.inventory.stock.repository.ProductQtyProjection;
 import com.cms.inventory.stock.repository.StockBalanceRepository;
+import com.cms.inventory.stock.repository.StockBinAllocationRepository;
 
 /**
  * Owns the Cycle Count (physical stock count / reconciliation) workflow — creating a count sheet,
@@ -51,19 +54,25 @@ public class CycleCountService {
     private final ProductRepository productRepository;
     private final StockBalanceRepository balanceRepository;
     private final StockMovementService stockMovementService;
+    private final InventoryBinRepository binRepository;
+    private final StockBinAllocationRepository binAllocationRepository;
 
     public CycleCountService(CycleCountRepository cycleCountRepository,
                               CycleCountLineRepository lineRepository,
                               InventoryLocationRepository locationRepository,
                               ProductRepository productRepository,
                               StockBalanceRepository balanceRepository,
-                              StockMovementService stockMovementService) {
+                              StockMovementService stockMovementService,
+                              InventoryBinRepository binRepository,
+                              StockBinAllocationRepository binAllocationRepository) {
         this.cycleCountRepository = cycleCountRepository;
         this.lineRepository = lineRepository;
         this.locationRepository = locationRepository;
         this.productRepository = productRepository;
         this.balanceRepository = balanceRepository;
         this.stockMovementService = stockMovementService;
+        this.binRepository = binRepository;
+        this.binAllocationRepository = binAllocationRepository;
     }
 
     @Transactional
@@ -121,10 +130,14 @@ public class CycleCountService {
         Product product = productRepository.findById(request.productId())
             .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + request.productId()));
 
-        BigDecimal systemQty = balanceRepository.sumQtyForProductAndLocation(product.getId(), count.getLocation().getId());
+        InventoryBin bin = resolveBin(request.binId(), count.getLocation());
+        BigDecimal systemQty = bin != null
+            ? binAllocationRepository.sumQtyForProductAndBin(product.getId(), bin.getId())
+            : balanceRepository.sumQtyForProductAndLocation(product.getId(), count.getLocation().getId());
         CycleCountLine line = new CycleCountLine();
         line.setCycleCount(count);
         line.setProduct(product);
+        line.setBin(bin);
         line.setSystemQtySnapshot(systemQty != null ? systemQty : BigDecimal.ZERO);
         line.setNotes(trim(request.notes()));
         return toLineResponse(lineRepository.save(line), false);
@@ -187,18 +200,19 @@ public class CycleCountService {
         }
 
         BigDecimal variance = line.getVarianceQty();
+        Long binId = line.getBin() != null ? line.getBin().getId() : null;
         StockMovementRequest movementRequest = new StockMovementRequest(
             line.getProduct().getId(), null, count.getLocation().getId(), null, null,
             "ADJUSTMENT", variance.signum() > 0 ? "INCREASE" : "DECREASE", variance.abs(), null,
-            "Cycle Count #" + count.getId() + " variance", null);
+            "Cycle Count #" + count.getId() + " variance", binId);
         try {
             var movement = stockMovementService.recordMovement(movementRequest, resolvedBy);
             line.setLedgerRefId(movement.ledgerId());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
                 "Could not post this variance automatically (" + e.getMessage() + "). This can happen when the product's "
-                    + "stock is tracked in specific batches — resolve it manually via Record Stock Movement against the "
-                    + "correct batch instead, then reject this line here.");
+                    + "stock is tracked in specific batches, or when the counted bin's own allocation can't absorb this "
+                    + "variance — resolve it manually via Record Stock Movement instead, then reject this line here.");
         }
 
         line.setStatus(CycleCountLineStatus.APPROVED);
@@ -245,6 +259,19 @@ public class CycleCountService {
             count.setUpdatedAt(Instant.now());
             cycleCountRepository.save(count);
         }
+    }
+
+    /** {@code binId} must belong to the count's own location, same as every other bin-scoped
+     *  caller (GoodsReceiptService/StockTransferService/StockMovementService) validates. */
+    private InventoryBin resolveBin(Long binId, InventoryLocation location) {
+        if (binId == null) return null;
+        InventoryBin bin = binRepository.findById(binId)
+            .orElseThrow(() -> new ResourceNotFoundException("Bin not found with id: " + binId));
+        if (!bin.getRack().getLocation().getId().equals(location.getId())) {
+            throw new IllegalArgumentException(
+                "Bin '" + bin.getName() + "' does not belong to location '" + location.getVirtualName() + "'");
+        }
+        return bin;
     }
 
     private CycleCount requireCount(Long id) {
@@ -304,9 +331,11 @@ public class CycleCountService {
 
     private CycleCountLineResponse toLineResponse(CycleCountLine line, boolean revealVariance) {
         Product product = line.getProduct();
+        InventoryBin bin = line.getBin();
         return new CycleCountLineResponse(
             line.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
+            bin != null ? bin.getId() : null, bin != null ? bin.getCode() : null, bin != null ? bin.getName() : null,
             revealVariance ? line.getSystemQtySnapshot() : null,
             line.getCountedQty(),
             revealVariance ? line.getVarianceQty() : null,

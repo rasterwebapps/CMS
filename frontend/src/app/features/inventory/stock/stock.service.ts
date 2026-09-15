@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
-import { Page, StockBalance, StockMovementRequest, StockMovementResponse, VariantConvertRequest } from './stock.model';
+import { Page, StockBalance, StockBalanceBinBreakdown, StockMovementRequest, StockMovementResponse, VariantConvertRequest } from './stock.model';
 
 @Injectable({ providedIn: 'root' })
 export class StockService {
@@ -22,5 +22,9 @@ export class StockService {
 
   convertToVariant(balanceId: number, request: VariantConvertRequest): Observable<StockMovementResponse> {
     return this.http.post<StockMovementResponse>(`${this.baseUrl}/balances/${balanceId}/convert-to-variant`, request);
+  }
+
+  getBinAllocations(balanceId: number): Observable<StockBalanceBinBreakdown> {
+    return this.http.get<StockBalanceBinBreakdown>(`${this.baseUrl}/balances/${balanceId}/bin-allocations`);
   }
 }

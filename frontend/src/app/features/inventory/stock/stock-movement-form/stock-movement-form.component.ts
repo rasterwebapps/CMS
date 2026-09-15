@@ -11,6 +11,8 @@ import { ProductVariantService } from '../../product/product-variant/product-var
 import { ProductVariant } from '../../product/product-variant/product-variant.model';
 import { InventoryLocationService } from '../../location/inventory-location.service';
 import { InventoryLocation } from '../../location/inventory-location.model';
+import { InventoryRackService } from '../../rack/inventory-rack.service';
+import { InventoryBin } from '../../rack/inventory-rack.model';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
 import { cmsFieldError } from '../../../../shared/validators/cms-validators';
@@ -34,12 +36,14 @@ export class StockMovementFormComponent implements OnInit {
   private readonly productService  = inject(ProductService);
   private readonly variantService  = inject(ProductVariantService);
   private readonly locationService = inject(InventoryLocationService);
+  private readonly rackService     = inject(InventoryRackService);
   private readonly toast           = inject(ToastService);
 
   protected readonly saving    = signal(false);
   protected readonly products  = signal<Product[]>([]);
   protected readonly locations = signal<InventoryLocation[]>([]);
   protected readonly variants  = signal<ProductVariant[]>([]);
+  protected readonly bins      = signal<InventoryBin[]>([]);
 
   protected readonly txnTypes: { value: StockTxnType; label: string; hint: string }[] = [
     { value: 'RECEIPT', label: 'Receipt', hint: 'New stock coming in (e.g. an opening balance, until Procurement/GRN exist)' },
@@ -51,6 +55,7 @@ export class StockMovementFormComponent implements OnInit {
     productId:       [null as number | null, [Validators.required]],
     variantId:       [null as number | null],
     locationId:      [null as number | null, [Validators.required]],
+    binId:           [null as number | null],
     txnType:         ['RECEIPT' as StockTxnType, [Validators.required]],
     direction:       ['INCREASE' as 'INCREASE' | 'DECREASE'],
     quantity:        [null as number | null, [Validators.required, Validators.min(0.001)]],
@@ -78,6 +83,13 @@ export class StockMovementFormComponent implements OnInit {
         },
       });
     });
+
+    this.form.get('locationId')?.valueChanges.subscribe((locationId: number | null) => {
+      this.form.get('binId')?.setValue(null);
+      this.bins.set([]);
+      if (!locationId) return;
+      this.rackService.getBins(undefined, locationId, true).subscribe({ next: (bins) => this.bins.set(bins) });
+    });
   }
 
   protected getErrorMessage(fieldName: string): string {
@@ -96,6 +108,7 @@ export class StockMovementFormComponent implements OnInit {
       productId: v.productId,
       variantId: v.variantId ?? undefined,
       locationId: v.locationId,
+      binId: v.binId ?? undefined,
       txnType: v.txnType,
       direction: v.txnType === 'ADJUSTMENT' ? v.direction : undefined,
       quantity: v.quantity,
