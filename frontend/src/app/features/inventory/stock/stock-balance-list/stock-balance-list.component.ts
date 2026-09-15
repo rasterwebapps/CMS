@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject, Subscription } from 'rxjs';
 import { StockService } from '../stock.service';
 import { StockBalance } from '../stock.model';
@@ -11,7 +12,9 @@ import { ProductService } from '../../product/product.service';
 import { Product } from '../../product/product.model';
 import { InventoryLocationService } from '../../location/inventory-location.service';
 import { InventoryLocation } from '../../location/inventory-location.model';
+import { ConvertToVariantDialogComponent, ConvertToVariantDialogData } from '../convert-to-variant-dialog/convert-to-variant-dialog.component';
 import { CmsEmptyStateComponent } from '../../../../shared/empty-state/empty-state.component';
+import { CmsRowActionButtonComponent } from '../../../../shared/row-action-button/row-action-button.component';
 import { ToastService } from '../../../../core/toast/toast.service';
 
 @Component({
@@ -23,7 +26,9 @@ import { ToastService } from '../../../../core/toast/toast.service';
     DecimalPipe,
     MatTableModule,
     MatPaginatorModule,
+    MatDialogModule,
     CmsEmptyStateComponent,
+    CmsRowActionButtonComponent,
   ],
   templateUrl: './stock-balance-list.component.html',
   styleUrl: './stock-balance-list.component.scss',
@@ -34,6 +39,7 @@ export class StockBalanceListComponent implements OnInit, OnDestroy {
   private readonly locationService = inject(InventoryLocationService);
   private readonly router          = inject(Router);
   private readonly toast           = inject(ToastService);
+  private readonly dialog          = inject(MatDialog);
 
   private readonly destroy$ = new Subject<void>();
   private _paginator?: MatPaginator;
@@ -52,7 +58,7 @@ export class StockBalanceListComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = ['productCode', 'productName', 'locationVirtualName', 'batchOrSerialNo', 'expiryDate', 'qtyOnHand', 'valueOnHand', 'lastUpdated'];
+  protected readonly displayedColumns = ['productCode', 'productName', 'locationVirtualName', 'batchOrSerialNo', 'expiryDate', 'qtyOnHand', 'valueOnHand', 'lastUpdated', 'actions'];
   protected readonly dataSource = new MatTableDataSource<StockBalance>([]);
   protected readonly loading = signal(false);
   protected readonly products = signal<Product[]>([]);
@@ -83,6 +89,24 @@ export class StockBalanceListComponent implements OnInit, OnDestroy {
 
   protected goToRecordMovement(): void {
     void this.router.navigate(['/inventory/stock/movements/new']);
+  }
+
+  /** A stranded balance: predates its product's first active variant, so it can no longer be
+   *  adjusted/issued/transferred through the normal stock-movement API until converted — see the
+   *  2026-09-15 "null-variant stock is stranded" decision-log entry. */
+  protected isStranded(row: StockBalance): boolean {
+    return row.variantId == null && row.productHasActiveVariants;
+  }
+
+  protected convertToVariant(row: StockBalance): void {
+    const data: ConvertToVariantDialogData = { productId: row.productId, productName: row.productName, qtyOnHand: row.qtyOnHand };
+    this.dialog.open(ConvertToVariantDialogComponent, { data, width: '420px' }).afterClosed().subscribe((variantId: number | null) => {
+      if (!variantId) return;
+      this.stockService.convertToVariant(row.id, { variantId }).subscribe({
+        next: () => { this.toast.success('Balance converted to variant'); this.loadPage(); },
+        error: (err) => this.toast.error(err?.error?.message ?? 'Failed to convert balance'),
+      });
+    });
   }
 
   private loadPage(): void {

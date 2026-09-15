@@ -2145,4 +2145,118 @@ frontend `stock.model.ts`, `stock-movement-form.component.ts/html`,
 `stock-transfer-detail.component.ts/html`, `stock-issue-request.model.ts`,
 `stock-issue-request-detail.component.ts/html`, `stock-balance-list.component.html`.
 
+## 2026-09-11 — Parked: pre-existing null-variant stock is stranded once a product gains a variant (found while reviewing OC-225)
+
+**Status: parked, not designed, not built.** Raised as a question during review of the OC-225
+variant-wiring work; captured here so it isn't rediscovered as a surprise later. No code changed
+for this entry.
+
+**The gap.** OC-225 made `StockMovementService.resolveVariant` throw whenever a product has any
+active `ProductVariant` and a movement doesn't name one. That gate has no awareness of balances
+that predate the variant: if a product carried `StockBalance`/`StockLedger`/`StockBatch` rows with
+`variant_id = NULL` before a variant was added, those rows are never merged, migrated, or reassigned
+— V497's key is `UNIQUE NULLS NOT DISTINCT (product, variant, location, batch)`, so the null row and
+the first variant-bearing row are simply distinct keys sitting side by side. The null row keeps
+showing up in `GET /balances/page` (no variant filter there) and still gets summed into Cycle
+Count/reorder aggregates (which `GROUP BY` product only), but it can never again be issued,
+transferred, adjusted, or disposed through any of the five `recordMovement`-based flows, since none
+of them can submit a movement with `variantId = null` for that product anymore. In short: real
+on-hand quantity becomes permanently unreachable through the normal stock-movement API the moment a
+variant is added, with no error or warning at the time the variant is created.
+
+**The follow-on question this surfaces.** If a UI is later added to let someone convert that
+stranded null-variant balance onto a chosen variant (the obvious fix), a second question follows
+for whenever a Selling Point/POS module exists (see **Explicitly out of scope** in
+`GAP-14`/Decision 3 above — no such module exists yet): a sale made *before* the conversion would
+have recorded `variant_id = null` on its own line, and a return of that sale needs to land back in
+a bucket that matches what was actually decremented. Both existing return flows in this codebase
+(`SupplierReturnService`, `StockIssueRequestService.returnLine`) establish the pattern of always
+crediting a return back to whatever variant the *original outbound line* recorded — never
+re-deriving it fresh at return time. Applying that same pattern here means the null-variant balance
+row must be preserved (as a permanent "Unassigned/Legacy" bucket, converted only for remaining
+uncommitted quantity) rather than fully relabeled/deleted in place — otherwise a later return has
+no correct row to credit into and would either fail or silently recreate the exact orphaned-stock
+problem it was meant to fix.
+
+**Recommendation if/when this is picked up:** (1) a "convert to variant" action should update only
+the current remaining null-variant quantity, never delete/relabel the null-variant balance row
+itself, so it persists as an addressable "Unassigned" bucket; (2) any future Selling Point/POS
+`SaleItem` should store its own nullable `variant_id` at time of sale (mirroring
+`StockIssueRequestItem.variant`), and its return flow should read that stored value back rather
+than resolving against the product's current variant state. Neither is designed in detail — this
+needs its own specialist round before implementation.
+
+**Impact:** none — documentation only, no code/schema/migration changes.
+
+## 2026-09-15 — Convert-to-variant fix for stranded null-variant stock (OC-225 follow-on)
+
+**Prompted by:** a full specialist round (Product Owner/Backend Architect/QA/DBA/Frontend
+Architect) picking up the "parked" gap above. Every question resolved to its recommended option:
+ad-hoc trigger only (no blocking prompt at variant-activation time), a real audit-logged stock
+movement rather than an in-place row UPDATE, full-row-per-action conversion (splitting across
+several variants stays possible by repeating the action against the still-nonzero remainder), and
+inline surfacing on the existing Stock Balance list rather than a new screen. The Selling
+Point/POS half of the earlier recommendation stays explicitly out of scope — no such module exists
+yet.
+
+**Why a dedicated method, not `recordMovement`:** `StockMovementService.resolveVariant` is exactly
+what created this gap — it throws whenever a product has any active variant and a movement doesn't
+name one, which is precisely what posting the null-variant *decrease* leg of a conversion would
+require. `convertToVariant` is therefore a separate service method that intentionally operates on
+the one balance row that gate is meant to protect, rather than going through the public
+`/movements` endpoint.
+
+**Mechanics:** `StockMovementService.convertToVariant(balanceId, VariantConvertRequest, performedBy)`
+loads the balance directly by id (not the composite product/location/batch lookup), rejects a
+balance that already has a variant, rejects a zero-quantity row (nothing to convert), resolves the
+target variant (must belong to the same product and be active), then posts two ordinary
+`ADJUSTMENT` `StockLedger` rows in the same transaction — a decrease on the null-variant bucket, an
+increase on the variant bucket, both carrying a system-authored note and the acting user — followed
+by two `upsertBalance` calls. Reuses `ADJUSTMENT` rather than adding a new `StockTxnType` (which
+would need a migration to widen `stock_ledger`'s `chk_stock_ledger_txn_type` check constraint) —
+matches how `RETURN`/`TRANSFER` were folded into the existing vocabulary rather than growing it,
+per this program's own precedent. If the stranded row carries a batch, the batch moves too —
+reuses `resolveBatch(product, variant, ...)`, the same per-variant batch resolution every ordinary
+movement already goes through (batches have been scoped by `(product, variant, batchOrSerialNo)`
+since V497). The null-variant balance/batch rows are never deleted, just left at zero — a
+permanent, addressable "Unassigned" bucket, exactly as the parked entry recommended.
+
+**Surfacing:** `StockBalanceResponse` gained a `productHasActiveVariants` boolean (computed via
+the existing `variantRepository.existsByProductIdAndIsActiveTrue` check already used by
+`resolveVariant`) so the frontend can flag a `variantId == null` row as genuinely stranded, rather
+than a normal balance for a product that has never had variants — the two cases are otherwise
+indistinguishable from the DTO alone. `StockBalanceListComponent` shows an "Unassigned" badge
+(`cms-badge--soft-amber`, a real, already-defined class per the badge-audit gate) and, only on a
+stranded row, a `cms-row-action-btn` "Convert" action opening `ConvertToVariantDialogComponent` — a
+small `MatDialog` picking one active variant from `ProductVariantService.findByProduct`, styled
+after `ConfirmDialogComponent`'s own inline-template shape. No new screen/route.
+
+**Permission:** `INVENTORY_STOCK_CONVERT_VARIANT` (V504) — a dedicated permission per the
+operation-wise permission mapping hard gate, not a reuse of `INVENTORY_STOCK_MANAGE`, defaulted to
+the same roles (DEV_ADMIN/SUPPORT_ADMIN/ADMIN/COLLEGE_ADMIN) with the standard DEV_ADMIN/
+SUPPORT_ADMIN catch-all sync block. Applied directly against the local dev DB (still at V503) via
+`psql` to confirm it inserts cleanly and idempotently — DEV_ADMIN/SUPPORT_ADMIN picked it up,
+ADMIN/COLLEGE_ADMIN don't exist as seeded roles in this dev instance (matches V427's own outcome);
+re-running is a safe no-op once Flyway itself applies it, since the guard clauses are unchanged
+from the established pattern.
+
+**Verified:** 8 new `StockMovementServiceTest` cases (happy path incl. batch-carryover, already-
+has-a-variant, wrong-product variant, inactive variant, zero-quantity, balance-not-found) plus the
+full existing suite, green. `npx tsc -p tsconfig.app.json --noEmit` and `ng build --configuration
+production` both clean. **Not verified by a full app boot** — an unrelated, pre-existing compile
+break in `TimetableGlobalAutoScheduleService.java` (missing `com.cms.dto.SaturdaySessionNotice`,
+part of in-flight OC-226 work, not this item) currently blocks `bootRun`/the full test suite
+repo-wide; the migration itself was confirmed by applying it directly to the real local dev
+Postgres instead (see above). Manual click-through of the Stock Balance screen (light/dark, the
+new badge/action, the convert dialog) is still outstanding per this program's "no self-run visual
+verification" convention — pending once the unrelated build break is cleared.
+
+**Impact:** `V504__seed_inventory_stock_convert_variant_permission.sql`; `VariantConvertRequest.java`
+(new); `StockBalanceResponse.java` (new `productHasActiveVariants` field); `StockMovementService.java`
+(`convertToVariant`, `toResponse` enrichment); `StockController.java` (new `POST
+/inventory/stock/balances/{id}/convert-to-variant`); new `StockMovementServiceTest` cases;
+frontend `stock.model.ts` (`productHasActiveVariants`, `VariantConvertRequest`), `stock.service.ts`
+(`convertToVariant`), new `convert-to-variant-dialog/` (`ConvertToVariantDialogComponent`),
+`stock-balance-list.component.ts/html/scss` (badge, action column, dialog wiring).
+
 *Next entry goes here — do not insert above this line.*

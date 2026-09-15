@@ -12,6 +12,10 @@ public record StockBalanceResponse(
     Long variantId,
     String variantCode,
     String variantName,
+    /** True once the product has any active {@code ProductVariant} — lets the UI flag a
+     *  {@code variantId == null} row as a stranded/unassigned balance needing conversion,
+     *  rather than a normal non-variant product's balance. */
+    boolean productHasActiveVariants,
     Long locationId,
     String locationVirtualName,
     Long batchId,

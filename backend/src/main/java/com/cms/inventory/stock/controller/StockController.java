@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.inventory.stock.dto.StockBalanceResponse;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockMovementResponse;
+import com.cms.inventory.stock.dto.VariantConvertRequest;
 import com.cms.inventory.stock.service.StockMovementService;
 
 import jakarta.validation.Valid;
@@ -49,5 +51,15 @@ public class StockController {
             @RequestParam(required = false) Long locationId,
             @PageableDefault(size = 25, sort = "lastUpdated", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(stockMovementService.findBalancePage(productId, locationId, pageable));
+    }
+
+    @PostMapping("/balances/{id}/convert-to-variant")
+    @PreAuthorize("@perm.has('INVENTORY_STOCK_CONVERT_VARIANT')")
+    public ResponseEntity<StockMovementResponse> convertToVariant(
+            @PathVariable Long id,
+            @Valid @RequestBody VariantConvertRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String performedBy = jwt != null ? jwt.getClaimAsString("preferred_username") : "system";
+        return ResponseEntity.ok(stockMovementService.convertToVariant(id, request, performedBy));
     }
 }

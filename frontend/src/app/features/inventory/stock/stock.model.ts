@@ -16,6 +16,10 @@ export interface StockBalance {
   variantId: number | null;
   variantCode: string | null;
   variantName: string | null;
+  /** True once the product has any active variant — flags a null variantId row as a stranded
+   *  ("Unassigned") balance that predates the product's first variant, rather than a normal
+   *  balance for a product that has never had variants. */
+  productHasActiveVariants: boolean;
   locationId: number;
   locationVirtualName: string;
   batchId: number | null;
@@ -54,4 +58,8 @@ export interface StockMovementResponse {
   newQtyOnHand: number;
   newValueOnHand: number;
   txnDate: string;
+}
+
+export interface VariantConvertRequest {
+  variantId: number;
 }

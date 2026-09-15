@@ -23,6 +23,7 @@ import com.cms.inventory.catalog.repository.ProductVariantRepository;
 import com.cms.inventory.stock.dto.StockBalanceResponse;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockMovementResponse;
+import com.cms.inventory.stock.dto.VariantConvertRequest;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.model.StockBatch;
@@ -259,9 +260,89 @@ public class StockMovementService {
         ProductVariant variant = b.getVariant();
         return new StockBalanceResponse(b.getId(), product.getId(), product.getProductCode(), product.getProductName(),
             variant == null ? null : variant.getId(), variant == null ? null : variant.getVariantCode(), variant == null ? null : variant.getVariantName(),
+            variant == null && variantRepository.existsByProductIdAndIsActiveTrue(product.getId()),
             location.getId(), location.getVirtualName(),
             batch == null ? null : batch.getId(), batch == null ? null : batch.getBatchOrSerialNo(), batch == null ? null : batch.getExpiryDate(),
             b.getQtyOnHand(), b.getValueOnHand(), b.getLastUpdated());
+    }
+
+    /**
+     * Converts a stranded null-variant balance row onto a chosen active variant of the same
+     * product — the fix for the gap {@code resolveVariant} itself created: once a product has any
+     * active variant, no movement can ever again target {@code variantId = null} for it, so a
+     * pre-existing null-variant balance can never be issued/transferred/adjusted again through the
+     * normal API. Posts as two real, audit-logged {@code ADJUSTMENT} ledger entries (a decrease on
+     * the null-variant bucket, an increase on the variant bucket) rather than an in-place UPDATE,
+     * preserving the append-only-ledger invariant {@link StockBalance}'s own javadoc documents.
+     * Always moves the row's *entire* remaining quantity/value in one call — see the 2026-09-15
+     * specialist-round decision recorded in the DECISION_LOG "null-variant stock" entry. The
+     * null-variant row is never deleted; it's left at zero as a permanent, addressable bucket in
+     * case any further pre-existing history is later found to belong to it.
+     */
+    @Transactional
+    public StockMovementResponse convertToVariant(Long balanceId, VariantConvertRequest request, String performedBy) {
+        StockBalance balance = balanceRepository.findById(balanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Stock balance not found with id: " + balanceId));
+        if (balance.getVariant() != null) {
+            throw new IllegalArgumentException("This balance already belongs to a variant");
+        }
+        BigDecimal qty = balance.getQtyOnHand();
+        if (qty.signum() == 0) {
+            throw new IllegalArgumentException("This balance has no remaining quantity to convert");
+        }
+        Product product = balance.getProduct();
+        ProductVariant variant = variantRepository.findByIdAndProductId(request.variantId(), product.getId())
+            .orElseThrow(() -> new IllegalArgumentException(
+                "Variant " + request.variantId() + " does not belong to '" + product.getProductName() + "'"));
+        if (!Boolean.TRUE.equals(variant.getIsActive())) {
+            throw new IllegalArgumentException("Variant '" + variant.getVariantName() + "' is not active");
+        }
+        BigDecimal value = balance.getValueOnHand();
+        BigDecimal unitCost = value.divide(qty, 2, RoundingMode.HALF_UP);
+
+        InventoryLocation location = balance.getLocation();
+        StockBatch sourceBatch = balance.getBatch();
+        Long sourceBatchId = sourceBatch == null ? null : sourceBatch.getId();
+        // Reuses the same per-variant batch resolution every ordinary movement already goes
+        // through — StockBatch has been scoped by (product, variant, batchOrSerialNo) since V497.
+        StockBatch targetBatch = sourceBatch == null ? null
+            : resolveBatch(product, variant, sourceBatch.getBatchOrSerialNo(), sourceBatch.getExpiryDate());
+        Long targetBatchId = targetBatch == null ? null : targetBatch.getId();
+
+        Instant now = Instant.now();
+        String note = "System: converted from unassigned to variant '" + variant.getVariantName() + "' (" + variant.getVariantCode() + ")";
+
+        StockLedger outLedger = new StockLedger();
+        outLedger.setProduct(product);
+        outLedger.setVariant(null);
+        outLedger.setLocation(location);
+        outLedger.setBatch(sourceBatch);
+        outLedger.setTxnType(StockTxnType.ADJUSTMENT);
+        outLedger.setQtyDelta(qty.negate());
+        outLedger.setUnitCost(unitCost);
+        outLedger.setNotes(note);
+        outLedger.setPerformedBy(performedBy);
+        outLedger.setTxnDate(now);
+        ledgerRepository.save(outLedger);
+
+        StockLedger inLedger = new StockLedger();
+        inLedger.setProduct(product);
+        inLedger.setVariant(variant);
+        inLedger.setLocation(location);
+        inLedger.setBatch(targetBatch);
+        inLedger.setTxnType(StockTxnType.ADJUSTMENT);
+        inLedger.setQtyDelta(qty);
+        inLedger.setUnitCost(unitCost);
+        inLedger.setNotes(note);
+        inLedger.setPerformedBy(performedBy);
+        inLedger.setTxnDate(now);
+        inLedger = ledgerRepository.save(inLedger);
+
+        balanceRepository.upsertBalance(product.getId(), null, location.getId(), sourceBatchId, qty.negate(), value.negate());
+        balanceRepository.upsertBalance(product.getId(), variant.getId(), location.getId(), targetBatchId, qty, value);
+
+        return new StockMovementResponse(inLedger.getId(), product.getId(), variant.getId(), location.getId(), targetBatchId,
+            StockTxnType.ADJUSTMENT.name(), qty, qty, value, now);
     }
 
     private static String trim(String s) {

@@ -27,6 +27,7 @@ import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.catalog.repository.ProductUomChainVersionRepository;
 import com.cms.inventory.catalog.repository.ProductVariantRepository;
 import com.cms.inventory.stock.dto.StockMovementRequest;
+import com.cms.inventory.stock.dto.VariantConvertRequest;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.model.StockBatch;
@@ -339,6 +340,96 @@ class StockMovementServiceTest {
         assertThatThrownBy(() -> service.recordMovement(req, "clerk")).isInstanceOf(ResourceNotFoundException.class);
     }
 
+    // ── convertToVariant (2026-09-15 "null-variant stock is stranded" fix) ────────────────────
+
+    @Test
+    void shouldConvertStrandedBalanceOntoChosenVariant() {
+        StockBalance stranded = strandedBalance(500L, new BigDecimal("30"), new BigDecimal("90.00"));
+        ProductVariant variant = variant(55L, StockTrackingMode.NONE);
+        when(balanceRepository.findById(500L)).thenReturn(Optional.of(stranded));
+        when(variantRepository.findByIdAndProductId(55L, 10L)).thenReturn(Optional.of(variant));
+
+        var res = service.convertToVariant(500L, new VariantConvertRequest(55L), "clerk");
+
+        assertThat(res.variantId()).isEqualTo(55L);
+        assertThat(res.qtyDelta()).isEqualByComparingTo("30");
+        verify(balanceRepository).upsertBalance(10L, null, 1L, null, new BigDecimal("-30"), new BigDecimal("-90.00"));
+        verify(balanceRepository).upsertBalance(10L, 55L, 1L, null, new BigDecimal("30"), new BigDecimal("90.00"));
+    }
+
+    @Test
+    void shouldMoveTheBatchAlongWithAConvertedBalance() {
+        StockBatch sourceBatch = new StockBatch();
+        sourceBatch.setId(700L);
+        sourceBatch.setBatchOrSerialNo("LOT-9");
+        StockBalance stranded = strandedBalance(501L, new BigDecimal("10"), new BigDecimal("20.00"));
+        stranded.setBatch(sourceBatch);
+        ProductVariant variant = variant(55L, StockTrackingMode.NONE);
+        when(balanceRepository.findById(501L)).thenReturn(Optional.of(stranded));
+        when(variantRepository.findByIdAndProductId(55L, 10L)).thenReturn(Optional.of(variant));
+        when(batchRepository.findByProductAndVariantAndBatchOrSerialNo(10L, 55L, "LOT-9")).thenReturn(Optional.empty());
+        when(uomChainVersionRepository.findByProductIdAndIsActiveTrue(10L)).thenReturn(Optional.empty());
+        when(batchRepository.save(any(StockBatch.class))).thenAnswer(inv -> { StockBatch b = inv.getArgument(0); b.setId(701L); return b; });
+
+        service.convertToVariant(501L, new VariantConvertRequest(55L), "clerk");
+
+        verify(balanceRepository).upsertBalance(10L, null, 1L, 700L, new BigDecimal("-10"), new BigDecimal("-20.00"));
+        verify(balanceRepository).upsertBalance(10L, 55L, 1L, 701L, new BigDecimal("10"), new BigDecimal("20.00"));
+    }
+
+    @Test
+    void shouldRejectConvertWhenBalanceAlreadyHasAVariant() {
+        StockBalance withVariant = strandedBalance(502L, new BigDecimal("5"), new BigDecimal("5.00"));
+        withVariant.setVariant(variant(60L, StockTrackingMode.NONE));
+        when(balanceRepository.findById(502L)).thenReturn(Optional.of(withVariant));
+
+        assertThatThrownBy(() -> service.convertToVariant(502L, new VariantConvertRequest(55L), "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("already belongs to a variant");
+    }
+
+    @Test
+    void shouldRejectConvertToAVariantBelongingToADifferentProduct() {
+        StockBalance stranded = strandedBalance(503L, new BigDecimal("5"), new BigDecimal("5.00"));
+        when(balanceRepository.findById(503L)).thenReturn(Optional.of(stranded));
+        when(variantRepository.findByIdAndProductId(99L, 10L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.convertToVariant(503L, new VariantConvertRequest(99L), "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("does not belong to");
+    }
+
+    @Test
+    void shouldRejectConvertToAnInactiveVariant() {
+        StockBalance stranded = strandedBalance(504L, new BigDecimal("5"), new BigDecimal("5.00"));
+        ProductVariant inactive = variant(61L, StockTrackingMode.NONE);
+        inactive.setIsActive(false);
+        when(balanceRepository.findById(504L)).thenReturn(Optional.of(stranded));
+        when(variantRepository.findByIdAndProductId(61L, 10L)).thenReturn(Optional.of(inactive));
+
+        assertThatThrownBy(() -> service.convertToVariant(504L, new VariantConvertRequest(61L), "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("is not active");
+    }
+
+    @Test
+    void shouldRejectConvertWhenBalanceHasZeroQuantity() {
+        StockBalance stranded = strandedBalance(505L, BigDecimal.ZERO, BigDecimal.ZERO);
+        when(balanceRepository.findById(505L)).thenReturn(Optional.of(stranded));
+
+        assertThatThrownBy(() -> service.convertToVariant(505L, new VariantConvertRequest(55L), "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("no remaining quantity");
+        verify(variantRepository, never()).findByIdAndProductId(any(), any());
+    }
+
+    @Test
+    void shouldThrowWhenConvertingABalanceThatDoesNotExist() {
+        when(balanceRepository.findById(999L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.convertToVariant(999L, new VariantConvertRequest(55L), "clerk"))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
     // ── fixtures ─────────────────────────────────────────────────────────────
 
     private Product product(Long id) {
@@ -369,6 +460,14 @@ class StockMovementServiceTest {
         StockBalance b = new StockBalance();
         b.setQtyOnHand(qty);
         b.setValueOnHand(value);
+        return b;
+    }
+
+    private StockBalance strandedBalance(Long id, BigDecimal qty, BigDecimal value) {
+        StockBalance b = balance(qty, value);
+        b.setId(id);
+        b.setProduct(product);
+        b.setLocation(location);
         return b;
     }
 }
