@@ -98,9 +98,10 @@ export class StockBalanceListComponent implements OnInit, OnDestroy {
 
   /** A stranded balance: predates its product's first active variant, so it can no longer be
    *  adjusted/issued/transferred through the normal stock-movement API until converted — see the
-   *  2026-09-15 "null-variant stock is stranded" decision-log entry. */
+   *  2026-09-15 "null-variant stock is stranded" decision-log entry. Zero-qty rows are excluded:
+   *  the backend always rejects converting an empty balance, so there's nothing left to action. */
   protected isStranded(row: StockBalance): boolean {
-    return row.variantId == null && row.productHasActiveVariants;
+    return row.variantId == null && row.productHasActiveVariants && row.qtyOnHand > 0;
   }
 
   protected isExpanded(row: StockBalance): boolean {
