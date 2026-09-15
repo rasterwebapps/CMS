@@ -15,6 +15,7 @@ import com.cms.model.Examination;
 import com.cms.model.Student;
 import com.cms.model.enums.ExamOutcome;
 import com.cms.model.enums.ExamResultStatus;
+import com.cms.repository.AppUserRepository;
 import com.cms.repository.ExamResultRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.StudentRepository;
@@ -26,13 +27,26 @@ public class ExamResultService {
     private final ExamResultRepository examResultRepository;
     private final ExaminationRepository examinationRepository;
     private final StudentRepository studentRepository;
+    private final AppUserRepository appUserRepository;
 
     public ExamResultService(ExamResultRepository examResultRepository,
                               ExaminationRepository examinationRepository,
-                              StudentRepository studentRepository) {
+                              StudentRepository studentRepository,
+                              AppUserRepository appUserRepository) {
         this.examResultRepository = examResultRepository;
         this.examinationRepository = examinationRepository;
         this.studentRepository = studentRepository;
+        this.appUserRepository = appUserRepository;
+    }
+
+    /** Current authenticated user's own exam results (student self-service portal).
+     *  Same self-scoping pattern as {@link AttendanceService#findMyAttendance}. */
+    public List<ExamResultResponse> findMyResults(String keycloakUsername) {
+        return appUserRepository.findByKeycloakUsername(keycloakUsername)
+            .map(user -> user.getLinkedStudent() != null
+                ? findByStudentId(user.getLinkedStudent().getId())
+                : List.<ExamResultResponse>of())
+            .orElse(List.of());
     }
 
     @Transactional

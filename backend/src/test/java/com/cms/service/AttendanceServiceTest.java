@@ -24,6 +24,7 @@ import com.cms.dto.AttendanceRequest;
 import com.cms.dto.AttendanceResponse;
 import com.cms.dto.BulkAttendanceRequest;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.AppUser;
 import com.cms.model.Attendance;
 import com.cms.model.Subject;
 import com.cms.model.Speciality;
@@ -32,6 +33,7 @@ import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
 import com.cms.model.enums.AttendanceType;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.AppUserRepository;
 import com.cms.repository.AttendanceRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.SubjectRepository;
@@ -52,6 +54,8 @@ class AttendanceServiceTest {
     private AttendanceThresholdService thresholdService;
     @Mock
     private ClassScheduleOccurrenceService classScheduleOccurrenceService;
+    @Mock
+    private AppUserRepository appUserRepository;
 
     private AttendanceService attendanceService;
 
@@ -62,7 +66,7 @@ class AttendanceServiceTest {
     @BeforeEach
     void setUp() {
         attendanceService = new AttendanceService(attendanceRepository, studentRepository, subjectRepository,
-            courseRegistrationRepository, thresholdService, classScheduleOccurrenceService);
+            courseRegistrationRepository, thresholdService, classScheduleOccurrenceService, appUserRepository);
 
         Speciality speciality = new Speciality("Computer Science", "CS", "CS Dept", null, "Dr. Smith");
         speciality.setId(1L);
@@ -162,6 +166,41 @@ class AttendanceServiceTest {
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).studentId()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldFindMyAttendanceForLinkedStudent() {
+        Attendance attendance = createAttendance(1L, testStudent, testCourse,
+            LocalDate.now(), AttendanceStatus.PRESENT, AttendanceType.THEORY);
+        AppUser appUser = new AppUser();
+        appUser.setLinkedStudent(testStudent);
+
+        when(appUserRepository.findByKeycloakUsername("stud1")).thenReturn(Optional.of(appUser));
+        when(studentRepository.existsById(1L)).thenReturn(true);
+        when(attendanceRepository.findByStudentId(1L)).thenReturn(List.of(attendance));
+
+        List<AttendanceResponse> responses = attendanceService.findMyAttendance("stud1");
+
+        assertThat(responses).hasSize(1);
+    }
+
+    @Test
+    void shouldReturnEmptyForMyAttendanceWhenNoLinkedStudent() {
+        AppUser appUser = new AppUser();
+        when(appUserRepository.findByKeycloakUsername("admin1")).thenReturn(Optional.of(appUser));
+
+        List<AttendanceResponse> responses = attendanceService.findMyAttendance("admin1");
+
+        assertThat(responses).isEmpty();
+    }
+
+    @Test
+    void shouldReturnEmptyForMyAttendanceWhenAppUserNotFound() {
+        when(appUserRepository.findByKeycloakUsername("ghost")).thenReturn(Optional.empty());
+
+        List<AttendanceResponse> responses = attendanceService.findMyAttendance("ghost");
+
+        assertThat(responses).isEmpty();
     }
 
     @Test

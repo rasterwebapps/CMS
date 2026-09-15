@@ -114,6 +114,21 @@ class ExamResultControllerTest {
     }
 
     @Test
+    void shouldFindMyResults() throws Exception {
+        ExamResultResponse response = createExamResultResponse();
+
+        when(examResultService.findMyResults(""))
+            .thenReturn(List.of(response));
+
+        mockMvc.perform(get("/exam-results/my"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].studentId").value(1));
+
+        verify(examResultService).findMyResults("");
+    }
+
+    @Test
     void shouldFindById() throws Exception {
         ExamResultResponse response = createExamResultResponse();
 

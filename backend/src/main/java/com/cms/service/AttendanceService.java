@@ -22,6 +22,7 @@ import com.cms.model.Subject;
 import com.cms.model.Student;
 import com.cms.model.enums.AttendanceStatus;
 import com.cms.model.enums.AttendanceType;
+import com.cms.repository.AppUserRepository;
 import com.cms.repository.AttendanceRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.SubjectRepository;
@@ -37,19 +38,34 @@ public class AttendanceService {
     private final CourseRegistrationRepository courseRegistrationRepository;
     private final AttendanceThresholdService thresholdService;
     private final ClassScheduleOccurrenceService classScheduleOccurrenceService;
+    private final AppUserRepository appUserRepository;
 
     public AttendanceService(AttendanceRepository attendanceRepository,
                               StudentRepository studentRepository,
                               SubjectRepository subjectRepository,
                               CourseRegistrationRepository courseRegistrationRepository,
                               AttendanceThresholdService thresholdService,
-                              ClassScheduleOccurrenceService classScheduleOccurrenceService) {
+                              ClassScheduleOccurrenceService classScheduleOccurrenceService,
+                              AppUserRepository appUserRepository) {
         this.attendanceRepository = attendanceRepository;
         this.studentRepository = studentRepository;
         this.subjectRepository = subjectRepository;
         this.courseRegistrationRepository = courseRegistrationRepository;
         this.thresholdService = thresholdService;
         this.classScheduleOccurrenceService = classScheduleOccurrenceService;
+        this.appUserRepository = appUserRepository;
+    }
+
+    /** Current authenticated user's own attendance records (student self-service portal).
+     *  Resolves the caller's linked {@code Student} the same way {@code ProfileService}
+     *  and {@code LibraryIssueService#findMyIssues} do -- via the {@code app_users} FK,
+     *  never by trusting a client-supplied studentId. */
+    public List<AttendanceResponse> findMyAttendance(String keycloakUsername) {
+        return appUserRepository.findByKeycloakUsername(keycloakUsername)
+            .map(user -> user.getLinkedStudent() != null
+                ? findByStudentId(user.getLinkedStudent().getId())
+                : List.<AttendanceResponse>of())
+            .orElse(List.of());
     }
 
     /** Subjects a faculty member can mark attendance for on a specific date, resolved through

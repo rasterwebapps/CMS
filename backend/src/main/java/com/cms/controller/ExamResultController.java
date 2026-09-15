@@ -5,6 +5,8 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,16 +39,27 @@ public class ExamResultController {
     }
 
     @GetMapping("/examination/{examinationId}")
+    @PreAuthorize("@perm.hasAny('EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE')")
     public ResponseEntity<List<ExamResultResponse>> findByExaminationId(@PathVariable Long examinationId) {
         return ResponseEntity.ok(examResultService.findByExaminationId(examinationId));
     }
 
     @GetMapping("/student/{studentId}")
+    @PreAuthorize("@perm.hasAny('EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE')")
     public ResponseEntity<List<ExamResultResponse>> findByStudentId(@PathVariable Long studentId) {
         return ResponseEntity.ok(examResultService.findByStudentId(studentId));
     }
 
+    /** Current authenticated student's own exam results (self-service portal). */
+    @GetMapping("/my")
+    @PreAuthorize("@perm.has('MY_EXAM_RESULT_VIEW')")
+    public ResponseEntity<List<ExamResultResponse>> myResults(@AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
+        return ResponseEntity.ok(examResultService.findMyResults(username));
+    }
+
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.hasAny('EXAM_RESULT_VIEW', 'EXAM_RESULT_MANAGE')")
     public ResponseEntity<ExamResultResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(examResultService.findById(id));
     }

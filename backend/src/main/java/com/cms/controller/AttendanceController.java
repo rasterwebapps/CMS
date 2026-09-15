@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,6 +58,7 @@ public class AttendanceController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.hasAny('ATTENDANCE_VIEW', 'ATTENDANCE_MANAGE')")
     public ResponseEntity<List<AttendanceResponse>> findAttendance(
             @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) Long subjectId,
@@ -75,18 +78,29 @@ public class AttendanceController {
         return ResponseEntity.ok(attendances);
     }
 
+    /** Current authenticated student's own attendance records (self-service portal). */
+    @GetMapping("/my")
+    @PreAuthorize("@perm.has('MY_ATTENDANCE_VIEW')")
+    public ResponseEntity<List<AttendanceResponse>> myAttendance(@AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
+        return ResponseEntity.ok(attendanceService.findMyAttendance(username));
+    }
+
     @GetMapping("/available-subjects")
+    @PreAuthorize("@perm.has('ATTENDANCE_MANAGE')")
     public ResponseEntity<List<AvailableSubjectResponse>> findAvailableSubjects(@RequestParam LocalDate date) {
         ProfileIdentity identity = profileService.resolveCurrentUser();
         return ResponseEntity.ok(attendanceService.findAvailableSubjects(identity.entityId(), date));
     }
 
     @GetMapping("/subject-roster")
+    @PreAuthorize("@perm.has('ATTENDANCE_MANAGE')")
     public ResponseEntity<List<StudentRosterResponse>> findRosterForSubject(@RequestParam Long subjectId) {
         return ResponseEntity.ok(attendanceService.findRosterForSubject(subjectId));
     }
 
     @GetMapping("/reports")
+    @PreAuthorize("@perm.hasAny('ATTENDANCE_VIEW', 'ATTENDANCE_MANAGE')")
     public ResponseEntity<List<AttendanceReportResponse>> getAttendanceReport(
             @RequestParam Long studentId,
             @RequestParam Long subjectId) {

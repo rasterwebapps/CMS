@@ -110,6 +110,19 @@ class AttendanceControllerTest {
     }
 
     @Test
+    void shouldFindMyAttendance() throws Exception {
+        AttendanceResponse response = createResponse(1L, AttendanceStatus.PRESENT);
+
+        when(attendanceService.findMyAttendance("")).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/attendance/my"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(attendanceService).findMyAttendance("");
+    }
+
+    @Test
     void shouldFindAttendanceByCourseId() throws Exception {
         AttendanceResponse response = createResponse(1L, AttendanceStatus.PRESENT);
 

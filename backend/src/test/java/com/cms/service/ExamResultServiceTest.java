@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.ExamResultRequest;
 import com.cms.dto.ExamResultResponse;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.model.AppUser;
 import com.cms.model.Subject;
 import com.cms.model.ExamResult;
 import com.cms.model.Examination;
@@ -31,6 +32,7 @@ import com.cms.model.enums.ExamOutcome;
 import com.cms.model.enums.ExamResultStatus;
 import com.cms.model.enums.ExamType;
 import com.cms.model.enums.StudentStatus;
+import com.cms.repository.AppUserRepository;
 import com.cms.repository.ExamResultRepository;
 import com.cms.repository.ExaminationRepository;
 import com.cms.repository.StudentRepository;
@@ -47,11 +49,48 @@ class ExamResultServiceTest {
     @Mock
     private StudentRepository studentRepository;
 
+    @Mock
+    private AppUserRepository appUserRepository;
+
     private ExamResultService examResultService;
 
     @BeforeEach
     void setUp() {
-        examResultService = new ExamResultService(examResultRepository, examinationRepository, studentRepository);
+        examResultService = new ExamResultService(
+            examResultRepository, examinationRepository, studentRepository, appUserRepository);
+    }
+
+    @Test
+    void shouldFindMyResultsForLinkedStudent() {
+        Student student = createStudent();
+        AppUser appUser = new AppUser();
+        appUser.setLinkedStudent(student);
+        when(appUserRepository.findByKeycloakUsername("stud1")).thenReturn(Optional.of(appUser));
+        when(examResultRepository.findByStudentId(student.getId()))
+            .thenReturn(List.of(createExamResult(createExamination(), student)));
+
+        List<ExamResultResponse> results = examResultService.findMyResults("stud1");
+
+        assertThat(results).hasSize(1);
+    }
+
+    @Test
+    void shouldReturnEmptyForMyResultsWhenNoLinkedStudent() {
+        AppUser appUser = new AppUser();
+        when(appUserRepository.findByKeycloakUsername("admin1")).thenReturn(Optional.of(appUser));
+
+        List<ExamResultResponse> results = examResultService.findMyResults("admin1");
+
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void shouldReturnEmptyForMyResultsWhenAppUserNotFound() {
+        when(appUserRepository.findByKeycloakUsername("ghost")).thenReturn(Optional.empty());
+
+        List<ExamResultResponse> results = examResultService.findMyResults("ghost");
+
+        assertThat(results).isEmpty();
     }
 
     @Test
