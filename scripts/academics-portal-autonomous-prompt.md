@@ -6,12 +6,33 @@ picks up in a brand-new interactive session — nobody is available to answer
 questions before then. Do not stop to ask for input at any point: make the most
 reasonable call yourself, write down what you assumed, and keep working.
 
-This prompt fires multiple times tonight (21:00, 00:00, 02:30, 05:00, 07:30, 09:30 —
-each a completely separate process). A prior overnight run on this project hit a
-session/usage limit only ~28 minutes in and stopped abruptly with no warning. **Never
-assume you have hours left to work with** — commit and update the log/report after
-every single completed unit of work, not just at natural stopping points, so a
-sudden cutoff loses at most a few minutes, not the whole session.
+This prompt fires multiple times tonight (21:00 already ran live in the interactive
+session instead of waiting for cron — see the log; 00:00, 02:30, 05:00, 07:30, 09:30
+remain scheduled, each a completely separate process). A prior overnight run on this
+project hit a session/usage limit only ~28 minutes in and stopped abruptly with no
+warning. **Never assume you have hours left to work with** — commit and update the
+log/report after every single completed unit of work, not just at natural stopping
+points, so a sudden cutoff loses at most a few minutes, not the whole session.
+
+## Status as of the 21:00 session (read the log for full detail before doing anything)
+
+Items 1-6 and 8-14 are done/verified with real evidence. **Item 7 (Special Classes) is
+genuinely BLOCKED**, not just unstarted: its self-service request path requires a real
+Keycloak login for a faculty member, and none exists in this local environment (only
+backend `Faculty` entity rows, no Keycloak users) — provisioning one is real auth
+plumbing, not a same-session seeding task. **Do not re-attempt this blindly** on a
+later checkpoint hoping it resolves itself; if you have a genuinely new idea for how
+to unblock it without creating Keycloak users (e.g. a documented, safe way to
+authenticate as a faculty identity), try it once and log the outcome either way, then
+stop trying it again on later checkpoints regardless of outcome — repeatedly
+re-attempting a known blocker wastes a checkpoint that could do something useful.
+
+Per this file's own portal-gating rule below ("only once every item 1-14 is
+genuinely Verified"), **item 7 staying blocked means the portals (15/16) stay out of
+scope tonight** — don't start them just because time remains. If you reach a
+checkpoint with nothing left to do (7 still blocked, 1-6/8-14 already verified, no
+new bugs found on a fresh look), the right move is to say so plainly in the log and
+stop cleanly rather than manufacture busywork or lower your own bar for "Verified."
 
 ## Step 0 — always do this first, every firing
 
