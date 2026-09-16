@@ -65,9 +65,13 @@ export class ExamResultListComponent implements OnInit {
     this.loadExaminations();
   }
 
-  protected onExaminationChange(examId: number): void {
+  protected onExaminationChange(examId: number | null): void {
     this.selectedExamId.set(examId);
-    this.loadResults(examId);
+    if (examId) {
+      this.loadResults(examId);
+    } else {
+      this.dataSource.data = [];
+    }
   }
 
   protected applyFilter(event: Event): void {
