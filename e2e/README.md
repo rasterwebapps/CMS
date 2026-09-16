@@ -25,6 +25,14 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
   automating `docs/manual-test-cases/role-and-user-management.md`
   (TC-RBAC-004/005/010) — the exact reported production failure
   ("unable to create users, roles").
+- `tests/masters.spec.ts` — **Tier A**: one parameterized spec covering every
+  CLAUDE.md-mandated master screen's create round-trip + real-time
+  `uniqueFieldValidator` check (`master-entry-uniqueness-constraints.md`).
+  Currently covers Blood Group, Speciality, Community, Referral Type — add a
+  `MasterConfig` entry to extend to the rest.
+- `tests/masters-lifecycle.spec.ts` — **Tier A**: activate/deactivate round-trip
+  from the list screen (`master-lifecycle-status-management.md`,
+  TC-MASTER-LIFE-001 pattern), via the shared `ConfirmDialogComponent`.
 
 ## Rollout plan (OC-250)
 
@@ -35,16 +43,17 @@ cause behind live support-call failures. The plan is to keep adding Tier-A
 specs seeded directly from that catalogue, prioritized by risk:
 
 1. ~~Role & User Management~~ (done — matches the reported failure)
-2. Master screens sharing the `uniqueFieldValidator` pattern
-   (`master-entry-uniqueness-constraints.md`, `master-lifecycle-status-management.md`)
+2. ~~Master screens sharing the `uniqueFieldValidator` pattern~~ (done — Blood
+   Group/Speciality/Community/Referral Type; extend `MasterConfig` for the rest
+   of the module's masters as time allows)
 3. High-traffic transaction screens: fee collection/finalization, admission,
    enquiry, examination results, attendance
 4. Everything else in `docs/manual-test-cases/`, worked through in file order
 
-As each spec goes green against a real 243 deploy, flip the corresponding
-`**Status:**` line in the matching `docs/manual-test-cases/*.md` file from
-`NOT TESTED` to `PASS`, so that catalogue becomes a live, trustworthy source
-of truth instead of a write-once artifact.
+None of this has run against a real 243 deploy yet (blocked on
+`e2e/.env` test credentials — see repo root). Only flip a `**Status:**` line
+in `docs/manual-test-cases/*.md` from `NOT TESTED` to `PASS` after it has
+actually gone green there — not on "the spec exists and parses."
 
 ## Adding a new spec
 
