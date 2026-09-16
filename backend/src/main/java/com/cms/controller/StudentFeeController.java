@@ -47,6 +47,7 @@ import com.cms.service.FeeRefundService;
 import com.cms.service.OneBookIntegrationService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
+import com.cms.service.StudentFeeSelfServiceService;
 import com.cms.util.ExportSortUtils;
 import com.cms.util.export.ExportMetadata;
 import com.cms.util.export.ExportResponseFactory;
@@ -81,6 +82,7 @@ public class StudentFeeController {
     private final FeeRefundService feeRefundService;
     private final FeeRefundExportService feeRefundExportService;
     private final OneBookIntegrationService oneBookService;
+    private final StudentFeeSelfServiceService studentFeeSelfServiceService;
 
     public StudentFeeController(FeeFinalizationService feeFinalizationService,
                                  PaymentCollectionService paymentCollectionService,
@@ -89,7 +91,8 @@ public class StudentFeeController {
                                  FeeExportService feeExportService,
                                  FeeRefundService feeRefundService,
                                  FeeRefundExportService feeRefundExportService,
-                                 OneBookIntegrationService oneBookService) {
+                                 OneBookIntegrationService oneBookService,
+                                 StudentFeeSelfServiceService studentFeeSelfServiceService) {
         this.feeFinalizationService = feeFinalizationService;
         this.paymentCollectionService = paymentCollectionService;
         this.penaltyCalculationService = penaltyCalculationService;
@@ -98,6 +101,7 @@ public class StudentFeeController {
         this.feeRefundService = feeRefundService;
         this.feeRefundExportService = feeRefundExportService;
         this.oneBookService = oneBookService;
+        this.studentFeeSelfServiceService = studentFeeSelfServiceService;
     }
 
     @PostMapping("/finalize")
@@ -111,25 +115,60 @@ public class StudentFeeController {
     }
 
     @GetMapping("/{studentId}/allocation-exists")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
     public ResponseEntity<Boolean> allocationExists(@PathVariable Long studentId) {
         return ResponseEntity.ok(feeFinalizationService.allocationExists(studentId));
     }
 
     @GetMapping("/{studentId}/enquiry-year-fees")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
     public ResponseEntity<List<YearFeeFromEnquiry>> getEnquiryYearFees(@PathVariable Long studentId) {
         return ResponseEntity.ok(feeFinalizationService.getEnquiryYearFees(studentId));
     }
 
     @GetMapping("/{studentId}/semester-breakdown")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
     public ResponseEntity<StudentFeeAllocationResponse> getSemesterBreakdown(
             @PathVariable Long studentId) {
         return ResponseEntity.ok(feeFinalizationService.getByStudentId(studentId));
     }
 
     @GetMapping("/{studentId}/semester-status")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
     public ResponseEntity<StudentFeeAllocationResponse> getSemesterStatus(
             @PathVariable Long studentId) {
         return ResponseEntity.ok(feeFinalizationService.getByStudentId(studentId));
+    }
+
+    /** Current authenticated student's own semester-wise fee breakdown -- self-service, never a
+     *  client-supplied studentId. 204 (no body) when the caller has no linked student account or
+     *  no fee allocation finalized yet, both real non-error states for a newly admitted student. */
+    @GetMapping("/my/summary")
+    @PreAuthorize("@perm.has('MY_FEE_VIEW')")
+    public ResponseEntity<StudentFeeAllocationResponse> mySummary(@AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
+        return studentFeeSelfServiceService.findMySummary(username)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** Current authenticated student's own payment receipts -- the "payment history" half of the
+     *  full-ledger self-service scope. */
+    @GetMapping("/my/receipts")
+    @PreAuthorize("@perm.has('MY_FEE_VIEW')")
+    public ResponseEntity<List<ReceiptResponse>> myReceipts(@AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
+        return ResponseEntity.ok(studentFeeSelfServiceService.findMyReceipts(username));
+    }
+
+    /** Current authenticated student's own outstanding late-fee penalties. */
+    @GetMapping("/my/penalties")
+    @PreAuthorize("@perm.has('MY_FEE_VIEW')")
+    public ResponseEntity<PenaltyResponse> myPenalties(@AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
+        return studentFeeSelfServiceService.findMyPenalties(username)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @PostMapping("/{studentId}/collect")
@@ -151,6 +190,7 @@ public class StudentFeeController {
     }
 
     @GetMapping("/{studentId}/penalties")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
     public ResponseEntity<PenaltyResponse> getPenalties(@PathVariable Long studentId) {
         PenaltyResponse response = penaltyCalculationService.calculatePenalties(studentId);
         return ResponseEntity.ok(response);
@@ -164,13 +204,25 @@ public class StudentFeeController {
     @GetMapping("/explorer")
     public ResponseEntity<?> explorer(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String program,
+            @RequestParam(required = false) String academicYear,
+            @RequestParam(required = false) Integer yearOfStudy,
+            @RequestParam(required = false) String allocationStatus,
             @RequestParam(required = false, defaultValue = "false") boolean legacy,
             @PageableDefault(size = 25, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
         if (legacy) {
             return ResponseEntity.ok(feeExplorerService.search(search));
         }
-        Page<FeeExplorerResponse.StudentFeeSummary> page = feeExplorerService.searchPageable(search, pageable);
+        Page<FeeExplorerResponse.StudentFeeSummary> page = feeExplorerService.searchPageable(
+            search, program, academicYear, yearOfStudy, allocationStatus, pageable);
         return ResponseEntity.ok(page);
+    }
+
+    /** Distinct dropdown values for the fee explorer's Program/Academic Year/Year filters,
+     *  computed across every student rather than only the currently loaded page. */
+    @GetMapping("/explorer/filter-options")
+    public ResponseEntity<FeeExplorerService.FilterOptions> explorerFilterOptions() {
+        return ResponseEntity.ok(feeExplorerService.getFilterOptions());
     }
 
     @GetMapping("/explorer/export")
@@ -210,7 +262,7 @@ public class StudentFeeController {
     public ResponseEntity<FeeRefundResponse> initiateRefund(
             @Valid @RequestBody FeeRefundRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
         return ResponseEntity.status(HttpStatus.CREATED).body(
             feeRefundService.initiateRefund(request, username));
     }
@@ -269,7 +321,7 @@ public class StudentFeeController {
             @PathVariable Long refundId,
             @Valid @RequestBody FeeRefundApprovalRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
         return ResponseEntity.ok(feeRefundService.approveRefund(refundId, request, username));
     }
 
@@ -278,7 +330,7 @@ public class StudentFeeController {
     public ResponseEntity<Map<String, String>> approveRefundViaOneBook(
             @PathVariable Long refundId,
             @AuthenticationPrincipal Jwt jwt) {
-        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
         OneBookPaymentRequest obReq = oneBookService.pushRefundPayment(refundId, username);
         return ResponseEntity.ok(Map.of("referenceId", obReq.getReferenceId(), "status", obReq.getStatus()));
     }
@@ -289,7 +341,7 @@ public class StudentFeeController {
             @PathVariable Long refundId,
             @Valid @RequestBody FeeRefundRejectionRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : null;
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
         return ResponseEntity.ok(feeRefundService.rejectRefund(refundId, request, username));
     }
 
@@ -300,12 +352,14 @@ public class StudentFeeController {
     }
 
     @GetMapping("/{studentId}/receipts")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
     public ResponseEntity<List<ReceiptResponse>> getReceipts(@PathVariable Long studentId) {
         List<ReceiptResponse> receipts = paymentCollectionService.getReceipts(studentId);
         return ResponseEntity.ok(receipts);
     }
 
     @GetMapping("/{studentId}/receipts/{receiptId}")
+    @PreAuthorize("@perm.has('STUDENT_FEE_VIEW')")
     public ResponseEntity<ReceiptResponse> getReceipt(
             @PathVariable Long studentId,
             @PathVariable Long receiptId) {

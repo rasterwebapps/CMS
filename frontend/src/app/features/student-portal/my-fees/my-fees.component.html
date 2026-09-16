@@ -1,0 +1,135 @@
+<div class="mlp-page">
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">My <em>Fees</em></h1>
+      <p class="page-subtitle">Your fee ledger, payment history, and any outstanding penalties.</p>
+    </div>
+  </div>
+
+  <div class="content-card">
+    <div class="std-card-inner">
+      <div class="std-card-hdr">
+        <h2>Semester-wise Fee Status</h2>
+        @if (summary(); as s) {
+          <span class="std-summary">Total {{ s.netFee | inr }} — {{ s.status }}</span>
+        }
+      </div>
+
+      @if (summaryLoading()) {
+        <p class="std-empty">Loading…</p>
+      } @else if (!summary()) {
+        <p class="std-empty">No fee allocation finalized yet.</p>
+      } @else {
+        <div class="table-wrapper">
+          <table class="std-table">
+            <thead>
+              <tr>
+                <th>Installment</th>
+                <th>Due Date</th>
+                <th>Amount</th>
+                <th>Paid</th>
+                <th>Pending</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of summary()!.installmentFees; track row.id) {
+                <tr>
+                  <td>{{ row.installmentLabel }}</td>
+                  <td>{{ row.dueDate | date: 'mediumDate' }}</td>
+                  <td>{{ row.amount | inr }}</td>
+                  <td>{{ row.amountPaid | inr }}</td>
+                  <td>{{ row.pendingAmount | inr }}</td>
+                  <td><cms-status-badge [status]="row.paymentStatus"></cms-status-badge></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="content-card">
+    <div class="std-card-inner">
+      <div class="std-card-hdr">
+        <h2>Payment History</h2>
+      </div>
+
+      @if (receiptsLoading()) {
+        <p class="std-empty">Loading…</p>
+      } @else if (receipts().length === 0) {
+        <p class="std-empty">No payments recorded yet.</p>
+      } @else {
+        <div class="table-wrapper">
+          <table class="std-table">
+            <thead>
+              <tr>
+                <th>Receipt No.</th>
+                <th>Date</th>
+                <th>Installment</th>
+                <th>Amount</th>
+                <th>Mode</th>
+                <th>Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of receipts(); track row.id) {
+                <tr>
+                  <td>{{ row.receiptNumber }}</td>
+                  <td>{{ row.paymentDate | date: 'mediumDate' }}</td>
+                  <td>{{ row.installmentLabel ?? '—' }}</td>
+                  <td>{{ row.amountPaid | inr }}</td>
+                  <td>{{ row.paymentMode | paymentModeLabel }}</td>
+                  <td>{{ row.transactionReference ?? '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="content-card">
+    <div class="std-card-inner">
+      <div class="std-card-hdr">
+        <h2>Outstanding Penalties</h2>
+        @if (penalties(); as p) {
+          <span class="std-summary">Total {{ p.totalPenalty | inr }}</span>
+        }
+      </div>
+
+      @if (penaltiesLoading()) {
+        <p class="std-empty">Loading…</p>
+      } @else if (!penalties() || penalties()!.penalties.length === 0) {
+        <p class="std-empty">No outstanding penalties.</p>
+      } @else {
+        <div class="table-wrapper">
+          <table class="std-table">
+            <thead>
+              <tr>
+                <th>Installment</th>
+                <th>Overdue Since</th>
+                <th>Overdue Days</th>
+                <th>Penalty</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of penalties()!.penalties; track row.id) {
+                <tr>
+                  <td>{{ row.installmentLabel }}</td>
+                  <td>{{ row.penaltyStartDate | date: 'mediumDate' }}</td>
+                  <td>{{ row.overdueDays }}</td>
+                  <td>{{ row.totalPenalty | inr }}</td>
+                  <td><cms-status-badge [status]="row.isPaid ? 'PAID' : 'PENDING'"></cms-status-badge></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
