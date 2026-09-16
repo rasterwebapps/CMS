@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { homeRedirectGuard } from './core/guards/home-redirect.guard';
+import { HomeRedirectComponent } from './core/guards/home-redirect.component';
 import { requiresPermission } from './core/permissions/permission.guard';
 import { requiresEnabledModule } from './core/modules/module.guard';
 
@@ -2536,11 +2538,13 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: 'dashboard',
+    canActivate: [authGuard, homeRedirectGuard],
+    component: HomeRedirectComponent,
     pathMatch: 'full',
   },
   {
     path: '**',
-    redirectTo: 'dashboard',
+    canActivate: [authGuard, homeRedirectGuard],
+    component: HomeRedirectComponent,
   },
 ];
