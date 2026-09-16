@@ -2,6 +2,7 @@ package com.cms.service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
@@ -71,8 +72,35 @@ public class SubjectService {
         this.facultyRepository = facultyRepository;
     }
 
+    /** True for a system-managed subject (SYSTEM-LIBRARY, SYSTEM-SPORTS, ...) seeded directly by a
+     *  migration (V412/V505) with the deliberate credits=0/term_number=0 sentinel so it never
+     *  appears in a curriculum term listing. Never created or renamed through this service -- only
+     *  matters so {@link #requireCurriculumCreditsAndTerm} can let an admin edit one of these
+     *  subjects' eligible faculty/venues through the same {@code update} endpoint without having to
+     *  fabricate a real credits/term value for a subject that intentionally has none. */
+    private static boolean isSystemManaged(String code) {
+        return code != null && code.toUpperCase(Locale.ROOT).startsWith("SYSTEM-");
+    }
+
+    /** Every ordinary (non-system-managed) subject must carry a real credits/term value -- the
+     *  0/0 sentinel is reserved for system-managed subjects. Kept as an explicit service-level
+     *  check, not a DTO annotation, because the DTO's own @Min had to be loosened to 0 so a
+     *  system-managed subject's existing 0/0 values can round-trip through this same request shape. */
+    private void requireCurriculumCreditsAndTerm(SubjectRequest request) {
+        if (isSystemManaged(request.code())) {
+            return;
+        }
+        if (request.credits() < 1) {
+            throw new IllegalArgumentException("Credits must be at least 1");
+        }
+        if (request.termNumber() < 1) {
+            throw new IllegalArgumentException("Semester must be at least 1");
+        }
+    }
+
     @Transactional
     public SubjectResponse create(SubjectRequest request) {
+        requireCurriculumCreditsAndTerm(request);
         Speciality speciality = null;
         if (request.specialityId() != null) {
             speciality = specialityRepository.findById(request.specialityId())
@@ -190,6 +218,7 @@ public class SubjectService {
 
     @Transactional
     public SubjectResponse update(Long id, SubjectRequest request) {
+        requireCurriculumCreditsAndTerm(request);
         Subject subject = subjectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + id));
 
