@@ -14,8 +14,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import com.cms.dto.FeeExplorerResponse;
+import com.cms.model.AcademicYear;
+import com.cms.model.Admission;
 import com.cms.model.Enquiry;
 import com.cms.model.Penalty;
 import com.cms.model.Program;
@@ -264,5 +271,72 @@ class FeeExplorerServiceTest {
         FeeExplorerResponse response = service.search("NONEXISTENT");
 
         assertThat(response.students()).isEmpty();
+    }
+
+    // ── Bug fix: dropdown filters (program/academicYear/yearOfStudy/allocationStatus) must apply
+    // across every student, not just whichever page happens to already be loaded ─────────────────
+
+    @Test
+    void shouldUseDbPaginationFastPathWhenNoDropdownFilterActive() {
+        Pageable pageable = PageRequest.of(0, 25);
+        Page<Student> idPage = new PageImpl<>(List.of(testStudent), pageable, 1);
+
+        when(studentRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+            .thenReturn(idPage);
+        when(studentRepository.findByIdInWithRelations(List.of(1L))).thenReturn(List.of(testStudent));
+        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.empty());
+
+        Page<FeeExplorerResponse.StudentFeeSummary> page =
+            service.searchPageable(null, null, null, null, null, pageable);
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent().get(0).rollNumber()).isEqualTo("CS2024001");
+    }
+
+    @Test
+    void shouldFilterByProgramAcrossFullDatasetNotJustOnePage() {
+        Program itProgram = new Program();
+        itProgram.setId(2L);
+        itProgram.setName("B.Sc IT");
+        Student otherStudent = new Student("IT2024001", "Jane", "Roe", "jane@college.edu",
+            itProgram, 1, LocalDate.of(2024, 6, 1), StudentStatus.ACTIVE);
+        otherStudent.setId(2L);
+
+        // Both students match the (absent) search term; only "B.Sc IT" should survive the filter,
+        // and it must be found even though the fast page-1 path would only have seen one student.
+        when(studentRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Sort.class)))
+            .thenReturn(List.of(testStudent, otherStudent));
+        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.empty());
+        when(allocationRepository.findByStudentId(2L)).thenReturn(Optional.empty());
+
+        Page<FeeExplorerResponse.StudentFeeSummary> page = service.searchPageable(
+            null, "B.Sc IT", null, null, null, PageRequest.of(0, 25));
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent().get(0).rollNumber()).isEqualTo("IT2024001");
+    }
+
+    @Test
+    void shouldComputeFilterOptionsAcrossEveryStudentNotJustOnePage() {
+        Program itProgram = new Program();
+        itProgram.setId(2L);
+        itProgram.setName("B.Sc IT");
+        Student otherStudent = new Student("IT2024001", "Jane", "Roe", "jane@college.edu",
+            itProgram, 3, LocalDate.of(2024, 6, 1), StudentStatus.ACTIVE);
+        otherStudent.setId(2L);
+
+        AcademicYear ay = new AcademicYear();
+        ay.setId(1L);
+        ay.setName("2024-2025");
+        Admission admission = new Admission(otherStudent, ay, LocalDate.of(2024, 6, 1));
+
+        when(studentRepository.findAll()).thenReturn(List.of(testStudent, otherStudent));
+        when(admissionRepository.findByStudentIdInFetchJoiningYear(any())).thenReturn(List.of(admission));
+
+        FeeExplorerService.FilterOptions options = service.getFilterOptions();
+
+        assertThat(options.programs()).containsExactly("B.Sc CS", "B.Sc IT");
+        assertThat(options.academicYears()).containsExactly("2024-2025");
+        assertThat(options.yearsOfStudy()).containsExactly(1, 3);
     }
 }

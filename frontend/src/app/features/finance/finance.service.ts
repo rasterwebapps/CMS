@@ -136,7 +136,18 @@ export class FinanceService {
       .set('size', p.size ?? 25);
     if (p.sort)   params = params.set('sort', p.sort);
     if (p.search && p.search.length >= 2) params = params.set('search', p.search);
+    if (p.program && p.program !== 'ALL')             params = params.set('program', p.program);
+    if (p.academicYear && p.academicYear !== 'ALL')   params = params.set('academicYear', p.academicYear);
+    if (p.yearOfStudy != null)                        params = params.set('yearOfStudy', p.yearOfStudy);
+    if (p.allocationStatus && p.allocationStatus !== 'ALL') params = params.set('allocationStatus', p.allocationStatus);
     return this.http.get<Page<StudentFeeSummary>>(`${this.studentFeeUrl}/explorer`, { params });
+  }
+
+  /** Distinct Program/Academic Year/Year-of-study dropdown values across every student — not
+   *  scoped to whatever page of results happens to be loaded. */
+  getFeeExplorerFilterOptions(): Observable<{ programs: string[]; academicYears: string[]; yearsOfStudy: number[] }> {
+    return this.http.get<{ programs: string[]; academicYears: string[]; yearsOfStudy: number[] }>(
+      `${this.studentFeeUrl}/explorer/filter-options`);
   }
 
   exportFeeExplorer(

@@ -216,6 +216,10 @@ export interface FeeExplorerParams {
   page?: number;
   size?: number;
   sort?: string;
+  program?: string | null;
+  academicYear?: string | null;
+  yearOfStudy?: number | null;
+  allocationStatus?: string | null;
 }
 
 export interface StudentFeeSummary {

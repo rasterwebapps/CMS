@@ -20,6 +20,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -285,6 +289,55 @@ class StudentFeeControllerTest {
             .andExpect(jsonPath("$.students.length()").value(0));
 
         verify(feeExplorerService).search("nonexistent");
+    }
+
+    @Test
+    void shouldPassDropdownFiltersThroughToPaginatedExplorer() throws Exception {
+        FeeExplorerResponse.StudentFeeSummary summary = new FeeExplorerResponse.StudentFeeSummary(
+            1L, "John Doe", "CS2024001", "B.Tech Computer Science",
+            4, new BigDecimal("200000.00"), new BigDecimal("50000.00"),
+            new BigDecimal("150000.00"), new BigDecimal("1500.00"),
+            "FINALIZED", 2, "2024-2025", new BigDecimal("150000.00"), new BigDecimal("150000.00")
+        );
+        Page<FeeExplorerResponse.StudentFeeSummary> page =
+            new PageImpl<>(List.of(summary), PageRequest.of(0, 25), 1);
+
+        when(feeExplorerService.searchPageable(
+            isNull(), eq("B.Tech Computer Science"), eq("2024-2025"), eq(2), eq("FINALIZED"), any(Pageable.class)))
+            .thenReturn(page);
+
+        mockMvc.perform(get("/student-fees/explorer")
+                .param("program", "B.Tech Computer Science")
+                .param("academicYear", "2024-2025")
+                .param("yearOfStudy", "2")
+                .param("allocationStatus", "FINALIZED"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.content[0].studentId").value(1));
+
+        verify(feeExplorerService).searchPageable(
+            isNull(), eq("B.Tech Computer Science"), eq("2024-2025"), eq(2), eq("FINALIZED"), any(Pageable.class));
+    }
+
+    @Test
+    void shouldReturnExplorerFilterOptionsAcrossEveryStudent() throws Exception {
+        FeeExplorerService.FilterOptions options = new FeeExplorerService.FilterOptions(
+            List.of("B.Tech Computer Science", "BSc Nursing"),
+            List.of("2023-2024", "2024-2025", "2025-2026"),
+            List.of(1, 2, 3, 4)
+        );
+
+        when(feeExplorerService.getFilterOptions()).thenReturn(options);
+
+        mockMvc.perform(get("/student-fees/explorer/filter-options"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.programs.length()").value(2))
+            .andExpect(jsonPath("$.academicYears.length()").value(3))
+            .andExpect(jsonPath("$.yearsOfStudy.length()").value(4))
+            .andExpect(jsonPath("$.academicYears[1]").value("2024-2025"));
+
+        verify(feeExplorerService).getFilterOptions();
     }
 
     @Test

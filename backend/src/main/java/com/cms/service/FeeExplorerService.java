@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -75,9 +77,33 @@ public class FeeExplorerService {
 
     /**
      * Paginated version of {@link #search(String)} used by the fee explorer and collect-payment
-     * list screens. The search term applies server-side; all other UI filters (program, academic
-     * year, allocation status) are applied client-side within the returned page.
+     * list screens. When none of the dropdown filters (program, academic year, year of study,
+     * allocation status) are active, the search term is pushed to the DB and pagination happens
+     * there. Once any dropdown filter is active, those dimensions are only known after computing
+     * each row's summary (they are not plain Student columns), so this falls back to computing
+     * every search-matching row via {@link #searchAll} and paginating the filtered result in
+     * memory — the same approach already used, unbounded, for the export endpoint.
      */
+    public Page<FeeExplorerResponse.StudentFeeSummary> searchPageable(
+            String search, String program, String academicYear, Integer yearOfStudy, String allocationStatus,
+            Pageable pageable) {
+        boolean hasDropdownFilter =
+            (program != null && !program.isBlank() && !program.equals("ALL"))
+            || (academicYear != null && !academicYear.isBlank() && !academicYear.equals("ALL"))
+            || yearOfStudy != null
+            || (allocationStatus != null && !allocationStatus.isBlank() && !allocationStatus.equals("ALL"));
+
+        if (!hasDropdownFilter) return searchPageable(search, pageable);
+
+        List<FeeExplorerResponse.StudentFeeSummary> filtered =
+            searchAll(search, program, academicYear, yearOfStudy, allocationStatus, pageable.getSort());
+        int total = filtered.size();
+        int from = Math.min((int) pageable.getOffset(), total);
+        int to = Math.min(from + pageable.getPageSize(), total);
+        return new PageImpl<>(filtered.subList(from, to), pageable, total);
+    }
+
+    /** Search-only fast path — no dropdown filters active, so pagination happens at the DB. */
     public Page<FeeExplorerResponse.StudentFeeSummary> searchPageable(String search, Pageable pageable) {
         Specification<Student> spec = Specification.where(null);
         if (search != null && search.length() >= 2) spec = spec.and(StudentSpecification.bySearch(search));
@@ -102,6 +128,30 @@ public class FeeExplorerService {
             .toList();
         return new PageImpl<>(content, pageable, idPage.getTotalElements());
     }
+
+    /** Distinct filter-dropdown values across every student, not just the currently loaded page. */
+    public FilterOptions getFilterOptions() {
+        List<Student> students = studentRepository.findAll();
+
+        Set<String> programs = new TreeSet<>();
+        Set<Integer> years = new TreeSet<>();
+        for (Student s : students) {
+            String name = s.getCourse() != null ? s.getCourse().getName()
+                : s.getProgram() != null ? s.getProgram().getName() : null;
+            if (name != null) programs.add(name);
+            if (s.getYearOfStudy() != null) years.add(s.getYearOfStudy());
+        }
+
+        List<Long> ids = students.stream().map(Student::getId).toList();
+        Set<String> academicYears = admissionRepository.findByStudentIdInFetchJoiningYear(ids).stream()
+            .map(a -> a.getJoiningAcademicYear() != null ? a.getJoiningAcademicYear().getName() : null)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(TreeSet::new));
+
+        return new FilterOptions(new ArrayList<>(programs), new ArrayList<>(academicYears), new ArrayList<>(years));
+    }
+
+    public record FilterOptions(List<String> programs, List<String> academicYears, List<Integer> yearsOfStudy) {}
 
     /**
      * Unbounded version for export: applies the search spec then post-filters by the client-side

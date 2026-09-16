@@ -164,13 +164,25 @@ public class StudentFeeController {
     @GetMapping("/explorer")
     public ResponseEntity<?> explorer(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String program,
+            @RequestParam(required = false) String academicYear,
+            @RequestParam(required = false) Integer yearOfStudy,
+            @RequestParam(required = false) String allocationStatus,
             @RequestParam(required = false, defaultValue = "false") boolean legacy,
             @PageableDefault(size = 25, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
         if (legacy) {
             return ResponseEntity.ok(feeExplorerService.search(search));
         }
-        Page<FeeExplorerResponse.StudentFeeSummary> page = feeExplorerService.searchPageable(search, pageable);
+        Page<FeeExplorerResponse.StudentFeeSummary> page = feeExplorerService.searchPageable(
+            search, program, academicYear, yearOfStudy, allocationStatus, pageable);
         return ResponseEntity.ok(page);
+    }
+
+    /** Distinct dropdown values for the fee explorer's Program/Academic Year/Year filters,
+     *  computed across every student rather than only the currently loaded page. */
+    @GetMapping("/explorer/filter-options")
+    public ResponseEntity<FeeExplorerService.FilterOptions> explorerFilterOptions() {
+        return ResponseEntity.ok(feeExplorerService.getFilterOptions());
     }
 
     @GetMapping("/explorer/export")
