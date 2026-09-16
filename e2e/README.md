@@ -28,8 +28,12 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
 - `tests/masters.spec.ts` — **Tier A**: one parameterized spec covering every
   CLAUDE.md-mandated master screen's create round-trip + real-time
   `uniqueFieldValidator` check (`master-entry-uniqueness-constraints.md`).
-  Currently covers Blood Group, Speciality, Community, Referral Type — add a
-  `MasterConfig` entry to extend to the rest.
+  Currently covers Blood Group, Speciality, Community, Referral Type,
+  Designation, Institution, Program — add a `MasterConfig` entry (optionally
+  with `fillExtra` for a form with one extra required field lacking a
+  default, like Program's durationYears) to extend to the rest. Agent and
+  Course don't fit this shape as-is (Agent has no code field; Course
+  requires a real Program to be picked first) — not yet covered.
 - `tests/masters-lifecycle.spec.ts` — **Tier A**: activate/deactivate round-trip
   from the list screen (`master-lifecycle-status-management.md`,
   TC-MASTER-LIFE-001 pattern), via the shared `ConfirmDialogComponent`.
@@ -68,9 +72,10 @@ cause behind live support-call failures. The plan is to keep adding Tier-A
 specs seeded directly from that catalogue, prioritized by risk:
 
 1. ~~Role & User Management~~ (done — matches the reported failure)
-2. ~~Master screens sharing the `uniqueFieldValidator` pattern~~ (done — Blood
-   Group/Speciality/Community/Referral Type; extend `MasterConfig` for the rest
-   of the module's masters as time allows)
+2. ~~Master screens sharing the `uniqueFieldValidator` pattern~~ (Blood Group,
+   Speciality, Community, Referral Type, Designation, Institution, Program
+   done; Agent/Course/Scholarship Type/Countries-States-Districts and the
+   rest of Preferences still open — extend `MasterConfig`)
 3. High-traffic transaction screens — **done, at entry-point depth**:
    - ~~Attendance / Exam Results~~ (`filter-gated-lists.spec.ts`)
    - ~~Enquiry creation~~ (`enquiry.spec.ts`, full real create)
@@ -85,11 +90,17 @@ specs seeded directly from that catalogue, prioritized by risk:
      isolated test fixture rather than writing against shared 243 state, and
      each touches 3-4 large components that deserve their own careful trace.
 4. Everything else in `docs/manual-test-cases/`, worked through in file order
+   (in progress — masters extended to Designation/Institution/Program so far)
 
-None of this has run against a real 243 deploy yet (blocked on
-`e2e/.env` test credentials — see repo root). Only flip a `**Status:**` line
-in `docs/manual-test-cases/*.md` from `NOT TESTED` to `PASS` after it has
-actually gone green there — not on "the spec exists and parses."
+**Update:** the whole suite has now run for real against 243 (`e2e/.env`
+filled in with the `devadmin`/`collegeadmin` bootstrap accounts from
+`infrastructure/keycloak/cms-realm.json`). That first real run found 243 was
+stale — missing OC-242 entirely — and a genuine app bug (OC-252, fixed:
+`/lab-schedules/new` 500'd on every load). Every spec listed above is
+green against a freshly redeployed 243 as of that run. Still true: only flip
+a `**Status:**` line in `docs/manual-test-cases/*.md` from `NOT TESTED` to
+`PASS` after re-confirming it green against a specific run, not just because
+a spec exists — 243's state can drift again the same way it did before.
 
 ## Adding a new spec
 
