@@ -25,5 +25,8 @@ public record CreateUserRequest(
     Long studentId,
 
     /** Link to a specific faculty record. Set when creating a faculty login account. */
-    Long facultyId
+    Long facultyId,
+
+    /** Link to a specific guardian record. Set when creating a parent/guardian login account. */
+    Long guardianId
 ) {}

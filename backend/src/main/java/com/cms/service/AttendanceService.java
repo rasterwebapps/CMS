@@ -39,6 +39,7 @@ public class AttendanceService {
     private final AttendanceThresholdService thresholdService;
     private final ClassScheduleOccurrenceService classScheduleOccurrenceService;
     private final AppUserRepository appUserRepository;
+    private final GuardianService guardianService;
 
     public AttendanceService(AttendanceRepository attendanceRepository,
                               StudentRepository studentRepository,
@@ -46,7 +47,8 @@ public class AttendanceService {
                               CourseRegistrationRepository courseRegistrationRepository,
                               AttendanceThresholdService thresholdService,
                               ClassScheduleOccurrenceService classScheduleOccurrenceService,
-                              AppUserRepository appUserRepository) {
+                              AppUserRepository appUserRepository,
+                              GuardianService guardianService) {
         this.attendanceRepository = attendanceRepository;
         this.studentRepository = studentRepository;
         this.subjectRepository = subjectRepository;
@@ -54,6 +56,7 @@ public class AttendanceService {
         this.thresholdService = thresholdService;
         this.classScheduleOccurrenceService = classScheduleOccurrenceService;
         this.appUserRepository = appUserRepository;
+        this.guardianService = guardianService;
     }
 
     /** Current authenticated user's own attendance records (student self-service portal).
@@ -66,6 +69,15 @@ public class AttendanceService {
                 ? findByStudentId(user.getLinkedStudent().getId())
                 : List.<AttendanceResponse>of())
             .orElse(List.of());
+    }
+
+    /** Current authenticated guardian's own ward's attendance (parent self-service portal).
+     *  {@code studentId} is validated against the caller's actual wards via
+     *  {@link GuardianService#assertIsMyWard} before reusing {@link #findByStudentId} -- never
+     *  trusted on its own. */
+    public List<AttendanceResponse> findMyWardAttendance(String keycloakUsername, Long studentId) {
+        guardianService.assertIsMyWard(keycloakUsername, studentId);
+        return findByStudentId(studentId);
     }
 
     /** Subjects a faculty member can mark attendance for on a specific date, resolved through

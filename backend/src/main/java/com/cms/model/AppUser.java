@@ -58,6 +58,11 @@ public class AppUser {
     @JoinColumn(name = "faculty_id")
     private com.cms.model.Faculty linkedFaculty;
 
+    /** Direct link to the guardian this account belongs to. Null for non-PARENT roles. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guardian_id")
+    private com.cms.model.Guardian linkedGuardian;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
@@ -253,6 +258,9 @@ public class AppUser {
 
     public com.cms.model.Faculty getLinkedFaculty()                     { return linkedFaculty; }
     public void setLinkedFaculty(com.cms.model.Faculty f)               { this.linkedFaculty = f; }
+
+    public com.cms.model.Guardian getLinkedGuardian()                   { return linkedGuardian; }
+    public void setLinkedGuardian(com.cms.model.Guardian g)             { this.linkedGuardian = g; }
 
     public List<UserDashboardWidgetConfig> getWidgetConfigs() {
         return widgetConfigs;

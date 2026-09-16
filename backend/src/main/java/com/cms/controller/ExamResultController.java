@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.ExamResultRequest;
@@ -56,6 +57,17 @@ public class ExamResultController {
     public ResponseEntity<List<ExamResultResponse>> myResults(@AuthenticationPrincipal Jwt jwt) {
         String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
         return ResponseEntity.ok(examResultService.findMyResults(username));
+    }
+
+    /** Current authenticated guardian's own ward's exam results (parent self-service portal).
+     *  {@code studentId} is validated server-side against the caller's actual wards -- never
+     *  trusted on its own, same rule OC-236 enforced for direct student self-service. */
+    @GetMapping("/my-wards")
+    @PreAuthorize("@perm.has('MY_WARD_EXAM_RESULT_VIEW')")
+    public ResponseEntity<List<ExamResultResponse>> myWardResults(
+            @RequestParam Long studentId, @AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
+        return ResponseEntity.ok(examResultService.findMyWardResults(username, studentId));
     }
 
     @GetMapping("/{id}")

@@ -18,6 +18,7 @@ import com.cms.model.AppUser;
 import com.cms.repository.AppRoleRepository;
 import com.cms.repository.AppUserRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.GuardianRepository;
 import com.cms.repository.StudentRepository;
 
 @Service
@@ -30,6 +31,7 @@ public class AppUserService {
     private final AppRoleRepository appRoleRepository;
     private final StudentRepository studentRepository;
     private final FacultyRepository facultyRepository;
+    private final GuardianRepository guardianRepository;
     private final UserPermissionService userPermissionService;
     private final AuditLogService auditLogService;
     private final KeycloakAdminService keycloakAdminService;
@@ -38,6 +40,7 @@ public class AppUserService {
                           AppRoleRepository appRoleRepository,
                           StudentRepository studentRepository,
                           FacultyRepository facultyRepository,
+                          GuardianRepository guardianRepository,
                           UserPermissionService userPermissionService,
                           AuditLogService auditLogService,
                           KeycloakAdminService keycloakAdminService) {
@@ -45,6 +48,7 @@ public class AppUserService {
         this.appRoleRepository     = appRoleRepository;
         this.studentRepository     = studentRepository;
         this.facultyRepository     = facultyRepository;
+        this.guardianRepository    = guardianRepository;
         this.userPermissionService = userPermissionService;
         this.auditLogService       = auditLogService;
         this.keycloakAdminService  = keycloakAdminService;
@@ -101,6 +105,9 @@ public class AppUserService {
             }
             if (request.facultyId() != null) {
                 facultyRepository.findById(request.facultyId()).ifPresent(user::setLinkedFaculty);
+            }
+            if (request.guardianId() != null) {
+                guardianRepository.findById(request.guardianId()).ifPresent(user::setLinkedGuardian);
             }
 
             AppUser saved = appUserRepository.save(user);

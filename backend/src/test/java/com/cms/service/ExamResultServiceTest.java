@@ -52,12 +52,15 @@ class ExamResultServiceTest {
     @Mock
     private AppUserRepository appUserRepository;
 
+    @Mock
+    private com.cms.service.GuardianService guardianService;
+
     private ExamResultService examResultService;
 
     @BeforeEach
     void setUp() {
         examResultService = new ExamResultService(
-            examResultRepository, examinationRepository, studentRepository, appUserRepository);
+            examResultRepository, examinationRepository, studentRepository, appUserRepository, guardianService);
     }
 
     @Test
@@ -72,6 +75,28 @@ class ExamResultServiceTest {
         List<ExamResultResponse> results = examResultService.findMyResults("stud1");
 
         assertThat(results).hasSize(1);
+    }
+
+    @Test
+    void shouldFindMyWardResultsAfterOwnershipCheck() {
+        Student student = createStudent();
+        when(examResultRepository.findByStudentId(student.getId()))
+            .thenReturn(List.of(createExamResult(createExamination(), student)));
+
+        List<ExamResultResponse> results = examResultService.findMyWardResults("parent1", student.getId());
+
+        assertThat(results).hasSize(1);
+        verify(guardianService).assertIsMyWard("parent1", student.getId());
+    }
+
+    @Test
+    void shouldRejectMyWardResultsWhenNotAWard() {
+        org.mockito.Mockito.doThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.FORBIDDEN, "Student 1 is not one of your wards"))
+            .when(guardianService).assertIsMyWard("parent1", 1L);
+
+        assertThatThrownBy(() -> examResultService.findMyWardResults("parent1", 1L))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
     }
 
     @Test

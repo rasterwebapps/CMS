@@ -28,15 +28,18 @@ public class ExamResultService {
     private final ExaminationRepository examinationRepository;
     private final StudentRepository studentRepository;
     private final AppUserRepository appUserRepository;
+    private final GuardianService guardianService;
 
     public ExamResultService(ExamResultRepository examResultRepository,
                               ExaminationRepository examinationRepository,
                               StudentRepository studentRepository,
-                              AppUserRepository appUserRepository) {
+                              AppUserRepository appUserRepository,
+                              GuardianService guardianService) {
         this.examResultRepository = examResultRepository;
         this.examinationRepository = examinationRepository;
         this.studentRepository = studentRepository;
         this.appUserRepository = appUserRepository;
+        this.guardianService = guardianService;
     }
 
     /** Current authenticated user's own exam results (student self-service portal).
@@ -47,6 +50,14 @@ public class ExamResultService {
                 ? findByStudentId(user.getLinkedStudent().getId())
                 : List.<ExamResultResponse>of())
             .orElse(List.of());
+    }
+
+    /** Current authenticated guardian's own ward's exam results (parent self-service portal).
+     *  {@code studentId} is validated against the caller's actual wards via
+     *  {@link GuardianService#assertIsMyWard} before reusing {@link #findByStudentId}. */
+    public List<ExamResultResponse> findMyWardResults(String keycloakUsername, Long studentId) {
+        guardianService.assertIsMyWard(keycloakUsername, studentId);
+        return findByStudentId(studentId);
     }
 
     @Transactional

@@ -86,6 +86,17 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.findMyAttendance(username));
     }
 
+    /** Current authenticated guardian's own ward's attendance records (parent self-service
+     *  portal). {@code studentId} is validated server-side against the caller's actual wards --
+     *  never trusted on its own, same rule OC-236 enforced for direct student self-service. */
+    @GetMapping("/my-wards")
+    @PreAuthorize("@perm.has('MY_WARD_ATTENDANCE_VIEW')")
+    public ResponseEntity<List<AttendanceResponse>> myWardAttendance(
+            @RequestParam Long studentId, @AuthenticationPrincipal Jwt jwt) {
+        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
+        return ResponseEntity.ok(attendanceService.findMyWardAttendance(username, studentId));
+    }
+
     @GetMapping("/available-subjects")
     @PreAuthorize("@perm.has('ATTENDANCE_MANAGE')")
     public ResponseEntity<List<AvailableSubjectResponse>> findAvailableSubjects(@RequestParam LocalDate date) {

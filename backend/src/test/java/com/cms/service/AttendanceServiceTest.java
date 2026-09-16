@@ -56,6 +56,8 @@ class AttendanceServiceTest {
     private ClassScheduleOccurrenceService classScheduleOccurrenceService;
     @Mock
     private AppUserRepository appUserRepository;
+    @Mock
+    private com.cms.service.GuardianService guardianService;
 
     private AttendanceService attendanceService;
 
@@ -66,7 +68,8 @@ class AttendanceServiceTest {
     @BeforeEach
     void setUp() {
         attendanceService = new AttendanceService(attendanceRepository, studentRepository, subjectRepository,
-            courseRegistrationRepository, thresholdService, classScheduleOccurrenceService, appUserRepository);
+            courseRegistrationRepository, thresholdService, classScheduleOccurrenceService, appUserRepository,
+            guardianService);
 
         Speciality speciality = new Speciality("Computer Science", "CS", "CS Dept", null, "Dr. Smith");
         speciality.setId(1L);
@@ -182,6 +185,29 @@ class AttendanceServiceTest {
         List<AttendanceResponse> responses = attendanceService.findMyAttendance("stud1");
 
         assertThat(responses).hasSize(1);
+    }
+
+    @Test
+    void shouldFindMyWardAttendanceAfterOwnershipCheck() {
+        Attendance attendance = createAttendance(1L, testStudent, testCourse,
+            LocalDate.now(), AttendanceStatus.PRESENT, AttendanceType.THEORY);
+        when(studentRepository.existsById(1L)).thenReturn(true);
+        when(attendanceRepository.findByStudentId(1L)).thenReturn(List.of(attendance));
+
+        List<AttendanceResponse> responses = attendanceService.findMyWardAttendance("parent1", 1L);
+
+        assertThat(responses).hasSize(1);
+        verify(guardianService).assertIsMyWard("parent1", 1L);
+    }
+
+    @Test
+    void shouldRejectMyWardAttendanceWhenNotAWard() {
+        org.mockito.Mockito.doThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.FORBIDDEN, "Student 1 is not one of your wards"))
+            .when(guardianService).assertIsMyWard("parent1", 1L);
+
+        assertThatThrownBy(() -> attendanceService.findMyWardAttendance("parent1", 1L))
+            .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
     }
 
     @Test

@@ -123,6 +123,19 @@ class AttendanceControllerTest {
     }
 
     @Test
+    void shouldFindMyWardAttendance() throws Exception {
+        AttendanceResponse response = createResponse(1L, AttendanceStatus.PRESENT);
+
+        when(attendanceService.findMyWardAttendance("", 45L)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/attendance/my-wards").param("studentId", "45"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(attendanceService).findMyWardAttendance("", 45L);
+    }
+
+    @Test
     void shouldFindAttendanceByCourseId() throws Exception {
         AttendanceResponse response = createResponse(1L, AttendanceStatus.PRESENT);
 
