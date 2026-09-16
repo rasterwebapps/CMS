@@ -33,6 +33,22 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
 - `tests/masters-lifecycle.spec.ts` — **Tier A**: activate/deactivate round-trip
   from the list screen (`master-lifecycle-status-management.md`,
   TC-MASTER-LIFE-001 pattern), via the shared `ConfirmDialogComponent`.
+- `tests/filter-gated-lists.spec.ts` — **Tier A**: parameterized regression spec
+  for list screens gated behind a mandatory filter dropdown — the exact shape
+  of two real shipped bugs (OC-242 Attendance List always 400s, OC-237 Exam
+  Results 500s) that the route crawler alone can't catch since it never picks
+  a filter value. Covers Attendance and Exam Results; add an entry to extend.
+- `tests/enquiry.spec.ts` — **Tier A**: creates a real enquiry end to end.
+  Enquiry is the front door of admissions (largest manual-test-case doc in the
+  repo) and its form gates submission on a live fee-structure lookup
+  (`feeNotFound()`/`totalFees() <= 0` in enquiry-form.component.ts) — the spec
+  tries a few programs and fails with a clear message if none resolve a fee
+  structure, which is itself a real finding, not just a broken selector.
+- `tests/fee-collection.spec.ts` — **Tier A**: verifies the list loads and the
+  "Collect" action opens the payment view without erroring. Deliberately does
+  NOT submit a real payment — 243 is shared test-server state, not an
+  isolated per-run fixture, and a blind financial write there is a mutation
+  this spec shouldn't make (see file header for the full reasoning).
 
 ## Rollout plan (OC-250)
 
@@ -46,8 +62,17 @@ specs seeded directly from that catalogue, prioritized by risk:
 2. ~~Master screens sharing the `uniqueFieldValidator` pattern~~ (done — Blood
    Group/Speciality/Community/Referral Type; extend `MasterConfig` for the rest
    of the module's masters as time allows)
-3. High-traffic transaction screens: fee collection/finalization, admission,
-   enquiry, examination results, attendance
+3. High-traffic transaction screens — **partially done**:
+   - ~~Attendance / Exam Results~~ (done — `filter-gated-lists.spec.ts`)
+   - ~~Enquiry creation~~ (done — `enquiry.spec.ts`)
+   - ~~Fee Collection~~ (done, scoped to opening the payment view — see its
+     file header for why a real payment submit is deliberately out of scope
+     for now)
+   - **Still open:** Admission (enquiry → admission conversion,
+     `admission-from-enquiry.md`/`admission-completion.md` — another large
+     multi-step wizard, not yet traced); a real Fee Collection payment
+     submit-and-verify-receipt spec once there's an isolated fee fixture to
+     run it against safely
 4. Everything else in `docs/manual-test-cases/`, worked through in file order
 
 None of this has run against a real 243 deploy yet (blocked on
