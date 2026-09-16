@@ -30,7 +30,9 @@ function extractStaticPaths(): string[] {
   return [...paths].sort();
 }
 
-const ERROR_TEXT_RE = /\b(500|Internal Server Error|Cannot GET|Whitelabel Error Page|Unexpected error|Something went wrong)\b/i;
+// Bare "500" is unusable on this app — real currency amounts (₹500, fee receipts, etc.)
+// hit it constantly on finance screens. Only match it in genuine error-status phrasing.
+const ERROR_TEXT_RE = /\b(HTTP\s*500|Error\s*500|500\s*Internal|Internal Server Error|Cannot GET|Whitelabel Error Page|Unexpected error|Something went wrong)\b/i;
 
 test.describe('Route crawler (whole-app smoke floor)', () => {
   test.skip(!hasCreds('admin'), 'E2E_ADMIN_USER/PASS not configured — see e2e/.env.example');
