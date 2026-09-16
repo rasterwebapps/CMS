@@ -49,6 +49,15 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
   NOT submit a real payment — 243 is shared test-server state, not an
   isolated per-run fixture, and a blind financial write there is a mutation
   this spec shouldn't make (see file header for the full reasoning).
+- `tests/admission.spec.ts` — **Tier A**: verifies "Complete" on a
+  DOCUMENTS_VERIFIED enquiry in the admission-completion queue reaches Create
+  Admission cleanly, skipping if none exist. `admission-from-enquiry.md` is
+  **stale** — it describes a `/admissions/new` screen that no longer exists
+  in `app.routes.ts`; the real path is enquiry -> fee finalization -> document
+  submission -> document verification -> admission-completion queue ->
+  `/enquiries/:id/convert` (an 800+ line form). Driving an enquiry through
+  that whole pipeline with real uploads/approvals to test the actual convert
+  submission is deliberately left for a dedicated follow-up — see next.
 
 ## Rollout plan (OC-250)
 
@@ -62,17 +71,19 @@ specs seeded directly from that catalogue, prioritized by risk:
 2. ~~Master screens sharing the `uniqueFieldValidator` pattern~~ (done — Blood
    Group/Speciality/Community/Referral Type; extend `MasterConfig` for the rest
    of the module's masters as time allows)
-3. High-traffic transaction screens — **partially done**:
-   - ~~Attendance / Exam Results~~ (done — `filter-gated-lists.spec.ts`)
-   - ~~Enquiry creation~~ (done — `enquiry.spec.ts`)
-   - ~~Fee Collection~~ (done, scoped to opening the payment view — see its
-     file header for why a real payment submit is deliberately out of scope
-     for now)
-   - **Still open:** Admission (enquiry → admission conversion,
-     `admission-from-enquiry.md`/`admission-completion.md` — another large
-     multi-step wizard, not yet traced); a real Fee Collection payment
-     submit-and-verify-receipt spec once there's an isolated fee fixture to
-     run it against safely
+3. High-traffic transaction screens — **done, at entry-point depth**:
+   - ~~Attendance / Exam Results~~ (`filter-gated-lists.spec.ts`)
+   - ~~Enquiry creation~~ (`enquiry.spec.ts`, full real create)
+   - ~~Fee Collection~~ (`fee-collection.spec.ts`, scoped to opening the
+     payment view — see its file header)
+   - ~~Admission~~ (`admission.spec.ts`, scoped to reaching Create Admission
+     from the queue — see its file header)
+   - **Still open — the full multi-screen pipelines, each its own dedicated
+     pass:** a real enquiry -> fee finalization -> document submission ->
+     document verification -> admission conversion round trip end to end; a
+     real Fee Collection payment submit-and-verify-receipt spec. Both need an
+     isolated test fixture rather than writing against shared 243 state, and
+     each touches 3-4 large components that deserve their own careful trace.
 4. Everything else in `docs/manual-test-cases/`, worked through in file order
 
 None of this has run against a real 243 deploy yet (blocked on
