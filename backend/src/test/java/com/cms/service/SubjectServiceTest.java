@@ -200,6 +200,56 @@ class SubjectServiceTest {
     }
 
     @Test
+    void shouldRejectZeroCreditsForOrdinarySubjectOnCreate() {
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 0, 0, 0, null, 1, null, null, null, null, null, null);
+
+        assertThatThrownBy(() -> subjectService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Credits must be at least 1");
+
+        verify(subjectRepository, never()).save(any(Subject.class));
+    }
+
+    @Test
+    void shouldRejectZeroTermNumberForOrdinarySubjectOnCreate() {
+        SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, null, 0, null, null, null, null, null, null);
+
+        assertThatThrownBy(() -> subjectService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Semester must be at least 1");
+
+        verify(subjectRepository, never()).save(any(Subject.class));
+    }
+
+    @Test
+    void shouldAllowZeroCreditsAndTermNumberForSystemManagedSubjectOnUpdate() {
+        Subject sportsSubject = new Subject("Sports", "SYSTEM-SPORTS", 0, 0, 0, null, 0);
+        sportsSubject.setId(5L);
+        sportsSubject.setCreatedAt(now);
+        sportsSubject.setUpdatedAt(now);
+
+        com.cms.model.Faculty peFaculty = new com.cms.model.Faculty();
+        peFaculty.setId(40L);
+        peFaculty.setFirstName("Arun");
+        peFaculty.setLastName("Kumar");
+
+        SubjectRequest request = new SubjectRequest("Sports", "SYSTEM-SPORTS", 0, 0, 0, null, 0, null, null,
+            null, null, null, List.of(40L));
+
+        when(subjectRepository.findById(5L)).thenReturn(Optional.of(sportsSubject));
+        when(subjectRepository.existsByNameIgnoreCaseAndIdNot("Sports", 5L)).thenReturn(false);
+        when(subjectRepository.existsByCodeIgnoreCaseAndIdNot("SYSTEM-SPORTS", 5L)).thenReturn(false);
+        when(facultyRepository.findAllById(List.of(40L))).thenReturn(List.of(peFaculty));
+        when(subjectRepository.save(any(Subject.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SubjectResponse response = subjectService.update(5L, request);
+
+        assertThat(response.credits()).isEqualTo(0);
+        assertThat(response.termNumber()).isEqualTo(0);
+        assertThat(response.eligibleFaculty()).extracting(FacultyOptionResponse::id).containsExactly(40L);
+    }
+
+    @Test
     void shouldThrowWhenSpecialityNotFoundOnCreate() {
         SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 999L, 1, null, null, null, null, null, null);
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());

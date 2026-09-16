@@ -17,8 +17,13 @@ public record SubjectRequest(
     @Size(max = 50, message = "Code must not exceed 50 characters")
     String code,
 
+    /** Min is 0, not 1, only so a system-managed subject (code starting "SYSTEM-", e.g.
+     *  SYSTEM-LIBRARY/SYSTEM-SPORTS) can round-trip its deliberate credits=0 sentinel through this
+     *  same endpoint when an admin edits its eligible faculty/venues. {@link
+     *  com.cms.service.SubjectService#create}/{@code #update} still reject credits &lt; 1 for every
+     *  ordinary subject. */
     @NotNull(message = "Credits is required")
-    @Min(value = 1, message = "Credits must be at least 1")
+    @Min(value = 0, message = "Credits must be at least 0")
     @Max(value = 20, message = "Credits must not exceed 20")
     Integer credits,
 
@@ -34,8 +39,9 @@ public record SubjectRequest(
 
     Long specialityId,
 
+    /** Min is 0, not 1, for the same system-managed-subject reason as {@code credits} above. */
     @NotNull(message = "Semester is required")
-    @Min(value = 1, message = "Semester must be at least 1")
+    @Min(value = 0, message = "Semester must be at least 0")
     @Max(value = 12, message = "Semester must not exceed 12")
     Integer termNumber,
 
