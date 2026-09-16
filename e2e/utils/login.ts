@@ -27,6 +27,19 @@ export async function loginAs(page: Page, role: Role): Promise<void> {
     );
   }
 
+  // Pre-empt the 9-step onboarding tour (tour.service.ts) rather than racing its
+  // dim-panel overlay after the fact — it reads this exact localStorage key/value
+  // (PREF_KEY = 'cms_tour_show_onboarding') on every route change to decide whether
+  // to auto-start, so setting it before first navigation keeps it off for the whole
+  // run, on every screen, not just the one loginAs happens to land on first.
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('cms_tour_show_onboarding', 'false');
+    } catch {
+      /* private mode / storage disabled — ignore */
+    }
+  });
+
   await page.goto('/');
   await page.waitForURL(/realms\/cms\/protocol\/openid-connect/, { timeout: 15_000 }).catch(() => {
     // already has a valid session (storageState reuse) — nothing to do
@@ -41,4 +54,12 @@ export async function loginAs(page: Page, role: Role): Promise<void> {
 
   // Confirms the redirect back into Angular succeeded, not just the Keycloak form submit.
   await expect(page).not.toHaveURL(/protocol\/openid-connect/, { timeout: 15_000 });
+
+  // Defensive fallback — the addInitScript above should already keep the onboarding
+  // tour (tour-tooltip.component.html) off; if it still renders for some other
+  // reason, its full-page dim overlay blocks every click, so clear it here too.
+  const hardCloseTour = page.getByRole('button', { name: "Don't show again" });
+  if (await hardCloseTour.isVisible({ timeout: 1_500 }).catch(() => false)) {
+    await hardCloseTour.click();
+  }
 }

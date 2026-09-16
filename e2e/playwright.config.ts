@@ -21,6 +21,13 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      // Desktop Chrome's default 1280x720 viewport was tripping the app shell's
+      // compact/icon-rail sidebar breakpoint, which renders nav groups as a
+      // hover flyout that can sit over the page content and eat clicks — not a
+      // real bug, just not how an actual admin's desktop monitor renders this.
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1600, height: 900 } },
+    },
   ],
 });

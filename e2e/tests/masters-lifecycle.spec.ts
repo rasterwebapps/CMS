@@ -30,19 +30,26 @@ test.describe('Blood Group master — activate/deactivate lifecycle (TC-MASTER-L
     await page.locator('.btn-submit').click();
     await expect(page).toHaveURL(/\/blood-groups$/, { timeout: 10_000 });
 
+    // View mode (Cards/Table) is a persisted per-user preference (view-toggle.component.html,
+    // storageKey="blood-group-list-view-mode") — force Cards so this spec doesn't depend on
+    // whatever this account last had selected.
+    await page.getByRole('button', { name: 'Cards' }).click();
+
     const card = page.locator('.mlp-card', { hasText: name });
     await expect(card).toBeVisible({ timeout: 10_000 });
     await expect(card.getByText('Active', { exact: true })).toBeVisible();
 
-    // Deactivate
+    // Deactivate — the exact-text match alone disambiguates from the row action button's
+    // "Deactivate blood group" aria-label; getByRole('dialog') didn't reliably match
+    // MatDialogContainer's actual rendered role, so match the confirm button directly.
     await card.getByRole('button', { name: 'Deactivate blood group' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Deactivate', exact: true }).click();
+    await page.getByRole('button', { name: 'Deactivate', exact: true }).click();
     await expect(page.getByText(/Blood group deactivated successfully/i)).toBeVisible({ timeout: 10_000 });
     await expect(card.getByText('Inactive', { exact: true })).toBeVisible({ timeout: 10_000 });
 
     // Reactivate
     await card.getByRole('button', { name: 'Activate blood group' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Activate', exact: true }).click();
+    await page.getByRole('button', { name: 'Activate', exact: true }).click();
     await expect(page.getByText(/Blood group activated successfully/i)).toBeVisible({ timeout: 10_000 });
     await expect(card.getByText('Active', { exact: true })).toBeVisible({ timeout: 10_000 });
   });
