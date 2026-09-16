@@ -41,6 +41,7 @@ import com.cms.inventory.procurement.repository.PurchaseOrderItemRepository;
 import com.cms.inventory.procurement.repository.PurchaseOrderItemTaxComponentRepository;
 import com.cms.inventory.procurement.repository.PurchaseOrderRepository;
 import com.cms.inventory.procurement.repository.PurchaseRequisitionItemRepository;
+import com.cms.inventory.procurement.repository.QuotationRequestLineRepository;
 import com.cms.inventory.procurement.repository.SupplierRepository;
 import com.cms.inventory.procurement.repository.TaxRuleRepository;
 import com.cms.inventory.stock.model.InventoryLocation;
@@ -61,6 +62,7 @@ class PurchaseOrderServiceTest {
     @Mock private PurchaseOrderItemTaxComponentRepository taxComponentRepository;
     @Mock private ProductUomChainService uomChainService;
     @Mock private ProductVariantRepository variantRepository;
+    @Mock private QuotationRequestLineRepository quotationRequestLineRepository;
     private PurchaseOrderService service;
 
     private final InventoryLocation location = location(1L, "Main Store");
@@ -71,7 +73,7 @@ class PurchaseOrderServiceTest {
     void setUp() {
         service = new PurchaseOrderService(orderRepository, itemRepository, requisitionItemRepository, supplierRepository,
             locationRepository, taxRuleRepository, vendorProductMappingService, jurisdictionService, taxSubTypeService,
-            taxComponentRepository, uomChainService, variantRepository);
+            taxComponentRepository, uomChainService, variantRepository, quotationRequestLineRepository);
     }
 
     // ── addLine — base flow ──────────────────────────────────────────────────
@@ -85,7 +87,7 @@ class PurchaseOrderServiceTest {
         when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("20"), null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("20"), null, new BigDecimal("10"), null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.orderedQty()).isEqualByComparingTo("20");
@@ -106,7 +108,7 @@ class PurchaseOrderServiceTest {
         when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
         when(variantRepository.existsByProductIdAndIsActiveTrue(10L)).thenReturn(true);
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("20"), null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("20"), null, new BigDecimal("10"), null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("has active variants");
@@ -120,7 +122,7 @@ class PurchaseOrderServiceTest {
         when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
         when(variantRepository.findByIdAndProductId(77L, 10L)).thenReturn(Optional.empty());
 
-        var req = new PurchaseOrderAddLineRequest(5L, 77L, new BigDecimal("20"), null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, 77L, new BigDecimal("20"), null, new BigDecimal("10"), null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("does not belong to");
@@ -140,7 +142,7 @@ class PurchaseOrderServiceTest {
         when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
-        var req = new PurchaseOrderAddLineRequest(5L, 77L, new BigDecimal("20"), null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, 77L, new BigDecimal("20"), null, new BigDecimal("10"), null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.variantId()).isEqualTo(77L);
@@ -161,7 +163,7 @@ class PurchaseOrderServiceTest {
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
         // Ordering 5 Boxes (100 tablets each) at 500/box.
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("5"), 3L, new BigDecimal("500"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("5"), 3L, new BigDecimal("500"), null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.orderedQty()).isEqualByComparingTo("500");   // 5 x 100, base units
@@ -181,7 +183,7 @@ class PurchaseOrderServiceTest {
         when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, null, null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, null, null, new BigDecimal("10"), null, null);
         assertThat(service.addLine(1L, req).orderedQty()).isEqualByComparingTo("42");
     }
 
@@ -192,7 +194,7 @@ class PurchaseOrderServiceTest {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, BigDecimal.ZERO, null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, BigDecimal.ZERO, null, new BigDecimal("10"), null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("greater than zero");
@@ -206,7 +208,7 @@ class PurchaseOrderServiceTest {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("not approved");
@@ -219,7 +221,7 @@ class PurchaseOrderServiceTest {
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("different location");
@@ -229,7 +231,7 @@ class PurchaseOrderServiceTest {
     void shouldRejectAddingLineToNonPendingOrder() {
         PurchaseOrder order = order(1L, PurchaseOrderStatus.ORDERED, supplier, location);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), null, null);
         assertThatThrownBy(() -> service.addLine(1L, req)).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -244,7 +246,7 @@ class PurchaseOrderServiceTest {
         when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, null, null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, null, null, null);
         assertThat(service.addLine(1L, req).unitPrice()).isEqualByComparingTo("7.50");
     }
 
@@ -256,7 +258,7 @@ class PurchaseOrderServiceTest {
         when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
         when(vendorProductMappingService.resolveEffectiveRate(1L, 10L)).thenReturn(null);
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, null, null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, null, null, null);
         assertThatThrownBy(() -> service.addLine(1L, req))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("No vendor rate is on file");
@@ -273,7 +275,7 @@ class PurchaseOrderServiceTest {
         when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.taxAmount()).isEqualByComparingTo("0");
@@ -296,7 +298,7 @@ class PurchaseOrderServiceTest {
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
         // 10 units x 100/unit = 1000 subtotal; 18% GST = 180.
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("100"), 2L);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("100"), 2L, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.taxAmount()).isEqualByComparingTo("180.00");
@@ -314,7 +316,7 @@ class PurchaseOrderServiceTest {
         when(requisitionItemRepository.findById(5L)).thenReturn(Optional.of(reqItem));
         when(taxRuleRepository.findById(9L)).thenReturn(Optional.empty());
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), 9L);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("10"), 9L, null);
         assertThatThrownBy(() -> service.addLine(1L, req)).isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -337,7 +339,7 @@ class PurchaseOrderServiceTest {
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
         // No taxRuleId on the request — pre-filled from the product's own default (id 2).
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("100"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("100"), null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.taxRuleId()).isEqualTo(2L);
@@ -361,7 +363,7 @@ class PurchaseOrderServiceTest {
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
         // Explicit taxRuleId (3) overrides the product's default (2) — never even looked up.
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("100"), 3L);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("100"), 3L, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.taxRuleId()).isEqualTo(3L);
@@ -380,7 +382,7 @@ class PurchaseOrderServiceTest {
         when(itemRepository.save(any(PurchaseOrderItem.class))).thenAnswer(inv -> { PurchaseOrderItem i = inv.getArgument(0); i.setId(100L); return i; });
         when(taxComponentRepository.findByPurchaseOrderItem_IdOrderByIdAsc(100L)).thenReturn(List.of());
 
-        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("100"), null);
+        var req = new PurchaseOrderAddLineRequest(5L, null, new BigDecimal("10"), null, new BigDecimal("100"), null, null);
         var res = service.addLine(1L, req);
 
         assertThat(res.taxRuleId()).isNull();

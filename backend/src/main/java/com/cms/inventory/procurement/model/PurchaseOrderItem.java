@@ -55,6 +55,13 @@ public class PurchaseOrderItem {
     @JoinColumn(name = "purchase_requisition_item_id")
     private PurchaseRequisitionItem purchaseRequisitionItem;
 
+    /** The awarded {@code QuotationRequestLine} this line was converted from, when the order was
+     *  raised via the Quotation Request flow rather than picked directly from a requisition line.
+     *  Null for every PO line created the direct way, same as before this slice existed. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "quotation_request_line_id")
+    private QuotationRequestLine quotationRequestLine;
+
     /** Chosen fresh when this line is created — the source requisition line never carries a
      *  variant, same as {@code uomLevel} below. Required once {@link #product} has any active
      *  variant; a Goods Receipt/Supplier Return line against this PO line always inherits this
@@ -115,6 +122,9 @@ public class PurchaseOrderItem {
 
     public PurchaseRequisitionItem getPurchaseRequisitionItem() { return purchaseRequisitionItem; }
     public void setPurchaseRequisitionItem(PurchaseRequisitionItem purchaseRequisitionItem) { this.purchaseRequisitionItem = purchaseRequisitionItem; }
+
+    public QuotationRequestLine getQuotationRequestLine() { return quotationRequestLine; }
+    public void setQuotationRequestLine(QuotationRequestLine quotationRequestLine) { this.quotationRequestLine = quotationRequestLine; }
 
     public ProductVariant getVariant() { return variant; }
     public void setVariant(ProductVariant variant) { this.variant = variant; }

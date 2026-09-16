@@ -24,5 +24,8 @@ public record PurchaseOrderAddLineRequest(
     BigDecimal orderedQty,
     Long uomLevelId,
     BigDecimal unitPrice,
-    Long taxRuleId
+    Long taxRuleId,
+    /** Set only when this line is being created from an awarded {@code QuotationRequestLine} —
+     *  links the two for traceability. Null for every line added the direct way. */
+    Long quotationRequestLineId
 ) {}
