@@ -67,6 +67,7 @@ export class CmsStatusBadgeComponent {
 
       // ── In-progress / warning states ────────────────────────────────────
       case 'PARTIALLY_PAID':
+      case 'PARTIAL':
       case 'IN_USE':
       case 'UNDER_REPAIR':
       case 'LATE':

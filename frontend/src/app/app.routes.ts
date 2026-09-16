@@ -1795,6 +1795,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'student/my-fees',
+    canActivate: withPermission('MY_FEE_VIEW'),
+    loadComponent: () =>
+      import('./features/student-portal/my-fees/my-fees.component').then(
+        (m) => m.MyFeesComponent
+      ),
+  },
+  {
     path: 'timetable/draft-review',
     canActivate: withPermission('TIMETABLE_MANAGE'),
     loadComponent: () =>

@@ -125,6 +125,24 @@ export class FinanceService {
     return this.http.get<PenaltyResponse>(`${this.studentFeeUrl}/${studentId}/penalties`);
   }
 
+  /** Current authenticated student's own semester-wise fee breakdown (self-service portal) --
+   *  never a client-supplied studentId. `null` (204) when unlinked or not yet finalized, both
+   *  real non-error states for a newly admitted student. */
+  getMyFeeSummary(): Observable<StudentFeeAllocation | null> {
+    return this.http.get<StudentFeeAllocation | null>(`${this.studentFeeUrl}/my/summary`);
+  }
+
+  /** Current authenticated student's own payment receipts. */
+  getMyReceipts(): Observable<Receipt[]> {
+    return this.http.get<Receipt[]>(`${this.studentFeeUrl}/my/receipts`);
+  }
+
+  /** Current authenticated student's own outstanding late-fee penalties. `null` (204) when
+   *  unlinked or not yet finalized. */
+  getMyPenalties(): Observable<PenaltyResponse | null> {
+    return this.http.get<PenaltyResponse | null>(`${this.studentFeeUrl}/my/penalties`);
+  }
+
   searchStudentFees(search?: string): Observable<FeeExplorerResult> {
     const params = search ? `?search=${encodeURIComponent(search)}&legacy=true` : '?legacy=true';
     return this.http.get<FeeExplorerResult>(`${this.studentFeeUrl}/explorer${params}`);

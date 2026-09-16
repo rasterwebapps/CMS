@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ import com.cms.service.FeeRefundService;
 import com.cms.service.OneBookIntegrationService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
+import com.cms.service.StudentFeeSelfServiceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(controllers = StudentFeeController.class)
@@ -78,6 +80,9 @@ class StudentFeeControllerTest {
 
     @MockitoBean
     private com.cms.service.FeeRefundExportService feeRefundExportService;
+
+    @MockitoBean
+    private StudentFeeSelfServiceService studentFeeSelfServiceService;
 
     @Test
     void shouldFinalizeFeeAllocation() throws Exception {
@@ -419,6 +424,64 @@ class StudentFeeControllerTest {
             .andExpect(status().isNotFound());
 
         verify(paymentCollectionService).getReceiptById(1L, 999L);
+    }
+
+    @Test
+    void shouldGetMySummary() throws Exception {
+        StudentFeeAllocationResponse response = createAllocationResponse();
+        when(studentFeeSelfServiceService.findMySummary("")).thenReturn(Optional.of(response));
+
+        mockMvc.perform(get("/student-fees/my/summary"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.studentId").value(1))
+            .andExpect(jsonPath("$.installmentFees.length()").value(2));
+
+        verify(studentFeeSelfServiceService).findMySummary("");
+    }
+
+    @Test
+    void shouldReturnNoContentForMySummaryWhenUnlinkedOrNotFinalized() throws Exception {
+        when(studentFeeSelfServiceService.findMySummary("")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/student-fees/my/summary"))
+            .andExpect(status().isNoContent());
+
+        verify(studentFeeSelfServiceService).findMySummary("");
+    }
+
+    @Test
+    void shouldGetMyReceipts() throws Exception {
+        List<ReceiptResponse> receipts = List.of(createReceiptResponse(1L, "RCP-2025-0001"));
+        when(studentFeeSelfServiceService.findMyReceipts("")).thenReturn(receipts);
+
+        mockMvc.perform(get("/student-fees/my/receipts"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].receiptNumber").value("RCP-2025-0001"));
+
+        verify(studentFeeSelfServiceService).findMyReceipts("");
+    }
+
+    @Test
+    void shouldGetMyPenalties() throws Exception {
+        PenaltyResponse response = createPenaltyResponse();
+        when(studentFeeSelfServiceService.findMyPenalties("")).thenReturn(Optional.of(response));
+
+        mockMvc.perform(get("/student-fees/my/penalties"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalPenalty").value(1500.00));
+
+        verify(studentFeeSelfServiceService).findMyPenalties("");
+    }
+
+    @Test
+    void shouldReturnNoContentForMyPenaltiesWhenUnlinkedOrNotFinalized() throws Exception {
+        when(studentFeeSelfServiceService.findMyPenalties("")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/student-fees/my/penalties"))
+            .andExpect(status().isNoContent());
+
+        verify(studentFeeSelfServiceService).findMyPenalties("");
     }
 
     private StudentFeeAllocationResponse createAllocationResponse() {
