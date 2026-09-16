@@ -29,11 +29,12 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
   CLAUDE.md-mandated master screen's create round-trip + real-time
   `uniqueFieldValidator` check (`master-entry-uniqueness-constraints.md`).
   Currently covers Blood Group, Speciality, Community, Referral Type,
-  Designation, Institution, Program — add a `MasterConfig` entry (optionally
-  with `fillExtra` for a form with one extra required field lacking a
-  default, like Program's durationYears) to extend to the rest. Agent and
-  Course don't fit this shape as-is (Agent has no code field; Course
-  requires a real Program to be picked first) — not yet covered.
+  Designation, Institution, Program, Agent, Course (9 masters, 18 tests) —
+  add a `MasterConfig` entry to extend to the rest (`codeFieldId` is
+  optional for a name-only master like Agent; `fillExtra` fills any one-off
+  extra required field, e.g. Program's durationYears or Course's
+  rollNumberCode + programId). Scholarship Type, Countries/States/Districts,
+  and the rest of Preferences are still open.
 - `tests/masters-lifecycle.spec.ts` — **Tier A**: activate/deactivate round-trip
   from the list screen (`master-lifecycle-status-management.md`,
   TC-MASTER-LIFE-001 pattern), via the shared `ConfirmDialogComponent`.
@@ -62,6 +63,21 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
   `/enquiries/:id/convert` (an 800+ line form). Driving an enquiry through
   that whole pipeline with real uploads/approvals to test the actual convert
   submission is deliberately left for a dedicated follow-up — see next.
+- `tests/fee-explorer.spec.ts` — **Tier A**: dataset-correctness regression
+  spec for `/student-fees` (Fee Explorer), written for the pagination bug
+  fixed on the `oc-253-student-fee-self-service` branch (filter dropdowns
+  and the "N students" count were derived from the loaded page, not the
+  full server-paginated dataset). Grabs a real Program value from the
+  actual last page and asserts it survives the round trip — the route
+  crawler would NOT have caught this class of bug (screen renders fine,
+  200s, just silently shows wrong/incomplete data). **Not yet fully
+  red/green-verified** — see its file header and the rollout note below.
+- `tests/student.spec.ts`, `tests/faculty.spec.ts` — **Tier A**: real create
+  round-trips. Both list screens sort by an auto-generated field unrelated
+  to creation order (244 real students on this environment) — a freshly
+  created row isn't reliably on page 1, so both search for their new row by
+  a field the spec set explicitly (roll number / employee code) rather than
+  assuming placement, the way a real user would actually check their save.
 
 ## Rollout plan (OC-250)
 
@@ -72,10 +88,9 @@ cause behind live support-call failures. The plan is to keep adding Tier-A
 specs seeded directly from that catalogue, prioritized by risk:
 
 1. ~~Role & User Management~~ (done — matches the reported failure)
-2. ~~Master screens sharing the `uniqueFieldValidator` pattern~~ (Blood Group,
-   Speciality, Community, Referral Type, Designation, Institution, Program
-   done; Agent/Course/Scholarship Type/Countries-States-Districts and the
-   rest of Preferences still open — extend `MasterConfig`)
+2. ~~Master screens sharing the `uniqueFieldValidator` pattern~~ — 9 of them
+   done (see `masters.spec.ts` note above); Scholarship Type,
+   Countries/States/Districts, and the rest of Preferences still open
 3. High-traffic transaction screens — **done, at entry-point depth**:
    - ~~Attendance / Exam Results~~ (`filter-gated-lists.spec.ts`)
    - ~~Enquiry creation~~ (`enquiry.spec.ts`, full real create)
@@ -90,17 +105,53 @@ specs seeded directly from that catalogue, prioritized by risk:
      isolated test fixture rather than writing against shared 243 state, and
      each touches 3-4 large components that deserve their own careful trace.
 4. Everything else in `docs/manual-test-cases/`, worked through in file order
-   (in progress — masters extended to Designation/Institution/Program so far)
+   — **in progress.** Done so far: the 9 masters above, Student (create),
+   Faculty (create), Fee Explorer (dataset-correctness). **Not started:**
+   Library Management, Inventory (~30 files — the largest single chunk),
+   Subject/Curriculum Management, Scholarship, Fee Structures,
+   Country/Location Master, plus a long tail of lower-value UI-polish docs
+   (dynamic theming, column visibility, table sorting alignment, etc.) —
+   deprioritize those relative to functional-module coverage.
 
-**Update:** the whole suite has now run for real against 243 (`e2e/.env`
-filled in with the `devadmin`/`collegeadmin` bootstrap accounts from
-`infrastructure/keycloak/cms-realm.json`). That first real run found 243 was
-stale — missing OC-242 entirely — and a genuine app bug (OC-252, fixed:
-`/lab-schedules/new` 500'd on every load). Every spec listed above is
-green against a freshly redeployed 243 as of that run. Still true: only flip
-a `**Status:**` line in `docs/manual-test-cases/*.md` from `NOT TESTED` to
-`PASS` after re-confirming it green against a specific run, not just because
-a spec exists — 243's state can drift again the same way it did before.
+**Status as of this session:** the whole suite has run for real against 243
+(`e2e/.env` filled in with the `devadmin`/`collegeadmin` bootstrap accounts
+from `infrastructure/keycloak/cms-realm.json` — no cashier/faculty/student
+Keycloak accounts are seeded there, so those role-gated specs stay skipped
+until real creds are added). That first real run found 243 itself was stale
+— missing OC-242 entirely — and a genuine app bug, OC-252 (fixed:
+`/lab-schedules/new` 500'd on every load, `lab-schedule-form.component.ts`
+calling `GET /term-instances` with no `academicYearId`, which the backend
+has never supported unfiltered). Every spec above **except
+`fee-explorer.spec.ts`** is green against a freshly redeployed 243 as of
+this session. Still true: only flip a `**Status:**` line in
+`docs/manual-test-cases/*.md` from `NOT TESTED` to `PASS` after
+re-confirming green against a *specific* run — 243's state can drift again
+the same way it did before, and did again mid-session (see next).
+
+**Picking this back up — read this first:**
+1. **`fee-explorer.spec.ts` needs a real run once the fee-explorer fix
+   ships.** That fix (filter dropdowns/count reading the loaded page
+   instead of the full dataset) lives on branch
+   `oc-253-student-fee-self-service`, not yet merged to `main` or deployed
+   anywhere. On 243 right now (pre-fix) the deep test **skips** rather than
+   fails — the bug itself makes the footer always show exactly "25
+   students" (the page size), which fools the test's own `total > 25`
+   precondition. Once that branch merges and 243 is redeployed, re-run this
+   spec specifically to get a real result.
+2. **This repo has multiple concurrent Claude Code sessions sharing one
+   working directory.** Twice this session another session's branch
+   silently became `HEAD` mid-turn and a commit landed on it by mistake
+   (cherry-picked onto `main` both times, nothing lost). **Always
+   `git branch --show-current` before editing or committing any `e2e/`
+   file**, and `git checkout main` first if it's not already there — a
+   stale branch can also make a just-edited file look reverted when you
+   re-read it (harmless; the real content is on `main`).
+3. Run `scripts/regression-gate.sh <branch>` or `cd e2e && npx playwright
+   test` directly once `.env` is filled in — see "One-time setup" above.
+   `dev.raster.in:212` (the documented URL) wasn't reachable from this
+   agent's network; `https://172.17.1.243:8443` (direct IP) worked fine as
+   a substitute — try the documented URL first from a machine with real
+   LAN/VPN access, since it's the intended path.
 
 ## Adding a new spec
 
