@@ -16,6 +16,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsIconDeleteComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
@@ -41,6 +42,7 @@ import { ATTENDANCE_TOUR, ATTENDANCE_FLOW_MAP } from '../../../shared/tour/tours
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
+    CmsStatusBadgeComponent,
     CmsIconDeleteComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
 ],
