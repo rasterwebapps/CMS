@@ -1,6 +1,7 @@
 package com.cms.inventory.issue.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -31,7 +32,9 @@ import com.cms.inventory.issue.repository.StockIssueRequestItemRepository;
 import com.cms.inventory.issue.repository.StockIssueRequestRepository;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.model.InventoryLocation;
+import com.cms.inventory.stock.model.enums.LocationRole;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
+import com.cms.inventory.stock.repository.StockBalanceRepository;
 import com.cms.inventory.stock.service.StockMovementService;
 
 /**
@@ -56,19 +59,22 @@ public class StockIssueRequestService {
     private final ProductRepository productRepository;
     private final StockMovementService stockMovementService;
     private final ProductVariantRepository variantRepository;
+    private final StockBalanceRepository balanceRepository;
 
     public StockIssueRequestService(StockIssueRequestRepository requestRepository,
                                      StockIssueRequestItemRepository lineRepository,
                                      InventoryLocationRepository locationRepository,
                                      ProductRepository productRepository,
                                      StockMovementService stockMovementService,
-                                     ProductVariantRepository variantRepository) {
+                                     ProductVariantRepository variantRepository,
+                                     StockBalanceRepository balanceRepository) {
         this.requestRepository = requestRepository;
         this.lineRepository = lineRepository;
         this.locationRepository = locationRepository;
         this.productRepository = productRepository;
         this.stockMovementService = stockMovementService;
         this.variantRepository = variantRepository;
+        this.balanceRepository = balanceRepository;
     }
 
     @Transactional
@@ -80,6 +86,8 @@ public class StockIssueRequestService {
             .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + request.requestingLocationId()));
         InventoryLocation issuingLocation = locationRepository.findById(request.issuingLocationId())
             .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + request.issuingLocationId()));
+        requireCanRequest(requestingLocation);
+        requireCanIssue(issuingLocation);
 
         StockIssueRequest issueRequest = new StockIssueRequest();
         issueRequest.setRequestingLocation(requestingLocation);
@@ -220,6 +228,21 @@ public class StockIssueRequestService {
         }
     }
 
+    /** Same weighted-average formula {@code StockMovementService}'s own decrease-valuation uses,
+     *  and the same lookup {@code StockTransferService.currentUnbatchedUnitCost} uses — without
+     *  it, an Internal Return's INCREASE movement would resolve to a null unit cost, which {@code
+     *  StockMovementService.recordMovement} defaults to zero on an increase, silently diluting the
+     *  issuing location's weighted-average cost on every return. */
+    private BigDecimal currentUnbatchedUnitCost(Long productId, Long variantId, Long locationId) {
+        var balance = variantId != null
+            ? balanceRepository.findByProductIdAndVariantIdAndLocationIdAndBatchIsNull(productId, variantId, locationId)
+            : balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(productId, locationId);
+        return balance
+            .filter(b -> b.getQtyOnHand().signum() > 0)
+            .map(b -> b.getValueOnHand().divide(b.getQtyOnHand(), 2, RoundingMode.HALF_UP))
+            .orElse(BigDecimal.ZERO);
+    }
+
     /**
      * Resolves {@code variantId} against {@code product}, enforcing that it actually belongs to
      * that product and that one is given at all once the product has any active variant — the
@@ -237,6 +260,23 @@ public class StockIssueRequestService {
                 "'" + product.getProductName() + "' has active variants — select one for this line");
         }
         return null;
+    }
+
+    /** A {@code STORE}-role location is the parent — it stocks and issues, never requests. */
+    private void requireCanRequest(InventoryLocation location) {
+        if (location.getLocationRole() == LocationRole.STORE) {
+            throw new IllegalArgumentException(
+                "'" + location.getVirtualName() + "' is a store location and cannot request stock — pick a requesting-point location instead");
+        }
+    }
+
+    /** A {@code REQUESTING_POINT}-role location is a sister — it draws stock, never issues it
+     *  to another location, so sisters can never request-from-issue directly between each other. */
+    private void requireCanIssue(InventoryLocation location) {
+        if (location.getLocationRole() == LocationRole.REQUESTING_POINT) {
+            throw new IllegalArgumentException(
+                "'" + location.getVirtualName() + "' is a requesting-point location and cannot issue stock — pick a store location instead");
+        }
     }
 
     private StockIssueRequest requireRequest(Long id) {
@@ -315,10 +355,13 @@ public class StockIssueRequestService {
                 "Returned quantity (" + request.returnedQty() + ") exceeds what's still returnable on this line (" + openQty + ")");
         }
 
+        Long variantId = line.getVariant() != null ? line.getVariant().getId() : null;
+        BigDecimal unitCost = currentUnbatchedUnitCost(line.getProduct().getId(), variantId, issueRequest.getIssuingLocation().getId());
+
         stockMovementService.recordMovement(new StockMovementRequest(
-            line.getProduct().getId(), line.getVariant() != null ? line.getVariant().getId() : null,
+            line.getProduct().getId(), variantId,
             issueRequest.getIssuingLocation().getId(), null, null,
-            "RETURN", "INCREASE", request.returnedQty(), null,
+            "RETURN", "INCREASE", request.returnedQty(), unitCost,
             "Internal Return — Stock Issue Request #" + issueRequest.getId() + " line #" + line.getId()
                 + (request.notes() != null ? " — " + request.notes() : ""), null
         ), actor);

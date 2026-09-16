@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -32,6 +32,13 @@ export class StockIssueRequestNewComponent implements OnInit {
 
   protected readonly saving    = signal(false);
   protected readonly locations = signal<InventoryLocation[]>([]);
+
+  /** Only a REQUESTING_POINT/BOTH location can be the requester — a STORE never requests. */
+  protected readonly requestingLocations = computed(() =>
+    this.locations().filter((l) => l.locationRole === 'REQUESTING_POINT' || l.locationRole === 'BOTH'));
+  /** Only a STORE/BOTH location can issue — a REQUESTING_POINT never issues to another location. */
+  protected readonly issuingLocations = computed(() =>
+    this.locations().filter((l) => l.locationRole === 'STORE' || l.locationRole === 'BOTH'));
 
   protected readonly form: FormGroup = this.fb.group({
     requestingLocationId: [null as number | null, [Validators.required]],

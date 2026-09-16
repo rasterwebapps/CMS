@@ -35,7 +35,7 @@
               <select id="ir-requesting" class="field-select" formControlName="requestingLocationId"
                 [class.field-select--error]="form.get('requestingLocationId')?.invalid && form.get('requestingLocationId')?.touched">
                 <option [ngValue]="null" disabled>Select a location</option>
-                @for (l of locations(); track l.id) {
+                @for (l of requestingLocations(); track l.id) {
                   <option [ngValue]="l.id">{{ l.virtualName }}</option>
                 }
               </select>
@@ -49,7 +49,7 @@
               <select id="ir-issuing" class="field-select" formControlName="issuingLocationId"
                 [class.field-select--error]="form.get('issuingLocationId')?.invalid && form.get('issuingLocationId')?.touched">
                 <option [ngValue]="null" disabled>Select a location</option>
-                @for (l of locations(); track l.id) {
+                @for (l of issuingLocations(); track l.id) {
                   <option [ngValue]="l.id">{{ l.virtualName }}</option>
                 }
               </select>

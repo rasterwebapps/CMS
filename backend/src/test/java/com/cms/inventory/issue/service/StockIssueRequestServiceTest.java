@@ -33,7 +33,9 @@ import com.cms.inventory.issue.repository.StockIssueRequestItemRepository;
 import com.cms.inventory.issue.repository.StockIssueRequestRepository;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.model.InventoryLocation;
+import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
+import com.cms.inventory.stock.repository.StockBalanceRepository;
 import com.cms.inventory.stock.service.StockMovementService;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,6 +47,7 @@ class StockIssueRequestServiceTest {
     @Mock private ProductRepository productRepository;
     @Mock private StockMovementService stockMovementService;
     @Mock private ProductVariantRepository variantRepository;
+    @Mock private StockBalanceRepository balanceRepository;
     private StockIssueRequestService service;
 
     private final InventoryLocation requesting = location(1L, "Ward A");
@@ -54,7 +57,7 @@ class StockIssueRequestServiceTest {
     @BeforeEach
     void setUp() {
         service = new StockIssueRequestService(requestRepository, lineRepository, locationRepository, productRepository,
-            stockMovementService, variantRepository);
+            stockMovementService, variantRepository, balanceRepository);
     }
 
     @Test
@@ -63,6 +66,34 @@ class StockIssueRequestServiceTest {
         assertThatThrownBy(() -> service.create(req, "clerk"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("must be different");
+    }
+
+    @Test
+    void shouldRejectCreateWhenRequestingLocationIsAStore() {
+        InventoryLocation store = location(3L, "Pharmacy Store");
+        store.setLocationRole(com.cms.inventory.stock.model.enums.LocationRole.STORE);
+        when(locationRepository.findById(3L)).thenReturn(Optional.of(store));
+        when(locationRepository.findById(2L)).thenReturn(Optional.of(issuing));
+
+        var req = new com.cms.inventory.issue.dto.StockIssueRequestCreateRequest(3L, 2L, LocalDate.now(), null);
+        assertThatThrownBy(() -> service.create(req, "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("cannot request stock");
+    }
+
+    @Test
+    void shouldRejectCreateWhenIssuingLocationIsARequestingPoint() {
+        InventoryLocation requestingPoint = location(1L, "Ward A");
+        requestingPoint.setLocationRole(com.cms.inventory.stock.model.enums.LocationRole.REQUESTING_POINT);
+        InventoryLocation anotherRequestingPoint = location(4L, "Ward B");
+        anotherRequestingPoint.setLocationRole(com.cms.inventory.stock.model.enums.LocationRole.REQUESTING_POINT);
+        when(locationRepository.findById(1L)).thenReturn(Optional.of(requestingPoint));
+        when(locationRepository.findById(4L)).thenReturn(Optional.of(anotherRequestingPoint));
+
+        var req = new com.cms.inventory.issue.dto.StockIssueRequestCreateRequest(1L, 4L, LocalDate.now(), null);
+        assertThatThrownBy(() -> service.create(req, "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("cannot issue stock");
     }
 
     @Test
@@ -163,12 +194,19 @@ class StockIssueRequestServiceTest {
         when(requestRepository.findById(1L)).thenReturn(Optional.of(issueRequest));
         when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
 
+        StockBalance balance = new StockBalance();
+        balance.setQtyOnHand(new BigDecimal("20"));
+        balance.setValueOnHand(new BigDecimal("40.00"));
+        when(balanceRepository.findByProductIdAndVariantIdAndLocationIdAndBatchIsNull(10L, 77L, 2L))
+            .thenReturn(Optional.of(balance));
+
         var req = new StockIssueRequestReturnLineRequest(new BigDecimal("2"), null);
         service.returnLine(1L, 500L, req, "clerk");
 
         verify(stockMovementService).recordMovement(org.mockito.ArgumentMatchers.argThat(
             (StockMovementRequest r) -> r.productId().equals(10L) && r.variantId().equals(77L)
-                && "RETURN".equals(r.txnType()) && "INCREASE".equals(r.direction())), eq("clerk"));
+                && "RETURN".equals(r.txnType()) && "INCREASE".equals(r.direction())
+                && r.unitCost().compareTo(new BigDecimal("2.00")) == 0), eq("clerk"));
         assertThat(line.getReturnedQty()).isEqualByComparingTo("2");
     }
 

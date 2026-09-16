@@ -27,6 +27,7 @@ import com.cms.inventory.stock.model.InventoryBin;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.StockTransfer;
 import com.cms.inventory.stock.model.StockTransferLine;
+import com.cms.inventory.stock.model.enums.LocationRole;
 import com.cms.inventory.stock.model.enums.StockTransferStatus;
 import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
@@ -87,6 +88,7 @@ public class StockTransferService {
             .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + request.sourceLocationId()));
         InventoryLocation destination = locationRepository.findById(request.destinationLocationId())
             .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + request.destinationLocationId()));
+        requireAtLeastOneStore(source, destination);
 
         StockTransfer transfer = new StockTransfer();
         transfer.setSourceLocation(source);
@@ -250,6 +252,18 @@ public class StockTransferService {
                 "Bin '" + bin.getName() + "' does not belong to location '" + expectedLocation.getVirtualName() + "'");
         }
         return bin;
+    }
+
+    /** Unlike Stock Issue Request (always sister -> store), a Transfer is a plain push either way
+     *  — a sister returning surplus to the store is legitimate. What's never legitimate is two
+     *  {@code REQUESTING_POINT} sisters trading directly with each other, bypassing the store; a
+     *  {@code STORE}/{@code BOTH} location on at least one side keeps that from happening. */
+    private void requireAtLeastOneStore(InventoryLocation source, InventoryLocation destination) {
+        if (source.getLocationRole() == LocationRole.REQUESTING_POINT && destination.getLocationRole() == LocationRole.REQUESTING_POINT) {
+            throw new IllegalArgumentException(
+                "Transfers directly between two requesting-point locations ('" + source.getVirtualName() + "' and '"
+                    + destination.getVirtualName() + "') aren't allowed — at least one side must be a store");
+        }
     }
 
     private StockTransfer requireTransfer(Long id) {
