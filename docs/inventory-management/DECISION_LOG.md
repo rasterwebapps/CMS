@@ -2384,4 +2384,48 @@ batches, 6 Issue Requests, 4 Transfers, 3 Loanable Item Issues.
 `scripts/inventory-overnight-run.sh`, `scripts/inventory-overnight-prompt-*.md` (new, overnight
 cron mechanism); local dev Postgres data only — no migration, no schema change.
 
+## 2026-09-16 — Overnight cron never fired; resumed live, finished the 13-screen checkup floor
+
+The three-pass unattended cron mechanism from the previous entry never actually ran: `crontab -l`
+the next morning showed zero `INVENTORY-AUTO-*` entries (only pre-existing unrelated cron lines),
+`~/.inventory-autonomous-logs/` was empty, and there were no commits in this worktree after the
+kickoff commit. Root cause: registering system crontab entries requires the user to run
+`crontab ...` themselves via `! crontab ...` — auto-mode's permission classifier blocks Claude
+from doing it directly — and that manual step never happened for this session (the sibling
+Academics/timetable overnight session succeeded because it used the native
+`--permission-mode auto` long-running resume mode instead of cron, which needs no such step). No
+data was lost — the worktree was already fully committed. Resumed the remaining checkup live at
+the user's direction instead of re-attempting cron.
+
+**Completed the mandatory floor** — checked all 13 remaining Stock Management screens (Dashboard,
+Products, Categories, Units of Measure, Brands, UOM Conversion Templates, Locations, Storage Racks
++ Bins, Stock Balance, Cycle Counts, Stock Valuation, Goods Receipts, Supplier Returns) against
+CLAUDE.md's list-screen structural gate, badge/status audit, `mlp-page` spacing gate, and
+operation-wise permission mapping. Unlike several other modules' history, all 13 were already
+structurally clean — paginator/`table-wrapper`/`content-card` nesting, `matSort` bindings, and
+`mlp-*` class usage all matched the established shared patterns, and every master form
+(Products/Categories/UOM/Brands/UOM Templates/Locations/Racks) already had the uniqueness
+validator wired. Permission mapping confirmed correct at the backend `@PreAuthorize` layer:
+Bins have their own `INVENTORY_BIN_VIEW`/`MANAGE` distinct from Racks; Goods Receipt's `CONFIRM`
+and Cycle Count's `APPROVE` are separate from their own `MANAGE`; Supplier Return correctly has no
+separate approve permission since its lifecycle has no approval gate by design.
+
+**One real bug found and fixed:** `GoodsReceiptStatus.CONFIRMED` was missing from
+`CmsStatusBadgeComponent.resolveClass()`'s switch (`frontend/src/app/shared/status-badge/
+status-badge.component.ts`) — every confirmed Goods Receipt's status badge silently rendered with
+no color (fell to the `default: return ''` case), on both the Goods Receipt list and detail
+screens. Fixed by adding `CONFIRMED` alongside `APPROVED`/`COMMITTED` in the terminal-success-state
+bucket. `Stock Valuation` has no `mat-paginator` at all (it's a small by-category aggregate report,
+currently 11 rows) so the list-screen structural gate doesn't apply to it — not a defect.
+
+**Verified:** `npx tsc -p tsconfig.app.json --noEmit` clean across the whole frontend after the
+fix (this worktree had no `node_modules` — symlinked from the main checkout since `package-lock.json`
+is identical). No self-run visual verification tonight (still no light/dark/role click-through) —
+that remains an outstanding manual QA item, same posture as the 3 screens audited before this pass.
+
+**Impact:** `frontend/src/app/shared/status-badge/status-badge.component.ts` (one-line fix); this
+decision log entry. The stretch goal (Quotation Request → Approval → PO → stock update) has not
+been started — it's substantial new-feature scope and, per this repo's @Partner Mode rule, needs a
+specialist round before implementation rather than being built unattended.
+
 *Next entry goes here — do not insert above this line.*
