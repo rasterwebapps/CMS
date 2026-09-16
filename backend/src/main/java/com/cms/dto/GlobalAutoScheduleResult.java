@@ -46,7 +46,16 @@ import java.util.List;
  *  TimetableGlobalAutoScheduleService#recordFacultySubstitutionIfAny}). The substitute sessions are
  *  already placed and staffed by the time this is reported — purely an actionable tip ("consider
  *  reassigning this offering") for an admin, never a pending action of its own. Empty on the common
- *  run where every row's own bound faculty covered everything it needed to. */
+ *  run where every row's own bound faculty covered everything it needed to.
+ *
+ * <p>{@code postRunConflicts} is a term-wide {@link TimetableConflictRow} scan (the exact same
+ *  check Conflict Inspector runs) taken right after this run finished placing/staffing everything
+ *  it could — flag-only, nothing here was auto-resolved. This is the one category of problem the
+ *  rebuild above structurally cannot fix on its own: a pinned cell is deliberately left standing
+ *  rather than re-placed (see {@code purgeDraftCellsForRebuild}'s javadoc), so a conflict it has
+ *  with something this run placed, or with another cohort's own pre-existing cell, would otherwise
+ *  go unnoticed until someone happened to open Conflict Inspector separately. Empty on a term with
+ *  no structural conflicts left standing after this run. */
 public record GlobalAutoScheduleResult(
     int totalPlaced,
     int totalStaffed,
@@ -73,5 +82,7 @@ public record GlobalAutoScheduleResult(
      *  ClinicalResidualItem} for why this is arithmetic rather than a placement failure, and why
      *  the grid can never absorb it. Empty on a term whose duty rosters already cover their
      *  subjects' full curriculum hours. */
-    List<ClinicalResidualItem> clinicalResiduals
+    List<ClinicalResidualItem> clinicalResiduals,
+
+    List<TimetableConflictRow> postRunConflicts
 ) {}
