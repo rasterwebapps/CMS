@@ -41,7 +41,10 @@ for (const master of MASTERS) {
     test(`create round-trip: new ${master.label} saves and appears in the list`, async ({ page }) => {
       await loginAs(page, 'admin');
       await page.goto(master.listRoute);
-      await page.getByRole('button', { name: master.addButtonName }).click();
+      // Match on visible text, not accessible name — these "Add X" buttons carry an
+      // aria-label that doesn't match their text ("Add new blood group" vs "Add Blood
+      // Group"), which silently breaks role-based name matching.
+      await page.getByRole('button').filter({ hasText: master.addButtonName }).click();
 
       await page.locator(`#${master.nameFieldId}`).fill(name);
       await page.locator(`#${master.codeFieldId}`).fill(code);
@@ -51,7 +54,9 @@ for (const master of MASTERS) {
       // see referral-type "Created" vs community "Community created" vs speciality no toast at
       // all): the form always navigates back to the list and the row is really there.
       await expect(page).toHaveURL(new RegExp(`${master.listRoute}$`), { timeout: 10_000 });
-      await expect(page.getByText(name)).toBeVisible({ timeout: 10_000 });
+      // exact:true — a lingering row-action tooltip ("Deactivate " + name) contains the
+      // bare name as a substring and made this ambiguous under default matching.
+      await expect(page.getByText(name, { exact: true })).toBeVisible({ timeout: 10_000 });
     });
 
     test(`real-time uniqueness: re-typing the just-created ${master.label} name flags it before submit`, async ({ page }) => {
