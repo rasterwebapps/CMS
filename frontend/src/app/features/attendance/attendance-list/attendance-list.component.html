@@ -33,6 +33,39 @@
           </button>
         }
       </div>
+
+      <select
+        class="mlp-filter-select"
+        [value]="selectedSubjectId() ?? ''"
+        (change)="onSubjectChange($any($event.target).value)"
+        aria-label="Filter by subject"
+      >
+        <option value="" disabled>Select a subject</option>
+        @for (subject of subjects(); track subject.id) {
+          <option [value]="subject.id">{{ subject.name }}</option>
+        }
+      </select>
+
+      <input
+        type="date"
+        class="mlp-filter-select"
+        [value]="filterDate()"
+        (change)="onDateChange($any($event.target).value)"
+        aria-label="Filter by date"
+      />
+
+      <select
+        class="mlp-filter-select"
+        [value]="filterStatus()"
+        (change)="onStatusFilterChange($any($event.target).value)"
+        aria-label="Filter by status"
+      >
+        <option value="">All Statuses</option>
+        @for (status of statusOptions; track status) {
+          <option [value]="status">{{ status }}</option>
+        }
+      </select>
+
       @if (!loading()) {
         <span class="count-badge" aria-live="polite">
           @if (dataSource.filteredData.length < dataSource.data.length) {
@@ -109,8 +142,8 @@
             <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0; border: none;">
               <cms-empty-state
                 icon="fact_check"
-                [title]="searchValue() ? 'No attendance records found' : 'No attendance records yet'"
-                [subtitle]="searchValue() ? 'No attendance records match your search.' : 'Attendance records will appear here once marked.'"
+                [title]="!selectedSubjectId() ? 'Select a subject to begin' : (searchValue() ? 'No attendance records found' : 'No attendance records yet')"
+                [subtitle]="!selectedSubjectId() ? 'Choose a subject above (and optionally a date) to load its attendance records.' : (searchValue() ? 'No attendance records match your search.' : 'Attendance records will appear here once marked.')"
               />
             </td>
           </tr>

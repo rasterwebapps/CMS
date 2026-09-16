@@ -16,25 +16,25 @@
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
 | **Action**  | Click "Attendance" in the sidebar navigation     |
-| **Expected**| Attendance list page loads with columns: Student, Course, Date, Status, Actions |
+| **Expected**| Attendance list page loads with columns: Date, Student, Subject, Type, Status, Actions. No records are loaded yet — the page prompts "Select a subject to begin" until a subject is chosen (the backend requires at least one filter; there is no unfiltered "list everything" call). |
 
 ---
 
-### TC-ATT-002: Filter Attendance by Student
+### TC-ATT-002: Search Attendance by Student
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Select a student from the student filter dropdown |
-| **Expected**| Table filters to show only attendance records for the selected student |
+| **Action**  | With a subject selected (so records are loaded), type a student's name into the search box |
+| **Expected**| Table filters client-side to rows matching the search text (there is no dedicated student dropdown — student count is unbounded, so free-text search is the supported path) |
 
 ---
 
-### TC-ATT-003: Filter Attendance by Course
+### TC-ATT-003: Filter Attendance by Subject
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Select a course from the course filter dropdown  |
-| **Expected**| Table filters to show only attendance records for the selected course |
+| **Action**  | Select a subject from the subject filter dropdown |
+| **Expected**| Table loads and shows attendance records for the selected subject (required — this is the mandatory filter that triggers the load) |
 
 ---
 
@@ -42,8 +42,17 @@
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | Select a date or date range from the date picker |
-| **Expected**| Table filters to show only attendance records matching the selected date(s) |
+| **Action**  | With a subject selected, pick a date from the date filter |
+| **Expected**| Table reloads to show only attendance records for the selected subject on that date |
+
+---
+
+### TC-ATT-004a: Filter Attendance by Status
+
+| Field       | Value                                            |
+|-------------|--------------------------------------------------|
+| **Action**  | With a subject selected, choose a status (Present/Absent/Late/Excused) from the status filter dropdown |
+| **Expected**| Table filters client-side to rows matching the selected status only |
 
 ---
 
@@ -105,8 +114,8 @@
 
 | Field       | Value                                            |
 |-------------|--------------------------------------------------|
-| **Action**  | View attendance list when no records exist       |
-| **Expected**| Table shows "No data available" message          |
+| **Action**  | Select a subject with no attendance records marked yet |
+| **Expected**| Table shows "No attendance records yet" / "Attendance records will appear here once marked." |
 
 ---
 

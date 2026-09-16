@@ -11,6 +11,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { AttendanceService } from '../attendance.service';
 import { Attendance } from '../attendance.model';
+import { SubjectService } from '../../subject/subject.service';
+import { Subject } from '../../subject/subject.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -51,6 +53,7 @@ import { ATTENDANCE_TOUR, ATTENDANCE_FLOW_MAP } from '../../../shared/tour/tours
 })
 export class AttendanceListComponent implements OnInit {
   private readonly attendanceService = inject(AttendanceService);
+  private readonly subjectService = inject(SubjectService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
   private readonly tourService = inject(TourService);
@@ -80,15 +83,48 @@ export class AttendanceListComponent implements OnInit {
   protected readonly searchValue = signal('');
   protected readonly filterStatus = signal('');
   protected readonly filterDate = signal('');
+  /** Records as returned by the backend for the selected subject/date, before the
+   *  client-side status filter is applied on top (the backend has no status query param). */
+  protected readonly rawRecords = signal<Attendance[]>([]);
 
   protected readonly statusOptions = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
+
+  /** The backend requires at least one filter on GET /attendance (subjectId, studentId, or
+   *  both) -- there is no unfiltered "list everything" endpoint, matching this page's own
+   *  "by course and date" subtitle. Subject selection is mandatory before any record loads. */
+  protected readonly subjects = signal<Subject[]>([]);
+  protected readonly selectedSubjectId = signal<number | null>(null);
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
 
   ngOnInit(): void {
     this.tourService.register('attendance-list', ATTENDANCE_TOUR);
     this.tourService.registerFlowMap('attendance-list', ATTENDANCE_FLOW_MAP);
-    this.loadAttendance();
+    this.loadSubjects();
+  }
+
+  protected onSubjectChange(value: string): void {
+    const subjectId = value ? Number(value) : null;
+    this.selectedSubjectId.set(subjectId);
+    if (subjectId) {
+      this.loadAttendance(subjectId);
+    } else {
+      this.rawRecords.set([]);
+      this.dataSource.data = [];
+    }
+  }
+
+  protected onDateChange(value: string): void {
+    this.filterDate.set(value);
+    const subjectId = this.selectedSubjectId();
+    if (subjectId) {
+      this.loadAttendance(subjectId);
+    }
+  }
+
+  protected onStatusFilterChange(value: string): void {
+    this.filterStatus.set(value);
+    this.applyStatusFilter();
   }
 
   protected applyFilter(event: Event): void {
@@ -120,7 +156,8 @@ export class AttendanceListComponent implements OnInit {
         this.attendanceService.delete(attendance.id).subscribe({
           next: () => {
             this.toast.success('Attendance record deleted');
-            this.loadAttendance();
+            const subjectId = this.selectedSubjectId();
+            if (subjectId) this.loadAttendance(subjectId);
           },
           error: (err) => {
             this.toast.error(err?.error?.message ?? 'Failed to delete record');
@@ -130,14 +167,19 @@ export class AttendanceListComponent implements OnInit {
     });
   }
 
+  private loadSubjects(): void {
+    this.subjectService.getAll().subscribe({
+      next: (data) => this.subjects.set(data),
+      error: () => this.toast.error('Failed to load subjects'),
+    });
+  }
 
-
-
-  private loadAttendance(): void {
+  private loadAttendance(subjectId: number): void {
     this.loading.set(true);
-    this.attendanceService.getAll().subscribe({
+    this.attendanceService.getBySubject(subjectId, this.filterDate() || undefined).subscribe({
       next: (records) => {
-        this.dataSource.data = records;
+        this.rawRecords.set(records);
+        this.applyStatusFilter();
         this.loading.set(false);
       },
       error: () => {
@@ -145,5 +187,11 @@ export class AttendanceListComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  private applyStatusFilter(): void {
+    const status = this.filterStatus();
+    const rows = this.rawRecords();
+    this.dataSource.data = status ? rows.filter((r) => r.status === status) : rows;
   }
 }

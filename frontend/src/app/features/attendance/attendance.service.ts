@@ -11,10 +11,6 @@ export class AttendanceService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/attendance`;
 
-  getAll(): Observable<Attendance[]> {
-    return this.http.get<Attendance[]>(this.baseUrl);
-  }
-
   getByStudent(studentId: number): Observable<Attendance[]> {
     return this.http.get<Attendance[]>(`${this.baseUrl}?studentId=${studentId}`);
   }
@@ -23,8 +19,9 @@ export class AttendanceService {
     return this.http.get<Attendance[]>(`${this.baseUrl}/my`);
   }
 
-  getBySubject(subjectId: number): Observable<Attendance[]> {
-    return this.http.get<Attendance[]>(`${this.baseUrl}?subjectId=${subjectId}`);
+  getBySubject(subjectId: number, date?: string): Observable<Attendance[]> {
+    const dateParam = date ? `&date=${date}` : '';
+    return this.http.get<Attendance[]>(`${this.baseUrl}?subjectId=${subjectId}${dateParam}`);
   }
 
   getReports(studentId: number, subjectId: number): Observable<AttendanceReport[]> {
