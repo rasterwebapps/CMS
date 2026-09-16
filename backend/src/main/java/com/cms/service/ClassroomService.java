@@ -52,15 +52,24 @@ public class ClassroomService {
     }
 
     /** Mirrors the isResidential gate on HostelRoom assignment: a Room must be classified under
-     *  the Academic purpose category before it can become a Classroom's physical location, so an
-     *  admin can't accidentally (or deliberately) mislabel a dorm room as a teaching space. */
+     *  a category this scheduling engine actually treats as a teaching space before it can become
+     *  a Classroom's physical location, so an admin can't accidentally (or deliberately) mislabel
+     *  a dorm/dining/utility/admin room as one. Academic is the common case; Sports & Recreation is
+     *  also allowed because {@code Classroom} is the same venue entity Global Auto-Schedule's Sports
+     *  gap-fill queries for (see {@code TimetableGlobalAutoScheduleService#fillSportsGaps} and
+     *  {@code venueCapacityOf}'s THEORY/LIBRARY/SPORTS case) -- excluding it here made a Sports venue
+     *  impossible to create through any real admin flow, so that feature could never place a single
+     *  session in any environment, ever, regardless of faculty/room data (OC-248). */
+    private static final java.util.Set<RoomPurposeCategoryCode> CLASSROOM_ELIGIBLE_CATEGORIES =
+        java.util.Set.of(RoomPurposeCategoryCode.ACADEMIC, RoomPurposeCategoryCode.SPORTS);
+
     private Room resolveRoom(Long roomId) {
         if (roomId == null) return null;
         Room room = roomRepository.findById(roomId)
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
-        if (room.getPurposeCategory() == null || room.getPurposeCategory().getCode() != RoomPurposeCategoryCode.ACADEMIC) {
+        if (room.getPurposeCategory() == null || !CLASSROOM_ELIGIBLE_CATEGORIES.contains(room.getPurposeCategory().getCode())) {
             throw new IllegalArgumentException(
-                "Room must be classified under the Academic purpose category before it can be linked to a classroom");
+                "Room must be classified under the Academic or Sports & Recreation purpose category before it can be linked to a classroom");
         }
         return room;
     }
