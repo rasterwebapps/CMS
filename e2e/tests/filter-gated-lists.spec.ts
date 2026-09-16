@@ -43,7 +43,9 @@ for (const screen of SCREENS) {
     const options = await filter.locator('option[value]:not([value=""])').all();
     test.skip(options.length === 0, `no options available in "${screen.filterAriaLabel}" on this environment`);
 
-    await filter.selectOption({ index: 0 });
+    // Select by value, not { index: 0 } — index 0 is the disabled "Select a subject" placeholder.
+    const firstValue = await options[0].getAttribute('value');
+    await filter.selectOption(firstValue!);
     await page.waitForLoadState('networkidle').catch(() => {});
 
     expect(failedResponses, `${screen.label} list errored after selecting a real filter value`).toEqual([]);

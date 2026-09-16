@@ -35,9 +35,10 @@ test.describe('Enquiry — create (front door of admissions)', () => {
     await page.locator('#enq-gender').selectOption({ index: 1 });
 
     // Referral: pick the first option that isn't Agent/Staff (those pull in an extra
-    // required person-search field this spec isn't targeting).
+    // required person-search field this spec isn't targeting). Filter on [disabled], not
+    // [value=""] — Angular's [ngValue]="null" placeholder doesn't render value="".
     const referralSelect = page.locator('#enq-referral');
-    const referralOptions = await referralSelect.locator('option[value]:not([value=""])').all();
+    const referralOptions = await referralSelect.locator('option:not([disabled])').all();
     for (const opt of referralOptions) {
       const label = (await opt.innerText()).trim();
       if (label && !/agent|staff/i.test(label)) {
@@ -48,19 +49,20 @@ test.describe('Enquiry — create (front door of admissions)', () => {
 
     // Try programs in order until one resolves a real fee structure — see file header.
     const programSelect = page.locator('#enq-program');
-    const programOptions = await programSelect.locator('option[value]:not([value=""])').all();
+    const programOptions = await programSelect.locator('option:not([disabled])').all();
     const programLabels = (await Promise.all(programOptions.map((o) => o.innerText()))).map((s) => s.trim());
 
     let feeResolved = false;
     for (const label of programLabels.slice(0, 3)) {
       await programSelect.selectOption({ label });
 
+      // The select itself is [disabled]="courses().length === 0" (enquiry-form.component.html),
+      // so "not disabled" already guarantees a real course exists at index 1 — no need to
+      // separately count options (course's placeholder isn't marked [disabled] itself, unlike
+      // program/referral, so it can't be filtered out the same way).
       const courseSelect = page.locator('#enq-course');
       if (!(await courseSelect.isDisabled())) {
-        const courseOptions = await courseSelect.locator('option[value]:not([value=""])').all();
-        if (courseOptions.length > 0) {
-          await courseSelect.selectOption({ index: 1 });
-        }
+        await courseSelect.selectOption({ index: 1 });
       }
 
       const feeVal = page.locator('.fee-banner-val');
