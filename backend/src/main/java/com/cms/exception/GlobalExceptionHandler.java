@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.cms.dto.ErrorResponse;
 import com.cms.dto.LifecycleConflictResponse;
@@ -203,6 +204,22 @@ public class GlobalExceptionHandler {
             Instant.now()
         );
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(error);
+    }
+
+    /** An unmatched route (no controller method, no static resource) reaches here as
+     *  {@code NoResourceFoundException} rather than failing to route at all -- without this
+     *  handler it fell through to {@link #handleGeneric}, returning a flat 500 for what is
+     *  really "this endpoint doesn't exist." That masked at least two real bugs during
+     *  development (a frontend calling a URL the backend never exposed looked identical to a
+     *  genuine server error in the browser console). */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.NOT_FOUND.value(),
+            "No endpoint found for " + ex.getHttpMethod() + " " + ex.getResourcePath(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
     @ExceptionHandler(Exception.class)

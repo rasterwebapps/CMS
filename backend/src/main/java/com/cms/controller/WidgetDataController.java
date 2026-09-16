@@ -1206,6 +1206,7 @@ public class WidgetDataController {
 
     /** Lab schedule density heatmap: day × slot grid based on active schedules. */
     @GetMapping("/lab-utilization-heatmap")
+    @Transactional(readOnly = true)
     @PreAuthorize("@perm.hasAny('LAB_VIEW','REPORT_VIEW')")
     public ResponseEntity<LabUtilizationData> getLabUtilizationHeatmap() {
         List<String> days = List.of("MON", "TUE", "WED", "THU", "FRI", "SAT");
