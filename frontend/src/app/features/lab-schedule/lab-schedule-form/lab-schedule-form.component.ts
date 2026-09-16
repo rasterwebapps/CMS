@@ -4,6 +4,8 @@ import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.compone
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
+import { forkJoin, map, of, switchMap } from 'rxjs';
+import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -47,6 +49,7 @@ export class LabScheduleFormComponent implements OnInit {
   private readonly classroomService = inject(ClassroomService);
   private readonly periodService = inject(PeriodService);
   private readonly clinicalVenueService = inject(ClinicalVenueService);
+  private readonly academicYearService = inject(AcademicYearService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -257,14 +260,22 @@ export class LabScheduleFormComponent implements OnInit {
       next: (data) => this.clinicalVenues.set(data),
       error: () => { this.toast.error('Failed to load clinical venues'); },
     });
-    this.http.get<{ id: number; termType: string; startDate: string; endDate: string; academicYear: { id: number; name: string } }[]>(
-      `${environment.apiUrl}/term-instances`).subscribe({
-      next: (data) => this.termInstances.set(data.map(t => ({
+    // GET /term-instances requires academicYearId (TermInstanceController.getByAcademicYear) --
+    // there's no unfiltered "all term instances" endpoint, so fetch every academic year first
+    // and flatten each one's terms, matching the pattern every other screen in the app uses
+    // (e.g. capacity-auto-plan.component.ts's loadTermInstances(academicYearId)).
+    this.academicYearService.getAllAcademicYears().pipe(
+      switchMap((years) => years.length
+        ? forkJoin(years.map((y) => this.academicYearService.getTermInstancesByAcademicYear(y.id)))
+        : of([])),
+      map((perYear) => perYear.flat()),
+    ).subscribe({
+      next: (terms) => this.termInstances.set(terms.map((t) => ({
         id: t.id,
         termType: t.termType,
         startDate: t.startDate,
         endDate: t.endDate,
-        academicYearName: t.academicYear?.name ?? '',
+        academicYearName: t.academicYearName,
       }))),
       error: () => { this.toast.error('Failed to load term instances'); },
     });
