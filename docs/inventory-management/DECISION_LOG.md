@@ -2428,4 +2428,80 @@ decision log entry. The stretch goal (Quotation Request → Approval → PO → 
 been started — it's substantial new-feature scope and, per this repo's @Partner Mode rule, needs a
 specialist round before implementation rather than being built unattended.
 
+## 2026-09-16 — Quotation Request (RFQ) slice — the stretch goal, scoped and built
+
+The stretch goal from the previous two entries ("Quotation Request/Approval → Purchase Order →
+stock update") turned out to already be half-built under different names: Wanted List → Purchase
+Requisition (approve/reject) → Purchase Order → Goods Receipt is exactly that chain end to end.
+What's genuinely missing is a real RFQ — sending a Quotation Request to multiple suppliers,
+capturing their quotes, and picking a winner before committing to a PO — and that gap is not an
+oversight: the "Phase 2 kickoff" and "VendorProductMapping slice" entries both explicitly deferred
+it ("Price comparison scope is rate-lookup only... a real RFQ flow... would be premature before
+Requisition/PO exist" / "no RFQ/best-quote comparison workflow"). `CORE_REQUIREMENTS_AND_GAP_
+ANALYSIS.md` tracks it as a real source-spec requirement (`PR→RFQ→PO`, P001–P021), just a
+deliberately deferred one. Went through a full @Partner Mode specialist round before building
+anything, given it reverses that prior call — user confirmed: **optional** path (direct-to-PO
+stays available, exactly as today), **per-line** award (a request's lines can land on different
+winning suppliers, producing more than one PO), **no minimum quote count** before awarding, and a
+**dedicated `INVENTORY_QUOTATION_AWARD`** permission separate from `MANAGE`.
+
+**Design:** `QuotationRequest` (header, mirrors `PurchaseRequisitionStatus`'s DRAFT/SUBMITTED/
+COMPLETED/CANCELLED shape exactly) → `QuotationRequestLine` (one per `APPROVED` requisition item,
+required not optional — a Quotation Request only ever prices out requisitioned demand, same as
+`PurchaseOrderItem`'s own posture toward its requisition-item link) → `QuotationRequestSupplier`
+(bridge, one row per invited supplier) → `QuotationResponseLine` (one supplier's keyed-in quote
+for one line — at most one per (line, supplier) pair, editable while the line is still `PENDING`).
+Awarding a line just points it at the winning `QuotationResponseLine`; converting groups every
+`AWARDED`-not-yet-`ORDERED` line by winning supplier and creates one Purchase Order per supplier.
+
+**Reuse over reinvention:** conversion reuses `PurchaseOrderService.create`/`addLine` rather than
+re-deriving tax/UOM/variant resolution — the underlying requisition item is still `APPROVED` at
+that point (never mutated while it's only living on a Quotation Request line), so `addLine`'s own
+`APPROVED`-check and location-match logic just work. `PurchaseOrderAddLineRequest` gained one new
+optional field (`quotationRequestLineId`) for this, harmless to every existing caller (18 test
+call-sites updated with a trailing `null`, frontend PO screen's own add-line flow untouched since
+Jackson just leaves an absent field null). `PurchaseOrderItem` gained a matching nullable
+`quotationRequestLine` traceability FK, mirroring its existing `purchaseRequisitionItem` one both
+ways (set on `addLine`, reverted on `removeLine`). `PurchaseOrderService.findAvailableRequisitionLines`
+now also excludes any requisition item already live on a non-`REJECTED` Quotation Request line, so
+the direct-to-PO picker and the Quotation Request picker never let the same demand get
+double-booked into two different POs — the "optional path" stays true (direct-to-PO is never
+blocked outright) while still closing the obvious race.
+
+**No outbound send exists, deliberately:** there is no `EmailService` anywhere in this backend and
+`Supplier.portalAccessEnabled` is an explicit, still-unbuilt reserved flag (`Phase 2 kickoff`
+entry) — so "sending" a Quotation Request to a supplier is only ever an internal record; staff
+contact suppliers by phone/email outside the system and key in whatever comes back, same posture
+as every other document in this module.
+
+**Known v1 limitation, not a bug:** conversion has no variant-selection UI, so a product with any
+active `ProductVariant` will surface `PurchaseOrderService.addLine`'s existing "select one for
+this line" error rather than converting — same error a manual PO add-line hits today for the same
+product without a variant chosen. Acceptable for this slice; would need its own small picker if a
+variant-carrying product goes through the Quotation Request path in practice.
+
+**Migrations:** `V516` (tables) + `V517` (permissions: `INVENTORY_QUOTATION_VIEW`/`MANAGE`/`AWARD`,
+tier-matched to Purchase Requisition's View/Manage/Approve via the DEV_ADMIN/SUPPORT_ADMIN
+catch-all pattern). Numbered from 516 deliberately — this worktree branched before main's
+V513–V515 landed, so 513 was already taken there; confirmed no collision by booting against the
+real shared local-dev Postgres, which was already at v515 and migrated cleanly to v517.
+
+**Verified:** booted against the real migrated local-dev DB (schema + Hibernate validation both
+clean); full `com.cms.inventory.*` backend test suite green, including a new
+`QuotationRequestServiceTest` (15 cases: create, add/remove line and supplier with every guard
+condition, submit, record/award/reject, and the multi-supplier conversion grouping); `npx tsc
+--noEmit` and a full `ng build --configuration=production` both clean with no new warnings. Did
+**not** attempt a live end-to-end click-through or curl-driven API walkthrough — the local Keycloak
+dev credentials on file didn't match, and per this repo's established posture, confirming
+build/compile is the bar for an unattended/model-driven pass, not self-run visual verification.
+
+**Impact:** 24 new backend files (entities/enums/DTOs/repositories/service/controller/migrations/
+test) + edits to `PurchaseOrderAddLineRequest`, `PurchaseOrderItem`, `PurchaseOrderService`, and
+its test; 11 new frontend files (model/service/list/new/detail) + edits to `app.routes.ts`,
+`nav-config.ts`, and `CmsStatusBadgeComponent` (added the missing `AWARDED` case). New nav entry
+"Quotation Requests" under Purchasing & Suppliers, between Purchase Requisitions and Wanted List.
+Outstanding: a manual light/dark/role click-through of the new screens, and of `PurchaseOrderItem`
+detail/list screens per the Component Touch Rule (their own FK addition didn't change any
+existing template output, but the rule still calls for a look).
+
 *Next entry goes here — do not insert above this line.*
