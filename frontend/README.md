@@ -44,6 +44,19 @@ To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use th
 ng test
 ```
 
+Convention: co-locate `*.component.spec.ts`/`*.service.spec.ts` next to the file they cover.
+Mock injected services directly (`{ provide: FooService, useValue: { method: vi.fn(...) } }`)
+rather than going through `HttpClientTestingModule` for a component test — reserve
+`provideHttpClient()` + `HttpTestingController` for testing a service itself, where the actual
+request shape (URL, method, params) is what's under test. A component's `protected` members
+(state signals, handler methods) are intentionally not part of its public API just for tests —
+either drive them through the DOM (`fixture.debugElement.query(By.css(...))`,
+`el.triggerEventHandler(...)`) or, where that reads worse than it's worth, cast
+`component as unknown as { ... }` for the specific internals the test needs. Any route the
+template's `routerLink` touches needs `provideRouter([])` in the test's providers even when no
+navigation actually happens, or component creation throws `NG0201: No provider for
+ActivatedRoute`.
+
 ## Running end-to-end tests
 
 For end-to-end (e2e) testing, run:
