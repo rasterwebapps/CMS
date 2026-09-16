@@ -1,0 +1,209 @@
+@if (loading()) {
+  <div class="qr-detail-loading"><mat-spinner diameter="32"></mat-spinner></div>
+} @else if (quotationRequest(); as r) {
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/procurement/quotation-requests" aria-label="Back to quotation requests">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">Quotation Request <em>#{{ r.id }}</em></h1>
+        <cms-status-badge [status]="r.status" />
+      </div>
+      <p class="page-subtitle">{{ r.locationVirtualName }} — {{ r.requestDate | date: 'mediumDate' }}</p>
+    </div>
+  </div>
+
+  <div class="qr-detail-layout">
+
+    <!-- ── Summary card ──────────────────────────────────────── -->
+    <div class="entry-form-card entry-form-card--sectioned qr-summary-card">
+      <div class="entry-form-card__body qr-summary-grid">
+        <div class="qr-summary-item">
+          <span class="qr-summary-label">Started</span>
+          <span class="qr-summary-value">{{ r.createdBy || '—' }} · {{ r.createdAt | date: 'medium' }}</span>
+        </div>
+        @if (r.submittedAt) {
+          <div class="qr-summary-item">
+            <span class="qr-summary-label">Submitted</span>
+            <span class="qr-summary-value">{{ r.submittedBy || '—' }} · {{ r.submittedAt | date: 'medium' }}</span>
+          </div>
+        }
+        @if (r.completedAt) {
+          <div class="qr-summary-item">
+            <span class="qr-summary-label">Completed</span>
+            <span class="qr-summary-value">{{ r.completedAt | date: 'medium' }}</span>
+          </div>
+        }
+        @if (r.status === 'SUBMITTED') {
+          <div class="qr-summary-item">
+            <span class="qr-summary-label">Unresolved</span>
+            <span class="qr-summary-value" [class.qr-summary-value--warn]="r.pendingCount > 0">{{ r.pendingCount }} of {{ r.lineCount }}</span>
+          </div>
+        }
+        @if (r.notes) {
+          <div class="qr-summary-item qr-summary-item--full">
+            <span class="qr-summary-label">Notes</span>
+            <span class="qr-summary-value">{{ r.notes }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ── DRAFT: add-line + invite-supplier rows ───────────────── -->
+    @if (r.status === 'DRAFT') {
+      <div class="entry-form-card entry-form-card--sectioned qr-add-card">
+        <div class="entry-form-card__body qr-add-row">
+          <div class="field-group qr-add-line-select">
+            <label class="field-label">Approved Requisition Line</label>
+            <select class="field-select" [ngModel]="selectedRequisitionItemId" (ngModelChange)="selectedRequisitionItemId = $event" aria-label="Select an approved requisition line">
+              <option [ngValue]="null" disabled>Select a line to quote</option>
+              @for (line of availableLines(); track line.id) {
+                <option [ngValue]="line.id">{{ line.productName }} ({{ line.productCode }}) — {{ line.requestedQty }} {{ line.uomCode || '' }}</option>
+              }
+            </select>
+          </div>
+          <div class="field-group qr-add-qty">
+            <label class="field-label">Qty (optional override)</label>
+            <input type="number" step="0.001" min="0" class="field-input" [ngModel]="addQtyOverride" (ngModelChange)="addQtyOverride = $event" placeholder="Use requested qty" />
+          </div>
+          <button class="btn-secondary" [disabled]="selectedRequisitionItemId == null || busy()" (click)="addLine()">Add Line</button>
+        </div>
+        <div class="entry-form-card__body qr-add-row">
+          <div class="field-group qr-add-line-select">
+            <label class="field-label">Invite Supplier</label>
+            <select class="field-select" [ngModel]="selectedSupplierId" (ngModelChange)="selectedSupplierId = $event" aria-label="Select a supplier to invite">
+              <option [ngValue]="null" disabled>Select a supplier</option>
+              @for (s of invitableSuppliers(); track s.id) {
+                <option [ngValue]="s.id">{{ s.supplierName }}</option>
+              }
+            </select>
+          </div>
+          <button class="btn-secondary" [disabled]="selectedSupplierId == null || busy()" (click)="addSupplier()">Invite Supplier</button>
+        </div>
+      </div>
+    }
+
+    <!-- ── Invited suppliers ─────────────────────────────────── -->
+    <div class="content-card qr-suppliers-card">
+      <div class="entry-form-card__hdr-title qr-suppliers-title">Invited Suppliers</div>
+      <div class="qr-supplier-chips">
+        @for (s of r.suppliers ?? []; track s.id) {
+          <span class="qr-supplier-chip">
+            {{ s.supplierName }}
+            @if (r.status === 'DRAFT') {
+              <button type="button" class="qr-chip-remove" [disabled]="busy()" (click)="removeSupplier(s)" aria-label="Remove supplier">×</button>
+            }
+          </span>
+        } @empty {
+          <span class="qr-muted">No suppliers invited yet.</span>
+        }
+      </div>
+    </div>
+
+    <!-- ── Lines ──────────────────────────────────────────────── -->
+    <div class="content-card qr-table-card">
+      <div class="table-wrapper">
+        <table class="qr-line-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="cell-align-right">Requested Qty</th>
+              <th class="cell-align-center">Status</th>
+              <th>Quotes</th>
+              @if (r.status === 'DRAFT') { <th class="actions-header"></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of r.lines ?? []; track line.id) {
+              <tr>
+                <td>
+                  <div class="qr-product-name">{{ line.productName }}</div>
+                  <div class="qr-product-code">{{ line.productCode }}</div>
+                </td>
+                <td class="cell-align-right">{{ line.requestedQty }} {{ line.uomCode || '' }}</td>
+                <td class="cell-align-center"><cms-status-badge [status]="line.status" /></td>
+                <td>
+                  @if (r.status === 'DRAFT') {
+                    <span class="qr-muted">Awaiting suppliers</span>
+                  } @else if (line.status === 'PENDING') {
+                    <div class="qr-quotes">
+                      @for (s of r.suppliers ?? []; track s.id) {
+                        <div class="qr-quote-row">
+                          <span class="qr-quote-supplier">{{ s.supplierName }}</span>
+                          @if (getResponseFor(line, s.supplierId); as resp) {
+                            <span class="qr-quote-value">₹{{ resp.quotedUnitPrice }}@if (resp.quotedLeadTimeDays) {<span class="qr-muted"> · {{ resp.quotedLeadTimeDays }}d</span>}</span>
+                            <button type="button" class="qr-quote-edit" [disabled]="busy()"
+                              (click)="setDraftPrice(line.id, s.supplierId, resp.quotedUnitPrice); setDraftLeadTime(line.id, s.supplierId, resp.quotedLeadTimeDays)">Edit</button>
+                          } @else {
+                            <input type="number" step="0.01" min="0" class="field-input qr-quote-input" placeholder="Price"
+                              [ngModel]="getDraft(line.id, s.supplierId).price" (ngModelChange)="setDraftPrice(line.id, s.supplierId, $event)" />
+                            <input type="number" step="1" min="0" class="field-input qr-quote-input qr-quote-input--lead" placeholder="Lead (d)"
+                              [ngModel]="getDraft(line.id, s.supplierId).leadTimeDays" (ngModelChange)="setDraftLeadTime(line.id, s.supplierId, $event)" />
+                            <button type="button" class="qr-quote-record" [disabled]="busy() || getDraft(line.id, s.supplierId).price == null"
+                              (click)="recordResponse(line, s.supplierId)">Record</button>
+                          }
+                        </div>
+                      }
+                    </div>
+                    @if (canAward() && line.responses.length > 0) {
+                      <div class="qr-award-row">
+                        <select class="field-select qr-award-select" [ngModel]="awardChoice()[line.id] ?? null" (ngModelChange)="setAwardChoice(line.id, $event)" aria-label="Choose winning quote">
+                          <option [ngValue]="null" disabled>Award to…</option>
+                          @for (resp of line.responses; track resp.id) {
+                            <option [ngValue]="resp.id">{{ resp.supplierName }} — ₹{{ resp.quotedUnitPrice }}</option>
+                          }
+                        </select>
+                        <button class="qr-award-btn" [disabled]="busy() || (awardChoice()[line.id] ?? null) == null" (click)="awardLine(line)">Award</button>
+                        <button class="qr-reject-btn" [disabled]="busy()" (click)="rejectLine(line)">Reject Line</button>
+                      </div>
+                    }
+                  } @else if (line.status === 'AWARDED' || line.status === 'ORDERED') {
+                    <span class="qr-awarded-value">{{ line.awardedSupplierName }} — ₹{{ line.awardedUnitPrice }}</span>
+                    <span class="qr-muted"> · {{ line.awardedBy }} · {{ line.awardedAt | date: 'short' }}</span>
+                  } @else {
+                    <span class="qr-muted">No award — rejected</span>
+                  }
+                </td>
+                @if (r.status === 'DRAFT') {
+                  <td>
+                    <button class="qr-remove-btn" (click)="removeLine(line)" [disabled]="busy()" aria-label="Remove line">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="qr-empty-row">No lines on this request yet.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Footer actions ────────────────────────────────────── -->
+    @if (r.status === 'DRAFT') {
+      <div class="qr-footer-actions">
+        <button class="btn-secondary" [disabled]="busy()" (click)="cancelRequest()">Cancel Request</button>
+        <button class="btn-primary" [disabled]="busy() || !(r.lines ?? []).length || !(r.suppliers ?? []).length" (click)="submitRequest()">
+          @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+          Submit Request
+        </button>
+      </div>
+    }
+    @if (r.status === 'SUBMITTED' && hasAwardedNotYetOrdered() && canAward()) {
+      <div class="qr-footer-actions">
+        <button class="btn-primary" [disabled]="busy()" (click)="convertAwardedLines()">
+          @if (busy()) { <mat-spinner diameter="16"></mat-spinner> }
+          Create Purchase Order(s) from Awarded Lines
+        </button>
+      </div>
+    }
+
+  </div>
+
+</div>
+}

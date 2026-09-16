@@ -580,6 +580,31 @@ export const routes: Routes = [
         (m) => m.PurchaseRequisitionDetailComponent
       ),
   },
+  // Phase 2 "Purchasing & Suppliers" — Quotation Request (stretch slice, optional pre-PO RFQ step).
+  {
+    path: 'inventory/procurement/quotation-requests',
+    canActivate: withPermission('INVENTORY_QUOTATION_VIEW', 'INVENTORY_QUOTATION_MANAGE', 'INVENTORY_QUOTATION_AWARD'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/quotation-request/quotation-request-list/quotation-request-list.component').then(
+        (m) => m.QuotationRequestListComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/quotation-requests/new',
+    canActivate: withPermission('INVENTORY_QUOTATION_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/quotation-request/quotation-request-new/quotation-request-new.component').then(
+        (m) => m.QuotationRequestNewComponent
+      ),
+  },
+  {
+    path: 'inventory/procurement/quotation-requests/:id',
+    canActivate: withPermission('INVENTORY_QUOTATION_VIEW', 'INVENTORY_QUOTATION_MANAGE', 'INVENTORY_QUOTATION_AWARD'),
+    loadComponent: () =>
+      import('./features/inventory/procurement/quotation-request/quotation-request-detail/quotation-request-detail.component').then(
+        (m) => m.QuotationRequestDetailComponent
+      ),
+  },
   // Phase 2 "Purchasing & Suppliers" — Wanted List (fourth slice, MRP-style reorder shortages).
   {
     path: 'inventory/procurement/wanted-list',
