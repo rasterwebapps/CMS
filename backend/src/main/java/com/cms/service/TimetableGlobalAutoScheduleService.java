@@ -60,6 +60,7 @@ import com.cms.dto.SkeletonSubjectResponse;
 import com.cms.dto.SkippedPublishedCohort;
 import com.cms.dto.SpreadLoadSuggestion;
 import com.cms.dto.StaffingAssignmentRequest;
+import com.cms.dto.TimetableConflictRow;
 import com.cms.dto.UnassignedOfferingSummary;
 import com.cms.dto.VenueCapacityGap;
 import com.cms.exception.LifecycleConflictException;
@@ -245,6 +246,7 @@ public class TimetableGlobalAutoScheduleService {
     private final RotationSlotRepository rotationSlotRepository;
     private final RotationMemberRepository rotationMemberRepository;
     private final RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
+    private final TimetableConflictInspectorService timetableConflictInspectorService;
 
     // Field injection with @Lazy breaks the circular dependency:
     // TimetableGlobalAutoScheduleService -> CourseOfferingSectionFacultyService -> TimetableGlobalAutoScheduleService
@@ -276,7 +278,8 @@ public class TimetableGlobalAutoScheduleService {
                                                RotationGroupRepository rotationGroupRepository,
                                                RotationSlotRepository rotationSlotRepository,
                                                RotationMemberRepository rotationMemberRepository,
-                                               RotationMemberAssignmentRepository rotationMemberAssignmentRepository) {
+                                               RotationMemberAssignmentRepository rotationMemberAssignmentRepository,
+                                               TimetableConflictInspectorService timetableConflictInspectorService) {
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableStaffingService = timetableStaffingService;
         this.clinicalShiftChecker = clinicalShiftChecker;
@@ -302,6 +305,7 @@ public class TimetableGlobalAutoScheduleService {
         this.rotationSlotRepository = rotationSlotRepository;
         this.rotationMemberRepository = rotationMemberRepository;
         this.rotationMemberAssignmentRepository = rotationMemberAssignmentRepository;
+        this.timetableConflictInspectorService = timetableConflictInspectorService;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -1558,10 +1562,21 @@ public class TimetableGlobalAutoScheduleService {
                 new ArrayList<>(v.subjects.values()), new ArrayList<>(v.subjects.keySet())))
             .toList();
 
+        // Term-wide, not scoped to just the cohorts this run touched: a pinned cell this run left
+        // standing (see purgeDraftCellsForRebuild's javadoc) is never re-placed or re-validated by
+        // the placement passes above, so a conflict it now has with something this run DID place --
+        // or with another cohort's own pre-existing cell -- would otherwise go completely unnoticed
+        // until someone happened to open Conflict Inspector separately. Reuses the exact same
+        // detection Conflict Inspector already runs (TimetableConflictInspectorService#scanTerm) --
+        // flag-only for now, never auto-resolved: a pinned cell was pinned on purpose, so silently
+        // moving or removing it here would be a far worse surprise than leaving a visible conflict
+        // for a human to actually decide how to resolve.
+        List<TimetableConflictRow> postRunConflicts = timetableConflictInspectorService.scanTerm(termInstanceId).rows();
+
         return new GlobalAutoScheduleResult(totalPlaced, totalStaffed, summaries, electiveUnplaced, staleDraftsCleared,
             purge.pinnedPreserved(), capacityCausedGapHours, recommendedAdditionalFacultyCount, venueCapacityGaps, skippedPublishedCohorts,
             rotationGroupsCreated, pairingSkipReasons, buildFacultySubstitutionTips(facultySubstitutionEvents),
-            clinicalResiduals);
+            clinicalResiduals, postRunConflicts);
     }
 
     /** Subject labels {@link #fillSelfStudyGaps} uses for its own period-level notes ("N period(s)

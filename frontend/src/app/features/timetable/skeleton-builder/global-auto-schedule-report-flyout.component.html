@@ -408,6 +408,30 @@
               </ul>
             </div>
           }
+          @if (r.postRunConflicts.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Conflicts found after this run — not auto-resolved</div>
+              <p class="field-hint">
+                A term-wide conflict scan (the same check Conflict Inspector runs) found these after placing
+                everything above. A pinned session is deliberately left standing rather than re-placed, so a
+                conflict it has with something this run just placed — or with another cohort's own existing
+                session — isn't something a rebuild fixes on its own. Nothing below was changed; review each
+                in Conflict Inspector and resolve it there.
+              </p>
+              <ul class="gas-contributors">
+                @for (row of r.postRunConflicts; track row.classScheduleId) {
+                  <li class="gas-warning">
+                    <strong>{{ row.subjectName }}</strong>
+                    @if (row.cohortLabel) { <span> — {{ row.cohortLabel }}</span> }
+                    <span> — {{ row.dayOfWeek }} {{ row.periodLabel }}</span>
+                    @for (v of row.violations; track v.code) {
+                      <span class="gas-residual-remedy">{{ v.message }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
           @if (r.pairingSkipReasons.length > 0) {
             <div class="gas-prereq-group">
               <div class="gas-prereq-group__title">Lab pairing considered but not placed</div>

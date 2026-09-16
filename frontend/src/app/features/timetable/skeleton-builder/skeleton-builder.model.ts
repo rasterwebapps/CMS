@@ -1,4 +1,5 @@
 import { SubstitutionAffectedSection } from '../../academic-year/academic-year.model';
+import { TimetableConflictRow } from '../conflict-inspector/conflict-inspector.model';
 
 export type SkeletonSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
 export type SkeletonCellStatus = 'DRAFT' | 'PUBLISHED';
@@ -458,6 +459,13 @@ export interface GlobalAutoScheduleResult {
    *  ~86.7h against 12h owed. The run declines that row rather than overshooting by ~75h, and
    *  reports the remedy instead. Empty on a term whose duty rosters already cover their subjects. */
   clinicalResiduals: ClinicalResidualItem[];
+  /** A term-wide conflict scan (the same check Conflict Inspector runs) taken right after this run
+   *  finished placing/staffing everything it could — flag-only, nothing here was auto-resolved. A
+   *  pinned cell is deliberately left standing rather than re-placed, so a conflict it has with
+   *  something this run just placed (or with another cohort's own pre-existing cell) would
+   *  otherwise go unnoticed until someone happened to open Conflict Inspector separately. Empty on
+   *  a term with no structural conflicts left standing after this run. */
+  postRunConflicts: TimetableConflictRow[];
 }
 
 /** One subject's leftover Clinical hours and the duty days that close them — see {@link
