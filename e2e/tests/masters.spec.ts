@@ -21,6 +21,9 @@ interface MasterConfig {
   addButtonName: string;
   nameFieldId: string;
   codeFieldId: string;
+  /** Extra required fields beyond name/code that already carry no usable default
+   *  (e.g. Program's durationYears) — filled in before submit. */
+  fillExtra?: (page: import('@playwright/test').Page) => Promise<void>;
 }
 
 const MASTERS: MasterConfig[] = [
@@ -28,6 +31,14 @@ const MASTERS: MasterConfig[] = [
   { label: 'Speciality', listRoute: '/specialities', addButtonName: 'Add Speciality', nameFieldId: 'sp-name', codeFieldId: 'sp-code' },
   { label: 'Community', listRoute: '/communities', addButtonName: 'Add Community', nameFieldId: 'community-name', codeFieldId: 'community-code' },
   { label: 'Referral Type', listRoute: '/referral-types', addButtonName: 'Add Referral Type', nameFieldId: 'rt-name', codeFieldId: 'rt-code' },
+  { label: 'Designation', listRoute: '/designations', addButtonName: 'Add Designation', nameFieldId: 'dsg-name', codeFieldId: 'dsg-code' },
+  { label: 'Institution', listRoute: '/institutions', addButtonName: 'Add Institution', nameFieldId: 'inst-name', codeFieldId: 'inst-code' },
+  {
+    label: 'Program', listRoute: '/programs', addButtonName: 'Add Program', nameFieldId: 'program-name', codeFieldId: 'program-code',
+    // durationYears is the only required field without a form-default (status/assessmentPattern/
+    // minimumAgeYears/ageCutoff* all carry one already) — program-form.component.ts:137/141.
+    fillExtra: async (page) => { await page.locator('#program-duration').fill('4'); },
+  },
 ];
 
 for (const master of MASTERS) {
@@ -48,7 +59,10 @@ for (const master of MASTERS) {
 
       await page.locator(`#${master.nameFieldId}`).fill(name);
       await page.locator(`#${master.codeFieldId}`).fill(code);
-      await page.locator('.btn-submit').click();
+      if (master.fillExtra) await master.fillExtra(page);
+      // button[type="submit"], not .btn-submit — Designation's form uses .btn-primary for its
+      // submit button instead, an inconsistency with every other master form's class naming.
+      await page.locator('button[type="submit"]').click();
 
       // Uniform success signal across masters (toast wording varies / is sometimes absent —
       // see referral-type "Created" vs community "Community created" vs speciality no toast at
