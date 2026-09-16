@@ -30,16 +30,19 @@ import com.cms.inventory.procurement.model.PurchaseOrder;
 import com.cms.inventory.procurement.model.PurchaseOrderItem;
 import com.cms.inventory.procurement.model.PurchaseOrderItemTaxComponent;
 import com.cms.inventory.procurement.model.PurchaseRequisitionItem;
+import com.cms.inventory.procurement.model.QuotationRequestLine;
 import com.cms.inventory.procurement.model.Supplier;
 import com.cms.inventory.procurement.model.TaxRule;
 import com.cms.inventory.procurement.model.TaxSubType;
 import com.cms.inventory.procurement.model.enums.JurisdictionMode;
 import com.cms.inventory.procurement.model.enums.PurchaseOrderStatus;
 import com.cms.inventory.procurement.model.enums.PurchaseRequisitionItemStatus;
+import com.cms.inventory.procurement.model.enums.QuotationRequestLineStatus;
 import com.cms.inventory.procurement.repository.PurchaseOrderItemRepository;
 import com.cms.inventory.procurement.repository.PurchaseOrderItemTaxComponentRepository;
 import com.cms.inventory.procurement.repository.PurchaseOrderRepository;
 import com.cms.inventory.procurement.repository.PurchaseRequisitionItemRepository;
+import com.cms.inventory.procurement.repository.QuotationRequestLineRepository;
 import com.cms.inventory.procurement.repository.SupplierRepository;
 import com.cms.inventory.procurement.repository.TaxRuleRepository;
 import com.cms.inventory.stock.model.InventoryLocation;
@@ -73,6 +76,7 @@ public class PurchaseOrderService {
     private final PurchaseOrderItemTaxComponentRepository taxComponentRepository;
     private final ProductUomChainService uomChainService;
     private final ProductVariantRepository variantRepository;
+    private final QuotationRequestLineRepository quotationRequestLineRepository;
 
     public PurchaseOrderService(PurchaseOrderRepository orderRepository,
                                  PurchaseOrderItemRepository itemRepository,
@@ -85,7 +89,8 @@ public class PurchaseOrderService {
                                  TaxSubTypeService taxSubTypeService,
                                  PurchaseOrderItemTaxComponentRepository taxComponentRepository,
                                  ProductUomChainService uomChainService,
-                                 ProductVariantRepository variantRepository) {
+                                 ProductVariantRepository variantRepository,
+                                 QuotationRequestLineRepository quotationRequestLineRepository) {
         this.orderRepository = orderRepository;
         this.itemRepository = itemRepository;
         this.requisitionItemRepository = requisitionItemRepository;
@@ -98,6 +103,7 @@ public class PurchaseOrderService {
         this.taxComponentRepository = taxComponentRepository;
         this.uomChainService = uomChainService;
         this.variantRepository = variantRepository;
+        this.quotationRequestLineRepository = quotationRequestLineRepository;
     }
 
     @Transactional
@@ -138,11 +144,20 @@ public class PurchaseOrderService {
         return toResponse(requireOrder(id));
     }
 
-    /** {@code APPROVED}, not-yet-ordered requisition lines for a location — the PO line picker's pool. */
+    /**
+     * {@code APPROVED}, not-yet-ordered requisition lines for a location — the PO line picker's
+     * pool. Also excludes any line already live on a Quotation Request (any {@code
+     * QuotationRequestLine} not {@code REJECTED}) — once staff have chosen to price a line out
+     * via quotation, direct-to-PO stays available in principle (the Quotation Request path is
+     * optional, not mandatory) but is hidden here to avoid the same demand being double-booked
+     * into two different POs.
+     */
     public List<PurchaseRequisitionItemResponse> findAvailableRequisitionLines(Long locationId) {
         return requisitionItemRepository
             .findByStatusAndPurchaseRequisition_Location_IdOrderByIdAsc(PurchaseRequisitionItemStatus.APPROVED, locationId)
             .stream()
+            .filter(item -> !quotationRequestLineRepository.existsByPurchaseRequisitionItemIdAndStatusNot(
+                item.getId(), QuotationRequestLineStatus.REJECTED))
             .map(this::toRequisitionLineResponse)
             .toList();
     }
@@ -225,11 +240,19 @@ public class PurchaseOrderService {
             components = taxSubTypeService.requireCompleteSplit(taxRule.getId(), jurisdictionMode);
         }
 
+        QuotationRequestLine quotationLine = null;
+        if (request.quotationRequestLineId() != null) {
+            quotationLine = quotationRequestLineRepository.findById(request.quotationRequestLineId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Quotation request line not found with id: " + request.quotationRequestLineId()));
+        }
+
         PurchaseOrderItem item = new PurchaseOrderItem();
         item.setPurchaseOrder(order);
         item.setProduct(product);
         item.setVariant(variant);
         item.setPurchaseRequisitionItem(requisitionItem);
+        item.setQuotationRequestLine(quotationLine);
         item.setOrderedQty(orderedQty);
         item.setUomLevel(uomLevel);
         item.setEnteredQty(uomLevel != null ? enteredQty : null);
@@ -244,6 +267,11 @@ public class PurchaseOrderService {
 
         requisitionItem.setStatus(PurchaseRequisitionItemStatus.ORDERED);
         requisitionItemRepository.save(requisitionItem);
+
+        if (quotationLine != null) {
+            quotationLine.setStatus(QuotationRequestLineStatus.ORDERED);
+            quotationRequestLineRepository.save(quotationLine);
+        }
 
         order.setUpdatedAt(Instant.now());
         orderRepository.save(order);
@@ -287,6 +315,11 @@ public class PurchaseOrderService {
         if (requisitionItem != null && requisitionItem.getStatus() == PurchaseRequisitionItemStatus.ORDERED) {
             requisitionItem.setStatus(PurchaseRequisitionItemStatus.APPROVED);
             requisitionItemRepository.save(requisitionItem);
+        }
+        QuotationRequestLine quotationLine = item.getQuotationRequestLine();
+        if (quotationLine != null && quotationLine.getStatus() == QuotationRequestLineStatus.ORDERED) {
+            quotationLine.setStatus(QuotationRequestLineStatus.AWARDED);
+            quotationRequestLineRepository.save(quotationLine);
         }
         itemRepository.delete(item);
         order.setUpdatedAt(Instant.now());

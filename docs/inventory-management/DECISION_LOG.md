@@ -2311,4 +2311,197 @@ manual click-through — pending per this program's "no self-run visual verifica
 (new cases); frontend `stock-issue-request-new.component.ts/html` (`requestingLocations`/
 `issuingLocations` computed signals feeding the two selects).
 
+## 2026-09-15 — Bulk demo data for Stock Management + overnight screen-checkup kickoff
+
+**Prompted by:** a request to generate realistic local dev data (masters, locations, 100+
+products, batches, Stock Issue Requests, Stock Transfers) and run a complete structural/badge/
+permission checkup of all 16 screens under the "Stock Management" nav group, continuing
+unattended overnight since only 3 of the 16 screens (Stock Issue Requests, Loanable Item Issues,
+Stock Transfers — see the entry above) had been covered in the live session.
+
+**Bulk seeder:** `InventoryBulkDemoDataSeeder` (new, `cms.seed.bulk-inventory-demo=true`, opt-in,
+never fires on a normal boot). Seeds 5 more categories, 10 brands, 7 more sister
+`REQUESTING_POINT` locations plus a second `STORE` ("Pharmacy Store") — respecting today's earlier
+location-role gate — 105 more products (112 total) across a realistic nursing-college spread
+(nursing/lab/housekeeping/office/pharmacy consumables, IT and medical assets, some loanable),
+opening stock balances with 21 batch/expiry-tracked lots, and lifecycle-complete Stock Issue
+Requests (DRAFT/SUBMITTED/COMPLETED/rejected-line/returned/CANCELLED — 6), Stock Transfers
+(DRAFT/COMPLETED/CANCELLED/sister-returning-to-store — 4), and Loanable Item Issues
+(issued/overdue/returned — 3).
+
+**Real gap found while building it, not fixed:** neither `StockIssueRequestAddLineRequest` nor
+`StockTransferAddLineRequest` carries a batch/serial number. `approveLine()`/`complete()` then
+fail `StockMovementService.requireTrackingModeCompliance` for any `BATCH`/`SERIAL`-tracked
+product — first hit when the seeder tried to transfer "Alcohol Swabs" (batch-tracked). A
+`BATCH`/`SERIAL`-tracked product simply cannot be issued or transferred today, only received,
+adjusted, or disposed. Worked around in the seeder (route demo Issue Requests/Transfers only
+through `NONE`-tracked products); the underlying gap is unfixed and queued for the overnight
+screen-audit session to consider, not silently patched here — it changes two API contracts
+(new optional `batchOrSerialNo`/`expiryDate` fields end to end: DTO → service → frontend form),
+which is new-capability work, not a bug fix.
+
+**Getting this to actually finish — three real retries, each its own lesson:**
+1. First run crashed on the tracking-mode gap above, after categories/brands/locations/products/
+   balances/Issue Requests had already committed (each phase's own `@Transactional` method commits
+   independently — the top-level `CommandLineRunner`'s own `@Transactional` does **not** wrap the
+   whole run, since it only applies to invoking the `@Bean` factory method during bean creation,
+   not to the runner's `run(args)` Spring invokes later).
+2. Made the seeder idempotent **per phase** (skip stock-movements/Issue-Requests/Transfers/
+   Loanable-Issues independently once each phase's own table has any rows) instead of one
+   `productRepo.count() >= 100` gate — but the first fix still returned the *wrong* product list
+   on a resumed run: `seedProducts()`'s return value is only the products created *that* call
+   (empty once they already exist), yet every downstream phase used that return value to pick demo
+   lines — so a resumed run silently no-opped every remaining phase (each phase's own internal
+   `if (list too small) return;` guard swallowed it with no log line and no error). Fixed by
+   re-reading the full catalog from `productRepo.findAll()` after `seedProducts()` instead of
+   using its return value.
+3. The "sister returns surplus to the store" transfer tried to move stock out of Ward B, which
+   never has an opening balance (only Main Store gets one) — hit `recordMovement`'s real negative-
+   stock guard. Fixed by giving Ward B a small opening balance of its own first.
+   A stray partial `DRAFT` transfer left behind by each crash had to be deleted (`stock_transfers`/
+   `stock_transfer_lines`, pure seed data, zero real history) before each retry, since the
+   idempotency check is per-table, not per-row.
+
+**Overnight continuation:** the remaining 13 Stock Management screens, restructured per the user's
+request into three unattended passes (~21:00 kickoff, ~02:00 midpoint, ~07:00 final, wrapping up
+by 10:00) instead of one — running in an isolated git worktree
+(`.worktrees/inventory-overnight`, branch `inventory-overnight-2026-09-15`) after a second,
+unrelated Claude Code session was found actively branch-switching in the shared main checkout
+(working on OC-227 timetable). A published Artifact progress dashboard is kept updated across all
+three passes so the user has something to open on screen at 10:00 rather than only a markdown log.
+Auto-restocking policy, Library→Inventory migration, and stand-alone module packaging are
+explicitly out of scope for the overnight run — genuinely gated on decisions only the user can
+make, logged as `BLOCKED` rather than guessed at, same as this repo's R2-4.0.2/R2-4.2 precedent.
+A stretch-goal ask (Quotation Request/Approval → Purchase Order → Purchase-against-PO → stock
+update) was added mid-session, explicitly lowest priority, only attempted after the 13-screen
+floor is met, and only as an investigation-first, clearly-logged slice — not to be rushed.
+
+**Verified:** All `com.cms.inventory.*` backend tests green after the seeder settled. Final counts
+confirmed directly against Postgres: 112 products, 9 locations, 11 categories, 10 brands, 21
+batches, 6 Issue Requests, 4 Transfers, 3 Loanable Item Issues.
+
+**Impact:** `InventoryBulkDemoDataSeeder.java` (new); `.gitignore` (`.worktrees/`);
+`scripts/inventory-overnight-run.sh`, `scripts/inventory-overnight-prompt-*.md` (new, overnight
+cron mechanism); local dev Postgres data only — no migration, no schema change.
+
+## 2026-09-16 — Overnight cron never fired; resumed live, finished the 13-screen checkup floor
+
+The three-pass unattended cron mechanism from the previous entry never actually ran: `crontab -l`
+the next morning showed zero `INVENTORY-AUTO-*` entries (only pre-existing unrelated cron lines),
+`~/.inventory-autonomous-logs/` was empty, and there were no commits in this worktree after the
+kickoff commit. Root cause: registering system crontab entries requires the user to run
+`crontab ...` themselves via `! crontab ...` — auto-mode's permission classifier blocks Claude
+from doing it directly — and that manual step never happened for this session (the sibling
+Academics/timetable overnight session succeeded because it used the native
+`--permission-mode auto` long-running resume mode instead of cron, which needs no such step). No
+data was lost — the worktree was already fully committed. Resumed the remaining checkup live at
+the user's direction instead of re-attempting cron.
+
+**Completed the mandatory floor** — checked all 13 remaining Stock Management screens (Dashboard,
+Products, Categories, Units of Measure, Brands, UOM Conversion Templates, Locations, Storage Racks
++ Bins, Stock Balance, Cycle Counts, Stock Valuation, Goods Receipts, Supplier Returns) against
+CLAUDE.md's list-screen structural gate, badge/status audit, `mlp-page` spacing gate, and
+operation-wise permission mapping. Unlike several other modules' history, all 13 were already
+structurally clean — paginator/`table-wrapper`/`content-card` nesting, `matSort` bindings, and
+`mlp-*` class usage all matched the established shared patterns, and every master form
+(Products/Categories/UOM/Brands/UOM Templates/Locations/Racks) already had the uniqueness
+validator wired. Permission mapping confirmed correct at the backend `@PreAuthorize` layer:
+Bins have their own `INVENTORY_BIN_VIEW`/`MANAGE` distinct from Racks; Goods Receipt's `CONFIRM`
+and Cycle Count's `APPROVE` are separate from their own `MANAGE`; Supplier Return correctly has no
+separate approve permission since its lifecycle has no approval gate by design.
+
+**One real bug found and fixed:** `GoodsReceiptStatus.CONFIRMED` was missing from
+`CmsStatusBadgeComponent.resolveClass()`'s switch (`frontend/src/app/shared/status-badge/
+status-badge.component.ts`) — every confirmed Goods Receipt's status badge silently rendered with
+no color (fell to the `default: return ''` case), on both the Goods Receipt list and detail
+screens. Fixed by adding `CONFIRMED` alongside `APPROVED`/`COMMITTED` in the terminal-success-state
+bucket. `Stock Valuation` has no `mat-paginator` at all (it's a small by-category aggregate report,
+currently 11 rows) so the list-screen structural gate doesn't apply to it — not a defect.
+
+**Verified:** `npx tsc -p tsconfig.app.json --noEmit` clean across the whole frontend after the
+fix (this worktree had no `node_modules` — symlinked from the main checkout since `package-lock.json`
+is identical). No self-run visual verification tonight (still no light/dark/role click-through) —
+that remains an outstanding manual QA item, same posture as the 3 screens audited before this pass.
+
+**Impact:** `frontend/src/app/shared/status-badge/status-badge.component.ts` (one-line fix); this
+decision log entry. The stretch goal (Quotation Request → Approval → PO → stock update) has not
+been started — it's substantial new-feature scope and, per this repo's @Partner Mode rule, needs a
+specialist round before implementation rather than being built unattended.
+
+## 2026-09-16 — Quotation Request (RFQ) slice — the stretch goal, scoped and built
+
+The stretch goal from the previous two entries ("Quotation Request/Approval → Purchase Order →
+stock update") turned out to already be half-built under different names: Wanted List → Purchase
+Requisition (approve/reject) → Purchase Order → Goods Receipt is exactly that chain end to end.
+What's genuinely missing is a real RFQ — sending a Quotation Request to multiple suppliers,
+capturing their quotes, and picking a winner before committing to a PO — and that gap is not an
+oversight: the "Phase 2 kickoff" and "VendorProductMapping slice" entries both explicitly deferred
+it ("Price comparison scope is rate-lookup only... a real RFQ flow... would be premature before
+Requisition/PO exist" / "no RFQ/best-quote comparison workflow"). `CORE_REQUIREMENTS_AND_GAP_
+ANALYSIS.md` tracks it as a real source-spec requirement (`PR→RFQ→PO`, P001–P021), just a
+deliberately deferred one. Went through a full @Partner Mode specialist round before building
+anything, given it reverses that prior call — user confirmed: **optional** path (direct-to-PO
+stays available, exactly as today), **per-line** award (a request's lines can land on different
+winning suppliers, producing more than one PO), **no minimum quote count** before awarding, and a
+**dedicated `INVENTORY_QUOTATION_AWARD`** permission separate from `MANAGE`.
+
+**Design:** `QuotationRequest` (header, mirrors `PurchaseRequisitionStatus`'s DRAFT/SUBMITTED/
+COMPLETED/CANCELLED shape exactly) → `QuotationRequestLine` (one per `APPROVED` requisition item,
+required not optional — a Quotation Request only ever prices out requisitioned demand, same as
+`PurchaseOrderItem`'s own posture toward its requisition-item link) → `QuotationRequestSupplier`
+(bridge, one row per invited supplier) → `QuotationResponseLine` (one supplier's keyed-in quote
+for one line — at most one per (line, supplier) pair, editable while the line is still `PENDING`).
+Awarding a line just points it at the winning `QuotationResponseLine`; converting groups every
+`AWARDED`-not-yet-`ORDERED` line by winning supplier and creates one Purchase Order per supplier.
+
+**Reuse over reinvention:** conversion reuses `PurchaseOrderService.create`/`addLine` rather than
+re-deriving tax/UOM/variant resolution — the underlying requisition item is still `APPROVED` at
+that point (never mutated while it's only living on a Quotation Request line), so `addLine`'s own
+`APPROVED`-check and location-match logic just work. `PurchaseOrderAddLineRequest` gained one new
+optional field (`quotationRequestLineId`) for this, harmless to every existing caller (18 test
+call-sites updated with a trailing `null`, frontend PO screen's own add-line flow untouched since
+Jackson just leaves an absent field null). `PurchaseOrderItem` gained a matching nullable
+`quotationRequestLine` traceability FK, mirroring its existing `purchaseRequisitionItem` one both
+ways (set on `addLine`, reverted on `removeLine`). `PurchaseOrderService.findAvailableRequisitionLines`
+now also excludes any requisition item already live on a non-`REJECTED` Quotation Request line, so
+the direct-to-PO picker and the Quotation Request picker never let the same demand get
+double-booked into two different POs — the "optional path" stays true (direct-to-PO is never
+blocked outright) while still closing the obvious race.
+
+**No outbound send exists, deliberately:** there is no `EmailService` anywhere in this backend and
+`Supplier.portalAccessEnabled` is an explicit, still-unbuilt reserved flag (`Phase 2 kickoff`
+entry) — so "sending" a Quotation Request to a supplier is only ever an internal record; staff
+contact suppliers by phone/email outside the system and key in whatever comes back, same posture
+as every other document in this module.
+
+**Known v1 limitation, not a bug:** conversion has no variant-selection UI, so a product with any
+active `ProductVariant` will surface `PurchaseOrderService.addLine`'s existing "select one for
+this line" error rather than converting — same error a manual PO add-line hits today for the same
+product without a variant chosen. Acceptable for this slice; would need its own small picker if a
+variant-carrying product goes through the Quotation Request path in practice.
+
+**Migrations:** `V516` (tables) + `V517` (permissions: `INVENTORY_QUOTATION_VIEW`/`MANAGE`/`AWARD`,
+tier-matched to Purchase Requisition's View/Manage/Approve via the DEV_ADMIN/SUPPORT_ADMIN
+catch-all pattern). Numbered from 516 deliberately — this worktree branched before main's
+V513–V515 landed, so 513 was already taken there; confirmed no collision by booting against the
+real shared local-dev Postgres, which was already at v515 and migrated cleanly to v517.
+
+**Verified:** booted against the real migrated local-dev DB (schema + Hibernate validation both
+clean); full `com.cms.inventory.*` backend test suite green, including a new
+`QuotationRequestServiceTest` (15 cases: create, add/remove line and supplier with every guard
+condition, submit, record/award/reject, and the multi-supplier conversion grouping); `npx tsc
+--noEmit` and a full `ng build --configuration=production` both clean with no new warnings. Did
+**not** attempt a live end-to-end click-through or curl-driven API walkthrough — the local Keycloak
+dev credentials on file didn't match, and per this repo's established posture, confirming
+build/compile is the bar for an unattended/model-driven pass, not self-run visual verification.
+
+**Impact:** 24 new backend files (entities/enums/DTOs/repositories/service/controller/migrations/
+test) + edits to `PurchaseOrderAddLineRequest`, `PurchaseOrderItem`, `PurchaseOrderService`, and
+its test; 11 new frontend files (model/service/list/new/detail) + edits to `app.routes.ts`,
+`nav-config.ts`, and `CmsStatusBadgeComponent` (added the missing `AWARDED` case). New nav entry
+"Quotation Requests" under Purchasing & Suppliers, between Purchase Requisitions and Wanted List.
+Outstanding: a manual light/dark/role click-through of the new screens, and of `PurchaseOrderItem`
+detail/list screens per the Component Touch Rule (their own FK addition didn't change any
+existing template output, but the rule still calls for a look).
+
 *Next entry goes here — do not insert above this line.*

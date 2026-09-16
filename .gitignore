@@ -5,6 +5,9 @@
 # JIRA credentials (never commit)
 .jira.env
 
+# Local git worktrees (session-isolation scratch checkouts, never shared)
+.worktrees/
+
 # ------------------------------------------------------------
 # IDE — IntelliJ IDEA / JetBrains
 # ------------------------------------------------------------

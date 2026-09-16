@@ -61,6 +61,8 @@ export class CmsStatusBadgeComponent {
       case 'COMMITTED':
       case 'SANCTIONED':
       case 'MATCHED':
+      case 'CONFIRMED':
+      case 'AWARDED':
         return 'status-active';
 
       // ── In-progress / warning states ────────────────────────────────────
