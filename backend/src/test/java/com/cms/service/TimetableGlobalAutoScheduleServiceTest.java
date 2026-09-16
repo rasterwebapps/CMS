@@ -55,6 +55,8 @@ import com.cms.dto.SkeletonSubjectResponse;
 import com.cms.dto.SkippedPublishedCohort;
 import com.cms.dto.SystemConfigurationResponse;
 import com.cms.dto.StaffingAssignmentRequest;
+import com.cms.dto.ConstraintViolation;
+import com.cms.dto.TimetableConflictRow;
 import com.cms.dto.UnstaffedCellResponse;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.AcademicYear;
@@ -128,6 +130,7 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private RotationSlotRepository rotationSlotRepository;
     @Mock private RotationMemberRepository rotationMemberRepository;
     @Mock private RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
+    @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
 
     /** {@code fillSelfStudyGaps}'s final fallback message -- reached only when a fixture configures
      *  neither a genuine Self-Study/Co-curricular offering NOR any other real Theory offering for
@@ -158,9 +161,14 @@ class TimetableGlobalAutoScheduleServiceTest {
             courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,
             blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService,
             clinicalShiftGroupService, rotationGroupService, rotationGroupRepository, rotationSlotRepository,
-            rotationMemberRepository, rotationMemberAssignmentRepository);
+            rotationMemberRepository, rotationMemberAssignmentRepository, timetableConflictInspectorService);
         service.setCourseOfferingSectionFacultyService(courseOfferingSectionFacultyService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+        // Every successful run now ends with a term-wide post-run conflict scan (flag-only) --
+        // stub it to an empty result by default so the hundreds of existing assertions in this
+        // suite (none of which are about conflict scanning) don't all need updating individually.
+        lenient().when(timetableConflictInspectorService.scanTerm(anyLong())).thenReturn(
+            new com.cms.dto.ConflictScanResponse(null, null, null, 0, 0, 0, java.util.Map.of(), List.of()));
         // No fixture in this suite approves/publishes the term's timetable, so every cohort defaults
         // to "draft" (not published) unless a specific test overrides this stub — Mockito already
         // returns false by default for the unstubbed existsByTermInstanceIdAndStatus boolean.
@@ -567,6 +575,57 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.cohortSummaries().get(0).usedSaturday()).isFalse();
         assertThat(result.electiveUnplaced()).isEmpty();
         verify(timetableStaffingService).staffCell(900L, new StaffingAssignmentRequest(500L, null));
+    }
+
+    @Test
+    void runSurfacesPostRunConflictsFromTermWideScan_flagOnlyNeverAutoResolved() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        offeringEntity(100L, 10, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        SkeletonCellResponse placed = new SkeletonCellResponse(900L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period",
+            LocalTime.of(9, 0), LocalTime.of(9, 50), null, null, null, null, false, null, null, List.of(),
+            100L, "Offering A", "OFFE", null, null, null, false, false);
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenReturn(placed);
+        when(timetableStaffingService.staffCell(eq(900L), any(StaffingAssignmentRequest.class)))
+            .thenReturn(new UnstaffedCellResponse(900L, 100L, "Offering A", "OFFE", null, null,
+                ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+
+        // A pinned cell this run left standing (never re-placed) happens to double-book a room with
+        // something else already in the term -- exactly the case a rebuild cannot fix on its own.
+        TimetableConflictRow conflictRow = new TimetableConflictRow(
+            777L, "Pathophysiology", "PATH101", ClassSessionType.THEORY, DayOfWeek.TUESDAY, "3rd Period",
+            LocalTime.of(11, 0), LocalTime.of(11, 50), "Dr. Faculty", "Room 204", "Cohort 2",
+            com.cms.model.enums.ClassScheduleStatus.DRAFT,
+            List.of(new ConstraintViolation("CONFLICT_ROOM_DOUBLE_BOOKED", "Room 204 is already booked for this day/period")));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(
+            new com.cms.dto.ConflictScanResponse(10L, "Term", java.time.Instant.now(), 5, 1, 1,
+                java.util.Map.of("CONFLICT_ROOM_DOUBLE_BOOKED", 1), List.of(conflictRow)));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        // The run still placed/staffed normally -- the conflict scan is purely additive reporting,
+        // never a reason to withhold or alter what this run itself placed.
+        assertThat(result.totalPlaced()).isEqualTo(1);
+        assertThat(result.postRunConflicts()).hasSize(1);
+        assertThat(result.postRunConflicts().get(0).classScheduleId()).isEqualTo(777L);
+        assertThat(result.postRunConflicts().get(0).violations()).extracting(ConstraintViolation::code)
+            .containsExactly("CONFLICT_ROOM_DOUBLE_BOOKED");
+        // Flag-only: the scan is never asked to resolve or remove anything -- scanTerm has no
+        // side-effecting counterpart this run could even call.
+        verify(timetableConflictInspectorService).scanTerm(10L);
     }
 
     /** Regression for the real-world "Adult Health Nursing I" incident: 140 curriculum theory
