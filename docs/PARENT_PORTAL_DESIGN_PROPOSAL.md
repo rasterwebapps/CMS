@@ -10,8 +10,14 @@ implemented on top of it the same day, ahead of a verifiable human sign-off.
 The data model and cardinality below were retroactively reviewed and
 approved by a human 2026-09-17 (see OC-241/OC-243 Jira comments) — the
 decisions held up, but the review happened after the code shipped, not
-before. Frontend (Guardian admin UI, parent dashboard, ward switcher) plus
-ward fee-status/payment and an Announcements module remain to be built.
+before. Full round now shipped 2026-09-17: OC-254 (ward fee self-service +
+Razorpay online payment, hosted Checkout.js), OC-255 (institution-wide
+Announcements module), OC-256 (frontend — ward switcher, Guardian admin
+tab, parent dashboard, ward fees/payment, announcements widget). All three
+went through a live specialist-review round with a human before any code
+was written, unlike OC-243. Live browser verification of OC-256 against
+this codebase's Component Touch Rule (light/dark, every role) is still
+outstanding — see OC-256's Jira comments.
 
 ## Why this needed a design doc instead of a build attempt
 
