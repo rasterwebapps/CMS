@@ -5383,6 +5383,24 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   box-shadow: none !important;
 }
 
+// ── Change Password Dialog — global panel override ────────────────────────────
+// Same treatment as the photo crop dialog above: the component styles its own
+// shell (.cpd-shell), so strip Material's default dialog chrome.
+.cpd-dialog-panel .mat-mdc-dialog-container {
+  padding: 0;
+  background: transparent;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.cpd-dialog-panel .mdc-dialog__surface {
+  background: transparent !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+
 // ── Accessibility preferences ─────────────────────────────────────────────────
 html.reduce-motion *,
 html.reduce-motion *::before,

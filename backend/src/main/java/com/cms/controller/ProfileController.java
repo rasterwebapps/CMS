@@ -16,9 +16,11 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cms.dto.ChangePasswordRequest;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.SelfUpdateRequest;
 import com.cms.model.enums.DocumentType;
+import com.cms.service.PasswordChangeService;
 import com.cms.service.ProfileDocumentService;
 import com.cms.service.ProfileService;
 
@@ -28,11 +30,14 @@ public class ProfileController {
 
     private final ProfileService profileService;
     private final ProfileDocumentService profileDocumentService;
+    private final PasswordChangeService passwordChangeService;
 
     public ProfileController(ProfileService profileService,
-                             ProfileDocumentService profileDocumentService) {
+                             ProfileDocumentService profileDocumentService,
+                             PasswordChangeService passwordChangeService) {
         this.profileService         = profileService;
         this.profileDocumentService = profileDocumentService;
+        this.passwordChangeService  = passwordChangeService;
     }
 
     @GetMapping("/me")
@@ -60,6 +65,17 @@ public class ProfileController {
     @PutMapping("/me/self-info")
     public ResponseEntity<Void> updateSelfInfo(@RequestBody SelfUpdateRequest request) {
         profileService.updateSelfInfo(request);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Self-service password change, handled entirely in-app (no redirect to
+     * Keycloak's own account console). Verifies the current password before
+     * accepting the new one, then revokes the user's other active sessions.
+     */
+    @PostMapping("/me/change-password")
+    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest request) {
+        passwordChangeService.changePassword(request);
         return ResponseEntity.ok().build();
     }
 

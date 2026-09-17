@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,8 +23,10 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.ChangePasswordRequest;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.SelfUpdateRequest;
+import com.cms.service.PasswordChangeService;
 import com.cms.service.ProfileService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -42,6 +45,9 @@ class ProfileControllerTest {
 
     @MockitoBean
     private com.cms.service.ProfileDocumentService profileDocumentService;
+
+    @MockitoBean
+    private PasswordChangeService passwordChangeService;
 
     @Test
     void getMyProfileReturnsIdentity() throws Exception {
@@ -107,6 +113,18 @@ class ProfileControllerTest {
             .andExpect(status().isOk());
 
         verify(profileService).updateSelfInfo(any(SelfUpdateRequest.class));
+    }
+
+    @Test
+    void changePasswordDelegatesToService() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest("OldPass1", "NewPass2");
+
+        mockMvc.perform(post("/profile/me/change-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk());
+
+        verify(passwordChangeService).changePassword(any(ChangePasswordRequest.class));
     }
 }
 

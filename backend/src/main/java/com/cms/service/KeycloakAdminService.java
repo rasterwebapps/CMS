@@ -48,6 +48,12 @@ public class KeycloakAdminService {
     @Value("${keycloak.admin.password:admin}")
     private String adminPassword;
 
+    // Public SPA client — used only to verify a user's own current password via
+    // a direct (resource-owner password credentials) grant. Never used for anything
+    // else; it is a public client (no secret) exactly like the frontend's own login.
+    @Value("${keycloak.public-client-id:cms-frontend}")
+    private String publicClientId;
+
     private final RestClient restClient = RestClient.create();
 
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -169,6 +175,90 @@ public class KeycloakAdminService {
         }
     }
 
+    /**
+     * Verifies a user's current password by attempting a direct password grant
+     * against the public frontend client — exactly what the browser's own login
+     * does. Returns {@code false} (never throws) for wrong credentials; throws
+     * only if Keycloak itself is unreachable, so callers can tell "wrong password"
+     * apart from "Keycloak is down".
+     */
+    @SuppressWarnings("unchecked")
+    public boolean verifyPassword(String username, String password) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("client_id",  publicClientId);
+        form.add("username",   username);
+        form.add("password",   password);
+        form.add("grant_type", "password");
+
+        try {
+            restClient.post()
+                .uri(baseUrl + "/realms/" + realm + "/protocol/openid-connect/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(form)
+                .retrieve()
+                .body(Map.class);
+            return true;
+        } catch (org.springframework.web.client.HttpClientErrorException ex) {
+            // 401/400 = wrong username/password — the expected "no" answer.
+            return false;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Cannot reach Keycloak at " + baseUrl + ": " + ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Sets a new permanent (non-temporary) password for an existing user.
+     *
+     * @param keycloakUserId the UUID stored in app_users.keycloak_user_id
+     * @param newPassword    the new password — validated against the realm's
+     *                       password policy by Keycloak itself
+     * @throws IllegalStateException with a user-friendly message if Keycloak rejects it
+     */
+    public void resetPassword(String keycloakUserId, String newPassword) {
+        String token = getAdminToken();
+        Map<String, Object> body = Map.of(
+            "type",      "password",
+            "value",     newPassword,
+            "temporary", false
+        );
+
+        restClient.put()
+            .uri(adminUsersUri() + "/" + keycloakUserId + "/reset-password")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer " + token)
+            .body(body)
+            .retrieve()
+            .onStatus(HttpStatusCode::isError, (req, res) -> {
+                String rawBody = "(no body)";
+                try { rawBody = new String(res.getBody().readAllBytes(), StandardCharsets.UTF_8); } catch (Exception ignored) {}
+                log.error("Keycloak password reset failed: HTTP {} — {}", res.getStatusCode(), rawBody);
+                throw new IllegalStateException(friendlyKeycloakError(rawBody, "Failed to change password. Please try again."));
+            })
+            .toBodilessEntity();
+    }
+
+    /**
+     * Invalidates every other active session for this user (all devices/tabs),
+     * called after a successful self-service password change so a leaked old
+     * password stops working immediately elsewhere. Best-effort: failures are
+     * logged, never thrown, since the password itself has already been changed
+     * successfully by the time this runs.
+     */
+    public void logoutUserSessions(String keycloakUserId) {
+        try {
+            String token = getAdminToken();
+            restClient.post()
+                .uri(adminUsersUri() + "/" + keycloakUserId + "/logout")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, (req, res) ->
+                    log.error("Keycloak session logout failed for user {}: HTTP {}", keycloakUserId, res.getStatusCode()))
+                .toBodilessEntity();
+        } catch (Exception ex) {
+            log.warn("Failed to revoke other sessions for user {} after password change", keycloakUserId, ex);
+        }
+    }
+
     // ── Private helpers ────────────────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")
@@ -210,7 +300,21 @@ public class KeycloakAdminService {
     }
 
     private static String friendlyKeycloakError(String body) {
-        if (body == null) return "Failed to create user account. Please try again.";
+        return friendlyKeycloakError(body, "Failed to create user account. Please try again.");
+    }
+
+    /**
+     * Turns a raw Keycloak error response body into a user-facing message.
+     *
+     * Keycloak is not consistent about the field name across endpoints — user
+     * create/update errors use {@code errorMessage}, while others (e.g.
+     * reset-password on a missing user) use a plain {@code error} field — so
+     * both are checked. {@code fallback} is caller-supplied because the same
+     * generic text ("Failed to create user account…") previously leaked into
+     * unrelated flows like password reset whenever neither field was present.
+     */
+    private static String friendlyKeycloakError(String body, String fallback) {
+        if (body == null) return fallback;
         String lower = body.toLowerCase();
         if (lower.contains("password policy")) {
             return "Password does not meet requirements: minimum 8 characters, at least one uppercase letter and one digit.";
@@ -221,13 +325,19 @@ public class KeycloakAdminService {
         if (lower.contains("same email")) {
             return "A user with this email address already exists.";
         }
-        // Extract raw errorMessage field for any other Keycloak error
-        int start = body.indexOf("\"errorMessage\":\"");
-        if (start >= 0) {
-            start += 16;
-            int end = body.indexOf("\"", start);
-            if (end > start) return body.substring(start, end);
+        if (lower.contains("user not found")) {
+            return "Your account could not be found in the identity system. Please contact an administrator.";
         }
-        return "Failed to create user account. Please try again.";
+        // Extract the raw message for any other Keycloak error — try every field
+        // name Keycloak is known to use across its various admin endpoints.
+        for (String field : new String[] {"\"errorMessage\":\"", "\"error_description\":\"", "\"error\":\""}) {
+            int start = body.indexOf(field);
+            if (start >= 0) {
+                start += field.length();
+                int end = body.indexOf("\"", start);
+                if (end > start) return body.substring(start, end);
+            }
+        }
+        return fallback;
     }
 }
