@@ -206,21 +206,17 @@ public class FacultyDocumentService {
         FacultyDocument document = documentRepository.findById(documentId)
             .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
 
+        if (document.getStorageKey() == null || document.getStorageKey().isBlank()) {
+            throw new ResourceNotFoundException("No file uploaded for document id: " + documentId);
+        }
+
         String fileName = document.getFileName() != null
             ? document.getFileName() : document.getDocumentType().name();
         String contentType = document.getContentType() != null
             ? document.getContentType() : "application/octet-stream";
 
-        if (document.getStorageKey() != null && !document.getStorageKey().isBlank()) {
-            return new DocumentFileDownload(fileName, contentType,
-                storageService.downloadBytes(document.getStorageKey()));
-        }
-
-        byte[] data = document.getFileData();
-        if (data == null || data.length == 0) {
-            throw new ResourceNotFoundException("No file uploaded for document id: " + documentId);
-        }
-        return new DocumentFileDownload(fileName, contentType, data);
+        return new DocumentFileDownload(fileName, contentType,
+            storageService.downloadBytes(document.getStorageKey()));
     }
 
     private void recordHistory(FacultyDocument doc, DocumentVerificationStatus previous,

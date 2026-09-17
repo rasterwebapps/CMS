@@ -122,9 +122,10 @@ class ProfileServiceTest {
     void getPhotoReturnsImageWhenPresent() {
         setJwt("student.user", "student@college.edu");
         AppUser user = new AppUser();
-        user.setProfilePhoto(new byte[] {9, 8, 7});
+        user.setProfilePhotoKey("profile-photo/1-abcd1234.png");
         user.setProfilePhotoType("image/png");
         when(appUserRepository.findByKeycloakUsername("student.user")).thenReturn(Optional.of(user));
+        when(storageService.downloadBytes("profile-photo/1-abcd1234.png")).thenReturn(new byte[] {9, 8, 7});
 
         var response = profileService.getPhoto();
 
@@ -136,14 +137,15 @@ class ProfileServiceTest {
     void deletePhotoClearsStoredImage() {
         setJwt("admin", "admin@cms.local");
         AppUser user = new AppUser();
-        user.setProfilePhoto(new byte[] {1});
+        user.setProfilePhotoKey("profile-photo/1-abcd1234.png");
         user.setProfilePhotoType("image/png");
         when(appUserRepository.findByKeycloakUsername("admin")).thenReturn(Optional.of(user));
 
         profileService.deletePhoto();
 
-        assertThat(user.getProfilePhoto()).isNull();
+        assertThat(user.getProfilePhotoKey()).isNull();
         assertThat(user.getProfilePhotoType()).isNull();
+        verify(storageService).delete("profile-photo/1-abcd1234.png");
         verify(appUserRepository).save(user);
     }
 
@@ -217,7 +219,6 @@ class ProfileServiceTest {
     void getCoverPhotoReturnsNoContentWhenMissing() {
         setJwt("user1", "user1@college.edu");
         AppUser user = new AppUser();
-        user.setCoverPhoto(null);
         when(appUserRepository.findByKeycloakUsername("user1")).thenReturn(Optional.of(user));
 
         var response = profileService.getCoverPhoto();
@@ -229,9 +230,10 @@ class ProfileServiceTest {
     void getCoverPhotoReturnsImageWhenPresent() {
         setJwt("user1", "user1@college.edu");
         AppUser user = new AppUser();
-        user.setCoverPhoto(new byte[]{10, 20, 30});
+        user.setCoverPhotoKey("cover-photo/1-abcd1234.jpg");
         user.setCoverPhotoType("image/jpeg");
         when(appUserRepository.findByKeycloakUsername("user1")).thenReturn(Optional.of(user));
+        when(storageService.downloadBytes("cover-photo/1-abcd1234.jpg")).thenReturn(new byte[]{10, 20, 30});
 
         var response = profileService.getCoverPhoto();
 
@@ -243,9 +245,10 @@ class ProfileServiceTest {
     void getCoverPhotoUsesDefaultContentTypeWhenNull() {
         setJwt("user1", "user1@college.edu");
         AppUser user = new AppUser();
-        user.setCoverPhoto(new byte[]{1});
+        user.setCoverPhotoKey("cover-photo/1-abcd1234.jpg");
         user.setCoverPhotoType(null);
         when(appUserRepository.findByKeycloakUsername("user1")).thenReturn(Optional.of(user));
+        when(storageService.downloadBytes("cover-photo/1-abcd1234.jpg")).thenReturn(new byte[]{1});
 
         var response = profileService.getCoverPhoto();
 
@@ -294,14 +297,15 @@ class ProfileServiceTest {
     void deleteCoverPhotoClearsStoredImage() {
         setJwt("user1", "user1@college.edu");
         AppUser user = new AppUser();
-        user.setCoverPhoto(new byte[]{1, 2, 3});
+        user.setCoverPhotoKey("cover-photo/1-abcd1234.jpg");
         user.setCoverPhotoType("image/jpeg");
         when(appUserRepository.findByKeycloakUsername("user1")).thenReturn(Optional.of(user));
 
         profileService.deleteCoverPhoto();
 
-        assertThat(user.getCoverPhoto()).isNull();
+        assertThat(user.getCoverPhotoKey()).isNull();
         assertThat(user.getCoverPhotoType()).isNull();
+        verify(storageService).delete("cover-photo/1-abcd1234.jpg");
         verify(appUserRepository).save(user);
     }
 

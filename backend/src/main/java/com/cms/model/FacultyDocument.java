@@ -67,13 +67,6 @@ public class FacultyDocument {
     @Column(name = "file_size")
     private Long fileSize;
 
-    // Stored as PostgreSQL `bytea` (and H2 VARBINARY). We deliberately do NOT
-    // use @Lob here: on PostgreSQL @Lob+byte[] maps to OID/Large Object which
-    // mismatches the `bytea` column type defined in V93 migration and causes
-    // schema validation to fail at startup.
-    @Column(name = "file_data")
-    private byte[] fileData;
-
     @Column(name = "uploaded_at")
     private Instant uploadedAt;
 
@@ -126,9 +119,6 @@ public class FacultyDocument {
 
     public Long getFileSize() { return fileSize; }
     public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
-
-    public byte[] getFileData() { return fileData; }
-    public void setFileData(byte[] fileData) { this.fileData = fileData; }
 
     public Instant getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(Instant uploadedAt) { this.uploadedAt = uploadedAt; }

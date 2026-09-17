@@ -82,14 +82,8 @@ public class AppUser {
     @OrderBy("widgetOrder ASC")
     private List<UserDashboardWidgetConfig> widgetConfigs = new ArrayList<>();
 
-    @Column(name = "profile_photo")
-    private byte[] profilePhoto;
-
     @Column(name = "profile_photo_type", length = 50)
     private String profilePhotoType;
-
-    @Column(name = "cover_photo")
-    private byte[] coverPhoto;
 
     @Column(name = "cover_photo_type", length = 50)
     private String coverPhotoType;
@@ -209,14 +203,6 @@ public class AppUser {
         this.updatedAt = updatedAt;
     }
 
-    public byte[] getProfilePhoto() {
-        return profilePhoto;
-    }
-
-    public void setProfilePhoto(byte[] profilePhoto) {
-        this.profilePhoto = profilePhoto;
-    }
-
     public String getProfilePhotoType() {
         return profilePhotoType;
     }
@@ -224,9 +210,6 @@ public class AppUser {
     public void setProfilePhotoType(String profilePhotoType) {
         this.profilePhotoType = profilePhotoType;
     }
-
-    public byte[] getCoverPhoto() { return coverPhoto; }
-    public void setCoverPhoto(byte[] coverPhoto) { this.coverPhoto = coverPhoto; }
 
     public String getCoverPhotoType() { return coverPhotoType; }
     public void setCoverPhotoType(String coverPhotoType) { this.coverPhotoType = coverPhotoType; }

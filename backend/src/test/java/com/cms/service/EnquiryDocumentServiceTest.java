@@ -438,8 +438,9 @@ class EnquiryDocumentServiceTest {
         EnquiryDocument doc = createDocument(5L, testEnquiry, DocumentType.TENTH_MARKSHEET);
         doc.setFileName("scan.pdf");
         doc.setContentType("application/pdf");
-        doc.setFileData("PDF".getBytes());
+        doc.setStorageKey("enquiry-docs/5-scan.pdf");
         when(documentRepository.findById(5L)).thenReturn(Optional.of(doc));
+        when(storageService.downloadBytes("enquiry-docs/5-scan.pdf")).thenReturn("PDF".getBytes());
 
         com.cms.dto.DocumentFileDownload download = documentService.getFileForDownload(5L);
 
@@ -451,9 +452,10 @@ class EnquiryDocumentServiceTest {
     @Test
     void shouldDownloadFileWithFallbackMetadataWhenMissing() {
         EnquiryDocument doc = createDocument(5L, testEnquiry, DocumentType.TENTH_MARKSHEET);
-        doc.setFileData("PDF".getBytes());
+        doc.setStorageKey("enquiry-docs/5-scan.pdf");
         // fileName and contentType intentionally null
         when(documentRepository.findById(5L)).thenReturn(Optional.of(doc));
+        when(storageService.downloadBytes("enquiry-docs/5-scan.pdf")).thenReturn("PDF".getBytes());
 
         com.cms.dto.DocumentFileDownload download = documentService.getFileForDownload(5L);
 
@@ -464,7 +466,7 @@ class EnquiryDocumentServiceTest {
     @Test
     void shouldThrowWhenDownloadingDocumentWithoutFile() {
         EnquiryDocument doc = createDocument(5L, testEnquiry, DocumentType.TENTH_MARKSHEET);
-        // No file data set
+        // No storage key set
         when(documentRepository.findById(5L)).thenReturn(Optional.of(doc));
 
         assertThatThrownBy(() -> documentService.getFileForDownload(5L))
