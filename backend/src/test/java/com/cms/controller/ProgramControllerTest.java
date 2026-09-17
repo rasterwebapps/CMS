@@ -22,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -68,6 +70,28 @@ class ProgramControllerTest {
             .andExpect(jsonPath("$.durationYears").value(4));
 
         verify(programService).create(any(ProgramRequest.class));
+    }
+
+    @Test
+    void shouldForwardActiveOnlyParamToFindPage() throws Exception {
+        when(programService.findPage(any(), eq(true), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/programs/page").param("activeOnly", "true"))
+            .andExpect(status().isOk());
+
+        verify(programService).findPage(any(), eq(true), any(Pageable.class));
+    }
+
+    @Test
+    void shouldDefaultActiveOnlyToFalseWhenOmitted() throws Exception {
+        when(programService.findPage(any(), eq(false), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/programs/page"))
+            .andExpect(status().isOk());
+
+        verify(programService).findPage(any(), eq(false), any(Pageable.class));
     }
 
     @Test

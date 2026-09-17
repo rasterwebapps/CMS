@@ -32,22 +32,36 @@ Program), Academic Year (multi-select), Referral Type, Agent.
 ## Tier 1 — Enquiry-adjacent (Program/Course filters, same shape as Enquiry List)
 
 - [x] `enquiry-list` — Program, Course, Academic Year, Referral Type, Agent (commit `f96b4456`)
-- [ ] `admission-completion-list` — Program, Course
-- [ ] `document-verification-list` — Program, Course
-- [ ] `document-submission-list` — Program, Course
+- [x] `admission-completion-list` — Program, Course (active-only; see backend `activeOnly` note below)
+- [x] `document-verification-list` — Program, Course (active-only)
+- [x] `document-submission-list` — Program, Course (active-only)
+
+All three restricted Program to `status === 'ACTIVE'` client-side. Rather than drop that behavior,
+added a proper `activeOnly` query param to `GET /programs/page` (`ProgramController`/`ProgramService`,
+with unit tests) and `ProgramService.getPage({ activeOnly })` on the frontend, so `activeOnly: true`
+in `programFetchPage` now does this server-side wherever it's needed.
 
 ## Tier 2 — Admission module
 
-- [ ] `admission-list` — Program, Course (filter bar)
-- [ ] `admission-detail` — `settingsService.getAll()` (confirm: filter or lookup?)
+- [x] `admission-list` — Program, Course, Academic Year (Academic Year keeps a small `getAllAcademicYears()` list
+      client-side for `resolveLabel`, since `AcademicYearService` has no `getById`; same bounded-list exception as Enquiry List)
+- [x] `admission-detail` — `settingsService.getAll()` confirmed **out of scope**: it reads branding config key/value
+      pairs (college name/address/phone) for a print header, not a dropdown
 - [!] `admission-form` — `studentService.getAll()` — Student has no `getPage` yet
 
 ## Tier 3 — Student module
 
-- [ ] `student-list` — Program, Course (filter bar)
-- [ ] `student-detail` — Program
-- [ ] `roll-number-assignment` — Program, Course
-- [!] `retro-admit` — Program (has getPage, OK), Student x2 + Faculty (`studentSvc.getAll()` — backend gap on Student)
+- [x] `student-list` — Program, Course, Academic Year (same pattern as admission-list)
+- [~] `student-detail` — Program feeds `ProgramTransferDialogComponent`'s **`mat-select`** (excludes the
+      current program), not a plain `<select>` filter — converting it means either (a) filtering results
+      inside the `fetchPage` closure and swapping to `cms-infinite-select` (breaks the dialog's Material
+      form-field visual consistency) or (b) leaving it. Flagged for a design call rather than forced through.
+- [x] `roll-number-assignment` — Program, Course (ngModel-driven, not URL filters; adapted the same way)
+- [~] `retro-admit` — Program is one field inside a single `forkJoin` initializing a large multi-step wizard
+      (with Communities/BloodGroups/ReferralTypes/Agents/FeeStates, all genuinely small/enum-like) — pulling
+      Program out into a separate fetch-based picker is a real refactor of that init flow, not a drop-in swap.
+      Student x2 + Faculty in the same file are backend-gap anyway (`studentSvc.getAll()`, Student has no
+      `getPage`). Flagged for a design call rather than forced through.
 
 ## Tier 4 — Course / Subject / Faculty
 

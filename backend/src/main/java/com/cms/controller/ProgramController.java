@@ -102,8 +102,9 @@ public class ProgramController {
     @GetMapping("/page")
     public ResponseEntity<Page<ProgramResponse>> findPage(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "false") boolean activeOnly,
             @PageableDefault(size = 25, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(programService.findPage(search, pageable));
+        return ResponseEntity.ok(programService.findPage(search, activeOnly, pageable));
     }
 
     @GetMapping("/name-exists")

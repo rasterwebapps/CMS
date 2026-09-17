@@ -31,21 +31,17 @@
     </div>
 
     <div class="filter-group">
-      <select class="filter-sel" [value]="filterProgramId() ?? ''"
-              (change)="onProgramChange($any($event.target).value)" aria-label="Filter by program">
-        <option value="">All Programs</option>
-        @for (p of programs; track p.id) {
-          <option [value]="p.id">{{ p.name }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+        [fetchPage]="programFetchPage" [resolveLabel]="programResolveLabel"
+        [selectedValue]="filterProgramId()" (selectedValueChange)="onProgramChange($event)"
+      />
 
-      <select class="filter-sel" [value]="filterCourseId() ?? ''"
-              (change)="onCourseChange($any($event.target).value)" aria-label="Filter by course">
-        <option value="">All Courses</option>
-        @for (c of filteredCourses(); track c.id) {
-          <option [value]="c.id">{{ c.name }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Courses" ariaLabel="Filter by course" searchPlaceholder="Search courses…"
+        [fetchPage]="courseFetchPage" [resolveLabel]="courseResolveLabel" [reloadKey]="filterProgramId()"
+        [selectedValue]="filterCourseId()" (selectedValueChange)="onCourseChange($event)"
+      />
 
       <select class="filter-sel" [value]="filterStudentType()"
               (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">

@@ -4,7 +4,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -25,11 +25,11 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsIconViewComponent } from '../../../shared/icons';
 import { ProgramService } from '../../program/program.service';
 import { CourseService } from '../../course/course.service';
-import { Program } from '../../program/program.model';
-import { Course } from '../../course/course.model';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_SORT_FIELD = 'enquiryDate';
 const DEFAULT_SORT_DIR: 'asc' | 'desc' = 'desc';
@@ -57,6 +57,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent,
     CmsIconViewComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './admission-completion-list.component.html',
   styleUrl: './admission-completion-list.component.scss',
@@ -104,14 +105,20 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
   protected readonly filterCourseId    = signal<number | null>(null);
   protected readonly filterStudentType = signal<string>('');
 
-  // ── Master data ───────────────────────────────────────────────────────────
-  protected programs:   Program[] = [];
-  protected allCourses: Course[]  = [];
+  // ── Filter dropdown data sources — search/paginate against the backend rather than
+  // loading (or capping) the full master list; see CmsInfiniteSelectComponent. Program stays
+  // restricted to active-only, matching this screen's prior client-side ACTIVE filter. ──────────
+  protected readonly programFetchPage = (search: string, page: number, size: number) =>
+    this.programService.getPage({ search, page, size, activeOnly: true });
+  protected readonly programResolveLabel = (id: InfiniteSelectValue) =>
+    this.programService.getById(Number(id)).pipe(map(p => p.name));
 
-  protected readonly filteredCourses = computed(() => {
-    const pid = this.filterProgramId();
-    return pid ? this.allCourses.filter(c => c.program?.id === pid) : this.allCourses;
-  });
+  // Re-scoped to the selected program server-side; reloadKey forces the picker to drop its
+  // cached page whenever the program changes so it never shows another program's courses.
+  protected readonly courseFetchPage = (search: string, page: number, size: number) =>
+    this.courseService.getPage({ search, page, size, programId: this.filterProgramId() ?? undefined });
+  protected readonly courseResolveLabel = (id: InfiniteSelectValue) =>
+    this.courseService.getById(Number(id)).pipe(map(c => c.name));
 
   protected readonly colState = new ColumnPickerState({
     storageKey: 'admission-completion-list-cols-v2',
@@ -139,7 +146,6 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.tourService.register('admission-completion-list', ADMISSION_COMPLETION_LIST_TOUR);
     this.tourService.registerFlowMap('admission-completion-list', ADMISSION_COMPLETION_LIST_FLOW_MAP);
-    this.loadMasterData();
 
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       this.searchQuery.set(params['search'] ?? '');
@@ -170,13 +176,6 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  private loadMasterData(): void {
-    this.programService.getAll().subscribe(list => {
-      this.programs = list.filter(p => (p.status as string) === 'ACTIVE');
-    });
-    this.courseService.getAll().subscribe(list => { this.allCourses = list; });
   }
 
   private loadPage(): void {
@@ -213,15 +212,15 @@ export class AdmissionCompletionListComponent implements OnInit, OnDestroy {
     this.searchSubject.next('');
   }
 
-  protected onProgramChange(val: string): void {
-    const pid = val ? +val : null;
+  protected onProgramChange(value: InfiniteSelectValue | null): void {
+    const pid = value != null ? Number(value) : null;
     this.filterProgramId.set(pid);
     this.filterCourseId.set(null);
     this.navigate({ programId: pid, courseId: null, page: 0 });
   }
 
-  protected onCourseChange(val: string): void {
-    const cid = val ? +val : null;
+  protected onCourseChange(value: InfiniteSelectValue | null): void {
+    const cid = value != null ? Number(value) : null;
     this.filterCourseId.set(cid);
     this.navigate({ courseId: cid, page: 0 });
   }

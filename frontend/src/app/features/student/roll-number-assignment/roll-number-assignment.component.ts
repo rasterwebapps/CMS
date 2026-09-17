@@ -3,12 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { map } from 'rxjs/operators';
 import { StudentService } from '../student.service';
 import { Student } from '../student.model';
 import { ProgramService } from '../../program/program.service';
 import { CourseService } from '../../course/course.service';
-import { Program } from '../../program/program.model';
-import { Course } from '../../course/course.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
@@ -17,6 +16,8 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { TourService } from '../../../shared/tour/tour.service';
 import { ROLL_NUMBER_ASSIGNMENT_TOUR, ROLL_NUMBER_ASSIGNMENT_FLOW_MAP } from '../../../shared/tour/tours/student.tours';
 import { computeInitials } from '../../../shared/utils/initials';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 
 interface RollAssignment {
   student: Student;
@@ -35,6 +36,7 @@ interface RollAssignment {
     MatTableModule,
     MatSortModule,
     MatTooltipModule,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './roll-number-assignment.component.html',
   styleUrl: './roll-number-assignment.component.scss',
@@ -48,14 +50,26 @@ export class RollNumberAssignmentComponent implements OnInit {
 
   protected readonly computeInitials = computeInitials;
 
-  protected readonly programs    = signal<Program[]>([]);
-  protected readonly courses     = signal<Course[]>([]);
   protected readonly assignments = signal<RollAssignment[]>([]);
   protected readonly loading     = signal(false);
   protected readonly saving      = signal(false);
 
   protected selectedProgramId: number | null = null;
   protected selectedCourseId:  number | null = null;
+
+  // ── Filter dropdown data sources — search/paginate against the backend rather than
+  // loading the full master list; see CmsInfiniteSelectComponent. ──────────────────
+  protected readonly programFetchPage = (search: string, page: number, size: number) =>
+    this.programService.getPage({ search, page, size });
+  protected readonly programResolveLabel = (id: InfiniteSelectValue) =>
+    this.programService.getById(Number(id)).pipe(map(p => p.name));
+
+  // Re-scoped to the selected program server-side; reloadKey forces the picker to drop its
+  // cached page whenever the program changes so it never shows another program's courses.
+  protected readonly courseFetchPage = (search: string, page: number, size: number) =>
+    this.courseService.getPage({ search, page, size, programId: this.selectedProgramId ?? undefined });
+  protected readonly courseResolveLabel = (id: InfiniteSelectValue) =>
+    this.courseService.getById(Number(id)).pipe(map(c => c.name));
 
   protected readonly totalCount  = computed(() => this.assignments().length);
   protected readonly filledCount = computed(() => this.assignments().filter(a => a.rollNumber.trim()).length);
@@ -70,36 +84,28 @@ export class RollNumberAssignmentComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('roll-number-assignment', ROLL_NUMBER_ASSIGNMENT_TOUR);
     this.tourService.registerFlowMap('roll-number-assignment', ROLL_NUMBER_ASSIGNMENT_FLOW_MAP);
-    this.programService.getAll().subscribe({ next: (p) => this.programs.set(p) });
-    this.loadCourses();
     this.loadStudents();
   }
 
-  protected onProgramChange(): void {
+  protected onProgramChange(value: InfiniteSelectValue | null): void {
+    this.selectedProgramId = value != null ? Number(value) : null;
     this.selectedCourseId = null;
-    if (this.selectedProgramId) {
-      this.courseService.getByProgram(this.selectedProgramId).subscribe({ next: (c) => this.courses.set(c) });
-    } else {
-      this.loadCourses();
-    }
     this.loadStudents();
   }
 
-  protected onCourseChange(): void { this.loadStudents(); }
+  protected onCourseChange(value: InfiniteSelectValue | null): void {
+    this.selectedCourseId = value != null ? Number(value) : null;
+    this.loadStudents();
+  }
 
   protected clearFilters(): void {
     this.selectedProgramId = null;
     this.selectedCourseId  = null;
-    this.loadCourses();
     this.loadStudents();
   }
 
   protected get hasActiveFilters(): boolean {
     return this.selectedProgramId !== null || this.selectedCourseId !== null;
-  }
-
-  private loadCourses(): void {
-    this.courseService.getAll().subscribe({ next: (c) => this.courses.set(c) });
   }
 
   private loadStudents(): void {

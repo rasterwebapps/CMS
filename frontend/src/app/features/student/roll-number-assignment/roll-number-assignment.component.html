@@ -31,21 +31,17 @@
   <!-- ── Toolbar ────────────────────────────────────────────── -->
   <div id="tour-rollno-filters" class="rna-toolbar anim-rise anim-rise--d1">
 
-    <select class="mlp-filter-select" [(ngModel)]="selectedProgramId" (ngModelChange)="onProgramChange()"
-            aria-label="Filter by program">
-      <option [ngValue]="null">All Programs</option>
-      @for (p of programs(); track p.id) {
-        <option [ngValue]="p.id">{{ p.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+      [fetchPage]="programFetchPage" [resolveLabel]="programResolveLabel"
+      [selectedValue]="selectedProgramId" (selectedValueChange)="onProgramChange($event)"
+    />
 
-    <select class="mlp-filter-select" [(ngModel)]="selectedCourseId" (ngModelChange)="onCourseChange()"
-            aria-label="Filter by course">
-      <option [ngValue]="null">All Courses</option>
-      @for (c of courses(); track c.id) {
-        <option [ngValue]="c.id">{{ c.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Courses" ariaLabel="Filter by course" searchPlaceholder="Search courses…"
+      [fetchPage]="courseFetchPage" [resolveLabel]="courseResolveLabel" [reloadKey]="selectedProgramId"
+      [selectedValue]="selectedCourseId" (selectedValueChange)="onCourseChange($event)"
+    />
 
     @if (hasActiveFilters) {
       <button class="btn-toolbar btn-toolbar--clear btn-toolbar--icon-only" type="button" (click)="clearFilters()" aria-label="Clear filters" title="Clear filters">

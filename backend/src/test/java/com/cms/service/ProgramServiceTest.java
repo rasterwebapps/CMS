@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
 import com.cms.dto.ProgramRequest;
 import com.cms.dto.ProgramResponse;
@@ -381,6 +382,50 @@ class ProgramServiceTest {
             new com.cms.dto.ProgramDocumentRequirementsRequest(Set.of(), Set.of())))
             .isInstanceOf(ResourceNotFoundException.class)
             .hasMessageContaining("999");
+    }
+
+    @Test
+    void shouldApplyActiveOnlyFilterInFindPage() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.Pageable.unpaged();
+        when(programRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
+            .thenReturn(org.springframework.data.domain.Page.empty());
+
+        programService.findPage(null, true, pageable);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Specification<Program>> specCaptor = ArgumentCaptor.forClass(Specification.class);
+        verify(programRepository).findAll(specCaptor.capture(), any(org.springframework.data.domain.Pageable.class));
+
+        jakarta.persistence.criteria.Root<Program> root = org.mockito.Mockito.mock(jakarta.persistence.criteria.Root.class);
+        jakarta.persistence.criteria.CriteriaQuery<?> query = org.mockito.Mockito.mock(jakarta.persistence.criteria.CriteriaQuery.class);
+        jakarta.persistence.criteria.CriteriaBuilder cb = org.mockito.Mockito.mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+        jakarta.persistence.criteria.Path<Object> statusPath = org.mockito.Mockito.mock(jakarta.persistence.criteria.Path.class);
+        when(root.get("status")).thenReturn(statusPath);
+
+        specCaptor.getValue().toPredicate(root, query, cb);
+
+        verify(cb).equal(statusPath, ProgramStatus.ACTIVE);
+    }
+
+    @Test
+    void shouldNotApplyActiveOnlyFilterByDefault() {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.Pageable.unpaged();
+        when(programRepository.findAll(any(Specification.class), any(org.springframework.data.domain.Pageable.class)))
+            .thenReturn(org.springframework.data.domain.Page.empty());
+
+        programService.findPage("bach", false, pageable);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Specification<Program>> specCaptor = ArgumentCaptor.forClass(Specification.class);
+        verify(programRepository).findAll(specCaptor.capture(), any(org.springframework.data.domain.Pageable.class));
+
+        jakarta.persistence.criteria.Root<Program> root = org.mockito.Mockito.mock(jakarta.persistence.criteria.Root.class);
+        jakarta.persistence.criteria.CriteriaQuery<?> query = org.mockito.Mockito.mock(jakarta.persistence.criteria.CriteriaQuery.class);
+        jakarta.persistence.criteria.CriteriaBuilder cb = org.mockito.Mockito.mock(jakarta.persistence.criteria.CriteriaBuilder.class);
+
+        specCaptor.getValue().toPredicate(root, query, cb);
+
+        verify(cb, never()).equal(any(), org.mockito.ArgumentMatchers.eq(ProgramStatus.ACTIVE));
     }
 
     private Program createProgram(Long id, String name, String code, Integer durationYears) {
