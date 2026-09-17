@@ -9,13 +9,52 @@
        </div>
        <p class="sfx-sub">View fee allocations and payment status across all students</p>
      </div>
-     @if (canExport()) {
+     @if (canExport() || canExportSemWise()) {
        <div class="mlp-hdr-actions">
-         <cms-export-button
-           [disabled]="exporting() || totalElements === 0"
-           (export)="onExport($event)"
-           tooltip="Export fee explorer data as Excel or PDF"
-         />
+         <button mat-stroked-button [matMenuTriggerFor]="sfxExportMenu" class="sfx-export-btn"
+                 [disabled]="exporting() || totalElements === 0"
+                 matTooltip="Export fee explorer data">
+           <mat-icon>download</mat-icon>
+           <span>Export</span>
+           <mat-icon class="sfx-export-chevron">arrow_drop_down</mat-icon>
+         </button>
+
+         <mat-menu #sfxExportMenu="matMenu">
+           @if (canExport()) {
+             <button mat-menu-item [matMenuTriggerFor]="sfxWholeMenu">
+               <mat-icon>table_view</mat-icon>
+               <span>Whole</span>
+             </button>
+           }
+           @if (canExportSemWise()) {
+             <button mat-menu-item [matMenuTriggerFor]="sfxSemWiseMenu">
+               <mat-icon>calendar_view_month</mat-icon>
+               <span>Sem-wise</span>
+             </button>
+           }
+         </mat-menu>
+
+         <mat-menu #sfxWholeMenu="matMenu">
+           <button mat-menu-item (click)="onExport('excel')">
+             <mat-icon>table_view</mat-icon>
+             <span>Excel (.xlsx)</span>
+           </button>
+           <button mat-menu-item (click)="onExport('pdf')">
+             <mat-icon>picture_as_pdf</mat-icon>
+             <span>PDF</span>
+           </button>
+         </mat-menu>
+
+         <mat-menu #sfxSemWiseMenu="matMenu">
+           <button mat-menu-item (click)="onExportSemWise('excel')">
+             <mat-icon>table_view</mat-icon>
+             <span>Excel (.xlsx)</span>
+           </button>
+           <button mat-menu-item (click)="onExportSemWise('pdf')">
+             <mat-icon>picture_as_pdf</mat-icon>
+             <span>PDF</span>
+           </button>
+         </mat-menu>
        </div>
      }
    </div>

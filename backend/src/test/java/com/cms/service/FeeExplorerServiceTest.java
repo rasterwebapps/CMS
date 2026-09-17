@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import com.cms.dto.FeeExplorerResponse;
+import com.cms.dto.FeeExplorerSemesterWiseRow;
 import com.cms.model.AcademicYear;
 import com.cms.model.Admission;
 import com.cms.model.Enquiry;
@@ -338,5 +339,103 @@ class FeeExplorerServiceTest {
         assertThat(options.programs()).containsExactly("B.Sc CS", "B.Sc IT");
         assertThat(options.academicYears()).containsExactly("2024-2025");
         assertThat(options.yearsOfStudy()).containsExactly(1, 3);
+    }
+
+    // ── Sem-wise export: one row per student per semester ──────────────────────────────────────
+
+    @Test
+    void shouldReturnOneRowPerSemesterWithFeePaidPending() {
+        StudentFeeAllocation allocation = new StudentFeeAllocation(
+            testStudent, testProgram, new BigDecimal("300000"),
+            BigDecimal.ZERO, null, BigDecimal.ZERO, new BigDecimal("300000"),
+            FeeAllocationStatus.FINALIZED
+        );
+        allocation.setId(1L);
+
+        SemesterFee sf1 = new SemesterFee(allocation, 1, "Sem 1", new BigDecimal("150000"), LocalDate.of(2024, 7, 31), 1);
+        sf1.setId(1L);
+        SemesterFee sf2 = new SemesterFee(allocation, 1, "Sem 2", new BigDecimal("150000"), LocalDate.of(2025, 1, 31), 2);
+        sf2.setId(2L);
+
+        when(studentRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Sort.class)))
+            .thenReturn(List.of(testStudent));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(allocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(sf1, sf2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("150000"));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(new BigDecimal("50000"));
+        when(penaltyRepository.findBySemesterFeeId(1L)).thenReturn(List.of());
+        when(penaltyRepository.findBySemesterFeeId(2L)).thenReturn(List.of());
+
+        List<FeeExplorerSemesterWiseRow> rows =
+            service.searchAllSemesterWise(null, null, null, null, null, Sort.by("rollNumber"));
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).semesterLabel()).isEqualTo("Sem 1");
+        assertThat(rows.get(0).fee()).isEqualByComparingTo("150000");
+        assertThat(rows.get(0).paid()).isEqualByComparingTo("150000");
+        assertThat(rows.get(0).pending()).isEqualByComparingTo("0");
+        assertThat(rows.get(1).semesterLabel()).isEqualTo("Sem 2");
+        assertThat(rows.get(1).fee()).isEqualByComparingTo("150000");
+        assertThat(rows.get(1).paid()).isEqualByComparingTo("50000");
+        assertThat(rows.get(1).pending()).isEqualByComparingTo("100000");
+    }
+
+    @Test
+    void shouldSkipNotAllocatedStudentsInSemesterWiseExport() {
+        when(studentRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Sort.class)))
+            .thenReturn(List.of(testStudent));
+        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.empty());
+
+        List<FeeExplorerSemesterWiseRow> rows =
+            service.searchAllSemesterWise(null, null, null, null, null, Sort.by("rollNumber"));
+
+        assertThat(rows).isEmpty();
+    }
+
+    @Test
+    void shouldCarryEnquiryCreditAcrossSemestersInSemesterWiseRows() {
+        StudentFeeAllocation allocation = new StudentFeeAllocation(
+            testStudent, testProgram, new BigDecimal("110000"),
+            BigDecimal.ZERO, null, BigDecimal.ZERO, new BigDecimal("110000"),
+            FeeAllocationStatus.FINALIZED
+        );
+        allocation.setId(1L);
+
+        SemesterFee sf1 = new SemesterFee(allocation, 1, "Sem 1", new BigDecimal("55000"), LocalDate.of(2024, 7, 31), 1);
+        sf1.setId(1L);
+        SemesterFee sf2 = new SemesterFee(allocation, 1, "Sem 2", new BigDecimal("55000"), LocalDate.of(2025, 1, 31), 2);
+        sf2.setId(2L);
+
+        Enquiry enquiry = new Enquiry();
+        enquiry.setId(8L);
+
+        when(studentRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Sort.class)))
+            .thenReturn(List.of(testStudent));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentId(1L)).thenReturn(Optional.of(allocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(sf1, sf2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(new BigDecimal("50000"));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(new BigDecimal("45000"));
+        when(penaltyRepository.findBySemesterFeeId(1L)).thenReturn(List.of());
+        when(penaltyRepository.findBySemesterFeeId(2L)).thenReturn(List.of());
+        when(enquiryRepository.findByConvertedStudentId(1L)).thenReturn(Optional.of(enquiry));
+        when(enquiryPaymentRepository.sumAmountPaidByEnquiryId(8L)).thenReturn(new BigDecimal("5000"));
+        when(creditApplicationRepository.sumAmountAppliedByEnquiryId(8L)).thenReturn(new BigDecimal("5000"));
+        when(creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(8L, 1L)).thenReturn(new BigDecimal("5000"));
+        when(creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(8L, 2L)).thenReturn(BigDecimal.ZERO);
+
+        List<FeeExplorerSemesterWiseRow> rows =
+            service.searchAllSemesterWise(null, null, null, null, null, Sort.by("rollNumber"));
+
+        // Same figures as the aggregate-level equivalent test — semester 1 fully settled
+        // (50000 installment + 5000 already-applied credit = 55000), semester 2 still owes 10000.
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).paid()).isEqualByComparingTo("55000");
+        assertThat(rows.get(0).pending()).isEqualByComparingTo("0");
+        assertThat(rows.get(1).paid()).isEqualByComparingTo("45000");
+        assertThat(rows.get(1).pending()).isEqualByComparingTo("10000");
     }
 }

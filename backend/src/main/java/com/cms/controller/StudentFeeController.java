@@ -27,6 +27,7 @@ import com.cms.dto.CollectPaymentRequest;
 import com.cms.dto.CollectPaymentResponse;
 import com.cms.dto.EnquiryCreditApplicationDto;
 import com.cms.dto.FeeExplorerResponse;
+import com.cms.dto.FeeExplorerSemesterWiseRow;
 import com.cms.dto.FeeRefundApprovalRequest;
 import com.cms.dto.FeeRefundRejectionRequest;
 import com.cms.dto.FeeRefundRequest;
@@ -254,6 +255,41 @@ public class StudentFeeController {
         return ExportResponseFactory.respond(format, "fee-explorer",
             () -> feeExportService.toExcel(data, meta),
             () -> feeExportService.toPdf(data, meta));
+    }
+
+    /** Semester-wise variant of {@link #exportExplorer} — one row per student per semester so
+     *  the client can find pending balances at the semester level, not just the per-student total.
+     *  Own dedicated permission per the operation-wise permission mapping gate: this is a distinct
+     *  export operation on the same screen, not a reuse of STUDENT_FEE_EXPORT. */
+    @GetMapping("/explorer/export/semester-wise")
+    @PreAuthorize("@perm.has('STUDENT_FEE_EXPORT_SEMESTER_WISE')")
+    public ResponseEntity<byte[]> exportExplorerSemesterWise(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String program,
+            @RequestParam(required = false) String academicYear,
+            @RequestParam(required = false) Integer yearOfStudy,
+            @RequestParam(required = false) String allocationStatus,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
+
+        Sort exportSort = ExportSortUtils.resolve(
+            sort, direction, EXPLORER_SORT_FIELDS.keySet(), "rollNumber", Sort.Direction.ASC);
+        List<FeeExplorerSemesterWiseRow> data = feeExplorerService.searchAllSemesterWise(
+            search, program, academicYear, yearOfStudy, allocationStatus, exportSort);
+
+        Sort.Order order = ExportSortUtils.firstOrder(exportSort, "rollNumber", Sort.Direction.ASC);
+        ExportMetadata meta = ExportMetadata.of("Student Fee Explorer Export — Semester-wise")
+            .filter("Search", search)
+            .filter("Program", (program != null && !program.equals("ALL")) ? program : null)
+            .filter("Academic Year", (academicYear != null && !academicYear.equals("ALL")) ? academicYear : null)
+            .filter("Year of Study", yearOfStudy != null ? String.valueOf(yearOfStudy) : null)
+            .filter("Allocation Status", (allocationStatus != null && !allocationStatus.equals("ALL")) ? allocationStatus : null)
+            .sort(EXPLORER_SORT_FIELDS.get(order.getProperty()), order.getDirection());
+
+        return ExportResponseFactory.respond(format, "fee-explorer-semester-wise",
+            () -> feeExportService.toExcelSemesterWise(data, meta),
+            () -> feeExportService.toPdfSemesterWise(data, meta));
     }
 
     /** Unified refund initiation — auto-detects entity type (STUDENT or ENQUIRY) from the receipt. */

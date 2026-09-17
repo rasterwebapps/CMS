@@ -26,6 +26,20 @@
 
 .sfx-hdr-left { display: flex; flex-direction: column; }
 
+// Local Export-button look-alike — this screen wraps its own two-level (Whole / Sem-wise) menu
+// instead of the shared cms-export-button, so these classes (not that component's SCSS, which
+// is view-encapsulated to its own template) are what actually style the button.
+.sfx-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sfx-export-chevron {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
 .sfx-title {
   margin: 0 0 2px;
   font-family: var(--cms-font-display);

@@ -14,6 +14,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
 import com.cms.dto.FeeExplorerResponse;
+import com.cms.dto.FeeExplorerSemesterWiseRow;
 import com.cms.util.export.ExcelExportUtil;
 import com.cms.util.export.ExportMetadata;
 import com.cms.util.export.PdfExportUtil;
@@ -36,6 +37,10 @@ public class FeeExportService {
     private static final List<String> HEADERS = List.of(
         "#", "Roll No.", "Student Name", "Program", "Sem", "Batch (Year)",
         "Total Fee (₹)", "Paid (₹)", "Pending (₹)", "Penalty (₹)", "Status");
+
+    private static final List<String> SEMESTER_WISE_HEADERS = List.of(
+        "#", "Roll No.", "Student Name", "Program", "Batch (Year)", "Year", "Semester",
+        "Semester Fee (₹)", "Paid (₹)", "Pending (₹)");
 
     // ── Excel ─────────────────────────────────────────────────────────────────
 
@@ -77,6 +82,43 @@ public class FeeExportService {
         }
     }
 
+    public byte[] toExcelSemesterWise(List<FeeExplorerSemesterWiseRow> rows, ExportMetadata meta) throws IOException {
+        try (XSSFWorkbook wb = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            XSSFSheet sheet = wb.createSheet("Fee Explorer - Sem-wise");
+            ExcelExportUtil.Styles styles = ExcelExportUtil.createStyles(wb);
+
+            int headerRowIdx = ExcelExportUtil.writeMetadataBlock(sheet, styles, meta, SEMESTER_WISE_HEADERS.size());
+            ExcelExportUtil.writeHeaderRow(sheet, styles, headerRowIdx, SEMESTER_WISE_HEADERS);
+
+            int dataStart = headerRowIdx + 1;
+            for (int i = 0; i < rows.size(); i++) {
+                FeeExplorerSemesterWiseRow r = rows.get(i);
+                XSSFRow row = sheet.createRow(dataStart + i);
+                XSSFCellStyle style = (i % 2 == 0) ? styles.data() : styles.alt();
+
+                ExcelExportUtil.setCell(row, 0, String.valueOf(i + 1), style);
+                ExcelExportUtil.setCell(row, 1, nvl(r.rollNumber()), style);
+                ExcelExportUtil.setCell(row, 2, nvl(r.studentName()), style);
+                ExcelExportUtil.setCell(row, 3, nvl(r.programName()), style);
+                ExcelExportUtil.setCell(row, 4, nvl(r.academicYearName()), style);
+                ExcelExportUtil.setCell(row, 5, r.yearNumber() != null ? String.valueOf(r.yearNumber()) : "—", style);
+                ExcelExportUtil.setCell(row, 6, nvl(r.semesterLabel()), style);
+                ExcelExportUtil.setCell(row, 7, fmtInr(r.fee()), style);
+                ExcelExportUtil.setCell(row, 8, fmtInr(r.paid()), style);
+                ExcelExportUtil.setCell(row, 9, fmtInr(r.pending()), style);
+            }
+
+            int[] widths = { 6, 14, 26, 20, 14, 6, 16, 16, 14, 14 };
+            ExcelExportUtil.applyColumnWidths(sheet, widths);
+            sheet.createFreezePane(0, dataStart);
+
+            wb.write(out);
+            return out.toByteArray();
+        }
+    }
+
     // ── PDF ───────────────────────────────────────────────────────────────────
 
     public byte[] toPdf(List<FeeExplorerResponse.StudentFeeSummary> rows, ExportMetadata meta) throws IOException {
@@ -104,6 +146,38 @@ public class FeeExportService {
                 PdfExportUtil.addCell(table, fmtInr(r.totalPending()), dataFont, rowBg, Element.ALIGN_RIGHT);
                 PdfExportUtil.addCell(table, fmtInr(r.totalPenalty()), dataFont, rowBg, Element.ALIGN_RIGHT);
                 PdfExportUtil.addCell(table, nvl(r.allocationStatus()), dataFont, rowBg, Element.ALIGN_LEFT);
+            }
+
+            doc.add(table);
+            doc.close();
+            return out.toByteArray();
+        }
+    }
+
+    public byte[] toPdfSemesterWise(List<FeeExplorerSemesterWiseRow> rows, ExportMetadata meta) throws IOException {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document doc = PdfExportUtil.openLandscapeDocument(out, 30, 30, 40, 30);
+            PdfExportUtil.writeTitleAndMetadata(doc, meta);
+
+            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7, new java.awt.Color(255, 255, 255));
+            Font dataFont   = FontFactory.getFont(FontFactory.HELVETICA, 7);
+
+            float[] colWidths = { 3, 8, 15, 12, 9, 4, 10, 10, 9, 9 };
+            PdfPTable table = PdfExportUtil.createHeaderTable(SEMESTER_WISE_HEADERS, colWidths, headerFont);
+
+            for (int i = 0; i < rows.size(); i++) {
+                FeeExplorerSemesterWiseRow r = rows.get(i);
+                java.awt.Color rowBg = (i % 2 == 0) ? PdfExportUtil.ALT_BG : null;
+                PdfExportUtil.addCell(table, String.valueOf(i + 1), dataFont, rowBg, Element.ALIGN_CENTER);
+                PdfExportUtil.addCell(table, nvl(r.rollNumber()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(r.studentName()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(r.programName()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, nvl(r.academicYearName()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, r.yearNumber() != null ? String.valueOf(r.yearNumber()) : "—", dataFont, rowBg, Element.ALIGN_CENTER);
+                PdfExportUtil.addCell(table, nvl(r.semesterLabel()), dataFont, rowBg, Element.ALIGN_LEFT);
+                PdfExportUtil.addCell(table, fmtInr(r.fee()), dataFont, rowBg, Element.ALIGN_RIGHT);
+                PdfExportUtil.addCell(table, fmtInr(r.paid()), dataFont, rowBg, Element.ALIGN_RIGHT);
+                PdfExportUtil.addCell(table, fmtInr(r.pending()), dataFont, rowBg, Element.ALIGN_RIGHT);
             }
 
             doc.add(table);

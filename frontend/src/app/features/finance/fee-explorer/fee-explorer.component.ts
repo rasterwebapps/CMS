@@ -19,7 +19,10 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconViewComponent } from '../../../shared/icons';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
-import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { ExportFormat } from '../../../shared/export-button';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { PermissionService } from '../../../core/permissions/permission.service';
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -42,8 +45,9 @@ const SORT_FIELD_MAP: Record<string, string> = {
   imports: [
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
-    CmsRowActionButtonComponent, CmsIconViewComponent, ExportButtonComponent,
+    CmsRowActionButtonComponent, CmsIconViewComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    MatMenuModule, MatButtonModule, MatIconModule,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
@@ -95,6 +99,7 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
   protected totalElements          = 0;
 
   protected readonly canExport = computed(() => this.permissionService.has('STUDENT_FEE_EXPORT'));
+  protected readonly canExportSemWise = computed(() => this.permissionService.has('STUDENT_FEE_EXPORT_SEMESTER_WISE'));
 
   // ── Server-side filters — sent to the backend and reflected in the URL ───
   protected filterProgram      = signal<string>('ALL');
@@ -162,6 +167,38 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected onExportSemWise(format: ExportFormat): void {
+    if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
+    this.exporting.set(true);
+    this.financeService.exportFeeExplorerSemesterWise(format, {
+      search:           this.searchValue() || null,
+      program:          this.filterProgram() !== 'ALL' ? this.filterProgram() : null,
+      academicYear:     this.filterAcademicYear() !== 'ALL' ? this.filterAcademicYear() : null,
+      yearOfStudy:      this.filterYearOfStudy() !== 'ALL' ? Number(this.filterYearOfStudy()) : null,
+      allocationStatus: this.filterAllocStatus() !== 'ALL' ? this.filterAllocStatus() : null,
+      sort:             SORT_FIELD_MAP[this.sortActive] ?? this.sortActive,
+      direction:        this.sortDirection,
+    }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `fee-explorer-semester-wise.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
+  }
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {

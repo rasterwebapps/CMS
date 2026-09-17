@@ -191,6 +191,31 @@ export class FinanceService {
     return this.http.get(`${this.studentFeeUrl}/explorer/export`, { params, responseType: 'blob' });
   }
 
+  /** Semester-wise variant — one row per student per semester (Fee/Paid/Pending), so pending
+   *  balances can be found at the semester level instead of only the per-student total. */
+  exportFeeExplorerSemesterWise(
+    format: 'excel' | 'pdf',
+    filters: {
+      search?: string | null;
+      program?: string | null;
+      academicYear?: string | null;
+      yearOfStudy?: number | null;
+      allocationStatus?: string | null;
+      sort?: string | null;
+      direction?: string | null;
+    } = {},
+  ): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search && filters.search.length >= 2) params = params.set('search', filters.search);
+    if (filters.program && filters.program !== 'ALL')         params = params.set('program', filters.program);
+    if (filters.academicYear && filters.academicYear !== 'ALL') params = params.set('academicYear', filters.academicYear);
+    if (filters.yearOfStudy != null)                           params = params.set('yearOfStudy', filters.yearOfStudy);
+    if (filters.allocationStatus && filters.allocationStatus !== 'ALL') params = params.set('allocationStatus', filters.allocationStatus);
+    if (filters.sort)      params = params.set('sort', filters.sort);
+    if (filters.direction) params = params.set('direction', filters.direction);
+    return this.http.get(`${this.studentFeeUrl}/explorer/export/semester-wise`, { params, responseType: 'blob' });
+  }
+
   getReceipts(studentId: number): Observable<Receipt[]> {
     return this.http.get<Receipt[]>(`${this.studentFeeUrl}/${studentId}/receipts`);
   }
