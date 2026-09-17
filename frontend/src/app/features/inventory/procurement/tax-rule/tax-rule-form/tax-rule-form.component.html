@@ -35,6 +35,20 @@
           <div class="entry-form-card__body">
 
             <div class="field-group">
+              <label for="tr-tax-type" class="field-label">Tax Type <span class="required-star">*</span></label>
+              <select id="tr-tax-type" class="field-select" formControlName="taxTypeId"
+                [class.field-select--error]="form.get('taxTypeId')?.invalid && form.get('taxTypeId')?.touched">
+                <option [ngValue]="null" disabled>Select a tax type</option>
+                @for (t of taxTypes(); track t.id) {
+                  <option [ngValue]="t.id">{{ t.name }}</option>
+                }
+              </select>
+              @if (form.get('taxTypeId')?.invalid && form.get('taxTypeId')?.touched) {
+                <p class="field-error">{{ getErrorMessage('taxTypeId') }}</p>
+              }
+            </div>
+
+            <div class="field-group">
               <label for="tr-name" class="field-label">Name <span class="required-star">*</span></label>
               <input id="tr-name" class="field-input" formControlName="name" placeholder="e.g., GST 18%" autocomplete="off"
                 [class.field-input--error]="form.get('name')?.invalid && form.get('name')?.touched" />

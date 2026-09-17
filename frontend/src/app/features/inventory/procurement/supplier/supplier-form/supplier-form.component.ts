@@ -43,6 +43,7 @@ export class SupplierFormComponent implements OnInit {
   protected readonly form: FormGroup = this.fb.group({
     supplierCode:         ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
     supplierName:         ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(200), noConsecutiveSpaces()]],
+    state:                ['', [Validators.required, Validators.maxLength(100)]],
     contactPerson:        ['', [Validators.maxLength(150)]],
     email:                ['', [Validators.email, Validators.maxLength(150)]],
     phone:                ['', [Validators.maxLength(30)]],
@@ -90,6 +91,7 @@ export class SupplierFormComponent implements OnInit {
     const request: SupplierRequest = {
       supplierCode:        (v.supplierCode ?? '').trim().toUpperCase(),
       supplierName:        (v.supplierName ?? '').trim(),
+      state:               (v.state ?? '').trim(),
       contactPerson:       v.contactPerson?.trim() || undefined,
       email:               v.email?.trim() || undefined,
       phone:               v.phone?.trim() || undefined,
@@ -121,7 +123,7 @@ export class SupplierFormComponent implements OnInit {
   }
 
   private static readonly FIELD_LABELS: Record<string, string> = {
-    supplierCode: 'Supplier code', supplierName: 'Supplier name', email: 'Email',
+    supplierCode: 'Supplier code', supplierName: 'Supplier name', state: 'State', email: 'Email',
   };
 
   protected getErrorMessage(fieldName: string): string {
@@ -136,6 +138,7 @@ export class SupplierFormComponent implements OnInit {
         this.form.patchValue({
           supplierCode: s.supplierCode,
           supplierName: s.supplierName,
+          state: s.state || '',
           contactPerson: s.contactPerson || '',
           email: s.email || '',
           phone: s.phone || '',
