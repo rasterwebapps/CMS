@@ -1,0 +1,38 @@
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &__sub {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--mat-sys-on-surface-variant);
+    margin-left: auto;
+  }
+}
+
+.guardian-mode-toggle {
+  margin-bottom: 1rem;
+  width: 100%;
+
+  ::ng-deep .mat-button-toggle {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+.guardian-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.guardian-dialog-loading {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+mat-select {
+  width: 100%;
+}

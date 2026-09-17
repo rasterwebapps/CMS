@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.GuardianRequest;
 import com.cms.dto.GuardianResponse;
+import com.cms.dto.StudentGuardianResponse;
 import com.cms.dto.WardSummaryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Guardian;
@@ -79,6 +80,29 @@ public class GuardianService {
         link.setGuardian(guardian);
         link.setPrimary(isPrimary);
         studentGuardianRepository.save(link);
+    }
+
+    /** Guardians linked to a specific student (ward) -- the reverse of {@link #findMyWards},
+     *  used by the Student Detail screen's admin-facing Guardians tab. */
+    public List<StudentGuardianResponse> findByStudentId(Long studentId) {
+        return studentGuardianRepository.findByStudentId(studentId).stream()
+            .map(link -> {
+                Guardian g = link.getGuardian();
+                return new StudentGuardianResponse(g.getId(), g.getFirstName(), g.getLastName(),
+                    g.getEmail(), g.getPhone(), g.getRelationshipHint(), link.isPrimary(), g.getCreatedAt());
+            })
+            .toList();
+    }
+
+    /** Removes an existing guardian-ward link (e.g. an admin correcting a mistaken link).
+     *  Deletes only the join row -- never the {@link Guardian} or {@link Student} themselves. */
+    @Transactional
+    public void unlinkFromStudent(Long guardianId, Long studentId) {
+        if (!studentGuardianRepository.existsByGuardianIdAndStudentId(guardianId, studentId)) {
+            throw new ResourceNotFoundException(
+                "No link found between guardian " + guardianId + " and student " + studentId);
+        }
+        studentGuardianRepository.deleteByGuardianIdAndStudentId(guardianId, studentId);
     }
 
     /** Current authenticated guardian's own wards (parent self-service portal). Resolves the

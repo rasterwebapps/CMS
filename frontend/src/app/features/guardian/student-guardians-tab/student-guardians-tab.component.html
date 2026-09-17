@@ -1,0 +1,53 @@
+<div class="guardians-tab">
+  <div class="guardians-tab__header">
+    <div>
+      <h3 class="guardians-tab__title">Guardians</h3>
+      <p class="guardians-tab__subtitle">Parents/guardians linked to this student's parent portal login.</p>
+    </div>
+    @if (canManage()) {
+      <button mat-flat-button color="primary" (click)="openAddGuardian()">
+        <mat-icon>person_add</mat-icon> Add Guardian
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="guardians-tab__loading"><mat-spinner diameter="32"></mat-spinner></div>
+  } @else if (guardians().length === 0) {
+    <div class="guardians-tab__empty">
+      <mat-icon>family_restroom</mat-icon>
+      <p>No guardians linked yet.</p>
+    </div>
+  } @else {
+    <div class="guardians-tab__list">
+      @for (g of guardians(); track g.id) {
+        <div class="guardian-card">
+          <div class="guardian-card__avatar">{{ initials(g) }}</div>
+          <div class="guardian-card__info">
+            <div class="guardian-card__name">
+              {{ g.firstName }} {{ g.lastName }}
+              @if (g.isPrimary) {
+                <span class="guardian-card__primary-badge">Primary</span>
+              }
+            </div>
+            <div class="guardian-card__meta">
+              <span>{{ g.email }}</span>
+              @if (g.phone) { <span>{{ g.phone }}</span> }
+              @if (g.relationshipHint) { <span>{{ g.relationshipHint }}</span> }
+            </div>
+          </div>
+          @if (canManage()) {
+            <button mat-icon-button matTooltip="Remove guardian" [disabled]="unlinkingId() === g.id"
+                    (click)="unlinkGuardian(g)">
+              @if (unlinkingId() === g.id) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>link_off</mat-icon>
+              }
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -201,6 +201,12 @@
         </div>
       </mat-tab>
 
+      @if (canViewGuardians()) {
+        <mat-tab label="Guardians">
+          <app-student-guardians-tab [studentId]="student()!.id" [studentName]="student()!.fullName" />
+        </mat-tab>
+      }
+
       <!-- Tab 3: Academics — enrollments + course registrations merged -->
       <mat-tab label="Academics">
         <div class="tab-content">

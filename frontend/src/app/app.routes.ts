@@ -1803,6 +1803,22 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'parent/my-wards',
+    canActivate: withPermission('MY_WARD_ATTENDANCE_VIEW', 'MY_WARD_EXAM_RESULT_VIEW'),
+    loadComponent: () =>
+      import('./features/parent-portal/parent-dashboard/parent-dashboard.component').then(
+        (m) => m.ParentDashboardComponent
+      ),
+  },
+  {
+    path: 'parent/my-wards/fees',
+    canActivate: withPermission('MY_WARD_FEE_VIEW'),
+    loadComponent: () =>
+      import('./features/parent-portal/ward-fees/ward-fees.component').then(
+        (m) => m.WardFeesComponent
+      ),
+  },
+  {
     path: 'timetable/draft-review',
     canActivate: withPermission('TIMETABLE_MANAGE'),
     loadComponent: () =>

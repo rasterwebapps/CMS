@@ -54,6 +54,8 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'My Timetable', icon: 'event_note', route: '/my-timetable', permissions: ['TIMETABLE_VIEW'], modules: ['ACADEMICS'] },
       { label: 'My Dashboard', icon: 'school', route: '/student/my-dashboard', permissions: ['MY_ATTENDANCE_VIEW', 'MY_EXAM_RESULT_VIEW'] },
       { label: 'My Fees', icon: 'payments', route: '/student/my-fees', permissions: ['MY_FEE_VIEW'] },
+      { label: 'My Wards', icon: 'family_restroom', route: '/parent/my-wards', permissions: ['MY_WARD_ATTENDANCE_VIEW', 'MY_WARD_EXAM_RESULT_VIEW'] },
+      { label: 'Ward Fees', icon: 'payments', route: '/parent/my-wards/fees', permissions: ['MY_WARD_FEE_VIEW'] },
     ],
   },
   // 2. Admission Management

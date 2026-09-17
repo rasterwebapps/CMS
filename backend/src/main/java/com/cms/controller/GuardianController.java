@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.GuardianRequest;
 import com.cms.dto.GuardianResponse;
+import com.cms.dto.StudentGuardianResponse;
 import com.cms.dto.WardSummaryResponse;
 import com.cms.service.GuardianService;
 
@@ -68,5 +70,20 @@ public class GuardianController {
     public ResponseEntity<List<WardSummaryResponse>> myWards(@AuthenticationPrincipal Jwt jwt) {
         String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
         return ResponseEntity.ok(guardianService.findMyWards(username));
+    }
+
+    /** Guardians linked to a specific student -- the reverse of {@link #myWards}, powering the
+     *  Student Detail screen's admin-facing Guardians tab. */
+    @GetMapping("/students/{studentId}/guardians")
+    @PreAuthorize("@perm.hasAny('GUARDIAN_VIEW', 'GUARDIAN_MANAGE')")
+    public ResponseEntity<List<StudentGuardianResponse>> findByStudent(@PathVariable Long studentId) {
+        return ResponseEntity.ok(guardianService.findByStudentId(studentId));
+    }
+
+    @DeleteMapping("/guardians/{guardianId}/wards/{studentId}")
+    @PreAuthorize("@perm.has('GUARDIAN_MANAGE')")
+    public ResponseEntity<Void> unlinkWard(@PathVariable Long guardianId, @PathVariable Long studentId) {
+        guardianService.unlinkFromStudent(guardianId, studentId);
+        return ResponseEntity.noContent().build();
     }
 }

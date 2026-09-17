@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.GuardianRequest;
 import com.cms.dto.GuardianResponse;
+import com.cms.dto.StudentGuardianResponse;
 import com.cms.dto.WardSummaryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppUser;
@@ -204,5 +205,51 @@ class GuardianServiceTest {
 
         assertThatThrownBy(() -> guardianService.assertIsMyWard("nobody", 45L))
             .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void shouldReturnGuardiansLinkedToStudent() {
+        Guardian g1 = guardian(1L, "mother@test.com");
+        Guardian g2 = guardian(2L, "father@test.com");
+        Student s = student(45L, "Oviya", "Thangam", "GNM4-015");
+
+        StudentGuardian linkA = new StudentGuardian();
+        linkA.setStudent(s);
+        linkA.setGuardian(g1);
+        linkA.setPrimary(true);
+
+        StudentGuardian linkB = new StudentGuardian();
+        linkB.setStudent(s);
+        linkB.setGuardian(g2);
+        linkB.setPrimary(false);
+
+        when(studentGuardianRepository.findByStudentId(45L)).thenReturn(List.of(linkA, linkB));
+
+        List<StudentGuardianResponse> guardians = guardianService.findByStudentId(45L);
+
+        assertThat(guardians).hasSize(2);
+        assertThat(guardians).extracting(StudentGuardianResponse::email)
+            .containsExactly("mother@test.com", "father@test.com");
+        assertThat(guardians.get(0).isPrimary()).isTrue();
+        assertThat(guardians.get(1).isPrimary()).isFalse();
+    }
+
+    @Test
+    void shouldUnlinkExistingGuardianFromStudent() {
+        when(studentGuardianRepository.existsByGuardianIdAndStudentId(1L, 45L)).thenReturn(true);
+
+        guardianService.unlinkFromStudent(1L, 45L);
+
+        verify(studentGuardianRepository).deleteByGuardianIdAndStudentId(1L, 45L);
+    }
+
+    @Test
+    void shouldThrowWhenUnlinkingNonExistentLink() {
+        when(studentGuardianRepository.existsByGuardianIdAndStudentId(1L, 999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> guardianService.unlinkFromStudent(1L, 999L))
+            .isInstanceOf(ResourceNotFoundException.class);
+
+        verify(studentGuardianRepository, never()).deleteByGuardianIdAndStudentId(any(), any());
     }
 }

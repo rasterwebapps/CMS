@@ -1,0 +1,29 @@
+<div class="content-card">
+  <div class="std-card-inner">
+    <div class="std-card-hdr">
+      <h2>Announcements</h2>
+    </div>
+
+    @if (loading()) {
+      <p class="std-empty">Loading…</p>
+    } @else if (announcements().length === 0) {
+      <p class="std-empty">No announcements right now.</p>
+    } @else {
+      <div class="announcement-list">
+        @for (a of announcements(); track a.id) {
+          <div class="announcement-item" [class.announcement-item--unread]="!a.read" (click)="toggle(a)">
+            <div class="announcement-item__hdr">
+              @if (!a.read) { <span class="announcement-item__dot" aria-hidden="true"></span> }
+              <span class="announcement-item__title">{{ a.title }}</span>
+              <span class="announcement-item__date">{{ a.publishedAt | date: 'mediumDate' }}</span>
+            </div>
+            @if (expandedId() === a.id) {
+              <p class="announcement-item__body">{{ a.body }}</p>
+              <p class="announcement-item__by">— {{ a.createdBy }}</p>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.cms.dto.GuardianRequest;
 import com.cms.dto.GuardianResponse;
+import com.cms.dto.StudentGuardianResponse;
 import com.cms.dto.WardSummaryResponse;
 import com.cms.service.GuardianService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -97,5 +99,25 @@ class GuardianControllerTest {
         mockMvc.perform(get("/guardian/wards"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].studentId").value(45));
+    }
+
+    @Test
+    void shouldReturnGuardiansForStudent() throws Exception {
+        StudentGuardianResponse response = new StudentGuardianResponse(
+            1L, "Test", "Guardian", "g@test.com", "999", "Mother", true, Instant.now());
+        when(guardianService.findByStudentId(45L)).thenReturn(List.of(response));
+
+        mockMvc.perform(get("/students/45/guardians"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].email").value("g@test.com"))
+            .andExpect(jsonPath("$[0].isPrimary").value(true));
+    }
+
+    @Test
+    void shouldUnlinkWardFromGuardian() throws Exception {
+        mockMvc.perform(delete("/guardians/1/wards/10"))
+            .andExpect(status().isNoContent());
+
+        verify(guardianService).unlinkFromStudent(1L, 10L);
     }
 }
