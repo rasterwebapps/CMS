@@ -106,6 +106,29 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
   Delete button only disables while status is literally ISSUED, so the
   Issue Desk round-trip test's throwaway book is left behind in the
   catalogue forever by design (no legitimate app flow removes it).
+- `tests/inventory-masters.spec.ts` — **Tier A**, first Inventory slice.
+  Item Categories (top-level + nested create, parent-scoped uniqueness in
+  both directions, deactivate/reactivate), Units of Measure (live
+  auto-uppercase/strip-spaces on the code field, code+name global
+  uniqueness, deactivate/reactivate), Products (create with
+  category/UOM, code global uniqueness, name unique per-category but not
+  globally), Tax Rules (create, name uniqueness), Suppliers (create starts
+  unapproved, code uniqueness, approve is a separate step), Rate Contracts
+  (create against a supplier, end-date-before-start-date blocked). Found and
+  fixed two real bugs this uncovered — see OC-257: Tax Rule and Supplier
+  creation both 400'd on every single submission (missing required
+  `taxTypeId`/`state` fields no frontend form collected at all). A direct
+  check against 243 also found the *entire* Inventory module had zero real
+  data despite having shipped (categories/uoms/products/suppliers/locations
+  all empty) — every test in this spec is self-contained by necessity.
+  **Deliberately deferred, not started this pass** (see the spec's file
+  header for full reasoning): the Purchase Requisition -> Purchase Order ->
+  Goods Receipt chain (blocked on zero Inventory Locations existing on 243,
+  which itself needs a Core Infrastructure Zone/Room first); Stock
+  Balance/Transfers/Issue Requests/Cycle Counts; all of Equipment & Asset
+  Management, Budgets & Approvals, and Gate Pass & Service Requests; every
+  reporting/analytics screen; Category custom attributes and the
+  parent-picker cycle-prevention check.
 
 ## Rollout plan (OC-250)
 
@@ -135,8 +158,10 @@ specs seeded directly from that catalogue, prioritized by risk:
 4. Everything else in `docs/manual-test-cases/`, worked through in file order
    — **in progress.** Done so far: the 9 masters above, Student (create),
    Faculty (create), Fee Explorer (dataset-correctness), Library Management
-   (`library.spec.ts` — see its note above). **Not started:**
-   Inventory (~30 files — the largest single chunk),
+   (`library.spec.ts`), Inventory catalog + Purchasing masters
+   (`inventory-masters.spec.ts` — see its note above; the PR->PO->GRN chain
+   and most of the other 4 Inventory nav groups are still open within this
+   same module, not just "not started"). **Not started at all:**
    Subject/Curriculum Management, Scholarship, Fee Structures,
    Country/Location Master, plus a long tail of lower-value UI-polish docs
    (dynamic theming, column visibility, table sorting alignment, etc.) —
@@ -154,15 +179,23 @@ has never supported unfiltered). `oc-253-student-fee-self-service` (the
 Fee Explorer pagination fix) has since merged to `main` and been deployed
 to 243; `fee-explorer.spec.ts` is now also confirmed green (see its note
 above — the one failure on the post-merge run was a test-timing bug, not
-an app regression). `library.spec.ts` (new this session) is green across 2
-full repeated runs. **Every spec in the suite is green against a freshly
-redeployed 243 as of this session.** Still true: only flip a `**Status:**`
-line in `docs/manual-test-cases/*.md` from `NOT TESTED` to `PASS` after
-re-confirming green against a *specific* run — 243's state can drift again
-the same way it did before. Note: 243's Book Catalogue now permanently
-carries one throwaway "E2E Issue Test Book …" row from `library.spec.ts`'s
-Issue Desk round trip — see that spec's file header for why it can never be
-deleted (a real backend rule, not leftover mess to clean up).
+an app regression). `library.spec.ts` (prior session) is green across 2 full
+repeated runs. `inventory-masters.spec.ts` (this session) is green across 2
+full repeated runs, after fixing two real bugs it found (OC-257: Tax Rule
+and Supplier creation both 400'd on every submit — see its README note
+above) and redeploying the frontend to 243. **Every spec in the suite is
+green against a freshly redeployed 243 as of this session.** Still true:
+only flip a `**Status:**` line in `docs/manual-test-cases/*.md` from
+`NOT TESTED` to `PASS` after re-confirming green against a *specific* run —
+243's state can drift again the same way it did before. Note: 243's Book
+Catalogue permanently carries one throwaway "E2E Issue Test Book …" row from
+`library.spec.ts`'s Issue Desk round trip — see that spec's file header for
+why it can never be deleted (a real backend rule, not leftover mess to clean
+up) — and the Inventory module now permanently carries the throwaway
+categories/UOMs/products/suppliers/tax rules/rate contracts
+`inventory-masters.spec.ts` created (no delete affordance exists for most of
+these master types yet, matching the masters convention elsewhere in the
+app).
 
 **Picking this back up — read this first:**
 1. **This repo has multiple concurrent Claude Code sessions sharing one
@@ -172,15 +205,24 @@ deleted (a real backend rule, not leftover mess to clean up).
    `git branch --show-current` before editing or committing any `e2e/`
    file**, and `git checkout main` first if it's not already there — a
    stale branch can also make a just-edited file look reverted when you
-   re-read it (harmless; the real content is on `main`).
+   re-read it (harmless; the real content is on `main`). This also bit a
+   `deploy-243.sh` run directly: another session's in-progress, uncommitted,
+   broken `document-verification-list.component.ts` (an unrelated
+   `filteredCourses`/`filterCourseId` rename mid-flight) got swept into a
+   full-directory rsync and failed the Docker build. Fix: `git stash push --
+   <their file(s)>` (not a full `git stash`, which would also grab your own
+   uncommitted work), deploy, then `git stash pop` to restore it immediately
+   after — never just delete/overwrite someone else's in-progress file to
+   unblock a deploy.
 2. Run `scripts/regression-gate.sh <branch>` or `cd e2e && npx playwright
    test` directly once `.env` is filled in — see "One-time setup" above.
    `dev.raster.in:212` (the documented URL) wasn't reachable from this
    agent's network; `https://172.17.1.243:8443` (direct IP) worked fine as
    a substitute — try the documented URL first from a machine with real
    LAN/VPN access, since it's the intended path.
-3. Next up per the rollout plan: Inventory (~30 files, the largest
-   remaining chunk) — see item 4 above.
+3. Next up per the rollout plan: finish Inventory (PR->PO->GRN chain needs a
+   Location on 243 first — see `inventory-masters.spec.ts`'s file header for
+   exactly what that needs) or move to the next module — see item 4 above.
 
 ## Adding a new spec
 
