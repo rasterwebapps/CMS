@@ -9,9 +9,11 @@ import com.cms.dto.ConflictScanResponse;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.TimetableActionResponse;
+import com.cms.dto.TimetableCoverageGap;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.exception.TimetableConstraintViolationException;
+import com.cms.exception.TimetableCoverageGapException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
@@ -39,6 +41,7 @@ public class TimetableGenerationService {
     private final TimetableConflictInspectorService timetableConflictInspectorService;
     private final CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
     private final TimetableStaffingAutoAssignService timetableStaffingAutoAssignService;
+    private final TimetableCoverageService timetableCoverageService;
 
     public TimetableGenerationService(ClassScheduleRepository classScheduleRepository,
                                        TermInstanceRepository termInstanceRepository,
@@ -46,7 +49,8 @@ public class TimetableGenerationService {
                                        AuditLogService auditLogService,
                                        TimetableConflictInspectorService timetableConflictInspectorService,
                                        CourseOfferingSectionFacultyService courseOfferingSectionFacultyService,
-                                       TimetableStaffingAutoAssignService timetableStaffingAutoAssignService) {
+                                       TimetableStaffingAutoAssignService timetableStaffingAutoAssignService,
+                                       TimetableCoverageService timetableCoverageService) {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.labAttendanceRepository = labAttendanceRepository;
@@ -54,6 +58,7 @@ public class TimetableGenerationService {
         this.timetableConflictInspectorService = timetableConflictInspectorService;
         this.courseOfferingSectionFacultyService = courseOfferingSectionFacultyService;
         this.timetableStaffingAutoAssignService = timetableStaffingAutoAssignService;
+        this.timetableCoverageService = timetableCoverageService;
     }
 
     /** A LOCKED term's timetable is immutable — clear/approve/revert all refuse once the term
@@ -94,6 +99,11 @@ public class TimetableGenerationService {
 
     @Transactional
     public TimetableActionResponse approve(Long termInstanceId, String actor) {
+        return approve(termInstanceId, actor, false, null);
+    }
+
+    @Transactional
+    public TimetableActionResponse approve(Long termInstanceId, String actor, boolean overrideIncompleteCoverage, String overrideReason) {
         TermInstance term = requireTermInstance(termInstanceId);
         requireNotLocked(term);
         List<ClassSchedule> drafts = classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT);
@@ -153,12 +163,32 @@ public class TimetableGenerationService {
                 .toList();
             throw new TimetableConstraintViolationException(violations);
         }
+        // OC-256: none of the checks above ever compare placed hours against curriculum-required
+        // hours -- a course offering that never got any Theory/Lab/Clinical sessions placed at all
+        // (as opposed to placed-but-unstaffed, which unstaffedCount already catches) has nothing
+        // for them to see. This is the same "Total Unassigned" figure Skeleton Builder already
+        // shows per cohort, checked here so it can no longer reach Publish unnoticed. Overridable
+        // (unlike the structural checks above) since a legitimately phased rollout is a real case;
+        // TimetableController#approve is the actual enforcement point for who may override.
+        List<TimetableCoverageGap> coverageGaps = timetableCoverageService.findGaps(termInstanceId);
+        if (!coverageGaps.isEmpty()) {
+            if (!overrideIncompleteCoverage) {
+                throw new TimetableCoverageGapException(coverageGaps);
+            }
+            if (overrideReason == null || overrideReason.isBlank()) {
+                throw new IllegalArgumentException("A reason is required to approve with incomplete curriculum-hours coverage.");
+            }
+        }
         for (ClassSchedule cs : drafts) {
             cs.setStatus(ClassScheduleStatus.PUBLISHED);
             classScheduleRepository.save(cs);
         }
-        auditLogService.record(actor, "TIMETABLE_APPROVED", "TermInstance",
-            termInstanceId.toString(), drafts.size() + " session(s) approved");
+        String auditDetail = drafts.size() + " session(s) approved";
+        if (!coverageGaps.isEmpty()) {
+            auditDetail += " -- approved with " + coverageGaps.size()
+                + " incomplete-coverage gap(s) overridden (reason: " + overrideReason + ")";
+        }
+        auditLogService.record(actor, "TIMETABLE_APPROVED", "TermInstance", termInstanceId.toString(), auditDetail);
         return new TimetableActionResponse(drafts.size());
     }
 

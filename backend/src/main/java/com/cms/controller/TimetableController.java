@@ -24,6 +24,7 @@ import com.cms.dto.ResourceGridRowResponse;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
 import com.cms.dto.TimetableActionResponse;
+import com.cms.dto.TimetableApproveRequest;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.service.ClassScheduleService;
@@ -120,10 +121,18 @@ public class TimetableController {
         return ResponseEntity.ok(classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED));
     }
 
+    // A plain "TIMETABLE_MANAGE" approve can still hit an incomplete-coverage gap (see
+    // TimetableCoverageGapException) -- overriding it needs its own dedicated permission per the
+    // operation-wise permission mapping hard gate, checked here rather than inside the service so
+    // an unauthorized override attempt never reaches business logic at all.
     @PostMapping("/{termInstanceId}/approve")
-    @PreAuthorize("@perm.has('TIMETABLE_MANAGE')")
-    public ResponseEntity<TimetableActionResponse> approve(@PathVariable Long termInstanceId, @AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(timetableGenerationService.approve(termInstanceId, actor(jwt)));
+    @PreAuthorize("@perm.has('TIMETABLE_MANAGE') and (#request == null or !#request.overrideIncompleteCoverage() or @perm.has('TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE'))")
+    public ResponseEntity<TimetableActionResponse> approve(@PathVariable Long termInstanceId,
+                                                            @RequestBody(required = false) TimetableApproveRequest request,
+                                                            @AuthenticationPrincipal Jwt jwt) {
+        boolean override = request != null && request.overrideIncompleteCoverage();
+        String overrideReason = request != null ? request.overrideReason() : null;
+        return ResponseEntity.ok(timetableGenerationService.approve(termInstanceId, actor(jwt), override, overrideReason));
     }
 
     @DeleteMapping("/{termInstanceId}")

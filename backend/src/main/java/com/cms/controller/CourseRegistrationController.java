@@ -53,7 +53,7 @@ public class CourseRegistrationController {
     }
 
     @PostMapping("/generate")
-    @PreAuthorize("@perm.has('ADMISSION_CREATE')")
+    @PreAuthorize("@perm.has('COURSE_REGISTRATION_GENERATE')")
     public ResponseEntity<Map<String, Integer>> generate(@RequestParam Long termInstanceId) {
         int count = courseRegistrationService.generateRegistrationsForTermInstance(termInstanceId);
         return ResponseEntity.ok(Map.of("registrationsCreated", count));

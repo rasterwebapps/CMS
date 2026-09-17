@@ -6,10 +6,11 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { TimetableService } from '../timetable.service';
-import { ClassSchedule, SwapCandidate } from '../timetable.model';
+import { ClassSchedule, SwapCandidate, TimetableCoverageGap } from '../timetable.model';
 import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.component';
 import { WeekGridSession } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
+import { CoverageOverrideDialogComponent } from './coverage-override-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { violationText } from '../../../shared/util/violation-text';
@@ -90,20 +91,49 @@ export class TimetableDraftReviewComponent implements OnInit {
     else this.sessions.set([]);
   }
 
+  protected canOverrideIncompleteCoverage(): boolean {
+    return this.permissionService.has('TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE');
+  }
+
   protected onApprove(): void {
     if (!this.selectedTermInstanceId) return;
+    this.doApprove(false, undefined);
+  }
+
+  /** First attempt is always a plain approve (no override) — a coverage gap only surfaces once the
+   *  backend actually finds one (OC-256), rather than pre-emptively asking every time. Resubmits
+   *  with `overrideIncompleteCoverage=true` only after {@link openCoverageOverrideDialog} returns a
+   *  reason. */
+  private doApprove(overrideIncompleteCoverage: boolean, overrideReason: string | undefined): void {
     this.saving.set(true);
-    this.timetableService.approve(this.selectedTermInstanceId).subscribe({
+    this.timetableService.approve(this.selectedTermInstanceId!, overrideIncompleteCoverage, overrideReason).subscribe({
       next: (response) => {
         this.toast.success(`Approved ${response.affectedCount} session(s) — timetable is now live`);
         this.loadDraft(this.selectedTermInstanceId!);
         this.saving.set(false);
       },
       error: (err) => {
-        this.toast.error(violationText(err) ?? 'Failed to approve timetable');
         this.saving.set(false);
+        const gaps = err?.error?.gaps as TimetableCoverageGap[] | undefined;
+        if (gaps?.length) {
+          if (this.canOverrideIncompleteCoverage()) {
+            this.openCoverageOverrideDialog(gaps);
+          } else {
+            this.toast.error(`${gaps.length} cohort/subject-type combination(s) still have unscheduled curriculum hours — `
+              + 'ask an admin with override permission to approve this term.');
+          }
+          return;
+        }
+        this.toast.error(violationText(err) ?? 'Failed to approve timetable');
       },
     });
+  }
+
+  private openCoverageOverrideDialog(gaps: TimetableCoverageGap[]): void {
+    this.dialog.open(CoverageOverrideDialogComponent, { data: { gaps }, width: '520px' })
+      .afterClosed().subscribe((reason: string | null) => {
+        if (reason) this.doApprove(true, reason);
+      });
   }
 
   protected onRevert(): void {

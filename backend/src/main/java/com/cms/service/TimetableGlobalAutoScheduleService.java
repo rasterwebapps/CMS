@@ -1306,7 +1306,7 @@ public class TimetableGlobalAutoScheduleService {
                             subject.electiveGroupName() != null ? subject.electiveGroupName() : "Elective group " + subject.electiveGroupId(),
                             ClassSessionType.THEORY, null,
                             "this elective group is management-selected but no option has been assigned to the cohort yet "
-                                + "— bulk-assign the chosen elective on Elective Assignment, then run automation again", null, false));
+                                + "— bulk-assign the chosen elective on Elective Assignment, then run automation again", null, false, false));
                     }
                     continue;
                 }
@@ -1348,7 +1348,7 @@ public class TimetableGlobalAutoScheduleService {
                     }
                     if (facultyId == null) {
                         unplacedForCohort.add(new AutoPlaceUnplacedItem(subject.subjectName(), budget.sessionType(),
-                            occupantLabel(budget), "no faculty assigned on its Course Offering", subject.courseOfferingId(), false));
+                            occupantLabel(budget), "no faculty assigned on its Course Offering", subject.courseOfferingId(), false, false));
                         continue;
                     }
                     List<EligibleFacultyCandidateDto> fallbackCandidates = rankedFallbackCandidates(offering, facultyId, termDemand);
@@ -1399,7 +1399,7 @@ public class TimetableGlobalAutoScheduleService {
             }
 
             CohortRunContext context = new CohortRunContext(id, cohort, skeleton, unplacedForCohort, theoryRows,
-                dayLoad, new ArrayList<>(), siblingDaysByOfferingAndType);
+                dayLoad, new ArrayList<>(), siblingDaysByOfferingAndType, new LinkedHashMap<>());
             contexts.add(context);
             contextsById.put(id, context);
         }
@@ -1461,7 +1461,18 @@ public class TimetableGlobalAutoScheduleService {
         // irrelevant the way it's load-bearing in Phase 1.
         for (CohortRunContext context : contexts) {
             for (ShortfallRow row : context.theoryRows()) {
-                placeShortfallRow(context.cohortId(), row, term, periods, context, periodDurationHours, venueGaps, facultySubstitutionEvents);
+                int stillOwedRuns = placeShortfallRow(context.cohortId(), row, term, periods, context, periodDurationHours, venueGaps, facultySubstitutionEvents);
+                if (stillOwedRuns > 0) {
+                    // Feeds fillSelfStudyGaps below (same run, later phase): a row that's still short
+                    // of its own curriculum requirement after every normal/backtrack/double-session
+                    // attempt gets first claim on any genuinely free period found there, ahead of
+                    // padding an already-met subject with a bonus "extra" session -- user's call,
+                    // 2026-09-17 (flips the prior 2026-09-10 "fill them equally" default): every
+                    // offering's real required hours come first, THEN whatever's left over splits
+                    // equally among Library/Self-Study/Sports and already-met subjects.
+                    context.theoryStillOwedRuns().merge(
+                        theoryRowKey(row.offering().getId(), row.budget().cohortSectionId()), stillOwedRuns, Integer::sum);
+                }
             }
         }
 
@@ -1532,7 +1543,8 @@ public class TimetableGlobalAutoScheduleService {
             // sharing Library's own cross-cohort ordering concern (Self-Study never contends for a
             // shared resource the way the one Library room does).
             SelfStudyGapFillOutcome gapFillOutcome = fillSelfStudyGaps(context.cohortId(), context.skeleton(), term,
-                periods, context.dayLoad(), context.unplacedForCohort(), termDemand, saturdayIsWorkingDay(term));
+                periods, context.dayLoad(), context.unplacedForCohort(), termDemand, saturdayIsWorkingDay(term),
+                context.theoryStillOwedRuns());
             context.placedThisCohortRun().addAll(gapFillOutcome.filled());
             totalUnfillableSelfStudyPeriods += gapFillOutcome.unfillablePeriods();
 
@@ -2403,7 +2415,14 @@ public class TimetableGlobalAutoScheduleService {
     private record CohortRunContext(Long cohortId, Cohort cohort, SkeletonBuilderResponse skeleton,
                                      List<AutoPlaceUnplacedItem> unplacedForCohort, List<ShortfallRow> theoryRows,
                                      Map<DayOfWeek, Integer> dayLoad, List<Placement> placedThisCohortRun,
-                                     Map<String, Set<DayOfWeek>> siblingDaysByOfferingAndType) {}
+                                     Map<String, Set<DayOfWeek>> siblingDaysByOfferingAndType,
+                                     Map<String, Integer> theoryStillOwedRuns) {}
+
+    /** Key for {@link CohortRunContext#theoryStillOwedRuns()} -- one row per (offering, section),
+     *  matching how {@link SkeletonSubjectBudget} scopes a THEORY row. */
+    private static String theoryRowKey(Long offeringId, Long cohortSectionId) {
+        return offeringId + ":" + cohortSectionId;
+    }
 
     /** Key for {@link CohortRunContext#siblingDaysByOfferingAndType()} — every batch splitting the
      *  same (offering, sessionType) across parallel venues shares this exact key. */
@@ -2485,7 +2504,11 @@ public class TimetableGlobalAutoScheduleService {
      *  read as noise rather than a signal an admin could act on. The single line now says how much
      *  is still short and the LAST attempt's reason (the most-exhausted, most-informative one, since
      *  earlier attempts in the same row are strictly less constrained as daysUsed/dayLoad fill up). */
-    private void placeShortfallRow(Long cohortId, ShortfallRow row, TermInstance term, List<Period> periods,
+    /** @return how many run-occurrences this row still genuinely owes once every attempt above has
+     *  been exhausted (0 once fully met) -- for THEORY (blockSize 1) this is real run count; for
+     *  LAB/CLINICAL it's periods, unused by any caller today since only THEORY rows feed {@link
+     *  #fillSelfStudyGaps}'s shortfall-priority tier. */
+    private int placeShortfallRow(Long cohortId, ShortfallRow row, TermInstance term, List<Period> periods,
                                     CohortRunContext context, double periodDurationHours,
                                     Map<String, VenueGapAccumulator> venueGaps,
                                     List<FacultySubstitutionEvent> facultySubstitutionEvents) {
@@ -2600,12 +2623,19 @@ public class TimetableGlobalAutoScheduleService {
                 recordFacultySubstitutionIfAny(row, cohortId, doubleAttempt.facultyId(), facultySubstitutionEvents);
                 remainingRuns -= runsFor(doubleAttempt.dayPlaced(), term, row.budget());
             } else {
-                unplacedPeriods += thisBlockSize;
+                // Nothing fits: the row's whole remaining weekly cadence is given up at once below
+                // (remainingRuns -= weekRuns(...), not just this one attempt), so the reported
+                // shortfall must cover every run-occurrence being abandoned here -- not just the one
+                // block just tried. Reporting only `thisBlockSize` (one occurrence, ~1 period) understated
+                // a full remaining-term shortfall (e.g. 16 runs) as under 1 -- "0.8h still unplaced"
+                // when the real gap was 13.3h. capped at what's actually left so a final partial week
+                // isn't over-reported past the row's true remaining requirement.
+                int abandonedRuns = Math.min(remainingRuns, weekRuns(row.budget()));
+                unplacedPeriods += abandonedRuns * thisBlockSize;
                 // The fresh-day attempt names the real blocker (faculty/room/duty) unless every
                 // working day was already used, in which case only the double attempt tried anything.
                 lastFailureReason = everyWorkingDayUsed(daysUsed, term) ? doubleAttempt.failureReason() : attempt.failureReason();
                 tallyVenueGap(row, thisBlockSize, periodDurationHours, venueGaps);
-                // Nothing fits: one weekly session's worth is given up and reported below.
                 remainingRuns -= weekRuns(row.budget());
             }
         }
@@ -2613,8 +2643,9 @@ public class TimetableGlobalAutoScheduleService {
             double unplacedHours = unplacedPeriods * periodDurationHours;
             context.unplacedForCohort().add(new AutoPlaceUnplacedItem(row.subjectName(), row.budget().sessionType(),
                 occupantLabel(row.budget()), formatHours(unplacedHours) + " still unplaced — " + lastFailureReason,
-                row.offering().getId(), true));
+                row.offering().getId(), true, false));
         }
+        return unplacedPeriods;
     }
 
     /** Exclusion set for the same-day-double attempt: every day EXCEPT the days this row already
@@ -2876,6 +2907,45 @@ public class TimetableGlobalAutoScheduleService {
      *  FacultyWorkloadOverviewReport}. */
     record SelfStudyGapFillOutcome(List<Placement> filled, int unfillablePeriods) {}
 
+    /** Outcome of trying an ordered list of {@link SelfStudyRow}s against one (day, period) slot —
+     *  {@code rowIndex} indexes into whichever candidate list the caller passed in. {@code
+     *  freeButUnstaffable} and {@code lastBlockCode} matter only when {@link #filled} is false, and
+     *  are always the LAST such signal seen across every row tried at this slot (mirrors the
+     *  single-tier loop this was extracted from). */
+    private record RowSlotAttempt(Long cellId, int rowIndex, Long facultyId, boolean freeButUnstaffable, String lastBlockCode) {
+        boolean filled() {
+            return cellId != null;
+        }
+    }
+
+    /** Shared placement mechanics for {@link #fillSelfStudyGaps}'s two priority tiers (shortfall-first,
+     *  then equal-extra among already-met rows) — tries each row in {@code attemptOrder} in turn,
+     *  returning as soon as one is placed AND staffed. */
+    private RowSlotAttempt attemptRowsForSlot(Long cohortId, List<SelfStudyRow> candidateRows, List<Integer> attemptOrder,
+                                               DayOfWeek day, Period period) {
+        boolean freeButUnstaffable = false;
+        String lastBlockCode = null;
+        for (int rowIndex : attemptOrder) {
+            SelfStudyRow row = candidateRows.get(rowIndex);
+            SkeletonCellResponse placed;
+            try {
+                placed = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
+                    row.offering().getId(), ClassSessionType.THEORY, day, period.getId(),
+                    row.budget().batchId(), cohortId, row.budget().cohortSectionId(), null), false);
+            } catch (TimetableConstraintViolationException ex) {
+                lastBlockCode = ex.getViolations().isEmpty() ? "UNKNOWN" : ex.getViolations().get(0).code();
+                continue;
+            }
+            Long staffedBy = tryStaffWithFallback(placed.id(), row.candidateFacultyIds());
+            if (staffedBy != null) {
+                return new RowSlotAttempt(placed.id(), rowIndex, staffedBy, freeButUnstaffable, lastBlockCode);
+            }
+            timetableSkeletonService.removeCell(placed.id());
+            freeButUnstaffable = true;
+        }
+        return new RowSlotAttempt(null, -1, null, freeButUnstaffable, lastBlockCode);
+    }
+
     /** Real curriculum content for a semester routinely undershoots a full Monday-Friday week (a
      *  first-semester BSc Nursing cohort's actual theory+lab+clinical hours convert to well under
      *  40 periods — see the class's own capacity math discussion), so even a perfectly balanced
@@ -2904,7 +2974,7 @@ public class TimetableGlobalAutoScheduleService {
     SelfStudyGapFillOutcome fillSelfStudyGaps(Long cohortId, SkeletonBuilderResponse skeleton, TermInstance term,
                                                List<Period> periods, Map<DayOfWeek, Integer> dayLoad,
                                                List<AutoPlaceUnplacedItem> unplacedForCohort, TermDemandAggregation termDemand,
-                                               boolean saturdayOpen) {
+                                               boolean saturdayOpen, Map<String, Integer> theoryStillOwedRuns) {
         List<DayOfWeek> weekdays = saturdayOpen
             ? List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY,
                 DayOfWeek.SATURDAY)
@@ -2913,25 +2983,48 @@ public class TimetableGlobalAutoScheduleService {
 
         // Every non-elective Theory offering this cohort runs except Self-Study/Co-curricular, which
         // already got its curriculum hours and, like Library and Sports (placed just before this),
-        // takes no extra (2026-09-15). User's call, 2026-09-10: "fill them equally for the offerings
-        // as providing extra hours". Deliberately does NOT touch CurriculumSemesterCourse.theoryHours:
+        // takes no extra (2026-09-15). Deliberately does NOT touch CurriculumSemesterCourse.theoryHours:
         // the recorded, regulator-facing requirement stays exactly what the curriculum specifies, and
         // this only adds ADDITIONAL budget-uncapped sessions beyond it (placeCell's
         // enforceBudgetCap=false below).
-        List<SelfStudyRow> rows = resolveExtraHoursFillerRows(cohortId, skeleton, termDemand);
-        if (rows.isEmpty()) {
+        List<SelfStudyRow> allRows = resolveExtraHoursFillerRows(cohortId, skeleton, termDemand);
+        if (allRows.isEmpty()) {
             unplacedForCohort.add(new AutoPlaceUnplacedItem(SELF_STUDY_ITEM_LABEL, ClassSessionType.THEORY, null,
                 "no curriculum Theory offering other than Self-Study exists for this cohort to take extra hours "
-                    + "— every remaining free period stays empty until one is added", null, false));
+                    + "— every remaining free period stays empty until one is added", null, false, true));
             return new SelfStudyGapFillOutcome(filled, 0);
         }
 
+        // User's call, 2026-09-17 (flips the prior 2026-09-10 "fill them equally" default): every
+        // offering's real required hours come first -- a row Phase 2 (placeShortfallRow) still owes
+        // runs on gets first claim on any genuinely free period found below, via theoryStillOwedRuns
+        // (fed from that phase's own return value, not this method's stale pre-run `skeleton`
+        // snapshot, which always shows 0 delivered for a freshly-rebuilt DRAFT and so can't tell a
+        // just-closed row from one this run never touched). Only once every still-short row has
+        // either closed its own gap or genuinely can't be staffed there does a period fall through to
+        // the equal-extra-hours rotation among rows that are already met.
+        List<SelfStudyRow> shortRows = new ArrayList<>();
+        int[] shortRemaining = new int[allRows.size()];
+        List<SelfStudyRow> metRows = new ArrayList<>();
+        for (SelfStudyRow row : allRows) {
+            int owed = theoryStillOwedRuns.getOrDefault(
+                theoryRowKey(row.offering().getId(), row.budget().cohortSectionId()), 0);
+            if (owed > 0) {
+                shortRemaining[shortRows.size()] = owed;
+                shortRows.add(row);
+            } else {
+                metRows.add(row);
+            }
+        }
+
         int unfillablePeriods = 0;
+        int shortRotation = 0;
         int rotation = 0;
-        // Extra sessions this pass has given each row: the next free period goes to whichever subject
-        // has had the fewest, so every subject ends with equal extra hours instead of merely taking
-        // equal turns (a subject that couldn't take one slot no longer falls behind for good).
-        int[] extraByRow = new int[rows.size()];
+        // Extra sessions this pass has given each already-met row: the next free period goes to
+        // whichever subject has had the fewest, so every subject ends with equal extra hours instead
+        // of merely taking equal turns (a subject that couldn't take one slot no longer falls behind
+        // for good).
+        int[] extraByRow = new int[metRows.size()];
         // A period every row REJECTED (placeCell threw) used to be swallowed by the bare `continue`
         // below and counted nowhere -- so a genuinely empty period could sit in the grid with no
         // corresponding line anywhere in the run report, which is exactly the "empty periods but the
@@ -2950,36 +3043,55 @@ public class TimetableGlobalAutoScheduleService {
                 boolean periodFilled = false;
                 boolean periodWasFreeButUnstaffable = false;
                 String lastBlockCode = null;
-                int start = rotation;
-                List<Integer> attemptOrder = java.util.stream.IntStream.range(0, rows.size()).boxed()
-                    .sorted(Comparator.comparingInt((Integer i) -> extraByRow[i])
-                        .thenComparingInt(i -> Math.floorMod(i - start, rows.size())))
-                    .toList();
-                for (int rowIndex : attemptOrder) {
-                    SelfStudyRow row = rows.get(rowIndex);
-                    SkeletonCellResponse placed;
-                    try {
-                        placed = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
-                            row.offering().getId(), ClassSessionType.THEORY, day, period.getId(),
-                            row.budget().batchId(), cohortId, row.budget().cohortSectionId(), null), false);
-                    } catch (TimetableConstraintViolationException ex) {
-                        lastBlockCode = ex.getViolations().isEmpty() ? "UNKNOWN" : ex.getViolations().get(0).code();
-                        continue;
+
+                if (!shortRows.isEmpty()) {
+                    int start = shortRotation;
+                    List<Integer> shortOrder = java.util.stream.IntStream.range(0, shortRows.size()).boxed()
+                        .filter(i -> shortRemaining[i] > 0)
+                        .sorted(Comparator.comparingInt(i -> Math.floorMod(i - start, shortRows.size())))
+                        .toList();
+                    if (!shortOrder.isEmpty()) {
+                        RowSlotAttempt result = attemptRowsForSlot(cohortId, shortRows, shortOrder, day, period);
+                        if (result.filled()) {
+                            dayLoad.merge(day, 1, Integer::sum);
+                            SelfStudyRow row = shortRows.get(result.rowIndex());
+                            filled.add(new Placement(result.cellId(), row.offering().getId(), ClassSessionType.THEORY,
+                                row.budget().batchId(), row.budget().cohortSectionId(), result.facultyId(), row.subjectName(),
+                                occupantLabel(row.budget()), day, List.of(period.getId())));
+                            periodFilled = true;
+                            shortRemaining[result.rowIndex()]--;
+                            shortRotation = (result.rowIndex() + 1) % shortRows.size();
+                        } else {
+                            periodWasFreeButUnstaffable = result.freeButUnstaffable();
+                            lastBlockCode = result.lastBlockCode();
+                        }
                     }
-                    Long staffedBy = tryStaffWithFallback(placed.id(), row.candidateFacultyIds());
-                    if (staffedBy != null) {
+                }
+
+                if (!periodFilled && !metRows.isEmpty()) {
+                    int start = rotation;
+                    List<Integer> attemptOrder = java.util.stream.IntStream.range(0, metRows.size()).boxed()
+                        .sorted(Comparator.comparingInt((Integer i) -> extraByRow[i])
+                            .thenComparingInt(i -> Math.floorMod(i - start, metRows.size())))
+                        .toList();
+                    RowSlotAttempt result = attemptRowsForSlot(cohortId, metRows, attemptOrder, day, period);
+                    if (result.filled()) {
                         dayLoad.merge(day, 1, Integer::sum);
-                        filled.add(new Placement(placed.id(), row.offering().getId(), ClassSessionType.THEORY,
-                            row.budget().batchId(), row.budget().cohortSectionId(), staffedBy, row.subjectName(),
+                        SelfStudyRow row = metRows.get(result.rowIndex());
+                        filled.add(new Placement(result.cellId(), row.offering().getId(), ClassSessionType.THEORY,
+                            row.budget().batchId(), row.budget().cohortSectionId(), result.facultyId(), row.subjectName(),
                             occupantLabel(row.budget()), day, List.of(period.getId())));
                         periodFilled = true;
-                        extraByRow[rowIndex]++;
-                        rotation = (rowIndex + 1) % rows.size();
-                        break;
+                        extraByRow[result.rowIndex()]++;
+                        rotation = (result.rowIndex() + 1) % metRows.size();
+                    } else {
+                        periodWasFreeButUnstaffable = periodWasFreeButUnstaffable || result.freeButUnstaffable();
+                        if (result.lastBlockCode() != null) {
+                            lastBlockCode = result.lastBlockCode();
+                        }
                     }
-                    timetableSkeletonService.removeCell(placed.id());
-                    periodWasFreeButUnstaffable = true;
                 }
+
                 if (!periodFilled) {
                     if (periodWasFreeButUnstaffable) {
                         unfillablePeriods++;
@@ -2993,12 +3105,12 @@ public class TimetableGlobalAutoScheduleService {
             unplacedForCohort.add(new AutoPlaceUnplacedItem(SELF_STUDY_ITEM_LABEL, ClassSessionType.THEORY, null,
                 unfillablePeriods + " period(s) left genuinely empty — every eligible extra-hours"
                     + " faculty is unavailable, already teaching elsewhere, or at their capacity cap at that exact slot",
-                rows.get(0).offering().getId(), false));
+                allRows.get(0).offering().getId(), false, true));
         }
         for (Map.Entry<String, Integer> blocked : blockedPeriodsByReason.entrySet()) {
             unplacedForCohort.add(new AutoPlaceUnplacedItem(GAP_FILL_ITEM_LABEL, ClassSessionType.THEORY, null,
                 blocked.getValue() + " period(s) left empty — " + friendlyFailureReason(blocked.getKey()),
-                rows.get(0).offering().getId(), false));
+                allRows.get(0).offering().getId(), false, true));
         }
         return new SelfStudyGapFillOutcome(filled, unfillablePeriods);
     }
@@ -3107,7 +3219,7 @@ public class TimetableGlobalAutoScheduleService {
         if (librarySubject == null || libraryClassrooms.isEmpty()) {
             unplacedForCohort.add(new AutoPlaceUnplacedItem("Library", ClassSessionType.LIBRARY, null,
                 "no Library classroom is configured (a Classroom linked to a Room tagged with the Library "
-                    + "Purpose Category) — every cohort's Library quota stays unplaced until one is added", null, false));
+                    + "Purpose Category) — every cohort's Library quota stays unplaced until one is added", null, false, true));
             return new LibraryGapFillOutcome(filled, 0, 0);
         }
 
@@ -3558,7 +3670,7 @@ public class TimetableGlobalAutoScheduleService {
         if (unfillable > 0) {
             unplacedForCohort.add(new AutoPlaceUnplacedItem("Idle batch fallback", ClassSessionType.LIBRARY, null,
                 unfillable + " idle batch instance(s) could not be given a Library/Self-Study fallback -- no free "
-                    + "Library classroom and no eligible Self-Study faculty available for that slot", null, false));
+                    + "Library classroom and no eligible Self-Study faculty available for that slot", null, false, true));
         }
     }
 
@@ -4141,7 +4253,7 @@ public class TimetableGlobalAutoScheduleService {
         }
         unplacedForCohort.add(new AutoPlaceUnplacedItem(bumped.subjectName(), bumped.sessionType(), bumped.occupantLabel(),
             "displaced during a backtrack attempt and could not be placed at its original slot or any other free day/period",
-            bumped.courseOfferingId(), true));
+            bumped.courseOfferingId(), true, bumped.sessionType() == ClassSessionType.LIBRARY));
     }
 
     /** Mirrors {@link #fillLibraryGaps}'s own free-day/free-classroom search, scoped to finding just
@@ -4374,7 +4486,7 @@ public class TimetableGlobalAutoScheduleService {
             if (Boolean.TRUE.equals(member.getIsActive()) && resolveElectiveMemberFacultyId(member) == null
                     && safe(member.getCurriculumSemesterCourse() != null ? member.getCurriculumSemesterCourse().getTheoryHours() : null) > 0) {
                 unplacedSink.add(new AutoPlaceUnplacedItem(member.getSubject().getName(), ClassSessionType.THEORY, null,
-                    "no faculty assigned on its Course Offering (elective)", member.getId(), false));
+                    "no faculty assigned on its Course Offering (elective)", member.getId(), false, false));
                 return 0;
             }
         }
@@ -4414,7 +4526,7 @@ public class TimetableGlobalAutoScheduleService {
                         + "and only " + rooms.size() + " suitable room(s) are free then"
                     : " — one or more new members can't join that exact slot";
                 unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
-                    "already scheduled for " + day + (period != null ? ", " + period.getName() : "") + detail, null, false));
+                    "already scheduled for " + day + (period != null ? ", " + period.getName() : "") + detail, null, false, false));
                 return 0;
             }
             return unplacedTheoryMembers.size();
@@ -4470,7 +4582,7 @@ public class TimetableGlobalAutoScheduleService {
         }
         // A room ceiling is not a lack of days: another working day adds slots, not rooms.
         unplacedSink.add(new AutoPlaceUnplacedItem("Elective group " + electiveGroupId, ClassSessionType.THEORY, null,
-            reason, null, roomShortSlots == 0));
+            reason, null, roomShortSlots == 0, false));
         return 0;
     }
 

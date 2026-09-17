@@ -8,7 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { AcademicYear, CourseOffering, GenerateCourseOfferingsResponse, TermInstance } from '../../academic-year/academic-year.model';
+import { AcademicYear, CourseOffering, GenerateCourseOfferingsResponse, GenerateCourseRegistrationsResponse, TermInstance } from '../../academic-year/academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
@@ -55,6 +55,7 @@ export class CourseOfferingListComponent implements OnInit {
   protected readonly dataSource = new MatTableDataSource<CourseOffering>([]);
   protected readonly loading = signal(false);
   protected readonly generating = signal(false);
+  protected readonly backfillingRegistrations = signal(false);
   protected readonly termsLoading = signal(false);
   protected readonly searchValue = signal('');
 
@@ -89,6 +90,10 @@ export class CourseOfferingListComponent implements OnInit {
 
   protected canManage(): boolean {
     return this.permissionService.has('COURSE_MANAGE');
+  }
+
+  protected canBackfillRegistrations(): boolean {
+    return this.permissionService.has('COURSE_REGISTRATION_GENERATE');
   }
 
   ngOnInit(): void {
@@ -232,6 +237,51 @@ export class CourseOfferingListComponent implements OnInit {
     }
 
     this.toast.warning('No offerings generated — the assigned curriculum has no subjects mapped for this semester.', { durationMs: 0 });
+  }
+
+  /** Straggler backfill only — bulk-registers already-ENROLLED students who have no
+   *  registration yet against this term's non-elective offerings. Deliberately NOT the primary
+   *  registration path: Student Promotion is (per BR-52), since it runs arrears/max-duration/
+   *  exam-outcome eligibility checks this raw bulk call skips entirely. Confirm dialog says so. */
+  protected backfillRegistrations(): void {
+    const termInstanceId = this.selectedTermInstanceId;
+    if (!termInstanceId) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Backfill Course Registrations',
+        message: 'Registers any already-enrolled student who has no registration yet into this ' +
+          "term's non-elective offerings. This is a straggler top-up only — it skips the arrears/" +
+          'max-duration/exam-outcome eligibility checks that Student Promotion runs, so use ' +
+          'Student Promotion for normal term advancement. Electives are never touched here; assign ' +
+          'those separately in Elective Assignment. Continue?',
+        confirmText: 'Backfill',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.performBackfillRegistrations(termInstanceId);
+    });
+  }
+
+  private performBackfillRegistrations(termInstanceId: number): void {
+    this.backfillingRegistrations.set(true);
+    this.academicYearService.generateCourseRegistrations(termInstanceId).subscribe({
+      next: (res) => {
+        this.reportBackfillResult(res);
+        this.backfillingRegistrations.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to backfill course registrations');
+        this.backfillingRegistrations.set(false);
+      },
+    });
+  }
+
+  private reportBackfillResult(res: GenerateCourseRegistrationsResponse): void {
+    if (res.registrationsCreated > 0) {
+      this.toast.success(`${res.registrationsCreated} registration(s) backfilled`);
+    } else {
+      this.toast.info('No registrations backfilled — every enrolled student already has one for this term.');
+    }
   }
 
   /** Bidirectional — deactivating is blocked server-side (surfaced as an error toast, not a

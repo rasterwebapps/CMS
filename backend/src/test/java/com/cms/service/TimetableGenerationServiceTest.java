@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -24,9 +25,11 @@ import com.cms.dto.ConflictScanResponse;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.TimetableActionResponse;
 import com.cms.dto.TimetableConflictRow;
+import com.cms.dto.TimetableCoverageGap;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.exception.TimetableConstraintViolationException;
+import com.cms.exception.TimetableCoverageGapException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
@@ -49,6 +52,7 @@ class TimetableGenerationServiceTest {
     @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
     @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
     @Mock private TimetableStaffingAutoAssignService timetableStaffingAutoAssignService;
+    @Mock private TimetableCoverageService timetableCoverageService;
 
     private TimetableGenerationService service;
 
@@ -62,7 +66,7 @@ class TimetableGenerationServiceTest {
     void setUp() {
         service = new TimetableGenerationService(classScheduleRepository, termInstanceRepository,
             labAttendanceRepository, auditLogService, timetableConflictInspectorService,
-            courseOfferingSectionFacultyService, timetableStaffingAutoAssignService);
+            courseOfferingSectionFacultyService, timetableStaffingAutoAssignService, timetableCoverageService);
 
         Speciality speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);
@@ -264,6 +268,73 @@ class TimetableGenerationServiceTest {
 
         verify(classScheduleRepository, never()).save(any());
         verify(auditLogService, never()).record(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldBlockApproveWhenCurriculumHoursCoverageIsIncomplete() {
+        // OC-256: a cohort whose Theory/Lab sessions were never placed at all (as opposed to
+        // placed-but-unstaffed) has nothing for unstaffedCount/unassignedOfferingCount to catch --
+        // this is the dedicated gate for that gap, and it must refuse by default (no override).
+        ClassSchedule staffed = new ClassSchedule();
+        staffed.setId(1L);
+        staffed.setStatus(ClassScheduleStatus.DRAFT);
+        staffed.setFaculty(faculty);
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(staffed));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableCoverageService.findGaps(10L)).thenReturn(List.of(
+            new TimetableCoverageGap(5L, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
+
+        assertThatThrownBy(() -> service.approve(10L, "admin"))
+            .isInstanceOf(TimetableCoverageGapException.class);
+
+        verify(classScheduleRepository, never()).save(any());
+        verify(auditLogService, never()).record(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldRejectCoverageOverrideWithoutAReason() {
+        ClassSchedule staffed = new ClassSchedule();
+        staffed.setId(1L);
+        staffed.setStatus(ClassScheduleStatus.DRAFT);
+        staffed.setFaculty(faculty);
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(staffed));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableCoverageService.findGaps(10L)).thenReturn(List.of(
+            new TimetableCoverageGap(5L, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
+
+        assertThatThrownBy(() -> service.approve(10L, "admin", true, "  "))
+            .isInstanceOf(IllegalArgumentException.class);
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldApproveWithIncompleteCoverageWhenOverridden() {
+        ClassSchedule staffed = new ClassSchedule();
+        staffed.setId(1L);
+        staffed.setStatus(ClassScheduleStatus.DRAFT);
+        staffed.setFaculty(faculty);
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(staffed));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableCoverageService.findGaps(10L)).thenReturn(List.of(
+            new TimetableCoverageGap(5L, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
+
+        TimetableActionResponse response = service.approve(10L, "admin", true, "Phased rollout, Theory starts next month");
+
+        assertThat(response.affectedCount()).isEqualTo(1);
+        assertThat(staffed.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
+        verify(auditLogService).record(eq("admin"), eq("TIMETABLE_APPROVED"), eq("TermInstance"), eq("10"),
+            org.mockito.ArgumentMatchers.contains("Phased rollout, Theory starts next month"));
     }
 
     @Test

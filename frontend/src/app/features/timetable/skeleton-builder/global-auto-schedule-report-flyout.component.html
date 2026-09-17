@@ -501,7 +501,7 @@
                 @if (c.unplaced.length > 0) {
                   <ul class="gas-contributors">
                     @for (u of c.unplaced; track u.subjectName + '-' + u.sessionType + '-' + u.reason) {
-                      <li class="gas-warning">{{ u.subjectName }} ({{ u.sessionType }}{{ u.occupantLabel ? ' · ' + u.occupantLabel : '' }}) — {{ u.reason }}</li>
+                      <li [class]="u.advisoryOnly ? 'field-hint' : 'gas-warning'">{{ u.subjectName }} ({{ u.sessionType }}{{ u.occupantLabel ? ' · ' + u.occupantLabel : '' }}) — {{ u.reason }}</li>
                     }
                   </ul>
                 }

@@ -22,6 +22,7 @@ import com.cms.dto.ErrorResponse;
 import com.cms.dto.LifecycleConflictResponse;
 import com.cms.dto.ModuleNotEnabledResponse;
 import com.cms.dto.TimetableConstraintViolationResponse;
+import com.cms.dto.TimetableCoverageGapResponse;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -99,6 +100,17 @@ public class GlobalExceptionHandler {
             HttpStatus.CONFLICT.value(),
             ex.getMessage(),
             ex.getViolations(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(TimetableCoverageGapException.class)
+    public ResponseEntity<TimetableCoverageGapResponse> handleTimetableCoverageGap(TimetableCoverageGapException ex) {
+        TimetableCoverageGapResponse error = new TimetableCoverageGapResponse(
+            HttpStatus.CONFLICT.value(),
+            ex.getMessage(),
+            ex.getGaps(),
             Instant.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);

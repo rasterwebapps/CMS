@@ -1228,7 +1228,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         var unplaced = new ArrayList<AutoPlaceUnplacedItem>();
 
         service.fillSelfStudyGaps(1L, skeleton, termInstance, List.of(period1), dayLoad, unplaced,
-            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0), false);
+            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0), false, java.util.Map.of());
 
         // Mon-Fri x 1 period, every one refused on budget -> one aggregated line naming that reason.
         assertThat(unplaced).extracting(AutoPlaceUnplacedItem::reason)
@@ -1275,7 +1275,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         }
 
         var result = service.fillSelfStudyGaps(1L, skeleton, termInstance, List.of(period1), dayLoad, new ArrayList<>(),
-            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0), true);
+            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0), true, java.util.Map.of());
 
         assertThat(result.filled()).extracting(TimetableGlobalAutoScheduleService.Placement::dayOfWeek)
             .contains(DayOfWeek.SATURDAY);
@@ -1283,7 +1283,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         // Saturday not a working day (the caller passes saturdayIsWorkingDay(term) == false when no
         // pattern is chosen): filler never touches it.
         var monFriOnly = service.fillSelfStudyGaps(1L, skeleton, termInstance, List.of(period1), dayLoad, new ArrayList<>(),
-            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0), false);
+            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0), false, java.util.Map.of());
         assertThat(monFriOnly.filled()).extracting(TimetableGlobalAutoScheduleService.Placement::dayOfWeek)
             .doesNotContain(DayOfWeek.SATURDAY);
     }
@@ -2854,7 +2854,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectResponse pathology = new SkeletonSubjectResponse(100L, "Pathology I", "PATH",
             List.of(sectionTheoryBudget(51L, "Section 1", 1, 0)), null, null);
         List<AutoPlaceUnplacedItem> logged = List.of(
-            new AutoPlaceUnplacedItem("Pathology I", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L, true));
+            new AutoPlaceUnplacedItem("Pathology I", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L, true, false));
 
         List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
             logged, List.of(pathology), List.of(theoryPlacement(100L, 51L)), termInstance);
@@ -2867,7 +2867,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectResponse pathology = new SkeletonSubjectResponse(100L, "Pathology I", "PATH",
             List.of(sectionTheoryBudget(51L, "Section 1", 1, 2)), null, null);
         List<AutoPlaceUnplacedItem> logged = List.of(
-            new AutoPlaceUnplacedItem("Pathology I", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L, true));
+            new AutoPlaceUnplacedItem("Pathology I", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L, true, false));
 
         assertThat(TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
             logged, List.of(pathology), List.of(), termInstance)).isEmpty();
@@ -2879,9 +2879,9 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectResponse chn = new SkeletonSubjectResponse(100L, "Community Health Nursing I", "CHN",
             List.of(sectionTheoryBudget(51L, "Section 1", 3, 0)), null, null);
         List<AutoPlaceUnplacedItem> logged = List.of(
-            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "first", 100L, true),
-            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "second", 100L, true),
-            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "third", 100L, true));
+            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "first", 100L, true, false),
+            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "second", 100L, true, false),
+            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "third", 100L, true, false));
 
         List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
             logged, List.of(chn), List.of(theoryPlacement(100L, 51L)), termInstance);
@@ -2894,8 +2894,8 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Applied Anatomy", "ANAT",
             List.of(sectionTheoryBudget(51L, "Section 1", 1, 0), sectionTheoryBudget(52L, "Section 2", 1, 0)), null, null);
         List<AutoPlaceUnplacedItem> logged = List.of(
-            new AutoPlaceUnplacedItem("Applied Anatomy", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L, true),
-            new AutoPlaceUnplacedItem("Applied Anatomy", ClassSessionType.THEORY, "Section 2", DISPLACED, 100L, true));
+            new AutoPlaceUnplacedItem("Applied Anatomy", ClassSessionType.THEORY, "Section 1", DISPLACED, 100L, true, false),
+            new AutoPlaceUnplacedItem("Applied Anatomy", ClassSessionType.THEORY, "Section 2", DISPLACED, 100L, true, false));
 
         List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
             logged, List.of(subject), List.of(theoryPlacement(100L, 51L)), termInstance);
@@ -2912,8 +2912,8 @@ class TimetableGlobalAutoScheduleServiceTest {
         TimetableGlobalAutoScheduleService.Placement placedA = new TimetableGlobalAutoScheduleService.Placement(1L, 100L,
             ClassSessionType.LAB, 285L, 51L, 34L, "Adult Health Nursing I", "Batch A", DayOfWeek.TUESDAY, List.of(1L, 2L));
         List<AutoPlaceUnplacedItem> logged = List.of(
-            new AutoPlaceUnplacedItem("Adult Health Nursing I", ClassSessionType.LAB, "Batch A", DISPLACED, 100L, true),
-            new AutoPlaceUnplacedItem("Adult Health Nursing I", ClassSessionType.LAB, "Batch B", DISPLACED, 100L, true));
+            new AutoPlaceUnplacedItem("Adult Health Nursing I", ClassSessionType.LAB, "Batch A", DISPLACED, 100L, true, false),
+            new AutoPlaceUnplacedItem("Adult Health Nursing I", ClassSessionType.LAB, "Batch B", DISPLACED, 100L, true, false));
 
         List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
             logged, List.of(ahn), List.of(placedA), termInstance);
@@ -2929,10 +2929,10 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectResponse selfStudy = new SkeletonSubjectResponse(100L, "Self-Study/Co-curricular", "SSCC",
             List.of(new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 20, 26, 1, 1)), null, null);
         List<AutoPlaceUnplacedItem> logged = List.of(
-            new AutoPlaceUnplacedItem("Library", ClassSessionType.LIBRARY, null, "1 of this cohort's weekly Library session(s)", null, false),
-            new AutoPlaceUnplacedItem("Self-Study/Co-curricular", ClassSessionType.THEORY, null, "2 period(s) left genuinely empty", 100L, false),
-            new AutoPlaceUnplacedItem("Gap-fill", ClassSessionType.THEORY, null, "1 period(s) left empty", 100L, false),
-            new AutoPlaceUnplacedItem("Unknown Subject", ClassSessionType.THEORY, "Section 1", DISPLACED, 999L, true));
+            new AutoPlaceUnplacedItem("Library", ClassSessionType.LIBRARY, null, "1 of this cohort's weekly Library session(s)", null, false, true),
+            new AutoPlaceUnplacedItem("Self-Study/Co-curricular", ClassSessionType.THEORY, null, "2 period(s) left genuinely empty", 100L, false, true),
+            new AutoPlaceUnplacedItem("Gap-fill", ClassSessionType.THEORY, null, "1 period(s) left empty", 100L, false, true),
+            new AutoPlaceUnplacedItem("Unknown Subject", ClassSessionType.THEORY, "Section 1", DISPLACED, 999L, true, false));
 
         List<AutoPlaceUnplacedItem> reconciled = TimetableGlobalAutoScheduleService.reconcileUnplacedAgainstFinalPlacements(
             logged, List.of(selfStudy), List.of(), termInstance);
@@ -3024,7 +3024,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         SkeletonSubjectResponse chn = new SkeletonSubjectResponse(100L, "Community Health Nursing I", "CHN",
             List.of(sectionTheoryBudget(51L, "Section 1", 1, 0)), null, null);
         List<AutoPlaceUnplacedItem> logged = List.of(
-            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "short", 100L, true));
+            new AutoPlaceUnplacedItem("Community Health Nursing I", ClassSessionType.THEORY, "Section 1", "short", 100L, true, false));
         var saturday = new TimetableGlobalAutoScheduleService.Placement(5L, 100L, ClassSessionType.THEORY, null, 51L, 27L,
             "Community Health Nursing I", "Section 1", DayOfWeek.SATURDAY, List.of(1L));
 
@@ -3391,7 +3391,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         }
 
         var result = service.fillSelfStudyGaps(1L, skeleton, termInstance, List.of(period1), dayLoad, new ArrayList<>(),
-            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0), false);
+            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0), false, java.util.Map.of());
 
         // Monday-Friday x 1 period: 5 leftover periods, none of them Self-Study, split 3/2 at worst.
         List<Long> filledOfferings = result.filled().stream()

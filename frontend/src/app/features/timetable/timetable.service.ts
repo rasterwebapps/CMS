@@ -30,8 +30,12 @@ export class TimetableService {
     return this.http.get<ClassSchedule[]>(this.baseUrl, { params });
   }
 
-  approve(termInstanceId: number): Observable<TimetableActionResponse> {
-    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/approve`, null);
+  /** `overrideIncompleteCoverage`/`overrideReason` are only ever sent on a resubmission after the
+   *  plain first attempt came back with a coverage-gap conflict (see {@link TimetableCoverageGap})
+   *  and an authorized reviewer (TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE) accepted it with a reason —
+   *  see TimetableController#approve's `@PreAuthorize`, the actual enforcement point. */
+  approve(termInstanceId: number, overrideIncompleteCoverage = false, overrideReason?: string): Observable<TimetableActionResponse> {
+    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/approve`, { overrideIncompleteCoverage, overrideReason });
   }
 
   clear(termInstanceId: number): Observable<TimetableActionResponse> {

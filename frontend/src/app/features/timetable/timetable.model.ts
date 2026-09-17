@@ -12,6 +12,20 @@ export interface TimetableActionResponse {
   affectedCount: number;
 }
 
+/** One cohort/session-type combination Approve found with curriculum-required hours never placed
+ *  as real sessions for the term (OC-256) -- the same figure Skeleton Builder's own "Total
+ *  Unassigned" stat cards already show that cohort, surfaced here from
+ *  TimetableCoverageGapException's `gaps` so Draft Review can list exactly what's missing before
+ *  offering an override. */
+export interface TimetableCoverageGap {
+  cohortId: number;
+  cohortName: string;
+  sessionType: 'THEORY' | 'LAB' | 'CLINICAL';
+  totalHours: number;
+  assignedHours: number;
+  unassignedHours: number;
+}
+
 export interface MyTimetableResponse {
   sessions: ClassSchedule[];
   holidays: WeekGridHolidayInfo[];

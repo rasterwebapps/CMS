@@ -3,6 +3,7 @@ package com.cms.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -88,26 +89,55 @@ class TimetableControllerTest {
 
     @Test
     void shouldApproveDraftTimetable() throws Exception {
-        when(timetableGenerationService.approve(eq(10L), anyString())).thenReturn(new TimetableActionResponse(5));
+        when(timetableGenerationService.approve(eq(10L), anyString(), eq(false), isNull()))
+            .thenReturn(new TimetableActionResponse(5));
 
         // The security filter chain is disabled in this WebMvcTest slice (addFilters = false), so
         // @AuthenticationPrincipal Jwt resolves null regardless of .with(jwt()...) here -- same
         // established limitation as ImportControllerTest, hence anyString() above/below rather
-        // than asserting a specific actor value.
+        // than asserting a specific actor value. No request body is sent, matching the plain
+        // first-attempt Approve call the frontend makes before any coverage gap is known.
         mockMvc.perform(post("/timetables/10/approve").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.affectedCount").value(5));
 
-        verify(timetableGenerationService).approve(eq(10L), anyString());
+        verify(timetableGenerationService).approve(eq(10L), anyString(), eq(false), isNull());
     }
 
     @Test
     void shouldReturnNotFoundWhenApprovingWithNoDrafts() throws Exception {
-        when(timetableGenerationService.approve(eq(999L), anyString()))
+        when(timetableGenerationService.approve(eq(999L), anyString(), eq(false), isNull()))
             .thenThrow(new ResourceNotFoundException("No draft timetable found for term instance id: 999"));
 
         mockMvc.perform(post("/timetables/999/approve").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturnConflictWithGapsWhenCoverageIsIncomplete() throws Exception {
+        when(timetableGenerationService.approve(eq(10L), anyString(), eq(false), isNull()))
+            .thenThrow(new com.cms.exception.TimetableCoverageGapException(List.of(
+                new com.cms.dto.TimetableCoverageGap(5L, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340))));
+
+        mockMvc.perform(post("/timetables/10/approve").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.gaps[0].cohortName").value("BSc Nursing"))
+            .andExpect(jsonPath("$.gaps[0].sessionType").value("THEORY"));
+    }
+
+    @Test
+    void shouldApproveWithOverrideFlagAndReasonInRequestBody() throws Exception {
+        when(timetableGenerationService.approve(eq(10L), anyString(), eq(true), eq("Phased rollout")))
+            .thenReturn(new TimetableActionResponse(3));
+
+        mockMvc.perform(post("/timetables/10/approve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"overrideIncompleteCoverage\":true,\"overrideReason\":\"Phased rollout\"}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.affectedCount").value(3));
+
+        verify(timetableGenerationService).approve(eq(10L), anyString(), eq(true), eq("Phased rollout"));
     }
 
     @Test

@@ -284,6 +284,11 @@ export interface AutoPlaceUnplacedItem {
    *  one kind more working Saturdays or a Special Class can close. Library/idle-batch fallbacks,
    *  Self-Study/gap-fill notes, a missing faculty or elective selection, and a room ceiling are false. */
   slotShortfall: boolean;
+  /** OC-256 follow-up: true for Library/Sports/Self-Study/idle-batch-fallback filler, which has no
+   *  curriculum-hours budget and was never required to place — false for a real Theory/Lab/Clinical
+   *  shortfall. Render advisory items muted (like infoNotes), never with the same alarming style as
+   *  a genuine gap — that conflation is what made a fully-covered cohort's run look broken. */
+  advisoryOnly: boolean;
 }
 
 
