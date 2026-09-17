@@ -87,6 +87,25 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
   created row isn't reliably on page 1, so both search for their new row by
   a field the spec set explicitly (roll number / employee code) rather than
   assuming placement, the way a real user would actually check their save.
+- `tests/library.spec.ts` — **Tier A**: Book Catalogue (full create ->
+  accession-uniqueness-check -> edit -> delete round trip, plus search/status
+  filter), Issue Desk (not-found lookup error, then a full issue -> return
+  round trip), Journals & Periodicals (full create -> edit -> delete round
+  trip), and read-only entry-point checks for Fines / Overdue Books /
+  Library Settings / Book Import / RBAC direct-URL access. `library-management.md`
+  is stale in several places found while writing this — see the spec's file
+  header: real nav labels differ from the doc ("Book Explorer" not "Book
+  Catalogue", etc.), the summary-card row (Total/Available/Issued) described
+  for every list screen doesn't exist in any of the current templates, and
+  the whole 4-tab "Reports" section (Overdue/Fines Summary/Issue
+  History/Accession Register) describes a feature that isn't there —
+  `/library/reports` is a single-purpose Overdue Books list, scoped to that.
+  One real backend rule surfaced and is now asserted directly (not a bug):
+  `LibraryBookService.delete()` permanently refuses to delete any book with
+  issue history at all, even long after it's been returned — the frontend's
+  Delete button only disables while status is literally ISSUED, so the
+  Issue Desk round-trip test's throwaway book is left behind in the
+  catalogue forever by design (no legitimate app flow removes it).
 
 ## Rollout plan (OC-250)
 
@@ -115,8 +134,9 @@ specs seeded directly from that catalogue, prioritized by risk:
      each touches 3-4 large components that deserve their own careful trace.
 4. Everything else in `docs/manual-test-cases/`, worked through in file order
    — **in progress.** Done so far: the 9 masters above, Student (create),
-   Faculty (create), Fee Explorer (dataset-correctness). **Not started:**
-   Library Management, Inventory (~30 files — the largest single chunk),
+   Faculty (create), Fee Explorer (dataset-correctness), Library Management
+   (`library.spec.ts` — see its note above). **Not started:**
+   Inventory (~30 files — the largest single chunk),
    Subject/Curriculum Management, Scholarship, Fee Structures,
    Country/Location Master, plus a long tail of lower-value UI-polish docs
    (dynamic theming, column visibility, table sorting alignment, etc.) —
@@ -134,11 +154,15 @@ has never supported unfiltered). `oc-253-student-fee-self-service` (the
 Fee Explorer pagination fix) has since merged to `main` and been deployed
 to 243; `fee-explorer.spec.ts` is now also confirmed green (see its note
 above — the one failure on the post-merge run was a test-timing bug, not
-an app regression). **Every spec in the suite is green against a freshly
+an app regression). `library.spec.ts` (new this session) is green across 2
+full repeated runs. **Every spec in the suite is green against a freshly
 redeployed 243 as of this session.** Still true: only flip a `**Status:**`
 line in `docs/manual-test-cases/*.md` from `NOT TESTED` to `PASS` after
 re-confirming green against a *specific* run — 243's state can drift again
-the same way it did before.
+the same way it did before. Note: 243's Book Catalogue now permanently
+carries one throwaway "E2E Issue Test Book …" row from `library.spec.ts`'s
+Issue Desk round trip — see that spec's file header for why it can never be
+deleted (a real backend rule, not leftover mess to clean up).
 
 **Picking this back up — read this first:**
 1. **This repo has multiple concurrent Claude Code sessions sharing one
@@ -155,8 +179,8 @@ the same way it did before.
    agent's network; `https://172.17.1.243:8443` (direct IP) worked fine as
    a substitute — try the documented URL first from a machine with real
    LAN/VPN access, since it's the intended path.
-3. Next up per the rollout plan: Library Management or Inventory (~30
-   files, the largest remaining chunk) — see item 4 above.
+3. Next up per the rollout plan: Inventory (~30 files, the largest
+   remaining chunk) — see item 4 above.
 
 ## Adding a new spec
 
