@@ -105,12 +105,18 @@ public class GuardianService {
      *  not a silent empty result, so a guardian probing another family's student id gets a
      *  clear denial rather than data that merely looks accidentally empty. */
     public void assertIsMyWard(String keycloakUsername, Long studentId) {
-        Long guardianId = appUserRepository.findByKeycloakUsername(keycloakUsername)
-            .map(user -> user.getLinkedGuardian() != null ? user.getLinkedGuardian().getId() : null)
-            .orElse(null);
+        Long guardianId = currentGuardianId(keycloakUsername);
         if (guardianId == null || !studentGuardianRepository.existsByGuardianIdAndStudentId(guardianId, studentId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student " + studentId + " is not one of your wards");
         }
+    }
+
+    /** The caller's own guardianId (via the {@code app_users} FK), or {@code null} if the caller
+     *  has no linked guardian account. */
+    public Long currentGuardianId(String keycloakUsername) {
+        return appUserRepository.findByKeycloakUsername(keycloakUsername)
+            .map(user -> user.getLinkedGuardian() != null ? user.getLinkedGuardian().getId() : null)
+            .orElse(null);
     }
 
     private GuardianResponse toResponse(Guardian g) {

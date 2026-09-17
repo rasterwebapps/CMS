@@ -92,3 +92,12 @@ keycloak:
     username: ${KEYCLOAK_ADMIN_USERNAME:admin}
     password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
 
+# Razorpay -- guardian ward fee payment (OC-254). key-secret/webhook-secret are server-side only;
+# key-id alone is returned to the frontend for the hosted Checkout.js widget. No default values
+# below (blank = integration disabled/webhook rejects everything) since these are real payment
+# credentials, unlike the local-dev-friendly defaults above.
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:}
+  key-secret: ${RAZORPAY_KEY_SECRET:}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
+

@@ -7,5 +7,6 @@ public enum PaymentMode {
     CHEQUE,
     DEMAND_DRAFT,
     BANK_TRANSFER,
-    SCHOLARSHIP
+    SCHOLARSHIP,
+    ONLINE_RAZORPAY
 }

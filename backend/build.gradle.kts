@@ -40,6 +40,9 @@ dependencies {
     // MinIO object storage client
     implementation("io.minio:minio:8.5.10")
 
+    // Razorpay payment gateway (order creation, webhook payload types)
+    implementation("com.razorpay:razorpay-java:1.4.8")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -100,6 +103,7 @@ tasks.jacocoTestReport {
                 exclude("com/cms/model/**")
                 exclude("com/cms/service/*Scholarship*.class")
                 exclude("com/cms/controller/*Scholarship*.class")
+                exclude("com/cms/service/RazorpayOrderGatewayImpl.class")
             }
         })
     )
@@ -122,6 +126,10 @@ tasks.jacocoTestCoverageVerification {
     // Excel import/template services depend on Apache POI file I/O and are
     // better verified via integration tests; excluding from the unit-test metric.
     // DTO response classes are pure data carriers excluded from unit-test coverage.
+    // RazorpayOrderGatewayImpl is a thin adapter around the Razorpay SDK's own HTTP client --
+    // like ExcelTemplateService, better verified via integration/manual testing against a real
+    // (sandbox) gateway than mocked in a unit test; the actual order-creation business logic it's
+    // called from (RazorpayPaymentService) is fully covered via the RazorpayOrderGateway seam.
     classDirectories.setFrom(
         files(classDirectories.files.map {
             fileTree(it) {
@@ -135,6 +143,7 @@ tasks.jacocoTestCoverageVerification {
                 exclude("com/cms/dto/**")
                 exclude("com/cms/service/*Scholarship*.class")
                 exclude("com/cms/controller/*Scholarship*.class")
+                exclude("com/cms/service/RazorpayOrderGatewayImpl.class")
             }
         })
     )
