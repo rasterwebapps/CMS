@@ -61,8 +61,15 @@ test.describe('Fee Explorer — dataset correctness (not just page-scoped)', () 
     ).toContain(lastPageProgram);
 
     // Selecting it must return real results, not a silent empty table.
+    // `networkidle` is unreliable here -- this app polls in the background (notifications),
+    // so the load-state can resolve before the filtered /explorer response actually replaces
+    // the table, leaving stale page-1 rows in the DOM when we read them below. Wait for the
+    // real filtered response instead.
+    const filteredResponse = page.waitForResponse(
+      (res) => res.url().includes('/student-fees/explorer') && res.url().includes('program=') && res.status() === 200
+    );
     await programFilter.selectOption(lastPageProgram);
-    await page.waitForLoadState('networkidle').catch(() => {});
+    await filteredResponse;
 
     await expect(rowCount).toBeVisible({ timeout: 10_000 });
     const filteredTotal = parseInt((await rowCount.innerText()).trim(), 10);

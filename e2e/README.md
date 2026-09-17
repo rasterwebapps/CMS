@@ -70,8 +70,17 @@ cp .env.example .env   # fill in real Keycloak test-account creds for 243
   full server-paginated dataset). Grabs a real Program value from the
   actual last page and asserts it survives the round trip — the route
   crawler would NOT have caught this class of bug (screen renders fine,
-  200s, just silently shows wrong/incomplete data). **Not yet fully
-  red/green-verified** — see its file header and the rollout note below.
+  200s, just silently shows wrong/incomplete data). **Confirmed green**
+  against 243 post-fix. First real run (post-merge) failed on a *test*
+  bug, not an app bug: `waitForLoadState('networkidle')` after changing
+  the Program filter resolved before the filtered `/explorer` response
+  actually replaced the table (this app polls in the background, so
+  `networkidle` is unreliable as a "the filter took effect" signal) —
+  the assertion caught genuinely stale page-1 rows still in the DOM.
+  Verified via direct `curl` against `/student-fees/explorer` that the
+  backend filter itself was correct throughout. Fixed by waiting on the
+  actual `page.waitForResponse(...)` for the filtered request instead;
+  green across 3 repeated runs after the fix.
 - `tests/student.spec.ts`, `tests/faculty.spec.ts` — **Tier A**: real create
   round-trips. Both list screens sort by an auto-generated field unrelated
   to creation order (244 real students on this environment) — a freshly
@@ -117,41 +126,37 @@ specs seeded directly from that catalogue, prioritized by risk:
 (`e2e/.env` filled in with the `devadmin`/`collegeadmin` bootstrap accounts
 from `infrastructure/keycloak/cms-realm.json` — no cashier/faculty/student
 Keycloak accounts are seeded there, so those role-gated specs stay skipped
-until real creds are added). That first real run found 243 itself was stale
+until real creds are added). An earlier run found 243 itself was stale
 — missing OC-242 entirely — and a genuine app bug, OC-252 (fixed:
 `/lab-schedules/new` 500'd on every load, `lab-schedule-form.component.ts`
 calling `GET /term-instances` with no `academicYearId`, which the backend
-has never supported unfiltered). Every spec above **except
-`fee-explorer.spec.ts`** is green against a freshly redeployed 243 as of
-this session. Still true: only flip a `**Status:**` line in
-`docs/manual-test-cases/*.md` from `NOT TESTED` to `PASS` after
+has never supported unfiltered). `oc-253-student-fee-self-service` (the
+Fee Explorer pagination fix) has since merged to `main` and been deployed
+to 243; `fee-explorer.spec.ts` is now also confirmed green (see its note
+above — the one failure on the post-merge run was a test-timing bug, not
+an app regression). **Every spec in the suite is green against a freshly
+redeployed 243 as of this session.** Still true: only flip a `**Status:**`
+line in `docs/manual-test-cases/*.md` from `NOT TESTED` to `PASS` after
 re-confirming green against a *specific* run — 243's state can drift again
-the same way it did before, and did again mid-session (see next).
+the same way it did before.
 
 **Picking this back up — read this first:**
-1. **`fee-explorer.spec.ts` needs a real run once the fee-explorer fix
-   ships.** That fix (filter dropdowns/count reading the loaded page
-   instead of the full dataset) lives on branch
-   `oc-253-student-fee-self-service`, not yet merged to `main` or deployed
-   anywhere. On 243 right now (pre-fix) the deep test **skips** rather than
-   fails — the bug itself makes the footer always show exactly "25
-   students" (the page size), which fools the test's own `total > 25`
-   precondition. Once that branch merges and 243 is redeployed, re-run this
-   spec specifically to get a real result.
-2. **This repo has multiple concurrent Claude Code sessions sharing one
-   working directory.** Twice this session another session's branch
-   silently became `HEAD` mid-turn and a commit landed on it by mistake
-   (cherry-picked onto `main` both times, nothing lost). **Always
+1. **This repo has multiple concurrent Claude Code sessions sharing one
+   working directory.** Twice in an earlier session another session's
+   branch silently became `HEAD` mid-turn and a commit landed on it by
+   mistake (cherry-picked onto `main` both times, nothing lost). **Always
    `git branch --show-current` before editing or committing any `e2e/`
    file**, and `git checkout main` first if it's not already there — a
    stale branch can also make a just-edited file look reverted when you
    re-read it (harmless; the real content is on `main`).
-3. Run `scripts/regression-gate.sh <branch>` or `cd e2e && npx playwright
+2. Run `scripts/regression-gate.sh <branch>` or `cd e2e && npx playwright
    test` directly once `.env` is filled in — see "One-time setup" above.
    `dev.raster.in:212` (the documented URL) wasn't reachable from this
    agent's network; `https://172.17.1.243:8443` (direct IP) worked fine as
    a substitute — try the documented URL first from a machine with real
    LAN/VPN access, since it's the intended path.
+3. Next up per the rollout plan: Library Management or Inventory (~30
+   files, the largest remaining chunk) — see item 4 above.
 
 ## Adding a new spec
 
