@@ -34,17 +34,11 @@
       }
     </div>
 
-    <select
-      class="mlp-filter-select"
-      [value]="selectedCourseId() ?? ''"
-      (change)="onCourseFilterChange($any($event.target).value)"
-      aria-label="Filter by course"
-    >
-      <option value="">All Courses</option>
-      @for (course of courses(); track course.id) {
-        <option [value]="course.id">{{ course.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Courses" ariaLabel="Filter by course" searchPlaceholder="Search courses…"
+      [fetchPage]="courseFetchPage" [resolveLabel]="courseResolveLabel"
+      [selectedValue]="selectedCourseId()" (selectedValueChange)="onCourseFilterChange($event)"
+    />
 
     <cms-view-toggle
       [mode]="viewMode()"

@@ -6,11 +6,10 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject as RxSubject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 import { SubjectService } from '../subject.service';
 import { Subject } from '../subject.model';
 import { CourseService } from '../../course/course.service';
-import { Course } from '../../course/course.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
@@ -21,6 +20,8 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconToggleStatusCompon
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { SUBJECT_LIST_TOUR, SUBJECT_LIST_FLOW_MAP } from '../../../shared/tour/tours/preferences-remainder.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 
 @Component({
   selector: 'app-subject-list',
@@ -40,6 +41,7 @@ import { SUBJECT_LIST_TOUR, SUBJECT_LIST_FLOW_MAP } from '../../../shared/tour/t
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
     CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './subject-list.component.html',
   styleUrl: './subject-list.component.scss',
@@ -76,7 +78,13 @@ export class SubjectListComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly selectedCourseId = signal<number | null>(null);
-  protected readonly courses = signal<Course[]>([]);
+
+  // ── Filter dropdown data source — search/paginate against the backend rather than
+  // loading the full master list; see CmsInfiniteSelectComponent. ──────────────────
+  protected readonly courseFetchPage = (search: string, page: number, size: number) =>
+    this.courseService.getPage({ search, page, size });
+  protected readonly courseResolveLabel = (id: InfiniteSelectValue) =>
+    this.courseService.getById(Number(id)).pipe(map(c => c.name));
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
   protected totalElements = 0;
@@ -100,7 +108,6 @@ export class SubjectListComponent implements OnInit, OnDestroy {
     this.tourService.register('subject-list', SUBJECT_LIST_TOUR);
     this.tourService.registerFlowMap('subject-list', SUBJECT_LIST_FLOW_MAP);
 
-    this.loadCourses();
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();
@@ -128,8 +135,8 @@ export class SubjectListComponent implements OnInit, OnDestroy {
     this.searchSubject.next('');
   }
 
-  protected onCourseFilterChange(courseIdStr: string): void {
-    this.selectedCourseId.set(courseIdStr ? +courseIdStr : null);
+  protected onCourseFilterChange(value: InfiniteSelectValue | null): void {
+    this.selectedCourseId.set(value != null ? Number(value) : null);
     this.currentPage = 0;
     this.loadPage();
   }
@@ -241,10 +248,4 @@ export class SubjectListComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadCourses(): void {
-    this.courseService.getAll().subscribe({
-      next: (courses) => this.courses.set(courses),
-      error: () => this.toast.error('Failed to load courses'),
-    });
-  }
 }

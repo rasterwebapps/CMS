@@ -71,8 +71,12 @@ in `programFetchPage` now does this server-side wherever it's needed.
       registerOnTouched/setDisabledState, `NG_VALUE_ACCESSOR` provider), purely additive to the
       existing `[selectedValue]`/`(selectedValueChange)` API. Multi-select stays outside CVA (a
       `Set` isn't a typical control value). 3 new unit tests on the shared component.
-- [ ] `subject-list` — Course
-- [ ] `subject-form` — Speciality, Lab, Clinical Venue, Faculty
+- [x] `subject-list` — Course
+- [x] `subject-form` — Speciality only (Reactive Forms, `formControlName`). "Eligible Labs/Clinical
+      Venues/Faculty" are deliberately **left as their existing always-visible checklists**, not
+      converted to `cms-infinite-select[multiple]` — they show capacity/speciality inline for
+      browsing a small, bounded list at a glance; collapsing that into a searchable dropdown would
+      be a real UX regression, not a fix for a truncation risk. Flag, don't force.
 - [ ] `faculty-list` — Speciality
 - [ ] `faculty-form` — Speciality, Designation
 - [ ] `faculty-doc-config` — Speciality, Designation
