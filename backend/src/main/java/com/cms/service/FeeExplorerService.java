@@ -187,12 +187,13 @@ public class FeeExplorerService {
     }
 
     /**
-     * Semester-wise breakdown for the Fee Explorer "Sem-wise" export: one row per student per
-     * semester instead of {@link #searchAll}'s per-student aggregate, so a client can see exactly
-     * which semester(s) still have a pending balance. Reuses {@link #searchAll} for filtering
-     * (same search/program/academicYear/yearOfStudy/allocationStatus semantics as the existing
-     * export) and {@link #computeSemesterAmounts} for the per-semester paid/pending figures, so
-     * this can never drift from the aggregate numbers shown elsewhere.
+     * Semester-wise breakdown for the Fee Explorer "Sem-wise" export: one row per student, with
+     * each semester's Fee/Paid/Pending pivoted into its own column block, so a client can see
+     * exactly which semester(s) still have a pending balance without the row count exploding into
+     * one line per semester. Reuses {@link #searchAll} for filtering (same
+     * search/program/academicYear/yearOfStudy/allocationStatus semantics as the existing export)
+     * and {@link #computeSemesterAmounts} for the per-semester paid/pending figures, so this can
+     * never drift from the aggregate numbers shown elsewhere.
      */
     public List<FeeExplorerSemesterWiseRow> searchAllSemesterWise(
             String search, String program, String academicYear, Integer yearOfStudy, String allocationStatus, Sort sort) {
@@ -213,13 +214,15 @@ public class FeeExplorerService {
                 .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
             SemesterAmountsResult amounts = computeSemesterAmounts(student, semesterFees);
 
-            for (SemesterFeeAmounts sa : amounts.perSemester()) {
-                rows.add(new FeeExplorerSemesterWiseRow(
-                    summary.studentId(), summary.rollNumber(), summary.studentName(), summary.programName(),
-                    summary.academicYearName(), sa.semesterFee().getYearNumber(), sa.semesterFee().getSemesterLabel(),
-                    sa.semesterFee().getAmount(), sa.paid(), sa.pending()
-                ));
-            }
+            List<FeeExplorerSemesterWiseRow.SemesterAmount> semesterAmounts = amounts.perSemester().stream()
+                .map(sa -> new FeeExplorerSemesterWiseRow.SemesterAmount(
+                    sa.semesterFee().getSemesterLabel(), sa.semesterFee().getAmount(), sa.paid(), sa.pending()))
+                .toList();
+
+            rows.add(new FeeExplorerSemesterWiseRow(
+                summary.studentId(), summary.rollNumber(), summary.studentName(), summary.programName(),
+                summary.academicYearName(), semesterAmounts
+            ));
         }
         return rows;
     }
