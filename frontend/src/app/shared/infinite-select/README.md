@@ -58,6 +58,18 @@ change (this component only ever displays whatever `label` it's given in multi m
 />
 ```
 
+Reactive Forms — the component implements `ControlValueAccessor`, so `formControlName`/
+`[formControl]` drive it directly instead of wiring `[selectedValue]`/`(selectedValueChange)` by
+hand. Only single-select works this way (a `Set`, multi-select's value, isn't a typical control
+value) — `disabled` on the control disables the button too:
+
+```html
+<cms-infinite-select
+  label="All Programs" ariaLabel="Program" formControlName="programId"
+  [fetchPage]="programFetchPage" [resolveLabel]="programResolveLabel"
+/>
+```
+
 Dependent filters (e.g. Course scoped to a selected Program) — bump `reloadKey` with whatever the
 dependency's current value is; the picker drops its cached pages and, if currently open,
 re-fetches immediately:

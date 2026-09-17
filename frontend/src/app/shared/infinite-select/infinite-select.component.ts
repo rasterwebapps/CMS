@@ -1,9 +1,9 @@
 import {
-  Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, OnDestroy, OnInit,
+  Component, ElementRef, EventEmitter, forwardRef, HostListener, Input, OnChanges, OnDestroy, OnInit,
   Output, SimpleChanges, signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Subject, merge, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, filter, switchMap, take, takeUntil, tap } from 'rxjs/operators';
 import {
@@ -42,6 +42,12 @@ import {
  *     [fetchPage]="academicYearFetchPage" [selectedValues]="selectedAcademicYearIds()"
  *     (selectedValuesChange)="onAcademicYearsChange($event)" clearLabel="Show all years"
  *     [showClear]="selectedAcademicYearIds().size > 0" (cleared)="clearAcademicYears()" />
+ *
+ * Usage (single-select, Reactive Forms — implements ControlValueAccessor, so `formControlName`/
+ * `[formControl]` work directly instead of wiring [selectedValue]/(selectedValueChange) by hand;
+ * `multiple` is not supported through a form control, since a Set isn't a typical control value):
+ *   <cms-infinite-select label="All Programs" ariaLabel="Program" formControlName="programId"
+ *     [fetchPage]="programFetchPage" [resolveLabel]="programResolveLabel" />
  */
 @Component({
   selector: 'cms-infinite-select',
@@ -49,8 +55,13 @@ import {
   imports: [CommonModule, FormsModule],
   templateUrl: './infinite-select.component.html',
   styleUrl: './infinite-select.component.scss',
+  providers: [{
+    provide: NG_VALUE_ACCESSOR,
+    useExisting: forwardRef(() => CmsInfiniteSelectComponent),
+    multi: true,
+  }],
 })
-export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy {
+export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy, ControlValueAccessor {
   @Input({ required: true }) label!: string;
   @Input({ required: true }) ariaLabel!: string;
   @Input({ required: true }) fetchPage!: InfiniteSelectFetchPage;
@@ -72,6 +83,10 @@ export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy 
   @Input() showClear = false;
   @Input() clearLabel = 'Clear selection';
   @Output() cleared = new EventEmitter<void>();
+
+  protected disabled = false;
+  private onChange: (value: InfiniteSelectValue | null) => void = () => {};
+  private onTouched: () => void = () => {};
 
   protected readonly open = signal(false);
   protected readonly searchTerm = signal('');
@@ -159,9 +174,30 @@ export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy 
     this.open.set(false);
   }
 
+  // ── ControlValueAccessor — lets formControlName/[formControl] drive this picker directly,
+  // alongside the plain [selectedValue]/(selectedValueChange) API used by non-form filter bars.
+  writeValue(value: InfiniteSelectValue | null): void {
+    this.selectedValue = value;
+    if (!this.multiple) this.updateSelectedLabel();
+  }
+
+  registerOnChange(fn: (value: InfiniteSelectValue | null) => void): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: () => void): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {
+    this.disabled = isDisabled;
+  }
+
   protected toggleOpen(): void {
+    if (this.disabled) return;
     this.open.update(v => !v);
     if (this.open() && this.options().length === 0) this.immediateReset$.next(this.searchTerm());
+    if (!this.open()) this.onTouched();
   }
 
   protected onSearchInput(term: string): void {
@@ -188,6 +224,8 @@ export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy 
     this.selectedValue = val;
     this.selectedLabel.set(option.name);
     this.selectedValueChange.emit(val);
+    this.onChange(val);
+    this.onTouched();
     this.open.set(false);
   }
 
@@ -195,6 +233,8 @@ export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy 
     this.selectedValue = null;
     this.selectedLabel.set('');
     this.selectedValueChange.emit(null);
+    this.onChange(null);
+    this.onTouched();
     this.open.set(false);
   }
 

@@ -36,6 +36,12 @@
     color: var(--cms-primary);
     background: rgba(var(--cms-primary-rgb), 0.06);
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    &:hover { border-color: var(--cms-border-default); color: var(--cms-text-secondary); }
+  }
 }
 
 .isel-btn-label {

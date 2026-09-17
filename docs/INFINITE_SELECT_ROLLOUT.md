@@ -65,8 +65,12 @@ in `programFetchPage` now does this server-side wherever it's needed.
 
 ## Tier 4 — Course / Subject / Faculty
 
-- [ ] `course-list` — Program
-- [ ] `course-form` — Program
+- [x] `course-list` — Program
+- [x] `course-form` — Program. First Reactive-Forms (`formControlName`) conversion — added
+      `ControlValueAccessor` to `CmsInfiniteSelectComponent` (writeValue/registerOnChange/
+      registerOnTouched/setDisabledState, `NG_VALUE_ACCESSOR` provider), purely additive to the
+      existing `[selectedValue]`/`(selectedValueChange)` API. Multi-select stays outside CVA (a
+      `Set` isn't a typical control value). 3 new unit tests on the shared component.
 - [ ] `subject-list` — Course
 - [ ] `subject-form` — Speciality, Lab, Clinical Venue, Faculty
 - [ ] `faculty-list` — Speciality

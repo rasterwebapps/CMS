@@ -38,6 +38,7 @@ describe('CmsInfiniteSelectComponent', () => {
     loading: { (): boolean };
     hasMore: { (): boolean };
     selectedLabel: { (): string };
+    disabled: boolean;
     toggleOpen(): void;
     onSearchInput(term: string): void;
     onScroll(event: Event): void;
@@ -158,5 +159,40 @@ describe('CmsInfiniteSelectComponent', () => {
 
     // Cache is cleared immediately but not eagerly re-fetched while closed.
     expect(internal().options()).toEqual([]);
+  });
+
+  // ControlValueAccessor — lets formControlName/[formControl] drive this picker directly
+  // (course-form, subject-form, etc.) instead of every Reactive-Forms host hand-wiring
+  // [selectedValue]/(selectedValueChange) itself.
+  it('writeValue sets the selected value and resolves its label, like an external [selectedValue] change', () => {
+    const resolveLabel = vi.fn(() => of('Bachelor of Science'));
+    fixture.componentRef.setInput('resolveLabel', resolveLabel);
+
+    component.writeValue(9);
+
+    expect(resolveLabel).toHaveBeenCalledWith(9);
+    expect(internal().selectedLabel()).toBe('Bachelor of Science');
+  });
+
+  it('registerOnChange/registerOnTouched callbacks fire on selection, the way Angular forms expects', () => {
+    const onChange = vi.fn();
+    const onTouched = vi.fn();
+    component.registerOnChange(onChange);
+    component.registerOnTouched(onTouched);
+
+    internal().selectSingle({ id: 2, name: 'Beta' });
+
+    expect(onChange).toHaveBeenCalledWith(2);
+    expect(onTouched).toHaveBeenCalled();
+  });
+
+  it('setDisabledState(true) disables the button and blocks toggleOpen from opening the panel', () => {
+    component.setDisabledState(true);
+
+    internal().toggleOpen();
+
+    expect(internal().disabled).toBe(true);
+    expect(internal().open()).toBe(false);
+    expect(fetchPage).not.toHaveBeenCalled();
   });
 });

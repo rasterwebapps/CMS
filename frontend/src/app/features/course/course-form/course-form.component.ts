@@ -1,15 +1,15 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CourseService } from '../course.service';
 import { CourseRequest } from '../course.model';
 import { ProgramService } from '../../program/program.service';
-import { Program } from '../../program/program.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -20,6 +20,8 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 
 @Component({
   selector: 'app-course-form',
@@ -33,6 +35,7 @@ import { uniqueFieldValidator } from '../../../shared/validators/unique-field.va
     CmsTourButtonComponent,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './course-form.component.html',
   styleUrl: './course-form.component.scss',
@@ -52,18 +55,19 @@ export class CourseFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Course');
-  protected readonly programs = signal<Program[]>([]);
+
+  // ── Program picker data source — search/paginate against the backend rather than
+  // loading the full master list; see CmsInfiniteSelectComponent. ──────────────────
+  protected readonly programFetchPage = (search: string, page: number, size: number) =>
+    this.programService.getPage({ search, page, size });
+  protected readonly programResolveLabel = (id: InfiniteSelectValue) =>
+    this.programService.getById(Number(id)).pipe(map(p => p.name));
 
   // Live preview signals
   protected readonly previewName = signal('');
   protected readonly previewCode = signal('');
   protected readonly previewSpec = signal('');
-  protected readonly previewProgramId = signal<number | null>(null);
-  protected readonly previewProgramName = computed(() => {
-    const id = this.previewProgramId();
-    if (!id) return '';
-    return this.programs().find(p => p.id === id)?.name ?? '';
-  });
+  protected readonly previewProgramName = signal('');
 
   protected readonly TIPS: CmsTip[] = [
     { icon: 'tag',     title: 'Course Code',      subtitle: 'Use a short uppercase identifier unique within the parent program.' },
@@ -90,7 +94,16 @@ export class CourseFormComponent implements OnInit {
         this.previewName.set((v.name ?? '').trim());
         this.previewCode.set(stripSpaces(v.code ?? '').toUpperCase());
         this.previewSpec.set((v.specialization ?? '').trim());
-        this.previewProgramId.set(v.programId ?? null);
+      });
+
+    this.form.get('programId')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id: number | null) => {
+        if (!id) { this.previewProgramName.set(''); return; }
+        this.programService.getById(id).subscribe({
+          next: p => this.previewProgramName.set(p.name),
+          error: () => this.previewProgramName.set(''),
+        });
       });
   }
 
@@ -113,7 +126,6 @@ export class CourseFormComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('course-form', COURSE_FORM_TOUR);
     this.tourService.registerFlowMap('course-form', COURSE_FORM_FLOW_MAP);
-    this.loadPrograms();
 
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
@@ -189,17 +201,6 @@ export class CourseFormComponent implements OnInit {
 
   protected getErrorMessage(fieldName: string): string {
     return cmsFieldError(this.form.get(fieldName), CourseFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
-  }
-
-  private loadPrograms(): void {
-    this.programService.getAll().subscribe({
-      next: (programs) => {
-        this.programs.set(programs);
-      },
-      error: () => {
-        this.toast.error('Failed to load programs');
-      },
-    });
   }
 
   private loadCourse(): void {

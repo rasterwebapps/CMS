@@ -3,6 +3,7 @@
     type="button"
     class="isel-btn"
     [class.isel-btn--active]="multiple ? selectedValues.size > 0 : selectedValue !== null"
+    [disabled]="disabled"
     (click)="toggleOpen()"
     [attr.aria-label]="ariaLabel"
     aria-haspopup="listbox"
