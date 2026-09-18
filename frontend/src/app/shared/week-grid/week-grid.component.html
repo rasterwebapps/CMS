@@ -26,7 +26,7 @@
             @if (saving) {
               <span class="btn-spinner btn-spinner--dark"></span>
             }
-            Approve
+            Publish
           </button>
         }
       }
@@ -70,16 +70,25 @@
                 [class.session-chip--theory]="session.sessionType === 'THEORY'"
                 [class.session-chip--lab]="session.sessionType === 'LAB'"
                 [class.session-chip--clinical]="session.sessionType === 'CLINICAL'"
+                [class.session-chip--library]="session.sessionType === 'LIBRARY'"
+                [class.session-chip--sports]="session.sessionType === 'SPORTS'"
                 [class.session-chip--draft]="session.status === 'DRAFT'"
-                [class.session-chip--unstaffed]="!session.facultyName"
+                [class.session-chip--unstaffed]="!session.facultyName && session.sessionType !== 'LIBRARY'"
                 [class.session-chip--swap-source]="swapMode && session.id === swapSourceSessionId"
+                [class.session-chip--readonly]="isSynthetic(session)"
                 (click)="onSessionClick(session, day, row, $event)">
                 <span class="session-chip__subject">{{ session.subjectName }}</span>
                 <span class="session-chip__room">{{ session.roomName || 'No room yet' }}</span>
                 @if (session.batchName) {
                   <span class="session-chip__batch">{{ session.batchName }}</span>
                 }
-                <span class="session-chip__faculty">{{ session.facultyName || 'Unstaffed — needs staffing' }}</span>
+                <!-- LIBRARY rows are deliberately never staffed (see TimetableGenerationService's
+                     own unstaffedCount gate) -- showing "needs staffing" here is a false alarm
+                     with no fix available anywhere in the app, since Library genuinely has no
+                     faculty concept. -->
+                @if (session.sessionType !== 'LIBRARY') {
+                  <span class="session-chip__faculty">{{ session.facultyName || 'Unstaffed — needs staffing' }}</span>
+                }
               </button>
             }
           </div>

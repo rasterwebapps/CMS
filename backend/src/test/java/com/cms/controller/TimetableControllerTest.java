@@ -24,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.CohortTermStatusSummary;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.SwapCandidateResponse;
@@ -37,6 +38,7 @@ import com.cms.service.ProfileService;
 import com.cms.service.ResourceGridService;
 import com.cms.service.TimetableGenerationService;
 import com.cms.service.TimetableOccurrenceService;
+import com.cms.service.TimetableSkeletonService;
 import com.cms.service.TimetableSwapService;
 
 @WebMvcTest(controllers = TimetableController.class)
@@ -67,6 +69,9 @@ class TimetableControllerTest {
     @MockitoBean
     private ResourceGridService resourceGridService;
 
+    @MockitoBean
+    private TimetableSkeletonService timetableSkeletonService;
+
     @Test
     void shouldFindDraftRows() throws Exception {
         when(classScheduleService.findByTermInstanceIdAndStatus(eq(10L), any())).thenReturn(List.of());
@@ -75,6 +80,44 @@ class TimetableControllerTest {
             .andExpect(status().isOk());
 
         verify(classScheduleService).findByTermInstanceIdAndStatus(eq(10L), any());
+    }
+
+    @Test
+    void shouldFindCohortStatusSummary() throws Exception {
+        when(timetableSkeletonService.getCohortTermStatusSummary(10L))
+            .thenReturn(List.of(new CohortTermStatusSummary(5L, "BSc Nursing 2024", "BSc Nursing", "2024-2025",
+                "PARTIALLY_PUBLISHED", 1, 2, 12.5)));
+
+        mockMvc.perform(get("/timetables/draft/cohort-status-summary").param("termInstanceId", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].cohortId").value(5))
+            .andExpect(jsonPath("$[0].status").value("PARTIALLY_PUBLISHED"))
+            .andExpect(jsonPath("$[0].draftCount").value(1))
+            .andExpect(jsonPath("$[0].publishedCount").value(2))
+            .andExpect(jsonPath("$[0].courseName").value("BSc Nursing"))
+            .andExpect(jsonPath("$[0].admissionYearName").value("2024-2025"))
+            .andExpect(jsonPath("$[0].unassignedHours").value(12.5));
+
+        verify(timetableSkeletonService).getCohortTermStatusSummary(10L);
+    }
+
+    @Test
+    void shouldMergeClinicalShiftGridEntriesIntoDraftRows() throws Exception {
+        when(classScheduleService.findByTermInstanceIdAndStatus(eq(10L), any())).thenReturn(List.of());
+        com.cms.dto.ClassScheduleResponse shiftEntry = new com.cms.dto.ClassScheduleResponse(
+            -1_000_001L, com.cms.model.enums.ClassSessionType.CLINICAL, com.cms.model.enums.ClassScheduleStatus.DRAFT,
+            null, null, 1L, "Anatomy — Off-campus Clinical Shift", "ANAT101", 9L, "Dr. Rao",
+            null, "Shift A", java.time.LocalTime.of(6, 30), java.time.LocalTime.of(13, 30),
+            "Batch A", 400L, null, 50L, "City Hospital", 100L,
+            com.cms.model.enums.DayOfWeek.MONDAY, 10L, null, true, null, null);
+        when(timetableSkeletonService.findClinicalShiftGridEntries(10L, com.cms.model.enums.ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(shiftEntry));
+
+        mockMvc.perform(get("/timetables/draft").param("termInstanceId", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(-1000001))
+            .andExpect(jsonPath("$[0].sessionType").value("CLINICAL"))
+            .andExpect(jsonPath("$[0].roomName").value("City Hospital"));
     }
 
     @Test

@@ -342,6 +342,13 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
         return toDto(o, buildCohortNamesByKey(o.getTermInstance().getId()));
     }
 
+    @Override
+    public List<String> resolveCohortNames(CourseOffering offering) {
+        Map<CohortSemesterKey, List<String>> cohortNamesByKey = buildCohortNamesByKey(offering.getTermInstance().getId());
+        return cohortNamesByKey.getOrDefault(
+            new CohortSemesterKey(offering.getCurriculumVersion().getId(), offering.getSemesterNumber()), List.of());
+    }
+
     private CourseOfferingDto toDto(CourseOffering o, Map<CohortSemesterKey, List<String>> cohortNamesByKey) {
         String termInstanceLabel = o.getTermInstance().getAcademicYear().getName()
             + " " + o.getTermInstance().getTermType();

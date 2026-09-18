@@ -29,9 +29,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.ClinicalShiftSummaryItem;
 import com.cms.dto.ClinicalShiftWindow;
 import com.cms.dto.CohortSectionResponse;
+import com.cms.dto.CohortTermStatusSummary;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.ElectiveGroupMemberPlacement;
@@ -68,6 +70,7 @@ import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.model.enums.EnrollmentStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClinicalShiftGroupRepository;
@@ -77,6 +80,7 @@ import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
 /**
@@ -127,6 +131,7 @@ public class TimetableSkeletonService {
     private final ClinicalShiftGroupService clinicalShiftGroupService;
     private final TimetableClinicalShiftChecker clinicalShiftChecker;
     private final FacultyRepository facultyRepository;
+    private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
@@ -146,7 +151,8 @@ public class TimetableSkeletonService {
                                      ClinicalShiftGroupRepository clinicalShiftGroupRepository,
                                      ClinicalShiftGroupService clinicalShiftGroupService,
                                     TimetableClinicalShiftChecker clinicalShiftChecker,
-                                     FacultyRepository facultyRepository) {
+                                     FacultyRepository facultyRepository,
+                                     StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
@@ -166,6 +172,7 @@ public class TimetableSkeletonService {
         this.clinicalShiftGroupService = clinicalShiftGroupService;
         this.clinicalShiftChecker = clinicalShiftChecker;
         this.facultyRepository = facultyRepository;
+        this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
     }
 
     public SkeletonBuilderResponse getCohortSkeleton(Long termInstanceId, Long cohortId) {
@@ -179,21 +186,12 @@ public class TimetableSkeletonService {
         List<CohortSectionResponse> sectionResponses = activeSections.stream().map(this::toSectionResponse).toList();
         List<ClinicalShiftWindow> shiftWindows = clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, termInstanceId);
 
-        // LIBRARY and SPORTS cells have no CourseOffering (see TimetableGlobalAutoScheduleService
-        // #fillLibraryGaps/#fillSportsGaps), so the offering-based query below never finds them --
-        // resolved separately by this cohort's own active CohortSections, same source
-        // cohortCellsAtSlot/isSlotFreeForCohort already use.
-        List<Long> sectionIds = activeSections.stream().map(CohortSection::getId).toList();
-        List<ClassSchedule> libraryCells = sectionIds.isEmpty() ? List.of()
-            : classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(sectionIds).stream()
-                .filter(cs -> cs.getSessionType() == ClassSessionType.LIBRARY || cs.getSessionType() == ClassSessionType.SPORTS)
-                .toList();
-
         boolean termTimetablePublished = classScheduleRepository
             .existsByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
 
         List<Long> offeringIds = new ArrayList<>(nonElectiveOfferingIds(termInstanceId, cohortId));
         offeringIds.addAll(electiveOfferingIds(termInstanceId, cohortId));
+        List<ClassSchedule> libraryCells = resolveLibraryAndSportsCells(activeSections);
         if (offeringIds.isEmpty()) {
             List<SkeletonCellResponse> libraryOnlyCells = libraryCells.stream().map(this::toCellResponse).toList();
             return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), libraryOnlyCells, List.of(), sectionResponses,
@@ -211,15 +209,7 @@ public class TimetableSkeletonService {
         double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
             periods.stream().map(Period::getDurationMinutes).toList());
 
-        // isActive=false filters out cells orphaned by a since-reverted CohortRoomAllocation --
-        // riding on a batch/section that no longer exists in the currently-active plan; without
-        // this they'd render as ghost cells in the grid and double up against freshly-placed ones.
-        List<ClassSchedule> allCells = Stream.concat(
-                classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, offeringIds).stream(),
-                libraryCells.stream())
-            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
-            .distinct()
-            .toList();
+        List<ClassSchedule> allCells = resolveOfferingCells(termInstanceId, offeringIds, libraryCells);
         Map<Long, List<ClassSchedule>> cellsByOffering = allCells.stream()
             .filter(cs -> cs.getCourseOffering() != null)
             .collect(java.util.stream.Collectors.groupingBy(cs -> cs.getCourseOffering().getId(), LinkedHashMap::new, java.util.stream.Collectors.toList()));
@@ -281,6 +271,68 @@ public class TimetableSkeletonService {
             weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished, shiftWindows);
     }
 
+    // LIBRARY and SPORTS cells have no CourseOffering (see TimetableGlobalAutoScheduleService
+    // #fillLibraryGaps/#fillSportsGaps), so the offering-based query below never finds them --
+    // resolved separately by this cohort's own active CohortSections, same source
+    // cohortCellsAtSlot/isSlotFreeForCohort already use.
+    private List<ClassSchedule> resolveLibraryAndSportsCells(List<CohortSection> activeSections) {
+        List<Long> sectionIds = activeSections.stream().map(CohortSection::getId).toList();
+        return sectionIds.isEmpty() ? List.of()
+            : classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(sectionIds).stream()
+                .filter(cs -> cs.getSessionType() == ClassSessionType.LIBRARY || cs.getSessionType() == ClassSessionType.SPORTS)
+                .toList();
+    }
+
+    // isActive=false filters out cells orphaned by a since-reverted CohortRoomAllocation -- riding
+    // on a batch/section that no longer exists in the currently-active plan; without this they'd
+    // render as ghost cells in the grid and double up against freshly-placed ones.
+    private List<ClassSchedule> resolveOfferingCells(Long termInstanceId, List<Long> offeringIds, List<ClassSchedule> libraryCells) {
+        return Stream.concat(
+                classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, offeringIds).stream(),
+                libraryCells.stream())
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .distinct()
+            .toList();
+    }
+
+    /** One row per cohort enrolled in this term instance (source: {@link
+     *  StudentTermEnrollmentRepository}, the same "which cohorts are really here" precedent {@link
+     *  TimetableCoverageService#findGaps} uses -- a cohort with zero placed sessions still shows up,
+     *  bucketed as {@code DRAFT}, rather than being invisible in a ClassSchedule-only query),
+     *  reducing each cohort's active ClassSchedule rows to a single DRAFT/PUBLISHED/
+     *  PARTIALLY_PUBLISHED status for Draft Review's landing summary table -- see {@link
+     *  CohortTermStatusSummary}'s own javadoc for why this status is synthesized, never persisted. */
+    @Transactional(readOnly = true)
+    public List<CohortTermStatusSummary> getCohortTermStatusSummary(Long termInstanceId) {
+        Set<Long> cohortIds = studentTermEnrollmentRepository
+            .findDistinctCohortIdsByTermInstanceId(termInstanceId, EnrollmentStatus.ENROLLED);
+        List<CohortTermStatusSummary> rows = new ArrayList<>();
+        for (Long cohortId : cohortIds) {
+            Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
+            if (cohort == null) continue;
+
+            // Reuses getCohortSkeleton (not the lighter resolveCohortCells alone) so the same call
+            // also yields TimetableCoverageCalculator's coverage breakdown below -- the identical
+            // per-cohort cost TimetableCoverageService#findGaps already pays for the Publish gate.
+            SkeletonBuilderResponse skeleton = getCohortSkeleton(termInstanceId, cohortId);
+            long draft = skeleton.cells().stream().filter(c -> c.status() == ClassScheduleStatus.DRAFT).count();
+            long published = skeleton.cells().stream().filter(c -> c.status() == ClassScheduleStatus.PUBLISHED).count();
+            String status = published == 0 ? "DRAFT" : draft == 0 ? "PUBLISHED" : "PARTIALLY_PUBLISHED";
+
+            double unassignedHours = TimetableCoverageCalculator.computeCoverage(skeleton).values().stream()
+                .mapToDouble(TimetableCoverageCalculator.HoursBreakdown::unassigned)
+                .sum();
+
+            rows.add(new CohortTermStatusSummary(
+                cohortId, cohort.getDisplayName(),
+                cohort.getCourse() != null ? cohort.getCourse().getName() : null,
+                cohort.getAdmissionAcademicYear() != null ? cohort.getAdmissionAcademicYear().getName() : null,
+                status, (int) draft, (int) published, unassignedHours));
+        }
+        rows.sort(Comparator.comparing(CohortTermStatusSummary::cohortName));
+        return rows;
+    }
+
     /** Term-wide Clinical Shift Group summary for Timetable Draft Review's duty-roster banner --
      *  one row per {@link CohortSection} with hours/week summed across however many active shift
      *  groups that section has, so a reviewer sees Clinical hours exist even though they never show
@@ -290,9 +342,13 @@ public class TimetableSkeletonService {
     public List<ClinicalShiftSummaryItem> findClinicalShiftSummaryForTerm(Long termInstanceId) {
         record SectionHours(CohortSection section, double hours) {}
 
-        Map<Long, List<SectionHours>> bySectionId = clinicalShiftGroupRepository
+        List<ClinicalShiftGroup> activeGroups = clinicalShiftGroupRepository
             .findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
-            .filter(g -> g.getCohortSection() != null && g.getCourseOffering() != null)
+            .filter(g -> g.getCourseOffering() != null)
+            .toList();
+
+        Map<Long, List<SectionHours>> bySectionId = activeGroups.stream()
+            .filter(g -> g.getCohortSection() != null)
             .map(g -> {
                 Integer durationMinutes = g.getCourseOffering().getClinicalShiftDurationMinutes();
                 return new SectionHours(g.getCohortSection(), durationMinutes != null ? durationMinutes / 60.0 : 0.0);
@@ -314,16 +370,91 @@ public class TimetableSkeletonService {
         Map<String, Long> cohortNameCounts = cohortNameBySectionId.values().stream()
             .collect(Collectors.groupingBy(n -> n, Collectors.counting()));
 
-        return cohortNameBySectionId.entrySet().stream()
+        Stream<ClinicalShiftSummaryItem> sectioned = cohortNameBySectionId.entrySet().stream()
             .map(e -> {
                 String cohortName = e.getValue();
                 String label = cohortNameCounts.get(cohortName) > 1
                     ? cohortName + " – " + sectionLabelBySectionId.get(e.getKey())
                     : cohortName;
                 return new ClinicalShiftSummaryItem(e.getKey(), label, hoursBySectionId.get(e.getKey()));
-            })
+            });
+
+        // A ClinicalShiftGroup can be created/activated before Capacity Auto-Plan ever room-sections
+        // its cohort (cohortSection stays null until then) -- without this fallback those groups'
+        // real, already-delivered hours silently vanished from the banner even though they were
+        // actively crediting the grid's CLINICAL budget (see creditClinicalShiftHours), making the
+        // cohort's Clinical component look entirely unaccounted for. Resolved via the offering's own
+        // (curriculumVersion, semesterNumber) instead, same reverse-lookup CourseOfferingService
+        // already uses to report an offering's cohort(s). Summed per cohort name (matching the
+        // per-section granularity above) using a negative synthetic id, since no real CohortSection
+        // exists yet -- same synthetic-id convention as ResourceGridCell's off-campus shift cells.
+        Map<String, Double> hoursByFallbackCohortName = new LinkedHashMap<>();
+        for (ClinicalShiftGroup g : activeGroups) {
+            if (g.getCohortSection() != null) continue;
+            Integer durationMinutes = g.getCourseOffering().getClinicalShiftDurationMinutes();
+            double hours = durationMinutes != null ? durationMinutes / 60.0 : 0.0;
+            if (hours <= 0) continue;
+            for (String cohortName : courseOfferingService.resolveCohortNames(g.getCourseOffering())) {
+                hoursByFallbackCohortName.merge(cohortName, hours, Double::sum);
+            }
+        }
+        long[] syntheticId = {-1};
+        Stream<ClinicalShiftSummaryItem> unsectioned = hoursByFallbackCohortName.entrySet().stream()
+            .map(e -> new ClinicalShiftSummaryItem(syntheticId[0]--, e.getKey(), e.getValue()));
+
+        return Stream.concat(sectioned, unsectioned)
             .sorted(Comparator.comparing(ClinicalShiftSummaryItem::cohortLabel))
             .toList();
+    }
+
+    private static final long CLINICAL_SHIFT_GRID_ENTRY_ID_BASE = -1_000_000L;
+
+    /** Synthetic Draft Review grid entries for every active {@link ClinicalShiftGroup}'s Batch --
+     *  these never produce a real {@code ClassSchedule} row (see this class's other Clinical Shift
+     *  methods), so without this the review grid looked incomplete: a cohort's whole Clinical
+     *  component was only hinted at via the duty-roster banner instead of actually shown alongside
+     *  its Theory/Lab sessions before an admin approves/publishes. Mirrors {@code
+     *  ResourceGridService#toShiftCell} exactly -- same id-base convention, same bus-inclusive
+     *  window (start/end include travel buffer, matching how the resource grid already shows this
+     *  same block occupying faculty/venue), same venue/coordinator-faculty resolution via Batch --
+     *  so the two renderings of one shift never disagree. Negative ids (never colliding with a real
+     *  ClassSchedule id) double as a "non-interactive" signal the frontend uses to disable click/
+     *  swap on these rows, the same convention {@code ResourceGridCellResponse}'s own synthetic
+     *  cells already use. {@code status} is stamped with whatever the caller is displaying
+     *  (DRAFT/PUBLISHED) purely for consistent chip styling -- these rows aren't actually gated by
+     *  that lifecycle themselves. */
+    public List<ClassScheduleResponse> findClinicalShiftGridEntries(Long termInstanceId, ClassScheduleStatus status) {
+        List<ClassScheduleResponse> entries = new ArrayList<>();
+        for (ClinicalShiftGroup group : clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId)) {
+            if (group.getCourseOffering() == null) continue;
+            ClinicalShiftWindow window = ClinicalShiftWindow.from(group);
+            if (window.busDepart() == null || window.busReturn() == null) continue;
+            for (Batch batch : batchRepository.findByClinicalShiftGroupId(group.getId())) {
+                if (Boolean.TRUE.equals(batch.getIsActive())) {
+                    entries.add(toClinicalShiftGridEntry(group, window, batch, termInstanceId, status));
+                }
+            }
+        }
+        return entries;
+    }
+
+    private ClassScheduleResponse toClinicalShiftGridEntry(ClinicalShiftGroup group, ClinicalShiftWindow window,
+                                                             Batch batch, Long termInstanceId, ClassScheduleStatus status) {
+        CourseOffering offering = group.getCourseOffering();
+        Faculty coordinator = batch.getCoordinatorFaculty();
+        return new ClassScheduleResponse(
+            CLINICAL_SHIFT_GRID_ENTRY_ID_BASE - batch.getId(),
+            ClassSessionType.CLINICAL,
+            status,
+            null, null,
+            offering.getSubject().getId(), offering.getSubject().getName() + " — Off-campus Clinical Shift", offering.getSubject().getCode(),
+            coordinator != null ? coordinator.getId() : null, coordinator != null ? coordinator.getFullName() : null,
+            null, group.getLabel(), window.busDepart(), window.busReturn(),
+            batch.getName(), batch.getId(),
+            null, batch.getClinicalVenue() != null ? batch.getClinicalVenue().getId() : null,
+            batch.getClinicalVenue() != null ? batch.getClinicalVenue().getName() : null,
+            offering.getId(),
+            group.getDayOfWeek(), termInstanceId, null, true, null, null);
     }
 
     /** One active {@link ClinicalShiftGroup} occurs once/week on its own {@code dayOfWeek}, so its

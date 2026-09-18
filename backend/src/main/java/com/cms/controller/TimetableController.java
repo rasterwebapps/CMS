@@ -1,6 +1,7 @@
 package com.cms.controller;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.cms.dto.ClassScheduleOccurrenceResponse;
 import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.ClinicalShiftSummaryItem;
+import com.cms.dto.CohortTermStatusSummary;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.ResourceGridRowResponse;
@@ -117,7 +119,20 @@ public class TimetableController {
     @GetMapping("/draft")
     @PreAuthorize("@perm.has('TIMETABLE_MANAGE')")
     public ResponseEntity<List<ClassScheduleResponse>> findDraft(@RequestParam Long termInstanceId) {
-        return ResponseEntity.ok(classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT));
+        return ResponseEntity.ok(withClinicalShiftEntries(
+            classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT),
+            termInstanceId, ClassScheduleStatus.DRAFT));
+    }
+
+    // Clinical Shift Group duty rosters never produce a real ClassSchedule row, so without this
+    // the review/browse grid looked incomplete -- a cohort's whole Clinical component was only
+    // hinted at via the separate duty-roster banner instead of shown alongside Theory/Lab, leaving
+    // an admin unable to see the complete generated timetable before approving/publishing it.
+    private List<ClassScheduleResponse> withClinicalShiftEntries(List<ClassScheduleResponse> rows,
+                                                                   Long termInstanceId, ClassScheduleStatus status) {
+        List<ClassScheduleResponse> merged = new ArrayList<>(rows);
+        merged.addAll(timetableSkeletonService.findClinicalShiftGridEntries(termInstanceId, status));
+        return merged;
     }
 
     // Clinical Shift Group hours never produce a ClassSchedule row (see ClinicalShiftSummaryItem),
@@ -128,10 +143,20 @@ public class TimetableController {
         return ResponseEntity.ok(timetableSkeletonService.findClinicalShiftSummaryForTerm(termInstanceId));
     }
 
+    // Draft Review's landing summary table -- one row per cohort enrolled in this term instance
+    // with its aggregate DRAFT/PUBLISHED/PARTIALLY_PUBLISHED status (see CohortTermStatusSummary).
+    @GetMapping("/draft/cohort-status-summary")
+    @PreAuthorize("@perm.has('TIMETABLE_MANAGE')")
+    public ResponseEntity<List<CohortTermStatusSummary>> findCohortStatusSummary(@RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(timetableSkeletonService.getCohortTermStatusSummary(termInstanceId));
+    }
+
     @GetMapping
     @PreAuthorize("@perm.has('TIMETABLE_VIEW')")
     public ResponseEntity<List<ClassScheduleResponse>> findPublished(@RequestParam Long termInstanceId) {
-        return ResponseEntity.ok(classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED));
+        return ResponseEntity.ok(withClinicalShiftEntries(
+            classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED),
+            termInstanceId, ClassScheduleStatus.PUBLISHED));
     }
 
     // A plain "TIMETABLE_MANAGE" approve can still hit an incomplete-coverage gap (see

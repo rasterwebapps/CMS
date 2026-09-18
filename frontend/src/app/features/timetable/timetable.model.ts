@@ -35,6 +35,26 @@ export interface ClinicalShiftSummaryItem {
   hoursPerWeek: number;
 }
 
+export type CohortTermStatus = 'DRAFT' | 'PUBLISHED' | 'PARTIALLY_PUBLISHED';
+
+/** One row of Draft Review's landing summary table -- a cohort's aggregate publish status for a
+ *  term instance, synthesized server-side from its sessions' DRAFT/PUBLISHED status; never a
+ *  persisted value itself. "PARTIALLY_PUBLISHED" reflects the real, already-existing scenario
+ *  where a post-publish edit (Staff Session Swap, an individual Skeleton Builder placement)
+ *  creates new DRAFT rows alongside already-PUBLISHED rows for the same cohort/term. */
+export interface CohortTermStatusSummary {
+  cohortId: number;
+  cohortName: string;
+  courseName: string | null;
+  admissionYearName: string | null;
+  status: CohortTermStatus;
+  draftCount: number;
+  publishedCount: number;
+  /** Curriculum-required THEORY/LAB/CLINICAL hours not yet placed as real sessions (0 = fully
+   *  covered) -- the same figure that gates Publish. */
+  unassignedHours: number;
+}
+
 export interface MyTimetableResponse {
   sessions: ClassSchedule[];
   holidays: WeekGridHolidayInfo[];

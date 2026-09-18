@@ -133,6 +133,28 @@
   border-color: rgba(168, 85, 247, 0.28);
 }
 
+.session-chip--library {
+  background: rgba(217, 119, 6, 0.12);
+  border-color: rgba(217, 119, 6, 0.28);
+}
+
+.session-chip--sports {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.28);
+}
+
+// A synthetic entry (e.g. a Clinical Shift Group duty roster block) has no real ClassSchedule row
+// behind it -- no swap/detail action applies, so it shouldn't look clickable like the rest of the
+// grid's session chips.
+.session-chip--readonly {
+  cursor: default;
+
+  &:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 .session-chip--draft {
   border-style: dashed;
   opacity: 0.85;

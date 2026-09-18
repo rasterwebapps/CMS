@@ -138,7 +138,19 @@ export class CmsWeekGridComponent {
     return this.cell(day, row).some((s) => s.id === this.swapSourceSessionId);
   }
 
+  /** A negative id is a synthetic, off-grid entry (e.g. a Clinical Shift Group duty roster block
+   *  -- see backend TimetableSkeletonService#findClinicalShiftGridEntries) with no real
+   *  ClassSchedule row behind it, so it can't be swapped or clicked into a detail action; same
+   *  "negative id = non-interactive placeholder" convention ResourceGridCellResponse already uses. */
+  protected isSynthetic(session: WeekGridSession): boolean {
+    return session.id < 0;
+  }
+
   protected onSessionClick(session: WeekGridSession, day: string, row: WeekGridRow, event: Event): void {
+    if (this.isSynthetic(session)) {
+      event.stopPropagation();
+      return;
+    }
     if (this.swapMode) {
       event.stopPropagation();
       const candidate = this.candidateFor(day, row);
