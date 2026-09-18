@@ -1,6 +1,8 @@
 package com.cms.controller;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,7 +32,9 @@ import com.cms.model.AppRole;
 import com.cms.model.AppUser;
 import com.cms.model.ClassSchedule;
 import com.cms.model.DayMappingOverride;
+import com.cms.model.Faculty;
 import com.cms.model.Period;
+import com.cms.model.Student;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
@@ -167,6 +171,7 @@ class WidgetDataControllerTest {
         adminRole = new AppRole();
         adminRole.setName("ROLE_ADMIN");
         adminRole.setDisplayName("Administrator");
+        adminRole.setSystemRole(true);
 
         adminUser = new AppUser();
         adminUser.setKeycloakUsername("testadmin");
@@ -200,26 +205,35 @@ class WidgetDataControllerTest {
     }
 
     @Test
-    void getHeroReturnsCashierQuickStats() throws Exception {
-        AppRole cashierRole = new AppRole();
-        cashierRole.setName("ROLE_CASHIER");
-        cashierRole.setDisplayName("Cashier");
-        AppUser cashierUser = new AppUser();
-        cashierUser.setKeycloakUsername("cashier1");
-        cashierUser.setAppRole(cashierRole);
+    void getHeroReturnsFeeQuickStatsForAnyRoleHoldingFeePermissionsRegardlessOfName() throws Exception {
+        // Regression test for the 2026-09-18 production bug: a custom role named
+        // "SKSCON_ACCOUNTS_SKSH" matched none of the old hardcoded name substrings and fell
+        // through to an empty quick-stats row despite holding real fee permissions. The fix
+        // resolves off the role's actual granted permissions, not its name — so an arbitrarily
+        // named role is used here deliberately.
+        AppRole customRole = new AppRole();
+        customRole.setName("SKSCON_ACCOUNTS_SKSH");
+        customRole.setDisplayName("SKSCON ACCOUNTS_SKSH");
+        AppUser customUser = new AppUser();
+        customUser.setKeycloakUsername("accounts1");
+        customUser.setAppRole(customRole);
 
-        when(appUserRepository.findByKeycloakUsernameWithRole("cashier1"))
-            .thenReturn(Optional.of(cashierUser));
+        when(appUserRepository.findByKeycloakUsernameWithRole("accounts1"))
+            .thenReturn(Optional.of(customUser));
         when(dashboardService.getSummary()).thenReturn(summary);
+        reset(perm);
+        when(perm.has(eq("STUDENT_FEE_VIEW"))).thenReturn(true);
 
         mockMvc.perform(get("/dashboard/data/hero")
-                .with(jwt().jwt(j -> j.claim("preferred_username", "cashier1"))))
+                .with(jwt().jwt(j -> j.claim("preferred_username", "accounts1"))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.quickStats").isArray());
+            .andExpect(jsonPath("$.quickStats").isArray())
+            .andExpect(jsonPath("$.quickStats[0].label").value("Collected"))
+            .andExpect(jsonPath("$.quickStats[1].label").value("Outstanding"));
     }
 
     @Test
-    void getHeroReturnsFrontOfficeQuickStats() throws Exception {
+    void getHeroReturnsEnquiryQuickStatsForAnyRoleHoldingEnquiryOrAdmissionPermissions() throws Exception {
         AppRole foRole = new AppRole();
         foRole.setName("ROLE_FRONT_OFFICE");
         foRole.setDisplayName("Front Office");
@@ -230,11 +244,14 @@ class WidgetDataControllerTest {
         when(appUserRepository.findByKeycloakUsernameWithRole("fo1"))
             .thenReturn(Optional.of(foUser));
         when(dashboardService.getSummary()).thenReturn(summary);
+        reset(perm);
+        when(perm.has(eq("ENQUIRY_VIEW"))).thenReturn(true);
 
         mockMvc.perform(get("/dashboard/data/hero")
                 .with(jwt().jwt(j -> j.claim("preferred_username", "fo1"))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.quickStats").isArray());
+            .andExpect(jsonPath("$.quickStats").isArray())
+            .andExpect(jsonPath("$.quickStats[0].label").value("Enquiries"));
     }
 
     @Test
@@ -245,6 +262,7 @@ class WidgetDataControllerTest {
         AppUser facultyUser = new AppUser();
         facultyUser.setKeycloakUsername("faculty1");
         facultyUser.setAppRole(facultyRole);
+        facultyUser.setLinkedFaculty(new Faculty());
 
         when(appUserRepository.findByKeycloakUsernameWithRole("faculty1"))
             .thenReturn(Optional.of(facultyUser));
@@ -253,7 +271,8 @@ class WidgetDataControllerTest {
         mockMvc.perform(get("/dashboard/data/hero")
                 .with(jwt().jwt(j -> j.claim("preferred_username", "faculty1"))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.quickStats").isArray());
+            .andExpect(jsonPath("$.quickStats").isArray())
+            .andExpect(jsonPath("$.quickStats").isEmpty());
     }
 
     @Test
@@ -485,6 +504,7 @@ class WidgetDataControllerTest {
         AppUser facultyUser = new AppUser();
         facultyUser.setKeycloakUsername("faculty1");
         facultyUser.setAppRole(facultyRole);
+        facultyUser.setLinkedFaculty(new Faculty());
 
         when(appUserRepository.findByKeycloakUsernameWithRole("faculty1"))
             .thenReturn(Optional.of(facultyUser));
@@ -492,7 +512,8 @@ class WidgetDataControllerTest {
         mockMvc.perform(get("/dashboard/data/quick-actions")
                 .with(jwt().jwt(j -> j.claim("preferred_username", "faculty1"))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$[0].label").value("Mark Attendance"));
     }
 
     @Test
@@ -503,6 +524,7 @@ class WidgetDataControllerTest {
         AppUser studentUser = new AppUser();
         studentUser.setKeycloakUsername("student1");
         studentUser.setAppRole(studentRole);
+        studentUser.setLinkedStudent(new Student());
 
         when(appUserRepository.findByKeycloakUsernameWithRole("student1"))
             .thenReturn(Optional.of(studentUser));
@@ -510,25 +532,38 @@ class WidgetDataControllerTest {
         mockMvc.perform(get("/dashboard/data/quick-actions")
                 .with(jwt().jwt(j -> j.claim("preferred_username", "student1"))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$[0].label").value("My Documents"));
     }
 
     @Test
-    void getQuickActionsReturnsCashierActions() throws Exception {
-        AppRole cashierRole = new AppRole();
-        cashierRole.setName("ROLE_CASHIER");
-        cashierRole.setDisplayName("Cashier");
-        AppUser cashierUser = new AppUser();
-        cashierUser.setKeycloakUsername("cashier1");
-        cashierUser.setAppRole(cashierRole);
+    void getQuickActionsReturnsFeeDeskActionsForAnyRoleHoldingFeePermissionsRegardlessOfName() throws Exception {
+        // Regression test for the 2026-09-18 production bug: a custom role named
+        // "SKSCON_ACCOUNTS_SKSH" matched none of the old hardcoded "cashier"/"accountant"
+        // substrings and fell through to the generic 2-tile fallback despite holding real
+        // fee-desk permissions. The fix resolves off the role's actual granted permissions,
+        // not its name — so an arbitrarily named role is used here deliberately.
+        AppRole customRole = new AppRole();
+        customRole.setName("SKSCON_ACCOUNTS_SKSH");
+        customRole.setDisplayName("SKSCON ACCOUNTS_SKSH");
+        AppUser customUser = new AppUser();
+        customUser.setKeycloakUsername("accounts1");
+        customUser.setAppRole(customRole);
 
-        when(appUserRepository.findByKeycloakUsernameWithRole("cashier1"))
-            .thenReturn(Optional.of(cashierUser));
+        when(appUserRepository.findByKeycloakUsernameWithRole("accounts1"))
+            .thenReturn(Optional.of(customUser));
+        reset(perm);
+        when(perm.has(eq("FEE_COLLECT"))).thenReturn(true);
+        when(perm.has(eq("RECEIPT_VIEW"))).thenReturn(true);
+        when(perm.has(eq("STUDENT_FEE_VIEW"))).thenReturn(true);
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
-                .with(jwt().jwt(j -> j.claim("preferred_username", "cashier1"))))
+                .with(jwt().jwt(j -> j.claim("preferred_username", "accounts1"))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$[0].label").value("Fee Collection"))
+            .andExpect(jsonPath("$[1].label").value("Receipts"))
+            .andExpect(jsonPath("$[2].label").value("Outstanding"));
     }
 
     @Test
@@ -542,15 +577,22 @@ class WidgetDataControllerTest {
 
         when(appUserRepository.findByKeycloakUsernameWithRole("fo1"))
             .thenReturn(Optional.of(foUser));
+        reset(perm);
+        when(perm.has(eq("ENQUIRY_EDIT"))).thenReturn(true);
+        when(perm.has(eq("ADMISSION_VIEW"))).thenReturn(true);
+        when(perm.has(eq("STUDENT_VIEW"))).thenReturn(true);
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
                 .with(jwt().jwt(j -> j.claim("preferred_username", "fo1"))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$[0].label").value("New Enquiry"))
+            .andExpect(jsonPath("$[1].label").value("Admission Explorer"))
+            .andExpect(jsonPath("$[2].label").value("Student Explorer"));
     }
 
     @Test
-    void getQuickActionsReturnsDefaultForUnknownRole() throws Exception {
+    void getQuickActionsReturnsDefaultForRoleMatchingNoCandidatePermissions() throws Exception {
         AppRole unknownRole = new AppRole();
         unknownRole.setName("ROLE_OTHER");
         unknownRole.setDisplayName("Other");
@@ -560,11 +602,14 @@ class WidgetDataControllerTest {
 
         when(appUserRepository.findByKeycloakUsernameWithRole("other1"))
             .thenReturn(Optional.of(otherUser));
+        reset(perm); // holds none of the QUICK_ACTION_CANDIDATES permissions
 
         mockMvc.perform(get("/dashboard/data/quick-actions")
                 .with(jwt().jwt(j -> j.claim("preferred_username", "other1"))))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray());
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$[0].label").value("Dashboard"))
+            .andExpect(jsonPath("$[1].label").value("My Profile"));
     }
 
     @Test
