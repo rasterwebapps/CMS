@@ -77,9 +77,39 @@
   background: var(--cms-bg-card);
 
   &__name {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     font-size: var(--cms-text-sm);
     font-weight: 700;
     color: var(--cms-text-primary);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__checkbox {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    ::ng-deep .mdc-form-field {
+      width: 100%;
+    }
+
+    ::ng-deep .mdc-label {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+  }
+
+  &__view {
+    flex-shrink: 0;
   }
 
   &__stat {

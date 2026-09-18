@@ -87,7 +87,7 @@
       <cms-empty-state
         icon="auto_awesome"
         title="Global Auto-Schedule"
-        subtitle="Places and staffs every cohort's remaining shortfall in this term at once, using each offering's assigned faculty. Checks prerequisites and every faculty's real capacity first — nothing is placed for any cohort unless everyone fits. Use Run Global Auto-Schedule above to start.">
+        subtitle="Rebuilds every cohort's whole draft for this term at once, using each offering's assigned faculty — pinned sessions stay put, everything else is cleared and re-placed. Checks prerequisites and every faculty's real capacity first — nothing is placed for any cohort unless everyone fits. Use Run Global Auto-Schedule above to start.">
       </cms-empty-state>
     </div>
   } @else if (skeletonLoading()) {
@@ -103,7 +103,7 @@
         <cms-empty-state
           icon="auto_awesome"
           [title]="'No schedule yet for ' + skeleton()!.cohortName"
-          subtitle="Run automation to place and staff this cohort's whole term shortfall at once, checking prerequisites and faculty capacity first. Edit the result afterward by dragging a session to move it, or clicking it to remove."
+          subtitle="Run automation to place and staff this cohort's whole term at once, checking prerequisites and faculty capacity first. Edit the result afterward by dragging a session to move it, or clicking it to remove."
           actionLabel="Run Automation"
           (actionClick)="confirmAndOpenGlobalAutoSchedule()">
         </cms-empty-state>

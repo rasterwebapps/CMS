@@ -1,4 +1,4 @@
-<cms-flyout-panel width="520px" ariaLabel="Global auto-schedule" (closed)="onClose()">
+<cms-flyout-panel width="640px" ariaLabel="Global auto-schedule" (closed)="onClose()">
   <div flyoutHeader>{{ headerLabel() }}</div>
 
   <div flyoutBody>
@@ -346,7 +346,7 @@
         <div class="gas-running">
           <mat-spinner diameter="28" />
           <div>
-            <p class="field-hint">Placing and staffing every remaining session… this can take several minutes for "All cohorts" — please wait, this panel can't be closed until it finishes.</p>
+            <p class="field-hint">Rebuilding the draft and staffing every session… this can take several minutes for "All cohorts" — please wait, this panel can't be closed until it finishes.</p>
             <p class="field-hint gas-elapsed">{{ elapsedSeconds() }}s elapsed — still working, each session is committed as soon as it's placed.</p>
           </div>
         </div>
@@ -354,16 +354,24 @@
 
       @case ('success') {
         @if (result(); as r) {
-          <p class="field-hint">Placed and staffed {{ r.totalPlaced }} session(s) across {{ r.cohortSummaries.length }} cohort(s).</p>
-          @if (r.staleDraftsCleared > 0) {
-            <p class="field-hint">Rebuilt from scratch — cleared {{ r.staleDraftsCleared }} existing draft session(s) first, so the week is re-packed with Lab/Clinical blocks placed before Theory and filler. Unpinned manual drag-moves were replaced.</p>
-          }
-          @if (r.pinnedCellsPreserved > 0) {
-            <p class="field-hint">Kept {{ r.pinnedCellsPreserved }} pinned session(s) exactly where you put them — the rest of the week was packed around them.</p>
-          }
-          @if (r.rotationGroupsCreated > 0) {
-            <p class="field-hint">Created {{ r.rotationGroupsCreated }} cross-offering Lab rotation(s) — two offerings sharing a cohort section, each split into 2 batches, now alternate Labs week-to-week instead of one batch sitting idle during the other's turn.</p>
-          }
+          <div class="gas-prereq-group">
+            <div class="gas-prereq-group__title">What this run did</div>
+            @if (r.staleDraftsCleared > 0) {
+              <p class="field-hint">
+                Full rebuild, not just the gaps: cleared {{ r.staleDraftsCleared }} previous draft session(s), then
+                placed and staffed {{ r.totalPlaced }} new one(s) across {{ r.cohortSummaries.length }} cohort(s) —
+                Lab/Clinical blocks packed first, Theory and filler after. Any unpinned manual move was replaced.
+              </p>
+            } @else {
+              <p class="field-hint">Placed and staffed {{ r.totalPlaced }} session(s) across {{ r.cohortSummaries.length }} cohort(s).</p>
+            }
+            @if (r.pinnedCellsPreserved > 0) {
+              <p class="field-hint">{{ r.pinnedCellsPreserved }} pinned session(s) were kept exactly where you put them — the rest was packed around them.</p>
+            }
+            @if (r.rotationGroupsCreated > 0) {
+              <p class="field-hint">Created {{ r.rotationGroupsCreated }} cross-offering Lab rotation(s) — two offerings sharing a cohort section, each split into 2 batches, now alternate Labs week-to-week instead of one batch sitting idle during the other's turn.</p>
+            }
+          </div>
           @if (r.clinicalResiduals.length > 0) {
             <div class="gas-prereq-group">
               <div class="gas-prereq-group__title">Clinical hours still owed — lengthen the duty or add duty days</div>
@@ -444,37 +452,38 @@
           }
           @if (r.facultySubstitutionTips.length > 0) {
             <div class="gas-prereq-group">
-              <div class="gas-prereq-group__title">Tip — a different faculty covered some sessions</div>
+              <div class="gas-prereq-group__title">A substitute covered some sessions</div>
               <p class="field-hint">
-                These sessions are already placed and staffed — nothing here needs action to finish this run.
-                Each row below is where the offering's own bound faculty was unavailable at every remaining
-                Monday-Friday slot this run, so a fallback faculty member made the timetable possible instead.
+                Already placed — no action needed unless you want to change who teaches these going forward.
               </p>
               <p class="gas-warning">
-                <strong>Submitting a tip is bigger than it looks:</strong> it doesn't just credit the substitute
-                for the session(s) they covered — it makes them the section's official teacher for
-                <strong>the rest of the term</strong> (100% of its remaining hours), checked against their full-term
-                capacity. Untick any tip you don't want handled this way; leaving it unticked skips it and you can
-                still fix it manually later via Assign Faculty.
+                <strong>Confirming a tip does more than log it:</strong> it makes the substitute the section's
+                official teacher for <strong>the rest of the term</strong>, checked against their full-term
+                capacity. Leave a tip unticked to skip it — you can still reassign faculty manually anytime via
+                Assign Faculty.
               </p>
               @for (tip of r.facultySubstitutionTips; track tipKey(tip)) {
                 <div class="gas-faculty-card">
-                  <mat-checkbox [checked]="isTipConfirmed(tip)" [disabled]="isTipSubmitted(tip)" (change)="toggleTipConfirmed(tip)">
-                    <span class="gas-faculty-card__name">{{ tip.subjectName }}</span>
-                  </mat-checkbox>
-                  <div class="gas-faculty-card__stat">
-                    <strong>{{ tip.substituteFacultyName }}</strong> made this timetable possible — {{ tip.sessionCount }}
-                    session(s) placed with them instead of <strong>{{ tip.originalFacultyName }}</strong>, who was
-                    unavailable at every remaining slot this run. Submitting this tip hands them the section's
-                    <strong>whole remaining term</strong>, not just these {{ tip.sessionCount }} session(s).
-                  </div>
-                  <div class="gas-shortfall__actions">
-                    @if (isTipSubmitted(tip)) {
-                      <span class="field-hint">✓ Confirmed — {{ tip.substituteFacultyName }} is now the official {{ tipRoleLabel(tip) }} for the rest of the term.</span>
-                    } @else {
-                      <button type="button" class="btn-secondary" (click)="viewTipDetail(tip)">View details</button>
+                  <div class="gas-faculty-card__row">
+                    <mat-checkbox class="gas-faculty-card__checkbox" [checked]="isTipConfirmed(tip)" [disabled]="isTipSubmitted(tip)" (change)="toggleTipConfirmed(tip)">
+                      <span class="gas-faculty-card__name" [title]="tip.subjectName">{{ tip.subjectName }}</span>
+                    </mat-checkbox>
+                    @if (!isTipSubmitted(tip)) {
+                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View details" ariaLabel="View details"
+                        class="gas-faculty-card__view" (clicked)="viewTipDetail(tip)">
+                        <mat-icon>visibility</mat-icon>
+                      </cms-row-action-btn>
                     }
                   </div>
+                  <div class="gas-faculty-card__stat">
+                    <strong>{{ tip.substituteFacultyName }}</strong> filled in for {{ tip.sessionCount }} session(s) —
+                    <strong>{{ tip.originalFacultyName }}</strong> had no free slot left this run.
+                  </div>
+                  @if (isTipSubmitted(tip)) {
+                    <div class="gas-shortfall__actions">
+                      <span class="field-hint">✓ Confirmed — {{ tip.substituteFacultyName }} is now the official {{ tipRoleLabel(tip) }} for the rest of the term.</span>
+                    </div>
+                  }
                 </div>
               }
               <div class="gas-shortfall__actions">

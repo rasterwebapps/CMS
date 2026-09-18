@@ -22,6 +22,8 @@ import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.comp
 import { SpecialClassRequestFlyoutComponent } from '../special-classes/special-class-request-flyout/special-class-request-flyout.component';
 import { SpecialClassSessionType } from '../special-classes/special-class.model';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatIconModule } from '@angular/material/icon';
+import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { FacultyWorkloadRulesService } from '../faculty-workload-rules/faculty-workload-rules.service';
 import { FacultyWorkloadRules } from '../faculty-workload-rules/faculty-workload-rules.model';
 import { FacultyService } from '../../faculty/faculty.service';
@@ -76,7 +78,7 @@ interface ChecklistItem {
 @Component({
   selector: 'app-global-auto-schedule-report-flyout',
   standalone: true,
-  imports: [CmsFlyoutPanelComponent, DecimalPipe, RouterLink, FormsModule, MatProgressSpinnerModule, MatDialogModule, MatCheckboxModule, WorkingSaturdaysFlyoutComponent, SpecialClassRequestFlyoutComponent, VenueRebalancePanelComponent],
+  imports: [CmsFlyoutPanelComponent, DecimalPipe, RouterLink, FormsModule, MatProgressSpinnerModule, MatDialogModule, MatCheckboxModule, MatIconModule, CmsRowActionButtonComponent, WorkingSaturdaysFlyoutComponent, SpecialClassRequestFlyoutComponent, VenueRebalancePanelComponent],
   templateUrl: './global-auto-schedule-report-flyout.component.html',
   styleUrl: './global-auto-schedule-report-flyout.component.scss',
 })
