@@ -28,6 +28,8 @@
       [academicYearId]="selectedAcademicYearId"
       [cohortId]="allCohortsSelected() ? null : selectedCohortId"
       [cohortName]="skeleton()?.cohortName ?? null"
+      [termStartDate]="selectedTerm()?.startDate ?? null"
+      [termEndDate]="selectedTerm()?.endDate ?? null"
       (closed)="onGlobalAutoScheduleClosed()"
       (scheduled)="onGlobalScheduleCompleted()">
     </app-global-auto-schedule-report-flyout>

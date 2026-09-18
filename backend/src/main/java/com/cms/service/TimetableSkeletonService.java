@@ -1353,7 +1353,12 @@ public class TimetableSkeletonService {
             throw new IllegalArgumentException("A multi-period session can't be moved here yet — remove and re-place it instead");
         }
 
-        List<ConstraintViolation> violations = validateMoveTarget(cs, request.dayOfWeek(), targetPeriod, request.cohortId(), null);
+        // validateRelocatedCell, not validateMoveTarget directly: a LIBRARY/SPORTS cell has no
+        // CourseOffering by construction (see #saveLibraryBlockCells/#saveSportsBlockCells), and
+        // validateMoveTargetExcluding unconditionally dereferences cs.getCourseOffering().getId() --
+        // NPE'd on every attempt to drag-move one of those cells here before this used the same
+        // null-safe branch #relocate already established.
+        List<ConstraintViolation> violations = validateRelocatedCell(cs, request.dayOfWeek(), targetPeriod, request.cohortId(), Set.of());
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
@@ -1403,7 +1408,9 @@ public class TimetableSkeletonService {
                 if (isCurrentSlot) {
                     continue;
                 }
-                List<ConstraintViolation> violations = validateMoveTarget(cs, day, period, cohortId, null);
+                // validateRelocatedCell: same null-CourseOffering NPE risk as #moveCell for a
+                // LIBRARY/SPORTS cell — see that call site's comment.
+                List<ConstraintViolation> violations = validateRelocatedCell(cs, day, period, cohortId, Set.of());
                 results.add(new SkeletonSlotPreviewResponse(day, period.getId(), violations.isEmpty(),
                     violations.isEmpty() ? null : violations.get(0).message()));
             }
@@ -1444,9 +1451,11 @@ public class TimetableSkeletonService {
         DayOfWeek dayB = csB.getDayOfWeek();
         Period periodB = csB.getPeriod();
 
+        // validateRelocatedCell: same null-CourseOffering NPE risk as #moveCell for a LIBRARY/SPORTS
+        // cell — see that call site's comment.
         List<ConstraintViolation> violations = new ArrayList<>();
-        violations.addAll(validateMoveTarget(csA, dayB, periodB, request.cohortId(), csB.getId()));
-        violations.addAll(validateMoveTarget(csB, dayA, periodA, request.cohortId(), csA.getId()));
+        violations.addAll(validateRelocatedCell(csA, dayB, periodB, request.cohortId(), Set.of(csB.getId())));
+        violations.addAll(validateRelocatedCell(csB, dayA, periodA, request.cohortId(), Set.of(csA.getId())));
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
@@ -2095,15 +2104,12 @@ public class TimetableSkeletonService {
         return byId.values().stream().sorted(Comparator.comparing(Period::getPeriodOrder)).toList();
     }
 
-    /** Every check a placed cell moving to (day, targetPeriod) must pass — shared by {@link
-     *  #moveCell} (excludeCellId null) and {@link #swapCells} (excludeCellId = the swap partner's
-     *  id, so its about-to-vacate row is never mistaken for a blocker). Room/capacity/faculty-
-     *  eligibility are deliberately NOT rechecked: none of them change on a pure day/period move
-     *  (the room, audience, and faculty all stay exactly what they already were). */
-    private List<ConstraintViolation> validateMoveTarget(ClassSchedule cs, DayOfWeek day, Period targetPeriod, Long cohortId, Long excludeCellId) {
-        return validateMoveTargetExcluding(cs, day, targetPeriod, cohortId, excludeCellId == null ? Set.of() : Set.of(excludeCellId));
-    }
-
+    /** Every check a placed cell moving to (day, targetPeriod) must pass, for a cell that has a
+     *  CourseOffering — called only via {@link #validateRelocatedCell}, which routes a
+     *  no-CourseOffering LIBRARY/SPORTS cell to {@link #validateAudienceBlockTarget} instead, since
+     *  this method unconditionally dereferences {@code cs.getCourseOffering()}. Room/capacity/
+     *  faculty-eligibility are deliberately NOT rechecked here: none of them change on a pure
+     *  day/period move (the room, audience, and faculty all stay exactly what they already were). */
     private List<ConstraintViolation> validateMoveTargetExcluding(ClassSchedule cs, DayOfWeek day, Period targetPeriod, Long cohortId,
                                                                   Set<Long> excludeCellIds) {
         CourseOffering offering = cs.getCourseOffering();

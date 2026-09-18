@@ -643,6 +643,8 @@
 @if (showWorkingSaturdaysFlyout()) {
   <app-working-saturdays-flyout
     [termInstanceId]="termInstanceId()"
+    [termStartDate]="termStartDate()"
+    [termEndDate]="termEndDate()"
     (closed)="onWorkingSaturdaysClosed()"
     (saved)="onWorkingSaturdaysSaved()">
   </app-working-saturdays-flyout>

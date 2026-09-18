@@ -88,6 +88,7 @@ class TimetableStaffingAutoAssignServiceTest {
     private Faculty faculty(Long id) {
         Faculty f = new Faculty();
         f.setId(id);
+        f.setStatus(FacultyStatus.ACTIVE);
         return f;
     }
 
@@ -263,5 +264,32 @@ class TimetableStaffingAutoAssignServiceTest {
         assertThat(result.staffedCount()).isEqualTo(1);
         verify(timetableStaffingService).staffCell(1L, new StaffingAssignmentRequest(50L, null));
         verify(timetableStaffingService, times(0)).staffCell(1L, new StaffingAssignmentRequest(60L, null));
+    }
+
+    @Test
+    void shouldFallBackToRankedPoolWhenSectionOverrideFacultyIsInactive() {
+        // A section override pointing at a faculty who has since resigned/retired/gone on leave must
+        // never be auto-staffed onto a cell just because a capacity check alone would allow it.
+        CourseOffering offering = new CourseOffering();
+        offering.setId(100L);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(timetableStaffingService.getUnstaffedCells(10L))
+            .thenReturn(List.of(cellWithSection(1L, 100L, 20L, 5L, 9L)));
+        Faculty inactiveOverrideFaculty = faculty(60L);
+        inactiveOverrideFaculty.setStatus(FacultyStatus.RESIGNED);
+        CourseOfferingSectionFaculty override = new CourseOfferingSectionFaculty();
+        override.setFaculty(inactiveOverrideFaculty);
+        when(courseOfferingSectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 20L))
+            .thenReturn(Optional.of(override));
+        when(facultyRepository.findBySpecialityIdAndStatus(5L, FacultyStatus.ACTIVE))
+            .thenReturn(List.of(faculty(50L)));
+        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+
+        AutoStaffResult result = service.autoStaff(10L);
+
+        assertThat(result.staffedCount()).isEqualTo(1);
+        verify(timetableStaffingService).staffCell(1L, new StaffingAssignmentRequest(50L, null));
+        verify(timetableStaffingService, times(0)).staffCell(1L, new StaffingAssignmentRequest(60L, null));
+        verify(timetableGlobalAutoScheduleService, times(0)).checkFacultyCapacityForSection(any(), any(), any());
     }
 }

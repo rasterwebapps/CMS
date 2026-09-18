@@ -98,6 +98,11 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  (prerequisites, room-commit check, and the run itself) to just that cohort. */
   readonly cohortId = input<number | null>(null);
   readonly cohortName = input<string | null>(null);
+  /** The term's real date range, forwarded to the nested Working Saturdays flyout so its "N Saturday(s)
+   *  in the term" counts render here too instead of silently showing nothing (it hides those figures
+   *  whenever it can't parse a date range at all — see {@link WorkingSaturdaysFlyoutComponent#allSaturdays}). */
+  readonly termStartDate = input<string | null>(null);
+  readonly termEndDate = input<string | null>(null);
 
   readonly closed = output<void>();
   /** Emitted only once the write call actually succeeds, so the parent knows to reload. */
