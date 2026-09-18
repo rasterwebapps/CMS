@@ -1441,7 +1441,7 @@ public class TimetableGlobalAutoScheduleService {
         globalLabClinicalQueue.sort(Comparator.comparingInt((TaggedShortfallRow t) -> -t.row().shortfall()));
         for (TaggedShortfallRow tagged : globalLabClinicalQueue) {
             CohortRunContext context = contextsById.get(tagged.cohortId());
-            placeShortfallRow(tagged.cohortId(), tagged.row(), term, periods, context, periodDurationHours, venueGaps, facultySubstitutionEvents);
+            placeShortfallRow(tagged.cohortId(), tagged.row(), term, periods, context, periodDurationHours, venueGaps, facultySubstitutionEvents, termDemand);
         }
 
         // Phase 1.5: a cohort section split into batches for LAB/CLINICAL (one lab/venue can't hold
@@ -1461,7 +1461,7 @@ public class TimetableGlobalAutoScheduleService {
         // irrelevant the way it's load-bearing in Phase 1.
         for (CohortRunContext context : contexts) {
             for (ShortfallRow row : context.theoryRows()) {
-                int stillOwedRuns = placeShortfallRow(context.cohortId(), row, term, periods, context, periodDurationHours, venueGaps, facultySubstitutionEvents);
+                int stillOwedRuns = placeShortfallRow(context.cohortId(), row, term, periods, context, periodDurationHours, venueGaps, facultySubstitutionEvents, termDemand);
                 if (stillOwedRuns > 0) {
                     // Feeds fillSelfStudyGaps below (same run, later phase): a row that's still short
                     // of its own curriculum requirement after every normal/backtrack/double-session
@@ -1532,7 +1532,25 @@ public class TimetableGlobalAutoScheduleService {
         // Library and Sports still left the week plenty of free periods (user's call, 2026-09-15:
         // "if there are a lot of free periods, we can give another library session"). Same
         // most-constrained-first order, and before the extra-hours filler claims the rest.
+        //
+        // 2026-09-18 fix: this bonus session used to run unconditionally here, BEFORE
+        // fillSelfStudyGaps below ever gets a look at these same free periods -- so on a cohort that
+        // still had real Theory shortfall (context.theoryStillOwedRuns() > 0 for some row), a bonus
+        // Library session could claim a (day, period) slot that fillSelfStudyGaps's own
+        // shortfall-first tier would otherwise have handed to that short subject. Library's own
+        // required quota (fillLibraryGaps, just above) and Sports' required quota are real curriculum
+        // content and rightly compete for slots ahead of anything -- but this SECOND, non-required
+        // Library session is pure filler exactly like the already-met subjects' bonus sessions in
+        // fillSelfStudyGaps, and must yield to a genuine Theory shortfall the exact same way those do.
+        // Real seed data confirmed this: a BSc Nursing cohort with 475h of term-wide spare capacity
+        // still reported 38.3h of Theory unplaced while showing +23.3h of bonus Theory hours handed to
+        // already-met subjects -- some of that gap traced to this bonus Library session claiming slots
+        // ahead of the shortfall-aware pass, not to a genuine faculty/room ceiling.
         for (CohortRunContext context : libraryFillOrder) {
+            boolean cohortStillOwesTheory = context.theoryStillOwedRuns().values().stream().anyMatch(owed -> owed > 0);
+            if (cohortStillOwesTheory) {
+                continue;
+            }
             context.placedThisCohortRun().addAll(fillExtraLibrarySession(context.cohortId(), term, periods,
                 context.dayLoad(), context.skeleton().cells(), context.placedThisCohortRun(), saturdayIsWorkingDay(term)));
         }
@@ -2511,7 +2529,8 @@ public class TimetableGlobalAutoScheduleService {
     private int placeShortfallRow(Long cohortId, ShortfallRow row, TermInstance term, List<Period> periods,
                                     CohortRunContext context, double periodDurationHours,
                                     Map<String, VenueGapAccumulator> venueGaps,
-                                    List<FacultySubstitutionEvent> facultySubstitutionEvents) {
+                                    List<FacultySubstitutionEvent> facultySubstitutionEvents,
+                                    TermDemandAggregation termDemand) {
         Set<DayOfWeek> daysUsed = existingDaysForBudgetRow(context.skeleton().cells(), row.offering().getId(), row.budget());
         // Second-session-per-day fallback (see #isEveryCandidateDayAlreadyUsed's javadoc): starts
         // empty and only ever gains a day once the one-session-per-day pass below has genuinely
@@ -2603,7 +2622,8 @@ public class TimetableGlobalAutoScheduleService {
                 continue;
             }
             DayOfWeek backtrackDay = attemptBacktrack(cohortId, row, term, periods, daysUsed, context.placedThisCohortRun(),
-                context.unplacedForCohort(), thisBlockSize, context.dayLoad());
+                context.unplacedForCohort(), thisBlockSize, context.dayLoad(), termDemand, facultySubstitutionEvents,
+                context.theoryStillOwedRuns());
             if (backtrackDay != null) {
                 remainingRuns -= runsFor(backtrackDay, term, row.budget());
                 continue;
@@ -4099,7 +4119,9 @@ public class TimetableGlobalAutoScheduleService {
     private DayOfWeek attemptBacktrack(Long cohortId, ShortfallRow row, TermInstance term, List<Period> periods,
                                       Set<DayOfWeek> daysUsed, List<Placement> placedThisCohortRun,
                                       List<AutoPlaceUnplacedItem> unplacedForCohort, int blockSize,
-                                      Map<DayOfWeek, Integer> dayLoad) {
+                                      Map<DayOfWeek, Integer> dayLoad, TermDemandAggregation termDemand,
+                                      List<FacultySubstitutionEvent> facultySubstitutionEvents,
+                                      Map<String, Integer> theoryStillOwedRuns) {
         for (int idx = placedThisCohortRun.size() - 1; idx >= 0; idx--) {
             Placement bumped = placedThisCohortRun.get(idx);
             if (bumped.sameRowAs(row)) {
@@ -4131,7 +4153,8 @@ public class TimetableGlobalAutoScheduleService {
                 term, periods, daysUsed, blockSize, dayLoad, Set.of());
             if (retry.dayPlaced() == null) {
                 // No better off than before -- put the bumped cell straight back and give up on `row`.
-                restoreBumpedOrReportUnplaced(bumped, cohortId, placedThisCohortRun, unplacedForCohort, dayLoad, term, periods);
+                restoreBumpedOrReportUnplaced(bumped, cohortId, placedThisCohortRun, unplacedForCohort, dayLoad, term, periods,
+                    termDemand, facultySubstitutionEvents, theoryStillOwedRuns);
                 return null;
             }
             dayLoad.merge(retry.dayPlaced(), blockSize, Integer::sum);
@@ -4139,7 +4162,8 @@ public class TimetableGlobalAutoScheduleService {
             placedThisCohortRun.add(new Placement(retry.cellId(), row.offering().getId(), row.budget().sessionType(),
                 row.budget().batchId(), row.budget().cohortSectionId(), retry.facultyId(), row.subjectName(),
                 occupantLabel(row.budget()), retry.dayPlaced(), retry.periodIds()));
-            restoreBumpedOrReportUnplaced(bumped, cohortId, placedThisCohortRun, unplacedForCohort, dayLoad, term, periods);
+            restoreBumpedOrReportUnplaced(bumped, cohortId, placedThisCohortRun, unplacedForCohort, dayLoad, term, periods,
+                termDemand, facultySubstitutionEvents, theoryStillOwedRuns);
             // Whether or not the restore worked, `row` is now placed and the total count never
             // dropped below what it was before this attempt (net zero at worst, a genuine swap).
             return retry.dayPlaced();
@@ -4179,10 +4203,40 @@ public class TimetableGlobalAutoScheduleService {
      *  real cohort run surfaced (several Theory rows reported unplaced with a free Monday-Friday
      *  slot still available elsewhere in the week). Only once both the exact restore and the full
      *  search fail is it recorded as a fresh unplaced item, instead of letting it silently vanish
-     *  from the report. */
+     *  from the report.
+     *
+     * <p>2026-09-18 fix: the day/period retry below used to try ONLY {@code bumped}'s own original
+     *  bound faculty ({@code List.of(bumped.facultyId())}), never a fallback -- deliberately, per the
+     *  comment this replaced ("restores a displaced row back to its own original faculty, never a
+     *  substitute"). In practice this meant a session {@code attemptBacktrack} legitimately freed a
+     *  genuinely open (day, period) for -- just one where {@code bumped}'s own faculty happens to
+     *  already be teaching something else -- was reported unplaced outright, even though the exact
+     *  same {@link #rankedFallbackCandidates} pool a fresh {@link ShortfallRow} gets to use was sitting
+     *  right there unused. A real 2026-2027 ODD run surfaced exactly this: two Theory rows reported
+     *  "displaced during a backtrack attempt... could not be placed... at any other free day/period"
+     *  while the cohort's own report showed hundreds of term-wide spare hours elsewhere. Now tries the
+     *  same ranked fallback pool as a fresh row would, and records a {@link FacultySubstitutionEvent}
+     *  (surfaced to the admin as a confirmable tip, same as any other fallback placement) whenever the
+     *  winning faculty isn't {@code bumped}'s own original one.
+     *
+     * <p>2026-09-18 second fix: even with the fallback pool above, a bumped session can still
+     *  genuinely have nowhere left to go (a real Monday-Friday room ceiling, not a faculty gap) --
+     *  and when {@code bumped} is THEORY, that permanent loss used to vanish from {@code
+     *  theoryStillOwedRuns} entirely. That map is only ever written from {@code placeShortfallRow}'s
+     *  own return value for the row CURRENTLY being placed; a session this same phase already placed
+     *  successfully earlier, then lost here to a LATER row's backtrack, was never that later row's
+     *  own {@code ShortfallRow}, so nothing ever recorded the gap it just reopened. The Library bonus
+     *  gate and {@code fillSelfStudyGaps}' shortfall-first tier both read {@code theoryStillOwedRuns}
+     *  to decide whether this cohort still has a real Theory gap -- reading it as "0" here let a
+     *  cohort's bonus second Library session go out immediately after this same run had just
+     *  re-opened a genuine 20h/week Theory hole, which is exactly what a real 2026-2027 ODD BSc
+     *  Nursing run did, unchanged across three separate re-runs, because the gate could never see
+     *  what this method itself only found out about after the gate had already been read. */
     private void restoreBumpedOrReportUnplaced(Placement bumped, Long cohortId, List<Placement> placedThisCohortRun,
                                                 List<AutoPlaceUnplacedItem> unplacedForCohort, Map<DayOfWeek, Integer> dayLoad,
-                                                TermInstance term, List<Period> periods) {
+                                                TermInstance term, List<Period> periods, TermDemandAggregation termDemand,
+                                                List<FacultySubstitutionEvent> facultySubstitutionEvents,
+                                                Map<String, Integer> theoryStillOwedRuns) {
         Optional<Placement> restored = tryRestoreExact(bumped, cohortId);
         if (restored.isPresent()) {
             placedThisCohortRun.add(restored.get());
@@ -4202,9 +4256,14 @@ public class TimetableGlobalAutoScheduleService {
                 .collect(Collectors.toCollection(() -> EnumSet.noneOf(DayOfWeek.class)));
             SkeletonSubjectBudget minimalBudget = new SkeletonSubjectBudget(bumped.sessionType(), bumped.batchId(), null,
                 bumped.cohortSectionId(), null, 0, 0, 0, 0);
-            // List.of(bumped.facultyId()) deliberately, not a ranked fallback list -- this restores
-            // a displaced row back to its own original faculty, never a substitute, unlike a fresh
-            // ShortfallRow's own candidateFacultyIds.
+            // bumped's own faculty first, then the same ranked fallback pool a fresh ShortfallRow gets
+            // (see this method's javadoc for why a fallback-blind retry used to strand real sessions).
+            List<EligibleFacultyCandidateDto> fallbackCandidates = rankedFallbackCandidates(offering, bumped.facultyId(), termDemand);
+            List<Long> restoreCandidateFacultyIds = new ArrayList<>();
+            restoreCandidateFacultyIds.add(bumped.facultyId());
+            restoreCandidateFacultyIds.addAll(fallbackCandidates.stream().map(EligibleFacultyCandidateDto::facultyId).toList());
+            Map<Long, EligibleFacultyCandidateDto> fallbackCandidatesById = fallbackCandidates.stream()
+                .collect(Collectors.toMap(EligibleFacultyCandidateDto::facultyId, c -> c, (a, b) -> a));
             // Same order as placeShortfallRow: a fresh working day, then a same-day double on a day
             // this row already uses once.
             Set<DayOfWeek> daysUsedTwice = placedThisCohortRun.stream()
@@ -4225,12 +4284,12 @@ public class TimetableGlobalAutoScheduleService {
             Set<DayOfWeek> freshExcluded = EnumSet.noneOf(DayOfWeek.class);
             freshExcluded.addAll(fewerRunDays);
             freshExcluded.addAll(daysUsed);
-            PlacementAttempt retry = tryPlaceAndStaff(cohortId, offering, minimalBudget, List.of(bumped.facultyId()),
+            PlacementAttempt retry = tryPlaceAndStaff(cohortId, offering, minimalBudget, restoreCandidateFacultyIds,
                 term, periods, freshExcluded, bumped.periodIds().size(), dayLoad, Set.of());
             if (retry.dayPlaced() == null) {
                 Set<DayOfWeek> doubleExcluded = daysOtherThanUsedOnce(daysUsed, daysUsedTwice);
                 doubleExcluded.addAll(fewerRunDays);
-                retry = tryPlaceAndStaff(cohortId, offering, minimalBudget, List.of(bumped.facultyId()),
+                retry = tryPlaceAndStaff(cohortId, offering, minimalBudget, restoreCandidateFacultyIds,
                     term, periods, doubleExcluded, bumped.periodIds().size(), dayLoad, Set.of());
             }
             if (retry.dayPlaced() != null) {
@@ -4238,6 +4297,12 @@ public class TimetableGlobalAutoScheduleService {
                 placedThisCohortRun.add(new Placement(retry.cellId(), bumped.courseOfferingId(), bumped.sessionType(),
                     bumped.batchId(), bumped.cohortSectionId(), retry.facultyId(), bumped.subjectName(),
                     bumped.occupantLabel(), retry.dayPlaced(), retry.periodIds()));
+                if (!Objects.equals(retry.facultyId(), bumped.facultyId())) {
+                    EligibleFacultyCandidateDto snapshot = fallbackCandidatesById.get(retry.facultyId());
+                    facultySubstitutionEvents.add(new FacultySubstitutionEvent(bumped.courseOfferingId(), bumped.subjectName(),
+                        bumped.facultyId(), retry.facultyId(), snapshot != null ? snapshot.remainingHours() : Double.NaN,
+                        snapshot != null ? snapshot.capacityTier() : "NONE", cohortId, bumped.cohortSectionId(), bumped.batchId()));
+                }
                 return;
             }
         } else if (bumped.sessionType() == ClassSessionType.LIBRARY) {
@@ -4254,6 +4319,15 @@ public class TimetableGlobalAutoScheduleService {
         unplacedForCohort.add(new AutoPlaceUnplacedItem(bumped.subjectName(), bumped.sessionType(), bumped.occupantLabel(),
             "displaced during a backtrack attempt and could not be placed at its original slot or any other free day/period",
             bumped.courseOfferingId(), true, bumped.sessionType() == ClassSessionType.LIBRARY));
+        // A permanently-lost THEORY session reopens a real gap in this row's own weekly requirement --
+        // theoryStillOwedRuns must reflect it too, or a downstream phase that already read "0 owed"
+        // for this exact row earlier in Phase 2 (the Library bonus gate, fillSelfStudyGaps' shortfall
+        // tier) has no way to find out this run just lost a session it thought was safely delivered.
+        // +1, not periodIds().size(): blockSize is always 1 for THEORY, so one lost session is one
+        // lost period/run in the same unit fillSelfStudyGaps' own shortRemaining counter already uses.
+        if (bumped.sessionType() == ClassSessionType.THEORY) {
+            theoryStillOwedRuns.merge(theoryRowKey(bumped.courseOfferingId(), bumped.cohortSectionId()), 1, Integer::sum);
+        }
     }
 
     /** Mirrors {@link #fillLibraryGaps}'s own free-day/free-classroom search, scoped to finding just
