@@ -5,6 +5,8 @@ import { environment } from '../../../../environments';
 import {
   DayRepeatRequestPayload,
   DayRepeatResult,
+  RecurringSpecialClassRequestPayload,
+  RecurringSpecialClassResult,
   SpecialClassOccurrence,
   SpecialClassRequestPayload,
 } from './special-class.model';
@@ -22,6 +24,10 @@ export class SpecialClassService {
 
   requestDayRepeat(request: DayRepeatRequestPayload): Observable<DayRepeatResult> {
     return this.http.post<DayRepeatResult>(`${this.baseUrl}/day-repeat`, request);
+  }
+
+  requestRecurring(request: RecurringSpecialClassRequestPayload): Observable<RecurringSpecialClassResult> {
+    return this.http.post<RecurringSpecialClassResult>(`${this.baseUrl}/recurring`, request);
   }
 
   myRequests(): Observable<SpecialClassOccurrence[]> {

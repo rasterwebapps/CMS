@@ -75,7 +75,9 @@ export class ApprovalQueueListComponent implements OnInit {
         message: row.requestBatchId
           ? row.occurrenceSource === 'DAY_REPEAT'
             ? `Approve every session in this day-repeat batch (starting with ${row.subjectName} on ${row.occurrenceDate})?`
-            : `Approve every period in this multi-period request for ${row.subjectName} on ${row.occurrenceDate}?`
+            : row.occurrenceSource === 'RECURRING_SPECIAL_CLASS'
+              ? `Approve every weekly occurrence in this recurring request for ${row.subjectName} (starting ${row.occurrenceDate})?`
+              : `Approve every period in this multi-period request for ${row.subjectName} on ${row.occurrenceDate}?`
           : `Approve the special class for ${row.subjectName} on ${row.occurrenceDate}?`,
         confirmText: 'Approve',
         cancelText: 'Cancel',

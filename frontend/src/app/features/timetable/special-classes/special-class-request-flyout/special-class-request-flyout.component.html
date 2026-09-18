@@ -1,7 +1,7 @@
 <cms-flyout-panel width="480px" ariaLabel="Request special class" (closed)="onClose()">
   <div flyoutHeader>
     @if (mode() === 'PICK_MODE') { Request a Special Class }
-    @else if (mode() === 'SINGLE_SUBJECT') { Single-Subject Special Class }
+    @else if (mode() === 'SINGLE_SUBJECT') { {{ isRecurring ? 'Recurring Special Class' : 'Single-Subject Special Class' }} }
     @else { Whole-Day Repeat }
   </div>
 
@@ -60,11 +60,26 @@
                placeholder="Leave blank for the whole cohort" />
       </div>
       <div class="field-group">
-        <label class="field-label" for="scf-date">Date <span class="field-required">*</span></label>
+        <label class="field-label" for="scf-date">{{ isRecurring ? 'Start Date' : 'Date' }} <span class="field-required">*</span></label>
         <input id="scf-date" type="date" class="field-input" [(ngModel)]="occurrenceDate" [min]="minOccurrenceDate" />
         <p class="field-hint">Only a day with no regular instruction — a Sunday, a non-working Saturday, or a
-          declared holiday — is accepted.</p>
+          declared holiday — is accepted{{ isRecurring ? ' (checked separately for each week)' : '' }}.</p>
       </div>
+      <div class="field-group">
+        <label class="checkbox-label">
+          <input type="checkbox" class="field-checkbox" [(ngModel)]="isRecurring" />
+          Recurring weekly
+        </label>
+        <p class="field-hint">Repeats this same request every week, same weekday, through an end date — weeks
+          that turn out not to be a non-instruction day are skipped rather than requested.</p>
+      </div>
+      @if (isRecurring) {
+        <div class="field-group">
+          <label class="field-label" for="scf-end-date">End Date <span class="field-required">*</span></label>
+          <input id="scf-end-date" type="date" class="field-input" [(ngModel)]="endDate"
+                 [min]="occurrenceDate || minOccurrenceDate" />
+        </div>
+      }
       <div class="field-group">
         <label class="field-label" for="scf-period-from">Period(s) <span class="field-required">*</span></label>
         <div class="scf-period-range">

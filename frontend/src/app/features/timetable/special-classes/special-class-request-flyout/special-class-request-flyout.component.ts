@@ -115,6 +115,13 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
   protected requestedFacultyId: number | null = null;
   protected cohortSectionId: number | null = null;
   protected reason = '';
+  /** Turns the single-subject request into a weekly-recurring one -- same subject/venue/faculty
+   *  request, repeated every week on `occurrenceDate`'s weekday through `endDate` inclusive. Any
+   *  week whose date isn't itself a non-instruction day is skipped by the backend rather than
+   *  requested (see RecurringSpecialClassResult.skippedCount), the common case being a
+   *  Saturday-cadence recurrence where only some Saturdays in the term are actually non-working. */
+  protected isRecurring = false;
+  protected endDate = '';
 
   // Day-repeat fields
   protected sourceDayOfWeek: WeekDay = 'MONDAY';
@@ -286,14 +293,21 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
 
   protected canSubmitSingle(): boolean {
     const offering = this.selectedOffering();
-    return !!(offering && this.occurrenceDate && this.venueId && this.requestedFacultyId)
-      && this.periodIdsForSubmit().length > 0;
+    if (!offering || !this.occurrenceDate || !this.venueId || !this.requestedFacultyId
+        || this.periodIdsForSubmit().length === 0) {
+      return false;
+    }
+    return !this.isRecurring || (!!this.endDate && this.endDate >= this.occurrenceDate);
   }
 
   protected submitSingle(): void {
     const offering = this.selectedOffering();
     if (!this.canSubmitSingle() || !offering) return;
     this.saving.set(true);
+    if (this.isRecurring) {
+      this.submitRecurring(offering);
+      return;
+    }
     this.specialClassService.requestSingleSubject({
       occurrenceDate: this.occurrenceDate,
       periodIds: this.periodIdsForSubmit(),
@@ -319,6 +333,39 @@ export class SpecialClassRequestFlyoutComponent implements OnInit {
       },
       error: (err) => {
         this.toast.error(violationText(err) ?? 'Failed to request special class');
+        this.saving.set(false);
+      },
+    });
+  }
+
+  private submitRecurring(offering: CourseOffering): void {
+    this.specialClassService.requestRecurring({
+      startDate: this.occurrenceDate,
+      endDate: this.endDate,
+      periodIds: this.periodIdsForSubmit(),
+      subjectId: offering.subjectId,
+      courseOfferingId: offering.id,
+      cohortSectionId: this.cohortSectionId,
+      sessionType: this.sessionType,
+      classroomId: this.sessionType === 'THEORY' ? this.venueId : null,
+      labId: this.sessionType === 'LAB' ? this.venueId : null,
+      clinicalVenueId: this.sessionType === 'CLINICAL' ? this.venueId : null,
+      requestedFacultyId: this.requestedFacultyId!,
+      reason: this.reason || null,
+    }).subscribe({
+      next: (result) => {
+        const skipped = result.skippedCount > 0
+          ? ` (${result.skippedCount} week(s) skipped — not a non-instruction day)` : '';
+        if (this.approveImmediately && this.canApprove() && result.created.length > 0) {
+          this.approveJustCreated(result.created, ` (${result.created.length} occurrence(s))${skipped}`);
+        } else {
+          this.toast.success(`${result.created.length} occurrence(s) requested — awaiting admin approval${skipped}`);
+          this.saving.set(false);
+          this.saved.emit();
+        }
+      },
+      error: (err) => {
+        this.toast.error(violationText(err) ?? 'Failed to request recurring special class');
         this.saving.set(false);
       },
     });

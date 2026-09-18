@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import com.cms.dto.DayRepeatRequest;
 import com.cms.dto.DayRepeatResult;
 import com.cms.dto.ProfileIdentity;
+import com.cms.dto.RecurringSpecialClassRequest;
+import com.cms.dto.RecurringSpecialClassResult;
 import com.cms.dto.SpecialClassOccurrenceDto;
 import com.cms.dto.SpecialClassRejectionRequest;
 import com.cms.dto.SpecialClassRequest;
@@ -52,6 +54,14 @@ public class SpecialClassController {
         ProfileIdentity identity = requireFacultyIdentity();
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(specialClassRequestService.requestDayRepeat(request, identity.entityId(), identity.displayName()));
+    }
+
+    @PostMapping("/recurring")
+    @PreAuthorize("@perm.has('TIMETABLE_SPECIAL_CLASS_REQUEST')")
+    public ResponseEntity<RecurringSpecialClassResult> requestRecurring(@Valid @RequestBody RecurringSpecialClassRequest request) {
+        ProfileIdentity identity = requireFacultyIdentity();
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(specialClassRequestService.requestRecurringSpecialClass(request, identity.entityId(), identity.displayName()));
     }
 
     @GetMapping("/my-requests")

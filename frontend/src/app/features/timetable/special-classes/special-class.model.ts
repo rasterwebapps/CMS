@@ -1,4 +1,4 @@
-export type OccurrenceSource = 'REGULAR' | 'SPECIAL_CLASS' | 'DAY_REPEAT';
+export type OccurrenceSource = 'REGULAR' | 'SPECIAL_CLASS' | 'DAY_REPEAT' | 'RECURRING_SPECIAL_CLASS';
 export type SpecialClassApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 export type SpecialClassSessionType = 'THEORY' | 'LAB' | 'CLINICAL';
 export type WeekDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY';
@@ -64,6 +64,30 @@ export interface DayRepeatRequestPayload {
 
 /** Mirrors backend `DayRepeatResult`. */
 export interface DayRepeatResult {
+  created: SpecialClassOccurrence[];
+  skippedCount: number;
+}
+
+/** Mirrors backend `RecurringSpecialClassRequest`. Same single-subject shape as
+ *  `SpecialClassRequestPayload`, but repeated weekly on `startDate`'s weekday through `endDate`
+ *  inclusive -- a week whose date isn't itself a non-instruction day is skipped by the backend. */
+export interface RecurringSpecialClassRequestPayload {
+  startDate: string;
+  endDate: string;
+  periodIds: number[];
+  subjectId: number;
+  courseOfferingId: number;
+  cohortSectionId: number | null;
+  sessionType: SpecialClassSessionType;
+  classroomId: number | null;
+  labId: number | null;
+  clinicalVenueId: number | null;
+  requestedFacultyId: number;
+  reason: string | null;
+}
+
+/** Mirrors backend `RecurringSpecialClassResult`. */
+export interface RecurringSpecialClassResult {
   created: SpecialClassOccurrence[];
   skippedCount: number;
 }
