@@ -39,6 +39,15 @@
         This section has no other non-elective subject to move the slot to. Remove the session
         instead, or add the subject to this term's Curriculum Map first.
       </p>
+    } @else if (isFillerSource()) {
+      <p class="field-hint">
+        Subjects still owing sessions are listed first. Unlike replacing one Theory subject with
+        another, this adds a genuinely new delivered hour to whichever subject you pick — nothing is
+        being handed over from this Library/Sports slot. The figures are shown so you can see if
+        you're deliberately adding a bonus session to a subject that's already at quota. Electives
+        aren't listed: an institution-decided elective runs only its chosen option, and a
+        student-choice group shares one slot that Run Automation places.
+      </p>
     } @else {
       <p class="field-hint">
         Subjects still owing sessions are listed first. Replacing doesn't change how many hours the
@@ -127,9 +136,14 @@
   }
 
   <p class="field-hint scr-footnote">
-    Replacing pins this session, so the next Run Automation keeps your choice instead of packing
-    over it. The subject being displaced will drop below its weekly requirement — you'll be told by
-    how much, so you can place it elsewhere.
+    @if (isFillerSource()) {
+      Replacing pins this session, so the next Run Automation keeps your choice instead of packing
+      Library/Sports back over it.
+    } @else {
+      Replacing pins this session, so the next Run Automation keeps your choice instead of packing
+      over it. The subject being displaced will drop below its weekly requirement — you'll be told by
+      how much, so you can place it elsewhere.
+    }
   </p>
 </mat-dialog-content>
 

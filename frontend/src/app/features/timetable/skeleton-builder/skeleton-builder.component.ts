@@ -853,16 +853,17 @@ export class SkeletonBuilderComponent implements OnInit {
 
   /** Whether Replace is offered for this specific cell, mirroring every gate the backend's
    *  {@code replaceCellSubject} enforces so the menu never offers an action that is certain to be
-   *  rejected. THEORY only (a Lab/Clinical cell's audience is a batch tied to one offering, so
-   *  changing its subject means changing the batch in Capacity Planner); DRAFT only (a published
-   *  session is immutable); never an elective (the group shares one slot — use Place Elective
-   *  Block); and never a Library cell, which has no course offering to displace. */
+   *  rejected. THEORY/LIBRARY/SPORTS only (a Lab/Clinical cell's audience is a batch tied to one
+   *  offering, so changing its subject means changing the batch in Capacity Planner); DRAFT only (a
+   *  published session is immutable); never an elective (the group shares one slot — use Place
+   *  Elective Block). A Library/Sports source has no `courseOfferingId` to displace — that's fine,
+   *  it converts into a staffed Theory session rather than swapping one Theory subject for another
+   *  (see the backend method's javadoc for why that isn't hour-neutral the way Theory-to-Theory is). */
   protected canReplaceCell(cell: SkeletonCell): boolean {
     return this.canReplace()
-      && cell.sessionType === 'THEORY'
+      && (cell.sessionType === 'THEORY' || cell.sessionType === 'LIBRARY' || cell.sessionType === 'SPORTS')
       && cell.status === 'DRAFT'
-      && (cell.electiveGroupId == null || cell.commonElective)
-      && cell.courseOfferingId != null;
+      && (cell.electiveGroupId == null || cell.commonElective);
   }
 
   /** Why Replace is unavailable on this cell, for the disabled menu item's explanation. Returns
@@ -871,8 +872,9 @@ export class SkeletonBuilderComponent implements OnInit {
     if (!this.canReplace()) return 'You don\'t have permission to replace a session.';
     if (cell.status !== 'DRAFT') return 'Published sessions can\'t be changed here.';
     if (cell.electiveGroupId != null && !cell.commonElective) return 'Student-choice electives share one slot — Run Automation places the whole group.';
-    if (cell.courseOfferingId == null) return 'A Library or Sports slot has no subject to replace.';
-    if (cell.sessionType !== 'THEORY') return 'Only Theory sessions can be replaced — change a Lab/Clinical batch in Capacity Planner.';
+    if (cell.sessionType !== 'THEORY' && cell.sessionType !== 'LIBRARY' && cell.sessionType !== 'SPORTS') {
+      return 'Only Theory, Library, or Sports sessions can be replaced — change a Lab/Clinical batch in Capacity Planner.';
+    }
     return null;
   }
 

@@ -1449,9 +1449,88 @@ class TimetableSkeletonServiceTest {
 
         assertThatThrownBy(() -> service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L)))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Only a Theory session");
+            .hasMessageContaining("Only a Theory, Library, or Sports session");
 
         verify(classScheduleRepository, never()).save(any());
+    }
+
+    /** A LIBRARY filler cell has no course offering to displace -- replacing it converts the row
+     *  into a real staffed Theory session in place, rather than being blocked the way a LAB/CLINICAL
+     *  cell is. This is the "fill an empty period left by removing Library" path. */
+    @Test
+    void shouldReplaceALibraryCellWithATheoryOffering_convertingItsSessionType() {
+        ClassSchedule cs = new ClassSchedule();
+        cs.setId(100L);
+        cs.setSessionType(ClassSessionType.LIBRARY);
+        cs.setPeriod(period);
+        cs.setDayOfWeek(DayOfWeek.MONDAY);
+        cs.setStatus(ClassScheduleStatus.DRAFT);
+        cs.setCourseOffering(null);
+        cs.setIsActive(true);
+        cs.setTermInstance(termInstance);
+        Classroom room = new Classroom("A-101", null, null, 60);
+        room.setId(70L);
+        cs.setClassroom(room);
+
+        Faculty newFaculty = new Faculty();
+        newFaculty.setId(42L);
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
+        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of());
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L));
+
+        assertThat(cs.getSessionType()).isEqualTo(ClassSessionType.THEORY);
+        assertThat(cs.getCourseOffering()).isSameAs(otherOffering);
+        assertThat(cs.getFaculty()).isSameAs(newFaculty);
+        assertThat(cs.isPinned()).isTrue();
+        // Nothing was displaced -- a filler cell carried no curriculum hours to lose.
+        assertThat(response.displaced()).isNull();
+
+        // The room check must be built against the TARGET type (THEORY), not the cell's original
+        // LIBRARY type, or it would compare against the wrong set of same-room occupants.
+        ArgumentCaptor<TimetableStaffingService.RoomCheckSpec> roomCaptor =
+            ArgumentCaptor.forClass(TimetableStaffingService.RoomCheckSpec.class);
+        verify(timetableStaffingService).validateAssignment(any(), any(), any(), any(), any(),
+            any(), roomCaptor.capture(), any(), any());
+        assertThat(roomCaptor.getValue().type()).isEqualTo(ClassSessionType.THEORY);
+    }
+
+    /** SPORTS is the other filler type sharing LIBRARY's classroom-backed venue and lack of a
+     *  course offering -- same conversion path, spot-checked separately since it's a distinct enum
+     *  branch in the guard. */
+    @Test
+    void shouldReplaceASportsCellWithATheoryOffering() {
+        ClassSchedule cs = new ClassSchedule();
+        cs.setId(101L);
+        cs.setSessionType(ClassSessionType.SPORTS);
+        cs.setPeriod(period);
+        cs.setDayOfWeek(DayOfWeek.MONDAY);
+        cs.setStatus(ClassScheduleStatus.DRAFT);
+        cs.setCourseOffering(null);
+        cs.setIsActive(true);
+        cs.setTermInstance(termInstance);
+
+        Faculty newFaculty = new Faculty();
+        newFaculty.setId(42L);
+
+        when(classScheduleRepository.findById(101L)).thenReturn(Optional.of(cs));
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
+        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of());
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.replaceCellSubject(101L, new SkeletonCellReplaceRequest(200L, 42L));
+
+        assertThat(cs.getSessionType()).isEqualTo(ClassSessionType.THEORY);
+        assertThat(cs.getCourseOffering()).isSameAs(otherOffering);
     }
 
     private CurriculumElectiveGroup electiveGroup(Long id, com.cms.model.enums.ElectiveSelectionMode mode) {

@@ -818,12 +818,21 @@ public class TimetableSkeletonService {
      *  quota, the chosen faculty must be eligible for it, free at this time, and within their
      *  workload caps. Nothing is written until all of them pass.
      *
-     *  <p>THEORY only, deliberately. A LAB/CLINICAL row's audience is a {@link Batch}, and a Batch
-     *  belongs to exactly one CourseOffering — so "replace the subject" there really means "swap in
-     *  a different batch with its own committed venue", which is a Capacity Planner decision rather
-     *  than a per-session edit. Electives are excluded for the same class of reason: every member of
-     *  an elective group must share one slot, so changing one member's subject in place would break
-     *  that invariant.
+     *  <p>The incoming subject is THEORY only, deliberately — a LAB/CLINICAL row's audience is a
+     *  {@link Batch}, and a Batch belongs to exactly one CourseOffering, so "replace the subject"
+     *  there really means "swap in a different batch with its own committed venue", which is a
+     *  Capacity Planner decision rather than a per-session edit. Electives are excluded for the same
+     *  class of reason: every member of an elective group must share one slot, so changing one
+     *  member's subject in place would break that invariant.
+     *
+     *  <p>The OUTGOING side may be a real Theory subject, or a LIBRARY/SPORTS filler cell — both
+     *  share the same classroom-backed venue as Theory (see {@code TimetableStaffingService#venueIdOf}),
+     *  so converting one into a staffed Theory course needs no room logic of its own. Unlike a
+     *  Theory-to-Theory replace, this is NOT hour-neutral: a filler cell carried no curriculum hours,
+     *  so the incoming subject gains a genuinely new delivered hour rather than one handed over by an
+     *  outgoing subject — the admin sees the incoming subject's current assigned/required hours in
+     *  the picker and decides, same as {@link #describeDisplacedShortfall} already returning null for
+     *  a filler source (nothing was displaced).
      *
      *  <p>The room is deliberately NOT a parameter: it is re-derived from the section's committed
      *  allocation, exactly as {@code TimetableStaffingService#staffCell} does. */
@@ -836,10 +845,12 @@ public class TimetableSkeletonService {
                 "Only a draft skeleton cell can be replaced — a published session is immutable.",
                 "SKELETON_CELL_NOT_DRAFT", "ClassSchedule", classScheduleId, null);
         }
-        if (cs.getSessionType() != ClassSessionType.THEORY) {
+        if (cs.getSessionType() != ClassSessionType.THEORY && cs.getSessionType() != ClassSessionType.LIBRARY
+                && cs.getSessionType() != ClassSessionType.SPORTS) {
             throw new IllegalArgumentException(
-                "Only a Theory session can have its subject replaced here — a Lab/Clinical session's audience is a "
-                    + "batch tied to one offering, so changing its subject means changing the batch in Capacity Planner.");
+                "Only a Theory, Library, or Sports session can have its subject replaced here — a Lab/Clinical "
+                    + "session's audience is a batch tied to one offering, so changing its subject means changing "
+                    + "the batch in Capacity Planner.");
         }
         CourseOffering newOffering = courseOfferingRepository.findById(request.courseOfferingId())
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + request.courseOfferingId()));
@@ -864,10 +875,10 @@ public class TimetableSkeletonService {
         checkAlreadyPlaced(newOffering, asPlacementRequest, cs.getId()).ifPresent(violations::add);
 
         // NO budget-cap check here, deliberately -- unlike placement, which adds a session to the
-        // week, a replace is hour-neutral: one existing slot changes hands, so the incoming subject
-        // gains exactly what the outgoing one loses and the term's total delivered hours do not
-        // move. The over-delivery `checkBudgetNotExceeded` exists to prevent is therefore not
-        // something this operation can cause.
+        // week, a Theory-to-Theory replace is hour-neutral: one existing slot changes hands, so the
+        // incoming subject gains exactly what the outgoing one loses and the term's total delivered
+        // hours do not move. The over-delivery `checkBudgetNotExceeded` exists to prevent is
+        // therefore not something that case can cause.
         //
         // Enforcing it here also made the feature unusable in practice. The Global Auto-Schedule
         // extra-hours filler deliberately packs the grid by pushing every Theory offering PAST its
@@ -875,6 +886,12 @@ public class TimetableSkeletonService {
         // a packed grid every candidate subject is already over quota and every replace was
         // rejected -- the cap was rejecting replacements on the grounds of a surplus the scheduler
         // had itself created on purpose.
+        //
+        // A LIBRARY/SPORTS source genuinely isn't hour-neutral -- the incoming subject gains a new
+        // delivered hour with nothing handed over in exchange. A hard cap here was deliberately
+        // rejected in favor of a warning: the picker (SkeletonCellReplaceDialogComponent) already
+        // shows each candidate's current assigned/required hours, so the admin sees the same
+        // over-quota signal before choosing rather than being blocked from an intentional top-up.
 
         // Eligibility is reported as a violation alongside the rest rather than thrown on its own, so
         // the admin sees every reason the replacement was refused in one response instead of
@@ -889,9 +906,13 @@ public class TimetableSkeletonService {
         // can have been changed or re-committed since this cell was placed, and the incoming faculty
         // is new to this slot regardless. Room spec mirrors validateMoveTarget's, so replace and
         // move/swap judge occupancy by exactly the same rule rather than two drifting copies.
+        // ClassSessionType.THEORY, not cs.getSessionType() -- the room check must reflect what this
+        // cell is becoming, not what it currently is, since a LIBRARY/SPORTS source is about to
+        // convert to THEORY. venueIdOf/physicalRoomOf resolve identically for THEORY/LIBRARY/SPORTS
+        // (all read cs.getClassroom()), so only the TYPE passed to the conflict check needs this care.
         Long venueId = TimetableStaffingService.venueIdOf(cs);
         TimetableStaffingService.RoomCheckSpec roomCheck = venueId != null
-            ? new TimetableStaffingService.RoomCheckSpec(cs.getSessionType(), venueId,
+            ? new TimetableStaffingService.RoomCheckSpec(ClassSessionType.THEORY, venueId,
                 TimetableStaffingService.physicalRoomOf(cs), TimetableStaffingService.RoomMode.STRICT)
             : null;
         violations.addAll(timetableStaffingService.validateAssignment(
@@ -923,6 +944,10 @@ public class TimetableSkeletonService {
             row.setCourseOffering(newOffering);
             row.setSubject(newOffering.getSubject());
             row.setFaculty(newFaculty);
+            // A no-op when the source was already THEORY; flips a LIBRARY/SPORTS filler cell into a
+            // real staffed Theory session -- everything else about the row (day/period/classroom/
+            // cohort section) is untouched, matching the "same slot, different content" contract.
+            row.setSessionType(ClassSessionType.THEORY);
             // Replacing is a deliberate human decision, so it pins for the same reason a drag-move
             // does -- otherwise the next automation run would simply undo it.
             row.setPinned(true);

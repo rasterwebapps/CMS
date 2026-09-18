@@ -134,6 +134,12 @@ export class SkeletonCellReplaceDialogComponent {
    *  teaching two different subjects), so a user clicking one cell can be changing two. */
   protected readonly isMultiPeriod = computed(() => this.data.cell.sessionGroupId != null);
 
+  /** True when the slot being replaced is a LIBRARY/SPORTS filler rather than a real Theory
+   *  subject — unlike a Theory-to-Theory replace, this genuinely adds a new delivered hour to the
+   *  incoming subject rather than handing one over from an outgoing subject, so the dialog's
+   *  "hour-neutral" and "subject displaced" copy don't apply and are swapped for filler-specific text. */
+  protected readonly isFillerSource = computed(() => this.data.cell.sessionType !== 'THEORY');
+
   protected onOfferingChange(offeringId: number | null): void {
     this.selectedOfferingId.set(offeringId);
     this.selectedFacultyId.set(null);
