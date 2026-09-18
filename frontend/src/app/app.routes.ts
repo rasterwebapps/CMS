@@ -1955,14 +1955,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'lab-schedules/new',
-    canActivate: withPermission('LAB_SCHEDULE_MANAGE'),
-    loadComponent: () =>
-      import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
-        (m) => m.LabScheduleFormComponent
-      ),
-  },
-  {
     path: 'lab-schedules/:id/edit',
     canActivate: withPermission('LAB_SCHEDULE_MANAGE'),
     loadComponent: () =>

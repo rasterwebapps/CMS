@@ -53,8 +53,6 @@ export class LabScheduleFormComponent implements OnInit {
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
-  protected readonly isEditMode = signal(false);
-  protected readonly pageTitle = signal('Add Class Schedule');
   protected readonly labs = signal<{ id: number; name: string }[]>([]);
   protected readonly subjects = signal<{ id: number; name: string; code: string; specialityId: number | null; specialityName: string | null }[]>([]);
   protected readonly faculty = signal<{ id: number; name: string; specialityId: number | null }[]>([]);
@@ -283,8 +281,6 @@ export class LabScheduleFormComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.itemId = Number(id);
-      this.isEditMode.set(true);
-      this.pageTitle.set('Edit Class Schedule');
       this.loading.set(true);
       this.labScheduleService.getById(this.itemId).subscribe({
         next: (item) => {
@@ -334,9 +330,8 @@ export class LabScheduleFormComponent implements OnInit {
       courseOfferingId: v.courseOfferingId ?? null,
     };
     this.saving.set(true);
-    const op$ = this.isEditMode() ? this.labScheduleService.update(this.itemId!, request) : this.labScheduleService.create(request);
-    op$.subscribe({
-      next: () => { this.toast.success(this.isEditMode() ? 'Updated' : 'Created'); void this.router.navigate(['/lab-schedules']); },
+    this.labScheduleService.update(this.itemId!, request).subscribe({
+      next: () => { this.toast.success('Updated'); void this.router.navigate(['/lab-schedules']); },
       error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to save'); this.saving.set(false); },
     });
   }

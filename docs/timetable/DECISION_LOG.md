@@ -249,3 +249,20 @@ This file is the append-only chronological record of scope/behaviour decisions b
 - **No schema change.**
 - **Tests:** `hasExistingDraftContent_true_whenAnActiveDraftRowExistsInTheTerm` / `_false_...` in `TimetableGlobalAutoScheduleServiceTest`.
 - **Docs:** BR-56 change log; manual test case TC-GAS-026.
+
+---
+
+## 2026-09-18 — Lab Schedules screen loses its manual "Add" path; edit/delete only
+
+**Prompted by:** a walkthrough of what the `/lab-schedules` (`ClassScheduleController`/`ClassSchedule`) screen is for. It's a manual CRUD editor over the same `class_schedules` table Skeleton Builder/Global Auto-Schedule write to, but its create form skipped the `check-conflicts` call the backend already exposes — a manually-added row could silently clash with an existing Lab/Faculty/Batch assignment in a way the algorithm itself never would. The user decided: *"Remove the add button, we can work out on the special classes (if it needs a lab or clinical session) write down a todo on it!"*
+
+**Investigation before writing the TODO:** BR-55's Special/Remedial Class Scheduler already handles this. `SpecialClassRequestService.resolveVenue`/`applyVenue` switch on `THEORY`/`LAB`/`CLINICAL` (classroom/lab/clinical_venue columns all exist on `session_occurrences` since V374), and the request flyout (`special-class-request-flyout.component.ts/.html`) already has a session-type selector that swaps the venue dropdown between classrooms/labs/clinical venues. Day-repeat mode copies whichever `sessionType` the source day's row actually is, LAB/CLINICAL included. So there is **no open gap** for one-off Lab/Clinical sessions — BR-55 already covers them end-to-end (faculty-request → admin-approval), just as a `SessionOccurrence` (one-off), not a recurring `ClassSchedule` row.
+
+**Decision:** Removed the create path entirely (button, `/lab-schedules/new` route, the form's create branch, `LabScheduleService.create()`) rather than just hiding the button — matches the existing "Batch creation = Capacity Auto-Plan only" hard-gate precedent of not leaving a create path reachable by direct URL once nothing legitimate calls it. Confirmed via grep that nothing else called `ClassScheduleService.create`/`POST /lab-schedules` (Skeleton Builder and Staffing write via repository, not this endpoint; Faculty Detail's Lab Schedules tab only reads). The backend `POST /lab-schedules` endpoint and `ClassScheduleService.create()` were left in place (frontend-only removal) since they share `applyRequest`/`enforceNoConflicts` with `update()` and have existing test coverage in `ClassScheduleControllerTest`/`ClassScheduleServiceTest` — untangling that wasn't asked for.
+
+**TODO:** None needed for Special Class Lab/Clinical support (already built, see above). Open item instead: if a future need arises for a genuinely **recurring** (not one-off) Lab/Clinical `ClassSchedule` row outside of Skeleton Builder/Global Auto-Schedule, that is a deviation from this decision and should get a full specialist round before re-adding any manual create path, per the same rule already applied to `Batch` creation.
+
+**Impact:**
+- **Frontend:** `lab-schedule-list.component.html` (Add Schedule button removed), `app.routes.ts` (`lab-schedules/new` route removed), `lab-schedule-form.component.ts`/`.html` (edit-only now — `isEditMode`/`pageTitle` signals and the create branch in `onSubmit` removed), `lab-schedule.service.ts` (`create()` removed), `lab-schedule.tours.ts` (dropped the "Add a schedule" tour step/flow-map entries).
+- **Backend:** unchanged — `POST /lab-schedules` and `ClassScheduleService.create()` remain, now unreachable from the UI.
+- **No schema change.**
