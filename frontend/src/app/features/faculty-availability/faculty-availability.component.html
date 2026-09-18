@@ -3,11 +3,24 @@
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <div style="display: flex; align-items: center; gap: 12px;">
-        <h1 class="mlp-title">Faculty <em>Availability</em></h1>
+        <h1 class="mlp-title">Recurring <em>Unavailability</em></h1>
         <cms-tour-button tourKey="faculty-availability" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="page-subtitle">Mark when a faculty member is unavailable so Timetable Generate/Regenerate/Swap can steer around it</p>
+      <p class="page-subtitle">Block a faculty member's standing weekly commitments (e.g. external duty every Tuesday) so Skeleton Builder, Staffing, and Swap steer around them</p>
     </div>
+  </div>
+
+  <div class="availability-info-banner">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+    <span>
+      For <strong>recurring weekly</strong> commitments only. For one-off leave on a specific date, use
+      <a routerLink="/faculty-absence">Faculty Absence</a> instead — that screen also handles finding and applying a substitute.
+    </span>
   </div>
 
   <div id="tour-facavail-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
@@ -22,8 +35,13 @@
   </div>
 
   @if (!canManage()) {
-    <div class="content-card availability-readonly-banner">
-      You have view-only access — ask an admin with Manage permission to change availability.
+    <div class="availability-readonly-banner">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <span>You have view-only access — ask an admin with Manage permission to change availability.</span>
     </div>
   }
 

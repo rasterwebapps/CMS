@@ -97,7 +97,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   'my-requests': 'My Special Classes',
   'assign-faculty': 'Assign Faculty',
   'faculty-absence': 'Faculty Absence',
-  'faculty-availability': 'Faculty Availability',
+  'faculty-availability': 'Recurring Unavailability',
   'elective-assignment': 'Elective Assignment',
   'my-timetable': 'My Timetable',
   'progress-report': 'Progress Report',

@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FacultyService } from '../faculty/faculty.service';
@@ -27,7 +28,7 @@ interface AvailabilityRow {
 @Component({
   selector: 'app-faculty-availability',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatTooltipModule, CmsTourButtonComponent],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatTooltipModule, CmsTourButtonComponent],
   templateUrl: './faculty-availability.component.html',
   styleUrl: './faculty-availability.component.scss',
 })

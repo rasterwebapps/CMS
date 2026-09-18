@@ -125,11 +125,16 @@ export const NAV_ENTRIES: NavEntry[] = [
       // links) rather than adding a 2nd top-level entry for what's largely the same job.
       { label: 'Capacity Auto-Plan',  icon: 'auto_awesome',       route: '/timetable/capacity-auto-plan', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
       { label: 'Assign Faculty',      icon: 'person_edit',        route: '/assign-faculty',      permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
-      // -- Timetable build -- (Faculty Availability first: TimetableStaffingService's
+      // -- Timetable build -- (Recurring Unavailability first: TimetableStaffingService's
       // validateAssignment() checks it directly, so it gates Staffing, not the other way round.
       // Faculty Workload Rules is a Staffing input too, but it's a one-time institution-wide
-      // config screen like Periods/Classrooms, so it lives under Preferences > Academics masters.)
-      { label: 'Faculty Availability', icon: 'event_busy',        route: '/faculty-availability', permissions: ['FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'] },
+      // config screen like Periods/Classrooms, so it lives under Preferences > Academics masters.
+      // Renamed from "Faculty Availability" (2026-09-18): this screen only ever records a
+      // *recurring weekly* block (e.g. standing external duty every Tuesday) -- it is unrelated to
+      // one-off leave, which is the separate "Faculty Absence" screen further down under
+      // "Timetable ops". The two were being confused despite already living in different nav
+      // sections, so the label itself was renamed rather than moved.)
+      { label: 'Recurring Unavailability', icon: 'event_busy',    route: '/faculty-availability', permissions: ['FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'] },
       { label: 'Skeleton Builder',    icon: 'grid_on',            route: '/timetable/skeleton-builder', permissions: ['TIMETABLE_VIEW'] },
       // No standalone Staffing nav entry -- Approve now auto-staffs the draft itself (OC-230), and
       // any leftover unstaffed cell is fixed in-grid via Skeleton Builder's Reassign Faculty dialog.

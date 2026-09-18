@@ -36,11 +36,14 @@
 }
 
 // ── Hours summary (reuses global .stat-grid/.stat-card — see styles.scss) ─────────
+// No margin-bottom here: this is a direct child of .mlp-page, whose own flex
+// `gap: 16px` already spaces it from whatever comes next -- a margin-bottom
+// here would stack on top of that gap and double it (see CLAUDE.md's
+// "Shared mlp-* list-page spacing system" hard gate).
 .skeleton-hours-summary {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .skeleton-hours-summary__row {

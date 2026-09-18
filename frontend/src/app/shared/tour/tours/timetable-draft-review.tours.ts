@@ -47,7 +47,7 @@ export const TIMETABLE_DRAFT_REVIEW_TOUR: TourDefinition = {
 
 export const TIMETABLE_DRAFT_REVIEW_FLOW_MAP: TourFlowMap = {
   funnel: [
-    { label: 'Faculty Availability', description: 'Record which faculty are unavailable for which periods before building the timetable.' },
+    { label: 'Recurring Unavailability', description: 'Record which faculty have standing weekly commitments before building the timetable.' },
     { label: 'Faculty Workload Rules', description: 'Set weekly/daily/continuous teaching-load caps used to validate staffing.' },
     { label: 'Skeleton Builder', description: 'Place Theory/Lab/Clinical sessions into periods for each subject across a cohort\'s term.' },
     { label: 'Staffing', description: 'Assign faculty to each placed session and pick theory rooms.' },
