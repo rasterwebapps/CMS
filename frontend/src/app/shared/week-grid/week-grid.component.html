@@ -22,7 +22,9 @@
         }
         @if (!isEmpty() && allowManage) {
           <button type="button" class="btn-secondary" [disabled]="saving" (click)="discardClick.emit()">Discard</button>
-          <button type="button" class="btn-primary" [disabled]="saving" (click)="approveClick.emit()">
+          <button type="button" class="btn-primary" [disabled]="saving || !!publishDisabledReason"
+            [matTooltip]="publishDisabledReason ?? ''" [matTooltipDisabled]="!publishDisabledReason"
+            (click)="approveClick.emit()">
             @if (saving) {
               <span class="btn-spinner btn-spinner--dark"></span>
             }

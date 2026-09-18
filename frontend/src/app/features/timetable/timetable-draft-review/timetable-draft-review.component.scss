@@ -21,6 +21,12 @@
   flex-wrap: wrap;
 }
 
+.conflict-gate-banner {
+  border-color: color-mix(in srgb, var(--cms-warning) 45%, transparent);
+  background: var(--cms-warning-light);
+  flex-wrap: wrap;
+}
+
 .clinical-shift-banner__label {
   white-space: nowrap;
 }

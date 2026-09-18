@@ -62,7 +62,7 @@
         <option [ngValue]="'ALL'">All cohorts…</option>
       }
     </select>
-    @if (selectedTermInstanceId && ((canGlobalAutoPlace() && (allCohortsSelected() || selectedCohortId)) || canManageWorkingSaturdays())) {
+    @if (selectedTermInstanceId && ((canGlobalAutoPlace() && (allCohortsSelected() || selectedCohortId)) || canManageWorkingSaturdays() || canViewConflictInspector())) {
       <div class="toolbar-right">
         @if (canGlobalAutoPlace() && (allCohortsSelected() || selectedCohortId)) {
           <button type="button" class="btn-secondary" [disabled]="!allCohortsSelected() && termTimetablePublished()"
@@ -71,6 +71,12 @@
         }
         @if (canManageWorkingSaturdays()) {
           <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+        }
+        @if (canViewConflictInspector()) {
+          <a class="btn-primary" routerLink="/timetable/conflict-inspector"
+            [queryParams]="{ academicYearId: selectedAcademicYearId, termInstanceId: selectedTermInstanceId }">
+            Check Conflicts →
+          </a>
         }
       </div>
     }

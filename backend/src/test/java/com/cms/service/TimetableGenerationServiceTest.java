@@ -77,6 +77,11 @@ class TimetableGenerationServiceTest {
         faculty = new Faculty("EMP001", "John", "Doe", "john@college.edu", "1234567890",
             speciality, designation, "Nursing", null, null, FacultyStatus.ACTIVE);
         faculty.setId(1L);
+
+        // Default every test to an already-satisfied conflict-acknowledgment gate (OC-258) so only
+        // the tests specifically about that gate need to override it to false — otherwise every
+        // pre-existing "successful approve" test below would fail on a mock's default `false`.
+        lenient().when(timetableConflictInspectorService.isAcknowledgmentValid(any())).thenReturn(true);
     }
 
     private TermInstance termWithStatus(Long id, TermInstanceStatus status) {
@@ -265,6 +270,28 @@ class TimetableGenerationServiceTest {
 
         assertThatThrownBy(() -> service.approve(10L, "admin"))
             .isInstanceOf(TimetableConstraintViolationException.class);
+
+        verify(classScheduleRepository, never()).save(any());
+        verify(auditLogService, never()).record(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldBlockApproveWhenConflictAcknowledgmentIsMissingOrStale() {
+        // OC-258: a clean scan alone isn't enough -- an admin must have actually revisited Conflict
+        // Inspector after the current skeleton (see TimetableConflictInspectorService#acknowledge).
+        ClassSchedule staffed = new ClassSchedule();
+        staffed.setId(1L);
+        staffed.setStatus(ClassScheduleStatus.DRAFT);
+        staffed.setFaculty(faculty);
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(staffed));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableConflictInspectorService.isAcknowledgmentValid(any())).thenReturn(false);
+
+        assertThatThrownBy(() -> service.approve(10L, "admin"))
+            .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
         verify(auditLogService, never()).record(any(), any(), any(), any(), any());

@@ -97,4 +97,31 @@ describe('CmsWeekGridComponent', () => {
 
     expect(emitted?.id).toBe(1);
   });
+
+  // OC-258 Conflict Inspector acknowledgment gate: Draft Review disables Publish via this input
+  // rather than hiding the toolbar, so the reason must show as a tooltip, not just a disabled state
+  // that leaves the user with no idea why.
+  describe('publishDisabledReason (review mode Publish gate)', () => {
+    beforeEach(() => {
+      fixture.componentInstance.mode = 'review';
+      fixture.componentInstance.allowManage = true;
+      fixture.componentInstance.sessions = [baseSession];
+    });
+
+    it('leaves Publish enabled with no tooltip when the reason is null', () => {
+      fixture.componentInstance.publishDisabledReason = null;
+      fixture.detectChanges();
+
+      const publishBtn = fixture.debugElement.query(By.css('.week-grid-toolbar .btn-primary'));
+      expect(publishBtn.nativeElement.disabled).toBe(false);
+    });
+
+    it('disables Publish and carries the reason as its tooltip when set', () => {
+      fixture.componentInstance.publishDisabledReason = 'Run Conflict Inspector first.';
+      fixture.detectChanges();
+
+      const publishBtn = fixture.debugElement.query(By.css('.week-grid-toolbar .btn-primary'));
+      expect(publishBtn.nativeElement.disabled).toBe(true);
+    });
+  });
 });

@@ -163,6 +163,17 @@ public class TimetableGenerationService {
                 .toList();
             throw new TimetableConstraintViolationException(violations);
         }
+        // A clean scan alone isn't enough: OC-258's sequential Skeleton Builder -> Conflict
+        // Inspector -> Draft Review flow requires an admin to have actually revisited Conflict
+        // Inspector after the current skeleton, not just that it happens to be clean right now
+        // (e.g. an edit that introduced no new violation would satisfy the check above without
+        // anyone having looked again). See TimetableConflictInspectorService#isAcknowledgmentValid.
+        if (!timetableConflictInspectorService.isAcknowledgmentValid(term)) {
+            throw new LifecycleConflictException(
+                "Conflict Inspector must be re-checked and its clean result acknowledged (via \"Proceed to Review\") "
+                    + "before this term can be approved — the skeleton has changed since the last acknowledgment.",
+                "TIMETABLE_CONFLICT_ACKNOWLEDGMENT_REQUIRED", "TermInstance", termInstanceId, null);
+        }
         // OC-256: none of the checks above ever compare placed hours against curriculum-required
         // hours -- a course offering that never got any Theory/Lab/Clinical sessions placed at all
         // (as opposed to placed-but-unstaffed, which unstaffedCount already catches) has nothing

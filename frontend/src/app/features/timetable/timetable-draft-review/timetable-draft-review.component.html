@@ -108,6 +108,16 @@
       </div>
     }
 
+    @if (canManage() && hasUnpublishedDraft() && conflictAcknowledged() === false) {
+      <div class="content-card timetable-swap-banner conflict-gate-banner">
+        <span>This term hasn't passed a fresh Conflict Inspector check yet — publishing is blocked until you do.</span>
+        <a class="btn-primary" routerLink="/timetable/conflict-inspector"
+          [queryParams]="{ academicYearId: selectedAcademicYearId, termInstanceId: selectedTermInstanceId }">
+          Open Conflict Inspector →
+        </a>
+      </div>
+    }
+
     <div class="content-card">
       @if (loading()) {
         <div class="loading-container">
@@ -120,6 +130,7 @@
           [saving]="saving() || swapping()"
           [allowManage]="canManage()"
           [allowRevert]="canRevert()"
+          [publishDisabledReason]="publishDisabledReason()"
           [swapMode]="swapMode()"
           [swapSourceSessionId]="swapSource()?.id ?? null"
           [candidateCells]="candidateCells()"

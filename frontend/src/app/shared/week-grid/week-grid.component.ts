@@ -47,6 +47,12 @@ export class CmsWeekGridComponent {
   @Input() allowManage = false;
   @Input() allowRevert = false;
 
+  /** Non-null disables the Publish button and shows this as its tooltip, independent of
+   *  {@link allowManage}/{@link saving} — used by Draft Review's Conflict Inspector acknowledgment
+   *  gate (OC-258) to block publishing without hiding the button/toolbar entirely. Null (default)
+   *  leaves every other consumer of this component unaffected. */
+  @Input() publishDisabledReason: string | null = null;
+
   private readonly _holidays = signal<WeekGridHolidayInfo[]>([]);
   @Input() set holidays(value: WeekGridHolidayInfo[] | null | undefined) {
     this._holidays.set(value ?? []);

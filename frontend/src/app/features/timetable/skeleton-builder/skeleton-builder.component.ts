@@ -450,6 +450,10 @@ export class SkeletonBuilderComponent implements OnInit {
     return this.permissionService.has('TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE');
   }
 
+  protected canViewConflictInspector(): boolean {
+    return this.permissionService.has('TIMETABLE_CONFLICT_INSPECTOR_VIEW');
+  }
+
   protected openGlobalAutoSchedule(): void {
     this.showGlobalAutoSchedule.set(true);
   }

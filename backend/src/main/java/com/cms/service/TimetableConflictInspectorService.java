@@ -13,11 +13,13 @@ import java.util.TreeMap;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ConflictAcknowledgmentStatusResponse;
 import com.cms.dto.ConflictScanResponse;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.TimetableConflictRow;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Faculty;
 import com.cms.model.Room;
@@ -108,6 +110,55 @@ public class TimetableConflictInspectorService {
             countsByCode,
             rows
         );
+    }
+
+    /** Publish gate for Draft Review's Approve action (see V528): rejects with the same
+     *  {@link TimetableConstraintViolationException} {@link #scanTerm} itself would if the term
+     *  isn't actually clean right now, then records the acknowledgment. Deliberately re-scans
+     *  rather than trusting the caller's last-fetched {@code ConflictScanResponse} — the whole
+     *  point of the gate is a fresh look, not a stale one. */
+    @Transactional
+    public ConflictAcknowledgmentStatusResponse acknowledge(Long termInstanceId) {
+        TermInstance term = termInstanceRepository.findById(termInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
+        ConflictScanResponse scan = scanTerm(termInstanceId);
+        if (scan.violationCount() > 0) {
+            List<ConstraintViolation> violations = scan.rows().stream()
+                .flatMap(row -> row.violations().stream())
+                .toList();
+            throw new TimetableConstraintViolationException(violations);
+        }
+        Instant now = Instant.now();
+        term.setConflictAcknowledgedAt(now);
+        term.setConflictAcknowledgedCellCount((int) classScheduleRepository.countByTermInstanceIdAndIsActiveTrue(termInstanceId));
+        termInstanceRepository.save(term);
+        return new ConflictAcknowledgmentStatusResponse(termInstanceId, true, now);
+    }
+
+    public ConflictAcknowledgmentStatusResponse getAcknowledgmentStatus(Long termInstanceId) {
+        TermInstance term = termInstanceRepository.findById(termInstanceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
+        boolean valid = isAcknowledgmentValid(term);
+        return new ConflictAcknowledgmentStatusResponse(termInstanceId, valid, valid ? term.getConflictAcknowledgedAt() : null);
+    }
+
+    /** True only when this exact term has been acknowledged (see {@link #acknowledge}) AND nothing
+     *  about its active cells has changed since — either its count (a placement or removal) or its
+     *  latest edit timestamp (a move/swap/relocate/staffing change to an existing cell). Either
+     *  changing without a new violation resulting is exactly the case {@link #scanTerm}'s own
+     *  violation check can't catch, since it only inspects the term's *current* state, not whether
+     *  a human looked at it again since the last edit. */
+    public boolean isAcknowledgmentValid(TermInstance term) {
+        if (term.getConflictAcknowledgedAt() == null || term.getConflictAcknowledgedCellCount() == null) {
+            return false;
+        }
+        long currentCount = classScheduleRepository.countByTermInstanceIdAndIsActiveTrue(term.getId());
+        if (currentCount != term.getConflictAcknowledgedCellCount()) {
+            return false;
+        }
+        return classScheduleRepository.findMaxUpdatedAtByTermInstanceIdAndIsActiveTrue(term.getId())
+            .map(maxUpdatedAt -> !maxUpdatedAt.isAfter(term.getConflictAcknowledgedAt()))
+            .orElse(true);
     }
 
     /** offeringId -> the cohorts enrolled in this term that actually take it. Inverts

@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -8,6 +8,7 @@ import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { TimetableService } from '../timetable.service';
 import { ClassSchedule, ClinicalShiftSummaryItem, CohortTermStatusSummary, SwapCandidate, TimetableCoverageGap } from '../timetable.model';
+import { ConflictInspectorService } from '../conflict-inspector/conflict-inspector.service';
 import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.component';
 import { WeekGridSession } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -25,7 +26,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
   selector: 'app-timetable-draft-review',
   standalone: true,
   imports: [
-    FormsModule, DecimalPipe, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent,
+    FormsModule, DecimalPipe, RouterLink, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent,
     CmsTourButtonComponent, CmsStatusBadgeComponent, CmsEmptyStateComponent,
   ],
   templateUrl: './timetable-draft-review.component.html',
@@ -34,6 +35,7 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 export class TimetableDraftReviewComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly timetableService = inject(TimetableService);
+  private readonly conflictInspectorService = inject(ConflictInspectorService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -55,6 +57,23 @@ export class TimetableDraftReviewComponent implements OnInit {
   protected readonly viewMode = signal<'summary' | 'grid'>('summary');
   protected readonly cohortSummary = signal<CohortTermStatusSummary[]>([]);
   protected readonly summaryLoading = signal(false);
+
+  /** Null while unknown (not yet fetched, or between term switches) so the Publish button stays
+   *  disabled by default rather than briefly enabled before the real gate status arrives. */
+  protected readonly conflictAcknowledged = signal<boolean | null>(null);
+
+  protected publishDisabledReason(): string | null {
+    return this.conflictAcknowledged() === false
+      ? 'Run Conflict Inspector and click "Proceed to Review" for this term before it can be published.'
+      : null;
+  }
+
+  /** Mirrors week-grid's own private `!isEmpty()` check that gates whether its Publish button
+   *  renders at all — the gate banner would be misleading shown on a term with nothing to publish
+   *  (already published, or no draft placed yet). */
+  protected hasUnpublishedDraft(): boolean {
+    return this.sessions().some((s) => s.status === 'DRAFT');
+  }
 
   protected readonly swapMode = signal(false);
   protected readonly swapSource = signal<ClassSchedule | null>(null);
@@ -166,6 +185,13 @@ export class TimetableDraftReviewComponent implements OnInit {
               + 'ask an admin with override permission to approve this term.');
           }
           return;
+        }
+        // Client-side publishDisabledReason() already blocks this in the common case — reachable
+        // here only if the acknowledgment went stale between page load and clicking Publish (e.g.
+        // someone edited the skeleton in another tab). Re-fetch so the banner/disabled state
+        // catches up instead of leaving the button looking enabled after a failed attempt.
+        if (err?.error?.code === 'TIMETABLE_CONFLICT_ACKNOWLEDGMENT_REQUIRED') {
+          this.loadConflictAcknowledgment(this.selectedTermInstanceId!);
         }
         this.toast.error(violationText(err) ?? 'Failed to approve timetable');
       },
@@ -333,6 +359,18 @@ export class TimetableDraftReviewComponent implements OnInit {
       error: () => { this.toast.error('Failed to load draft timetable'); this.loading.set(false); },
     });
     this.loadClinicalShiftSummary(termInstanceId);
+    this.loadConflictAcknowledgment(termInstanceId);
+  }
+
+  /** Silently leaves the gate unknown (Publish stays disabled) on failure rather than surfacing a
+   *  second error toast on top of the grid's own — the same tradeoff as
+   *  {@link loadClinicalShiftSummary} just above it. */
+  private loadConflictAcknowledgment(termInstanceId: number): void {
+    this.conflictAcknowledged.set(null);
+    this.conflictInspectorService.getAcknowledgmentStatus(termInstanceId).subscribe({
+      next: (status) => this.conflictAcknowledged.set(status.acknowledged),
+      error: () => this.conflictAcknowledged.set(null),
+    });
   }
 
   // Clinical Shift Group (duty-roster) hours never produce a grid cell (see ClinicalShiftSummaryItem),

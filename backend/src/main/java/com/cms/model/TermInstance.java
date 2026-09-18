@@ -76,6 +76,20 @@ public class TermInstance {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /** When an admin last acknowledged a clean (zero-violation) Conflict Inspector scan for this
+     *  term via {@code TimetableConflictInspectorService#acknowledge} — see V528. Null means never
+     *  acknowledged. Paired with {@link #conflictAcknowledgedCellCount} to detect whether the
+     *  skeleton has changed since, since a placement/removal doesn't necessarily raise a new
+     *  violation for {@code TimetableConflictInspectorService#isAcknowledgmentValid} to catch. */
+    @Column(name = "conflict_acknowledged_at")
+    private Instant conflictAcknowledgedAt;
+
+    /** Snapshot of the active {@code ClassSchedule} row count for this term at the moment it was
+     *  last acknowledged (see {@link #conflictAcknowledgedAt}) — a changed count means cells were
+     *  placed or removed since, which invalidates the acknowledgment even if no violation resulted. */
+    @Column(name = "conflict_acknowledged_cell_count")
+    private Integer conflictAcknowledgedCellCount;
+
     public TermInstance() {
     }
 
@@ -158,5 +172,21 @@ public class TermInstance {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Instant getConflictAcknowledgedAt() {
+        return conflictAcknowledgedAt;
+    }
+
+    public void setConflictAcknowledgedAt(Instant conflictAcknowledgedAt) {
+        this.conflictAcknowledgedAt = conflictAcknowledgedAt;
+    }
+
+    public Integer getConflictAcknowledgedCellCount() {
+        return conflictAcknowledgedCellCount;
+    }
+
+    public void setConflictAcknowledgedCellCount(Integer conflictAcknowledgedCellCount) {
+        this.conflictAcknowledgedCellCount = conflictAcknowledgedCellCount;
     }
 }

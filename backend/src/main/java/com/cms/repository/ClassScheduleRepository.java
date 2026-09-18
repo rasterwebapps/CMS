@@ -1,7 +1,9 @@
 package com.cms.repository;
 
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -45,6 +47,18 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
      *  scan, counts, the draft/published views -- must read through these, not the unfiltered
      *  finders above, or it acts on (and double-counts) every leftover copy. */
     List<ClassSchedule> findByTermInstanceIdAndIsActiveTrue(Long termInstanceId);
+
+    /** Cheap sibling of {@link #findByTermInstanceIdAndIsActiveTrue} used only to fingerprint "has
+     *  the skeleton changed" for the Conflict Inspector acknowledgment gate (see
+     *  TimetableConflictInspectorService#isAcknowledgmentValid) — no need to hydrate every row just
+     *  to compare a count. */
+    long countByTermInstanceIdAndIsActiveTrue(Long termInstanceId);
+
+    /** The other half of that same fingerprint: the most recent edit timestamp across this term's
+     *  active cells, compared against when the acknowledgment was recorded. Empty when the term has
+     *  no active cells at all. */
+    @Query("SELECT MAX(cs.updatedAt) FROM ClassSchedule cs WHERE cs.termInstance.id = :termInstanceId AND cs.isActive = true")
+    Optional<Instant> findMaxUpdatedAtByTermInstanceIdAndIsActiveTrue(@Param("termInstanceId") Long termInstanceId);
 
     List<ClassSchedule> findByTermInstanceIdAndStatusAndIsActiveTrue(Long termInstanceId, ClassScheduleStatus status);
 

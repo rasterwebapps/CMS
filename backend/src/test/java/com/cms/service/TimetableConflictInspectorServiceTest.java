@@ -1,12 +1,16 @@
 package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +21,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.ConflictAcknowledgmentStatusResponse;
 import com.cms.dto.ConflictScanResponse;
+import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.AcademicYear;
 import com.cms.model.Classroom;
 import com.cms.model.ClassSchedule;
@@ -111,7 +117,7 @@ class TimetableConflictInspectorServiceTest {
         classroom = new Classroom("Room 101", "Main Block", "101", 60);
         classroom.setId(1L);
 
-        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        lenient().when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         lenient().when(blockedPeriodChecker.blockReason(any(), any(), any(), any())).thenReturn(Optional.empty());
         lenient().when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
@@ -222,5 +228,76 @@ class TimetableConflictInspectorServiceTest {
         assertThat(result.scannedCellCount()).isEqualTo(1);
         assertThat(result.violationCount()).isZero();
         assertThat(result.rows()).isEmpty();
+    }
+
+    @Test
+    void shouldAcknowledgeACleanTermAndRecordTheCellCountFingerprint() {
+        ClassSchedule cell = staffedCell(100L);
+        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cell));
+        when(classScheduleRepository.countByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(1L);
+
+        ConflictAcknowledgmentStatusResponse response = service.acknowledge(10L);
+
+        assertThat(response.acknowledged()).isTrue();
+        assertThat(response.acknowledgedAt()).isNotNull();
+        assertThat(termInstance.getConflictAcknowledgedAt()).isEqualTo(response.acknowledgedAt());
+        assertThat(termInstance.getConflictAcknowledgedCellCount()).isEqualTo(1);
+        verify(termInstanceRepository).save(termInstance);
+    }
+
+    @Test
+    void shouldRejectAcknowledgingATermThatIsNotActuallyClean() {
+        ClassSchedule cell = staffedCell(100L);
+        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cell));
+        when(blockedPeriodChecker.blockReason(DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
+            .thenReturn(Optional.of("Staff meeting"));
+
+        assertThatThrownBy(() -> service.acknowledge(10L))
+            .isInstanceOf(TimetableConstraintViolationException.class);
+        assertThat(termInstance.getConflictAcknowledgedAt()).isNull();
+    }
+
+    @Test
+    void isAcknowledgmentValidShouldBeFalseWhenNeverAcknowledged() {
+        assertThat(service.isAcknowledgmentValid(termInstance)).isFalse();
+    }
+
+    @Test
+    void isAcknowledgmentValidShouldBeTrueWhenNothingChangedSinceAcknowledging() {
+        termInstance.setConflictAcknowledgedAt(Instant.now());
+        termInstance.setConflictAcknowledgedCellCount(1);
+        when(classScheduleRepository.countByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(1L);
+        when(classScheduleRepository.findMaxUpdatedAtByTermInstanceIdAndIsActiveTrue(10L))
+            .thenReturn(Optional.of(termInstance.getConflictAcknowledgedAt().minus(1, ChronoUnit.MINUTES)));
+
+        assertThat(service.isAcknowledgmentValid(termInstance)).isTrue();
+    }
+
+    @Test
+    void isAcknowledgmentValidShouldBeFalseWhenACellWasAddedOrRemovedSinceAcknowledging() {
+        termInstance.setConflictAcknowledgedAt(Instant.now());
+        termInstance.setConflictAcknowledgedCellCount(1);
+        when(classScheduleRepository.countByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(2L);
+
+        assertThat(service.isAcknowledgmentValid(termInstance)).isFalse();
+    }
+
+    @Test
+    void isAcknowledgmentValidShouldBeFalseWhenAnExistingCellWasEditedAfterAcknowledging() {
+        termInstance.setConflictAcknowledgedAt(Instant.now());
+        termInstance.setConflictAcknowledgedCellCount(1);
+        when(classScheduleRepository.countByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(1L);
+        when(classScheduleRepository.findMaxUpdatedAtByTermInstanceIdAndIsActiveTrue(10L))
+            .thenReturn(Optional.of(termInstance.getConflictAcknowledgedAt().plus(1, ChronoUnit.MINUTES)));
+
+        assertThat(service.isAcknowledgmentValid(termInstance)).isFalse();
+    }
+
+    @Test
+    void getAcknowledgmentStatusShouldReturnNullTimestampWhenInvalid() {
+        ConflictAcknowledgmentStatusResponse status = service.getAcknowledgmentStatus(10L);
+
+        assertThat(status.acknowledged()).isFalse();
+        assertThat(status.acknowledgedAt()).isNull();
     }
 }

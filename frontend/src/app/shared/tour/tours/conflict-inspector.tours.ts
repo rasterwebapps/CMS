@@ -51,6 +51,15 @@ export const CONFLICT_INSPECTOR_TOUR: TourDefinition = {
         align: 'center',
       },
     },
+    {
+      popover: {
+        title: '→ Proceed to Review',
+        description:
+          'Once the scan is clean, click "Proceed to Review" to acknowledge it and move on to Draft Review — Publish stays blocked there until this step has been done for the current skeleton.',
+        side: 'over',
+        align: 'center',
+      },
+    },
   ],
 };
 
@@ -71,5 +80,6 @@ export const CONFLICT_INSPECTOR_FLOW_MAP: TourFlowMap = {
     { label: 'Scan Summary', icon: 'checklist', detail: 'Total sessions scanned, sessions with violations, and total violation count.' },
     { label: 'Review Violations', icon: 'open', detail: 'Each row shows a session\'s day/period, subject, faculty, venue, and specific violations.' },
     { label: 'Fix and Rescan', icon: 'send', detail: 'Fix flagged sessions in Skeleton Builder or Staffing, then rescan until the list is clean.' },
+    { label: 'Proceed to Review', icon: 'send', detail: 'Once clean, acknowledge the scan and move on to Draft Review — required before that term can be published.' },
   ],
 };

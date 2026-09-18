@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { TimetableDraftReviewComponent } from './timetable-draft-review.component';
@@ -9,6 +9,8 @@ import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { TimetableService } from '../timetable.service';
 import { ClassSchedule, CohortTermStatusSummary, TimetableActionResponse } from '../timetable.model';
+import { ConflictInspectorService } from '../conflict-inspector/conflict-inspector.service';
+import { ConflictAcknowledgmentStatus } from '../conflict-inspector/conflict-inspector.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -27,6 +29,9 @@ describe('TimetableDraftReviewComponent', () => {
     getCohortStatusSummary: ReturnType<typeof vi.fn>;
     approve: ReturnType<typeof vi.fn>;
   };
+  let conflictInspectorService: {
+    getAcknowledgmentStatus: ReturnType<typeof vi.fn>;
+  };
 
   const academicYears: AcademicYear[] = [
     { id: 1, name: '2024-2025', startDate: '2024-06-01', endDate: '2025-05-31', isCurrent: true, createdAt: '', updatedAt: '' },
@@ -44,6 +49,8 @@ describe('TimetableDraftReviewComponent', () => {
     cohortSummary: () => CohortTermStatusSummary[];
     summaryLoading: () => boolean;
     sessions: () => ClassSchedule[];
+    conflictAcknowledged: () => boolean | null;
+    publishDisabledReason(): string | null;
     onCohortRowClick(): void;
     onBackToSummary(): void;
     onTermChange(): void;
@@ -59,6 +66,9 @@ describe('TimetableDraftReviewComponent', () => {
       getCohortStatusSummary: vi.fn(() => of(summaryRows)),
       approve: vi.fn(() => of({ affectedCount: 3 } as TimetableActionResponse)),
     };
+    conflictInspectorService = {
+      getAcknowledgmentStatus: vi.fn(() => of({ termInstanceId: 10, acknowledged: true, acknowledgedAt: '2024-06-01T00:00:00Z' } as ConflictAcknowledgmentStatus)),
+    };
 
     await TestBed.configureTestingModule({
       imports: [TimetableDraftReviewComponent],
@@ -69,6 +79,7 @@ describe('TimetableDraftReviewComponent', () => {
           getTermInstancesByAcademicYear: vi.fn(() => of(termInstances)),
         } },
         { provide: TimetableService, useValue: timetableService },
+        { provide: ConflictInspectorService, useValue: conflictInspectorService },
         { provide: PermissionService, useValue: { has: vi.fn(() => true) } },
         { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
         { provide: MatDialog, useValue: { open: vi.fn() } },
@@ -138,5 +149,55 @@ describe('TimetableDraftReviewComponent', () => {
 
     expect(internal().viewMode()).toBe('summary');
     expect(timetableService.getCohortStatusSummary).toHaveBeenCalledWith(10);
+  });
+
+  // OC-258: Draft Review's Publish action is now gated on a fresh Conflict Inspector
+  // acknowledgment for the term (see TimetableConflictInspectorService#isAcknowledgmentValid) --
+  // enforced server-side too, but the grid fetches the same status to disable Publish + show a
+  // banner up front instead of only failing after the user clicks it.
+  describe('conflict acknowledgment gate', () => {
+    it('fetches the acknowledgment status for the term when the grid is opened', () => {
+      fixture.detectChanges();
+
+      internal().onCohortRowClick();
+
+      expect(conflictInspectorService.getAcknowledgmentStatus).toHaveBeenCalledWith(10);
+    });
+
+    it('leaves Publish unblocked once the term is acknowledged', () => {
+      conflictInspectorService.getAcknowledgmentStatus.mockReturnValue(
+        of({ termInstanceId: 10, acknowledged: true, acknowledgedAt: '2024-06-01T00:00:00Z' } as ConflictAcknowledgmentStatus));
+      fixture.detectChanges();
+
+      internal().onCohortRowClick();
+
+      expect(internal().conflictAcknowledged()).toBe(true);
+      expect(internal().publishDisabledReason()).toBeNull();
+    });
+
+    it('blocks Publish and reports a reason when the term has not been acknowledged', () => {
+      conflictInspectorService.getAcknowledgmentStatus.mockReturnValue(
+        of({ termInstanceId: 10, acknowledged: false, acknowledgedAt: null } as ConflictAcknowledgmentStatus));
+      fixture.detectChanges();
+
+      internal().onCohortRowClick();
+
+      expect(internal().conflictAcknowledged()).toBe(false);
+      expect(internal().publishDisabledReason()).not.toBeNull();
+    });
+
+    it('re-checks the acknowledgment status after a failed publish attempt reports it stale', () => {
+      timetableService.approve.mockReturnValue(throwError(() => ({ error: { code: 'TIMETABLE_CONFLICT_ACKNOWLEDGMENT_REQUIRED', message: 'stale' } })));
+      fixture.detectChanges();
+      internal().onCohortRowClick();
+      conflictInspectorService.getAcknowledgmentStatus.mockClear();
+      conflictInspectorService.getAcknowledgmentStatus.mockReturnValue(
+        of({ termInstanceId: 10, acknowledged: false, acknowledgedAt: null } as ConflictAcknowledgmentStatus));
+
+      internal().onApprove();
+
+      expect(conflictInspectorService.getAcknowledgmentStatus).toHaveBeenCalledWith(10);
+      expect(internal().conflictAcknowledged()).toBe(false);
+    });
   });
 });

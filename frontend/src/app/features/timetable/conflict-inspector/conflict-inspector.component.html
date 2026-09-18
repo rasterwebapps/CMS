@@ -29,6 +29,14 @@
       @if (loading()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
       Rescan
     </button>
+    @if (canProceedToReview()) {
+      <button type="button" class="btn-primary" [disabled]="loading() || proceeding() || !scan() || scan()!.violationCount > 0"
+        [title]="scan() && scan()!.violationCount > 0 ? 'Resolve every violation below before proceeding to Draft Review' : ''"
+        (click)="onProceedToReview()">
+        @if (proceeding()) { <mat-spinner diameter="16" class="btn-spinner"></mat-spinner> }
+        Proceed to Review →
+      </button>
+    }
   </div>
 
   @if (scan(); as s) {

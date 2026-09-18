@@ -29,3 +29,9 @@ export interface ConflictScanResponse {
   countsByCode: Record<string, number>;
   rows: TimetableConflictRow[];
 }
+
+export interface ConflictAcknowledgmentStatus {
+  termInstanceId: number;
+  acknowledged: boolean;
+  acknowledgedAt: string | null;
+}
