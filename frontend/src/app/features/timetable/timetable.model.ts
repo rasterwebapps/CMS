@@ -26,6 +26,15 @@ export interface TimetableCoverageGap {
   unassignedHours: number;
 }
 
+/** One cohort/section's real per-week Clinical hours delivered off-grid via an active Clinical
+ *  Shift Group (duty roster) -- these never produce a grid cell, so Draft Review surfaces them as
+ *  a banner instead of leaving the cohort's Clinical component looking simply missing. */
+export interface ClinicalShiftSummaryItem {
+  cohortSectionId: number;
+  cohortLabel: string;
+  hoursPerWeek: number;
+}
+
 export interface MyTimetableResponse {
   sessions: ClassSchedule[];
   holidays: WeekGridHolidayInfo[];

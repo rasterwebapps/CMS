@@ -5,6 +5,7 @@ import { environment } from '../../../environments';
 import {
   ClassSchedule,
   ClassScheduleOccurrence,
+  ClinicalShiftSummaryItem,
   MyTimetableResponse,
   ResourceGridRow,
   ResourceGridType,
@@ -28,6 +29,11 @@ export class TimetableService {
   getPublished(termInstanceId: number): Observable<ClassSchedule[]> {
     const params = new HttpParams().set('termInstanceId', termInstanceId);
     return this.http.get<ClassSchedule[]>(this.baseUrl, { params });
+  }
+
+  getClinicalShiftSummary(termInstanceId: number): Observable<ClinicalShiftSummaryItem[]> {
+    const params = new HttpParams().set('termInstanceId', termInstanceId);
+    return this.http.get<ClinicalShiftSummaryItem[]>(`${this.baseUrl}/draft/clinical-shift-summary`, { params });
   }
 
   /** `overrideIncompleteCoverage`/`overrideReason` are only ever sent on a resubmission after the

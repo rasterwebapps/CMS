@@ -17,3 +17,17 @@
   color: var(--cms-text-primary);
 }
 
+.clinical-shift-banner {
+  flex-wrap: wrap;
+}
+
+.clinical-shift-banner__label {
+  white-space: nowrap;
+}
+
+.clinical-shift-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+

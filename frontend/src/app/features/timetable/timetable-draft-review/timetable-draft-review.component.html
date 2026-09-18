@@ -34,6 +34,19 @@
     </div>
   }
 
+  @if (clinicalShiftSummary().length > 0) {
+    <div class="content-card timetable-swap-banner clinical-shift-banner">
+      <span class="clinical-shift-banner__label">
+        <strong>Clinical Shift Group (duty roster)</strong> — credited off-grid, not shown below:
+      </span>
+      <span class="clinical-shift-chips">
+        @for (item of clinicalShiftSummary(); track item.cohortSectionId) {
+          <span class="cms-badge cms-badge--blue">{{ item.cohortLabel }}: {{ item.hoursPerWeek | number:'1.0-1' }} hrs/wk</span>
+        }
+      </span>
+    </div>
+  }
+
   <div id="tour-tdr-grid" class="content-card">
     @if (loading()) {
       <div class="loading-container">

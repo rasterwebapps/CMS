@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.ClassScheduleOccurrenceResponse;
 import com.cms.dto.ClassScheduleResponse;
+import com.cms.dto.ClinicalShiftSummaryItem;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.ResourceGridRowResponse;
@@ -33,6 +34,7 @@ import com.cms.service.ProfileService;
 import com.cms.service.ResourceGridService;
 import com.cms.service.TimetableGenerationService;
 import com.cms.service.TimetableOccurrenceService;
+import com.cms.service.TimetableSkeletonService;
 import com.cms.service.TimetableSwapService;
 
 import jakarta.validation.Valid;
@@ -48,6 +50,7 @@ public class TimetableController {
     private final ProfileService profileService;
     private final TimetableOccurrenceService timetableOccurrenceService;
     private final ResourceGridService resourceGridService;
+    private final TimetableSkeletonService timetableSkeletonService;
 
     public TimetableController(TimetableGenerationService timetableGenerationService,
                                 TimetableSwapService timetableSwapService,
@@ -55,7 +58,8 @@ public class TimetableController {
                                 PersonalTimetableService personalTimetableService,
                                 ProfileService profileService,
                                 TimetableOccurrenceService timetableOccurrenceService,
-                                ResourceGridService resourceGridService) {
+                                ResourceGridService resourceGridService,
+                                TimetableSkeletonService timetableSkeletonService) {
         this.timetableGenerationService = timetableGenerationService;
         this.timetableSwapService = timetableSwapService;
         this.classScheduleService = classScheduleService;
@@ -63,6 +67,7 @@ public class TimetableController {
         this.profileService = profileService;
         this.timetableOccurrenceService = timetableOccurrenceService;
         this.resourceGridService = resourceGridService;
+        this.timetableSkeletonService = timetableSkeletonService;
     }
 
     @GetMapping("/resource-grid/faculty")
@@ -113,6 +118,14 @@ public class TimetableController {
     @PreAuthorize("@perm.has('TIMETABLE_MANAGE')")
     public ResponseEntity<List<ClassScheduleResponse>> findDraft(@RequestParam Long termInstanceId) {
         return ResponseEntity.ok(classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT));
+    }
+
+    // Clinical Shift Group hours never produce a ClassSchedule row (see ClinicalShiftSummaryItem),
+    // so /draft above can never surface them -- this feeds Draft Review's duty-roster banner instead.
+    @GetMapping("/draft/clinical-shift-summary")
+    @PreAuthorize("@perm.has('TIMETABLE_MANAGE')")
+    public ResponseEntity<List<ClinicalShiftSummaryItem>> findClinicalShiftSummary(@RequestParam Long termInstanceId) {
+        return ResponseEntity.ok(timetableSkeletonService.findClinicalShiftSummaryForTerm(termInstanceId));
     }
 
     @GetMapping

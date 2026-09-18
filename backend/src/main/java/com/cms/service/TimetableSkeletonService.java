@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ClinicalShiftSummaryItem;
 import com.cms.dto.ClinicalShiftWindow;
 import com.cms.dto.CohortSectionResponse;
 import com.cms.dto.ConstraintViolation;
@@ -278,6 +279,51 @@ public class TimetableSkeletonService {
 
         return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, subjects, cells, batches, sectionResponses,
             weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished, shiftWindows);
+    }
+
+    /** Term-wide Clinical Shift Group summary for Timetable Draft Review's duty-roster banner --
+     *  one row per {@link CohortSection} with hours/week summed across however many active shift
+     *  groups that section has, so a reviewer sees Clinical hours exist even though they never show
+     *  up as grid cells (see the {@link #toClinicalShiftHours} comment above). Groups with no
+     *  {@code cohortSection} (not yet room-sectioned via Capacity Auto-Plan) are skipped -- Draft
+     *  Review has nothing scoped to show them against either. */
+    public List<ClinicalShiftSummaryItem> findClinicalShiftSummaryForTerm(Long termInstanceId) {
+        record SectionHours(CohortSection section, double hours) {}
+
+        Map<Long, List<SectionHours>> bySectionId = clinicalShiftGroupRepository
+            .findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+            .filter(g -> g.getCohortSection() != null && g.getCourseOffering() != null)
+            .map(g -> {
+                Integer durationMinutes = g.getCourseOffering().getClinicalShiftDurationMinutes();
+                return new SectionHours(g.getCohortSection(), durationMinutes != null ? durationMinutes / 60.0 : 0.0);
+            })
+            .filter(sh -> sh.hours() > 0)
+            .collect(Collectors.groupingBy(sh -> sh.section().getId(), LinkedHashMap::new, Collectors.toList()));
+
+        Map<Long, String> cohortNameBySectionId = new LinkedHashMap<>();
+        Map<Long, String> sectionLabelBySectionId = new LinkedHashMap<>();
+        Map<Long, Double> hoursBySectionId = new LinkedHashMap<>();
+        for (var entry : bySectionId.entrySet()) {
+            CohortSection section = entry.getValue().get(0).section();
+            cohortNameBySectionId.put(entry.getKey(), section.getCohortRoomAllocation().getCohort().getDisplayName());
+            sectionLabelBySectionId.put(entry.getKey(), section.getSectionLabel());
+            hoursBySectionId.put(entry.getKey(), entry.getValue().stream().mapToDouble(SectionHours::hours).sum());
+        }
+
+        // Disambiguate sections sharing the same cohort display name by appending the section label.
+        Map<String, Long> cohortNameCounts = cohortNameBySectionId.values().stream()
+            .collect(Collectors.groupingBy(n -> n, Collectors.counting()));
+
+        return cohortNameBySectionId.entrySet().stream()
+            .map(e -> {
+                String cohortName = e.getValue();
+                String label = cohortNameCounts.get(cohortName) > 1
+                    ? cohortName + " – " + sectionLabelBySectionId.get(e.getKey())
+                    : cohortName;
+                return new ClinicalShiftSummaryItem(e.getKey(), label, hoursBySectionId.get(e.getKey()));
+            })
+            .sorted(Comparator.comparing(ClinicalShiftSummaryItem::cohortLabel))
+            .toList();
     }
 
     /** One active {@link ClinicalShiftGroup} occurs once/week on its own {@code dayOfWeek}, so its

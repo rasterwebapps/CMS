@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -6,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { TimetableService } from '../timetable.service';
-import { ClassSchedule, SwapCandidate, TimetableCoverageGap } from '../timetable.model';
+import { ClassSchedule, ClinicalShiftSummaryItem, SwapCandidate, TimetableCoverageGap } from '../timetable.model';
 import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.component';
 import { WeekGridSession } from '../../../shared/week-grid/week-grid.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -21,7 +22,7 @@ import { TIMETABLE_DRAFT_REVIEW_TOUR, TIMETABLE_DRAFT_REVIEW_FLOW_MAP } from '..
 @Component({
   selector: 'app-timetable-draft-review',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsTourButtonComponent],
+  imports: [FormsModule, DecimalPipe, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsTourButtonComponent],
   templateUrl: './timetable-draft-review.component.html',
   styleUrl: './timetable-draft-review.component.scss',
 })
@@ -37,6 +38,7 @@ export class TimetableDraftReviewComponent implements OnInit {
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
   protected readonly sessions = signal<ClassSchedule[]>([]);
+  protected readonly clinicalShiftSummary = signal<ClinicalShiftSummaryItem[]>([]);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly termsLoading = signal(false);
@@ -83,6 +85,7 @@ export class TimetableDraftReviewComponent implements OnInit {
   protected onAcademicYearChange(): void {
     this.selectedTermInstanceId = null;
     this.sessions.set([]);
+    this.clinicalShiftSummary.set([]);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
@@ -284,6 +287,17 @@ export class TimetableDraftReviewComponent implements OnInit {
         });
       },
       error: () => { this.toast.error('Failed to load draft timetable'); this.loading.set(false); },
+    });
+    this.loadClinicalShiftSummary(termInstanceId);
+  }
+
+  // Clinical Shift Group (duty-roster) hours never produce a grid cell (see ClinicalShiftSummaryItem),
+  // so this is loaded separately from the grid sessions above rather than derived from them. Silently
+  // empty on failure — the banner is a helpful aside, not worth an error toast on top of the grid's own.
+  private loadClinicalShiftSummary(termInstanceId: number): void {
+    this.timetableService.getClinicalShiftSummary(termInstanceId).subscribe({
+      next: (summary) => this.clinicalShiftSummary.set(summary),
+      error: () => this.clinicalShiftSummary.set([]),
     });
   }
 }
