@@ -123,7 +123,7 @@
     @if (hoursSummary(); as hours) {
       <div class="skeleton-hours-summary anim-rise anim-rise--d2">
         <div class="stat-grid skeleton-hours-summary__row">
-          <div class="stat-card" title="Every working day's clock time for one section across the term: all periods, plus Clinical duty time outside them. Monday–Friday every week; Saturday only on working Saturdays.">
+          <div class="stat-card" title="Every working day's clock time for one section across the term: all periods, plus Clinical duty time outside them. Monday–Friday every week; Saturday only on working Saturdays. This is a workload total, not free scheduling capacity — a Clinical duty day's periods are already spent by that duty and can't also host Theory/Lab, so this figure can look far higher than what's actually placeable.">
             <div class="stat-label">Total Hours Available (Term)</div>
             <div class="stat-value">{{ hours.availableHours | number: '1.0-1' }}h</div>
           </div>
