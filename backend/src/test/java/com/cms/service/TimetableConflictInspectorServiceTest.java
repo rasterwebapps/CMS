@@ -75,6 +75,8 @@ class TimetableConflictInspectorServiceTest {
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private FacultyAbsenceRepository facultyAbsenceRepository;
     @Mock private SystemConfigurationService systemConfigurationService;
+    @Mock private TimetableSkeletonService timetableSkeletonService;
+    @Mock private com.cms.repository.CohortConflictAcknowledgmentRepository cohortConflictAcknowledgmentRepository;
 
     private TimetableConflictInspectorService service;
 
@@ -93,7 +95,8 @@ class TimetableConflictInspectorServiceTest {
             facultyAbsenceRepository, systemConfigurationService);
         service = new TimetableConflictInspectorService(classScheduleRepository, termInstanceRepository,
             staffingService, blockedPeriodChecker, clinicalShiftChecker,
-            courseOfferingService, studentTermEnrollmentRepository);
+            courseOfferingService, studentTermEnrollmentRepository,
+            timetableSkeletonService, cohortConflictAcknowledgmentRepository);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);

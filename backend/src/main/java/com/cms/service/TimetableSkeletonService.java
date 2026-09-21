@@ -71,6 +71,7 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.SubjectType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClinicalShiftGroupRepository;
@@ -195,7 +196,7 @@ public class TimetableSkeletonService {
         if (offeringIds.isEmpty()) {
             List<SkeletonCellResponse> libraryOnlyCells = libraryCells.stream().map(this::toCellResponse).toList();
             return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), libraryOnlyCells, List.of(), sectionResponses,
-                CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.workingSaturdayCount(termInstance), List.of(),
+                CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.enabledWorkingSaturdayCount(termInstance), List.of(),
                 termTimetablePublished, shiftWindows);
         }
 
@@ -268,7 +269,22 @@ public class TimetableSkeletonService {
             .toList();
 
         return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, subjects, cells, batches, sectionResponses,
-            weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished, shiftWindows);
+            weeksInTerm, WorkingSaturdayCalculator.enabledWorkingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished, shiftWindows);
+    }
+
+    /** OC-260: the exact set of active {@link ClassSchedule} rows that make up one cohort's
+     *  timetable for a term -- offering-scoped (Theory/Lab/Clinical/electives) plus
+     *  cohortSection-scoped (Library/Sports, which carry no {@code CourseOffering} at all). Reuses
+     *  the same resolution {@link #getCohortSkeleton} itself builds internally, just without also
+     *  computing subject budgets/clinical-shift-hours, so a cohort-scoped Approve/Revert/Discard or
+     *  conflict check can never see a different row set than what Skeleton Builder's own grid shows
+     *  that cohort. */
+    public List<ClassSchedule> getCohortActiveClassSchedules(Long termInstanceId, Long cohortId) {
+        List<CohortSection> activeSections = resolveActiveSections(cohortId, termInstanceId);
+        List<Long> offeringIds = new ArrayList<>(nonElectiveOfferingIds(termInstanceId, cohortId));
+        offeringIds.addAll(electiveOfferingIds(termInstanceId, cohortId));
+        List<ClassSchedule> libraryCells = resolveLibraryAndSportsCells(activeSections);
+        return offeringIds.isEmpty() ? libraryCells : resolveOfferingCells(termInstanceId, offeringIds, libraryCells);
     }
 
     // LIBRARY and SPORTS cells have no CourseOffering (see TimetableGlobalAutoScheduleService
@@ -327,7 +343,11 @@ public class TimetableSkeletonService {
                 cohortId, cohort.getDisplayName(),
                 cohort.getCourse() != null ? cohort.getCourse().getName() : null,
                 cohort.getAdmissionAcademicYear() != null ? cohort.getAdmissionAcademicYear().getName() : null,
-                status, (int) draft, (int) published, unassignedHours));
+                // readinessStatus is left null here -- this class has no visibility into the
+                // Conflict Inspector/coverage/staffing gates needed to compute it (see
+                // TimetableGenerationService#getCohortTermStatusSummaryWithReadiness, the only
+                // caller that should ever surface this DTO to a client).
+                status, (int) draft, (int) published, unassignedHours, null));
         }
         rows.sort(Comparator.comparing(CohortTermStatusSummary::cohortName));
         return rows;
@@ -916,7 +936,9 @@ public class TimetableSkeletonService {
             electiveGroup != null ? electiveGroup.getGroupName() : null,
             cs.getSessionGroupId(),
             cs.isPinned(),
-            cs.getCourseOffering() != null && isCommonCohortElective(cs.getCourseOffering())
+            cs.getCourseOffering() != null && isCommonCohortElective(cs.getCourseOffering()),
+            cs.getCourseOffering() != null && cs.getCourseOffering().getCurriculumSemesterCourse() != null
+                && cs.getCourseOffering().getCurriculumSemesterCourse().getSubjectType() == SubjectType.CO_CURRICULAR
         );
     }
 

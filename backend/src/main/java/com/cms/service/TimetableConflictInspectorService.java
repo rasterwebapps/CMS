@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -21,11 +23,13 @@ import com.cms.dto.TimetableConflictRow;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.ClassSchedule;
+import com.cms.model.CohortConflictAcknowledgment;
 import com.cms.model.Faculty;
 import com.cms.model.Room;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.CohortConflictAcknowledgmentRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
@@ -50,6 +54,8 @@ public class TimetableConflictInspectorService {
     private final TimetableClinicalShiftChecker clinicalShiftChecker;
     private final CourseOfferingService courseOfferingService;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    private final TimetableSkeletonService timetableSkeletonService;
+    private final CohortConflictAcknowledgmentRepository cohortConflictAcknowledgmentRepository;
 
     public TimetableConflictInspectorService(ClassScheduleRepository classScheduleRepository,
                                               TermInstanceRepository termInstanceRepository,
@@ -57,7 +63,9 @@ public class TimetableConflictInspectorService {
                                               TimetableBlockedPeriodChecker blockedPeriodChecker,
                                               TimetableClinicalShiftChecker clinicalShiftChecker,
                                               CourseOfferingService courseOfferingService,
-                                              StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
+                                              StudentTermEnrollmentRepository studentTermEnrollmentRepository,
+                                              TimetableSkeletonService timetableSkeletonService,
+                                              CohortConflictAcknowledgmentRepository cohortConflictAcknowledgmentRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.timetableStaffingService = timetableStaffingService;
@@ -65,6 +73,103 @@ public class TimetableConflictInspectorService {
         this.clinicalShiftChecker = clinicalShiftChecker;
         this.courseOfferingService = courseOfferingService;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
+        this.timetableSkeletonService = timetableSkeletonService;
+        this.cohortConflictAcknowledgmentRepository = cohortConflictAcknowledgmentRepository;
+    }
+
+    /** OC-260: union of every active {@link ClassSchedule} id belonging to any of the given
+     *  cohorts, via {@link TimetableSkeletonService#getCohortActiveClassSchedules} — the same
+     *  per-cohort row resolution the rest of the cohort-scoped publish lifecycle uses. */
+    private Set<Long> resolveCohortScheduleIds(Long termInstanceId, List<Long> cohortIds) {
+        Set<Long> ids = new HashSet<>();
+        for (Long cohortId : cohortIds) {
+            timetableSkeletonService.getCohortActiveClassSchedules(termInstanceId, cohortId)
+                .forEach(cs -> ids.add(cs.getId()));
+        }
+        return ids;
+    }
+
+    /** Cohort-scoped view of {@link #scanTerm}: the underlying scan must still run whole-term
+     *  (cross-cohort context like shared electives/faculty is needed to detect a real conflict
+     *  between two cohorts), but the returned rows are filtered to cells that belong to one of the
+     *  given cohorts — so a conflict entirely within a cohort that isn't being published/checked
+     *  right now never blocks this one. A conflict straddling a selected cohort and an unselected
+     *  one still surfaces here, because the selected cohort's own cell is one of the flagged rows. */
+    public ConflictScanResponse scanCohorts(Long termInstanceId, List<Long> cohortIds) {
+        ConflictScanResponse scan = scanTerm(termInstanceId);
+        Set<Long> scheduleIds = resolveCohortScheduleIds(termInstanceId, cohortIds);
+        List<TimetableConflictRow> rows = scan.rows().stream()
+            .filter(row -> scheduleIds.contains(row.classScheduleId()))
+            .toList();
+        Map<String, Integer> countsByCode = new TreeMap<>();
+        int totalViolations = 0;
+        for (TimetableConflictRow row : rows) {
+            for (ConstraintViolation violation : row.violations()) {
+                countsByCode.merge(violation.code(), 1, Integer::sum);
+                totalViolations++;
+            }
+        }
+        return new ConflictScanResponse(termInstanceId, scan.termLabel(), scan.scannedAt(),
+            scheduleIds.size(), rows.size(), totalViolations, countsByCode, rows);
+    }
+
+    /** Cohort-scoped sibling of {@link #acknowledge(Long)} — re-scans just this cohort via {@link
+     *  #scanCohorts} and, if clean, upserts its own {@link CohortConflictAcknowledgment} row rather
+     *  than the whole term's single acknowledgment. */
+    @Transactional
+    public ConflictAcknowledgmentStatusResponse acknowledgeCohort(Long termInstanceId, Long cohortId) {
+        if (!termInstanceRepository.existsById(termInstanceId)) {
+            throw new ResourceNotFoundException("Term instance not found with id: " + termInstanceId);
+        }
+        ConflictScanResponse scan = scanCohorts(termInstanceId, List.of(cohortId));
+        if (scan.violationCount() > 0) {
+            List<ConstraintViolation> violations = scan.rows().stream()
+                .flatMap(row -> row.violations().stream())
+                .toList();
+            throw new TimetableConstraintViolationException(violations);
+        }
+        Instant now = Instant.now();
+        CohortConflictAcknowledgment ack = cohortConflictAcknowledgmentRepository
+            .findByTermInstanceIdAndCohortId(termInstanceId, cohortId)
+            .orElseGet(CohortConflictAcknowledgment::new);
+        ack.setTermInstanceId(termInstanceId);
+        ack.setCohortId(cohortId);
+        ack.setAcknowledgedAt(now);
+        ack.setAcknowledgedCellCount(scan.scannedCellCount());
+        cohortConflictAcknowledgmentRepository.save(ack);
+        return new ConflictAcknowledgmentStatusResponse(termInstanceId, true, now);
+    }
+
+    public ConflictAcknowledgmentStatusResponse getCohortAcknowledgmentStatus(Long termInstanceId, Long cohortId) {
+        boolean valid = isCohortAcknowledgmentValid(termInstanceId, cohortId);
+        Instant acknowledgedAt = valid
+            ? cohortConflictAcknowledgmentRepository.findByTermInstanceIdAndCohortId(termInstanceId, cohortId)
+                .map(CohortConflictAcknowledgment::getAcknowledgedAt).orElse(null)
+            : null;
+        return new ConflictAcknowledgmentStatusResponse(termInstanceId, valid, acknowledgedAt);
+    }
+
+    /** Cohort-scoped sibling of {@link #isAcknowledgmentValid(TermInstance)}: valid only when this
+     *  exact cohort has been acknowledged and neither its active cell count nor its latest edit
+     *  timestamp has changed since — same staleness rule, scoped to just this cohort's own rows
+     *  instead of the whole term's. */
+    public boolean isCohortAcknowledgmentValid(Long termInstanceId, Long cohortId) {
+        Optional<CohortConflictAcknowledgment> ackOpt =
+            cohortConflictAcknowledgmentRepository.findByTermInstanceIdAndCohortId(termInstanceId, cohortId);
+        if (ackOpt.isEmpty()) {
+            return false;
+        }
+        CohortConflictAcknowledgment ack = ackOpt.get();
+        List<ClassSchedule> cells = timetableSkeletonService.getCohortActiveClassSchedules(termInstanceId, cohortId);
+        if (cells.size() != ack.getAcknowledgedCellCount()) {
+            return false;
+        }
+        return cells.stream()
+            .map(ClassSchedule::getUpdatedAt)
+            .filter(Objects::nonNull)
+            .max(Instant::compareTo)
+            .map(maxUpdatedAt -> !maxUpdatedAt.isAfter(ack.getAcknowledgedAt()))
+            .orElse(true);
     }
 
     public ConflictScanResponse scanTerm(Long termInstanceId) {

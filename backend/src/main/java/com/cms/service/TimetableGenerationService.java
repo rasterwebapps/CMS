@@ -1,10 +1,13 @@
 package com.cms.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.CohortTermStatusSummary;
 import com.cms.dto.ConflictScanResponse;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingFacultySummaryDto;
@@ -29,6 +32,15 @@ import com.cms.repository.TermInstanceRepository;
  * retired the one-shot auto-{@code generate()} this service used to offer — Skeleton Builder
  * (placement) → Staffing (faculty/room) is now the only path that creates DRAFT rows; this
  * service only ever acts on rows that already exist.
+ *
+ * <p>OC-260 (Timetable Draft Review retired into Skeleton Builder): every action here now takes an
+ * explicit, non-empty {@code cohortIds} — publishing/reverting/discarding cohort A must never touch
+ * cohort B's rows. There is deliberately no "empty means whole term" shortcut; the caller always
+ * resolves and sends the exact cohort selection. {@link TimetableSkeletonService
+ * #getCohortActiveClassSchedules} is the single source of truth for which {@link ClassSchedule}
+ * rows belong to a cohort — the same resolution Skeleton Builder's own grid and the Conflict
+ * Inspector's cohort-scoped scan ({@link TimetableConflictInspectorService#scanCohorts}) use, so
+ * this service can never act on a different row set than what the screen showed the admin.
  */
 @Service
 @Transactional(readOnly = true)
@@ -42,6 +54,8 @@ public class TimetableGenerationService {
     private final CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
     private final TimetableStaffingAutoAssignService timetableStaffingAutoAssignService;
     private final TimetableCoverageService timetableCoverageService;
+    private final TimetableSkeletonService timetableSkeletonService;
+    private final CourseOfferingService courseOfferingService;
 
     public TimetableGenerationService(ClassScheduleRepository classScheduleRepository,
                                        TermInstanceRepository termInstanceRepository,
@@ -50,7 +64,9 @@ public class TimetableGenerationService {
                                        TimetableConflictInspectorService timetableConflictInspectorService,
                                        CourseOfferingSectionFacultyService courseOfferingSectionFacultyService,
                                        TimetableStaffingAutoAssignService timetableStaffingAutoAssignService,
-                                       TimetableCoverageService timetableCoverageService) {
+                                       TimetableCoverageService timetableCoverageService,
+                                       TimetableSkeletonService timetableSkeletonService,
+                                       CourseOfferingService courseOfferingService) {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.labAttendanceRepository = labAttendanceRepository;
@@ -59,6 +75,32 @@ public class TimetableGenerationService {
         this.courseOfferingSectionFacultyService = courseOfferingSectionFacultyService;
         this.timetableStaffingAutoAssignService = timetableStaffingAutoAssignService;
         this.timetableCoverageService = timetableCoverageService;
+        this.timetableSkeletonService = timetableSkeletonService;
+        this.courseOfferingService = courseOfferingService;
+    }
+
+    private void requireCohortIds(List<Long> cohortIds) {
+        if (cohortIds == null || cohortIds.isEmpty()) {
+            throw new IllegalArgumentException("At least one cohort must be selected.");
+        }
+    }
+
+    private Set<Long> resolveCohortScheduleIds(Long termInstanceId, List<Long> cohortIds) {
+        Set<Long> ids = new HashSet<>();
+        for (Long cohortId : cohortIds) {
+            timetableSkeletonService.getCohortActiveClassSchedules(termInstanceId, cohortId)
+                .forEach(cs -> ids.add(cs.getId()));
+        }
+        return ids;
+    }
+
+    private Set<Long> resolveCohortOfferingIds(Long termInstanceId, List<Long> cohortIds) {
+        Set<Long> ids = new HashSet<>();
+        for (Long cohortId : cohortIds) {
+            courseOfferingService.getOfferingsByTermInstanceAndCohort(termInstanceId, cohortId)
+                .forEach(o -> ids.add(o.id()));
+        }
+        return ids;
     }
 
     /** A LOCKED term's timetable is immutable — clear/approve/revert all refuse once the term
@@ -78,46 +120,58 @@ public class TimetableGenerationService {
     }
 
     @Transactional
-    public TimetableActionResponse clear(Long termInstanceId, String actor) {
+    public TimetableActionResponse clear(Long termInstanceId, List<Long> cohortIds, String actor) {
         TermInstance term = requireTermInstance(termInstanceId);
         requireNotLocked(term);
+        requireCohortIds(cohortIds);
+        Set<Long> scheduleIds = resolveCohortScheduleIds(termInstanceId, cohortIds);
         // Mirrors revertToDraft's own attendance guard below -- a hard delete is strictly more
         // dangerous than a revert-to-draft for the exact same reason: lab_attendances.lab_schedule_id
         // has no ON DELETE/status-transition handling, so wiping attendance-backed sessions would
-        // orphan that history's session linkage.
-        if (labAttendanceRepository.existsByLabScheduleTermInstanceId(termInstanceId)) {
+        // orphan that history's session linkage. Scoped to the selected cohorts' own rows -- OC-260
+        // made this action cohort-scoped, so attendance recorded against a different, unselected
+        // cohort's sessions must never block discarding this one's draft.
+        if (!scheduleIds.isEmpty() && labAttendanceRepository.existsByLabScheduleIdIn(List.copyOf(scheduleIds))) {
             throw new LifecycleConflictException(
-                "Attendance has already been recorded against this term's timetable. It can no longer be discarded.",
+                "Attendance has already been recorded against this cohort's timetable. It can no longer be discarded.",
                 "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", termInstanceId, null);
         }
-        List<ClassSchedule> existing = classScheduleRepository.findByTermInstanceId(termInstanceId);
-        classScheduleRepository.deleteByTermInstanceId(termInstanceId);
+        List<ClassSchedule> existing = classScheduleRepository.findByTermInstanceId(termInstanceId).stream()
+            .filter(cs -> scheduleIds.contains(cs.getId()))
+            .toList();
+        classScheduleRepository.deleteAll(existing);
         auditLogService.record(actor, "TIMETABLE_DISCARDED", "TermInstance",
-            termInstanceId.toString(), existing.size() + " session(s) discarded");
+            termInstanceId.toString(), existing.size() + " session(s) discarded for cohort(s) " + cohortIds);
         return new TimetableActionResponse(existing.size());
     }
 
     @Transactional
-    public TimetableActionResponse approve(Long termInstanceId, String actor) {
-        return approve(termInstanceId, actor, false, null);
-    }
-
-    @Transactional
-    public TimetableActionResponse approve(Long termInstanceId, String actor, boolean overrideIncompleteCoverage, String overrideReason) {
+    public TimetableActionResponse approve(Long termInstanceId, List<Long> cohortIds, String actor,
+                                            boolean overrideIncompleteCoverage, String overrideReason) {
         TermInstance term = requireTermInstance(termInstanceId);
         requireNotLocked(term);
-        List<ClassSchedule> drafts = classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT);
+        requireCohortIds(cohortIds);
+        Set<Long> scheduleIds = resolveCohortScheduleIds(termInstanceId, cohortIds);
+
+        List<ClassSchedule> drafts = classScheduleRepository
+            .findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT).stream()
+            .filter(cs -> scheduleIds.contains(cs.getId()))
+            .toList();
         if (drafts.isEmpty()) {
-            throw new ResourceNotFoundException("No draft timetable found for term instance id: " + termInstanceId);
+            throw new ResourceNotFoundException("No draft timetable found for the selected cohort(s) in term instance id: " + termInstanceId);
         }
         // Confirming the timetable is what finalizes staffing now -- auto-resolve whatever Skeleton
         // Builder's own placement pass couldn't (see TimetableStaffingAutoAssignService), so the
         // common case never needs a manual detour before Approve. Each staffCell call inside this
         // runs its own REQUIRES_NEW transaction/persistence context (see staffCell's own doc), so the
         // `drafts` list above is now stale for whichever rows it just staffed -- re-fetch before
-        // computing what's still actually missing.
+        // computing what's still actually missing. Runs whole-term (auto-staffing an unrelated
+        // cohort's rows is harmless -- it only ever fills gaps), only the re-fetch below is scoped.
         timetableStaffingAutoAssignService.autoStaff(termInstanceId);
-        drafts = classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT);
+        drafts = classScheduleRepository
+            .findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.DRAFT).stream()
+            .filter(cs -> scheduleIds.contains(cs.getId()))
+            .toList();
         // A skeleton cell with no faculty yet would otherwise fail with a raw
         // chk_class_schedule_session_shape violation the moment its status flips to PUBLISHED --
         // catch it here first with a message that actually tells the admin what to go do (open
@@ -138,9 +192,13 @@ public class TimetableGenerationService {
         // already exist, but an offering with zero Theory faculty (or a Lab/Clinical batch with no
         // coordinator) never gets a row placed at all -- Global Auto-Schedule just drops it into the
         // unplaced-sessions report and moves on, so there's nothing there for unstaffedCount to
-        // catch. This checks offering-level staffing directly instead.
+        // catch. This checks offering-level staffing directly instead, scoped to the selected
+        // cohorts' own offerings.
+        Set<Long> offeringIds = resolveCohortOfferingIds(termInstanceId, cohortIds);
         List<CourseOfferingFacultySummaryDto> assignmentSummaries =
-            courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(termInstanceId);
+            courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(termInstanceId).stream()
+                .filter(s -> offeringIds.contains(s.offeringId()))
+                .toList();
         long unassignedOfferingCount = assignmentSummaries.stream()
             .filter(s -> s.assignmentStatus() == OfferingAssignmentStatus.NONE || s.assignmentStatus() == OfferingAssignmentStatus.PARTIAL)
             .count();
@@ -154,9 +212,12 @@ public class TimetableGenerationService {
         // faculty/room double-booked across two independently-staffed skeleton cells, or a cap
         // exceeded by a later swap, until here -- see TimetableStaffingService's own class-level
         // Javadoc for why this can happen even though every individual staffCell call was clean
-        // at the time. Reuses the exact same scan the Conflict Inspector dashboard shows, so a
-        // clean dashboard and an approvable term are guaranteed to mean the same thing.
-        ConflictScanResponse scan = timetableConflictInspectorService.scanTerm(termInstanceId);
+        // at the time. Reuses the exact same scan the Conflict Inspector dashboard shows, filtered
+        // to the selected cohorts (see TimetableConflictInspectorService#scanCohorts) -- a conflict
+        // entirely within an unselected cohort no longer blocks this one, but a conflict touching a
+        // selected cohort's own cell still does, even if the other side belongs to a cohort that
+        // isn't being published right now.
+        ConflictScanResponse scan = timetableConflictInspectorService.scanCohorts(termInstanceId, cohortIds);
         if (scan.violationCount() > 0) {
             List<ConstraintViolation> violations = scan.rows().stream()
                 .flatMap(row -> row.violations().stream())
@@ -164,24 +225,32 @@ public class TimetableGenerationService {
             throw new TimetableConstraintViolationException(violations);
         }
         // A clean scan alone isn't enough: OC-258's sequential Skeleton Builder -> Conflict
-        // Inspector -> Draft Review flow requires an admin to have actually revisited Conflict
-        // Inspector after the current skeleton, not just that it happens to be clean right now
-        // (e.g. an edit that introduced no new violation would satisfy the check above without
-        // anyone having looked again). See TimetableConflictInspectorService#isAcknowledgmentValid.
-        if (!timetableConflictInspectorService.isAcknowledgmentValid(term)) {
-            throw new LifecycleConflictException(
-                "Conflict Inspector must be re-checked and its clean result acknowledged (via \"Proceed to Review\") "
-                    + "before this term can be approved — the skeleton has changed since the last acknowledgment.",
-                "TIMETABLE_CONFLICT_ACKNOWLEDGMENT_REQUIRED", "TermInstance", termInstanceId, null);
+        // Inspector -> Approve flow requires an admin to have actually revisited Conflict Inspector
+        // after the current skeleton, not just that it happens to be clean right now (e.g. an edit
+        // that introduced no new violation would satisfy the check above without anyone having
+        // looked again). OC-260 scopes this per cohort -- every cohort being approved in this call
+        // must individually have a fresh acknowledgment. See
+        // TimetableConflictInspectorService#isCohortAcknowledgmentValid.
+        for (Long cohortId : cohortIds) {
+            if (!timetableConflictInspectorService.isCohortAcknowledgmentValid(termInstanceId, cohortId)) {
+                throw new LifecycleConflictException(
+                    "Conflict Inspector must be re-checked and its clean result acknowledged for this cohort "
+                        + "before it can be approved — the skeleton has changed since the last acknowledgment.",
+                    "TIMETABLE_CONFLICT_ACKNOWLEDGMENT_REQUIRED", "TermInstance", termInstanceId, null);
+            }
         }
         // OC-256: none of the checks above ever compare placed hours against curriculum-required
         // hours -- a course offering that never got any Theory/Lab/Clinical sessions placed at all
         // (as opposed to placed-but-unstaffed, which unstaffedCount already catches) has nothing
         // for them to see. This is the same "Total Unassigned" figure Skeleton Builder already
-        // shows per cohort, checked here so it can no longer reach Publish unnoticed. Overridable
-        // (unlike the structural checks above) since a legitimately phased rollout is a real case;
-        // TimetableController#approve is the actual enforcement point for who may override.
-        List<TimetableCoverageGap> coverageGaps = timetableCoverageService.findGaps(termInstanceId);
+        // shows per cohort, checked here (filtered to the selected cohorts, already per-cohort via
+        // TimetableCoverageService#findGaps) so it can no longer reach Publish unnoticed.
+        // Overridable (unlike the structural checks above) since a legitimately phased rollout is a
+        // real case; TimetableController#approve is the actual enforcement point for who may
+        // override.
+        List<TimetableCoverageGap> coverageGaps = timetableCoverageService.findGaps(termInstanceId).stream()
+            .filter(gap -> cohortIds.contains(gap.cohortId()))
+            .toList();
         if (!coverageGaps.isEmpty()) {
             if (!overrideIncompleteCoverage) {
                 throw new TimetableCoverageGapException(coverageGaps);
@@ -194,7 +263,7 @@ public class TimetableGenerationService {
             cs.setStatus(ClassScheduleStatus.PUBLISHED);
             classScheduleRepository.save(cs);
         }
-        String auditDetail = drafts.size() + " session(s) approved";
+        String auditDetail = drafts.size() + " session(s) approved for cohort(s) " + cohortIds;
         if (!coverageGaps.isEmpty()) {
             auditDetail += " -- approved with " + coverageGaps.size()
                 + " incomplete-coverage gap(s) overridden (reason: " + overrideReason + ")";
@@ -206,23 +275,27 @@ public class TimetableGenerationService {
     /**
      * Un-publishes a live timetable back to DRAFT so it can be edited/swapped and re-approved,
      * without losing the placed sessions (unlike {@link #clear}, which deletes them outright).
-     * Blocked once any {@code LabAttendance} has been recorded against the term's sessions —
-     * {@code lab_attendances.lab_schedule_id} has no {@code ON DELETE}/status-transition handling,
-     * so silently reverting attendance-backed sessions back to DRAFT would let a subsequent
-     * clear/re-placement wipe out attendance history's session linkage.
+     * Blocked once any {@code LabAttendance} has been recorded against the selected cohort(s)'
+     * sessions — {@code lab_attendances.lab_schedule_id} has no {@code ON DELETE}/status-transition
+     * handling, so silently reverting attendance-backed sessions back to DRAFT would let a
+     * subsequent clear/re-placement wipe out attendance history's session linkage.
      */
     @Transactional
-    public TimetableActionResponse revertToDraft(Long termInstanceId, String actor) {
+    public TimetableActionResponse revertToDraft(Long termInstanceId, List<Long> cohortIds, String actor) {
         TermInstance term = requireTermInstance(termInstanceId);
         requireNotLocked(term);
-        List<ClassSchedule> published = classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(
-            termInstanceId, ClassScheduleStatus.PUBLISHED);
+        requireCohortIds(cohortIds);
+        Set<Long> scheduleIds = resolveCohortScheduleIds(termInstanceId, cohortIds);
+        List<ClassSchedule> published = classScheduleRepository
+            .findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.PUBLISHED).stream()
+            .filter(cs -> scheduleIds.contains(cs.getId()))
+            .toList();
         if (published.isEmpty()) {
-            throw new ResourceNotFoundException("No published timetable found for term instance id: " + termInstanceId);
+            throw new ResourceNotFoundException("No published timetable found for the selected cohort(s) in term instance id: " + termInstanceId);
         }
-        if (labAttendanceRepository.existsByLabScheduleTermInstanceId(termInstanceId)) {
+        if (!scheduleIds.isEmpty() && labAttendanceRepository.existsByLabScheduleIdIn(List.copyOf(scheduleIds))) {
             throw new LifecycleConflictException(
-                "Attendance has already been recorded against this term's timetable. It can no longer be reverted to draft.",
+                "Attendance has already been recorded against this cohort's timetable. It can no longer be reverted to draft.",
                 "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", termInstanceId, null);
         }
         for (ClassSchedule cs : published) {
@@ -230,7 +303,61 @@ public class TimetableGenerationService {
             classScheduleRepository.save(cs);
         }
         auditLogService.record(actor, "TIMETABLE_REVERTED_TO_DRAFT", "TermInstance",
-            termInstanceId.toString(), published.size() + " session(s) reverted to draft");
+            termInstanceId.toString(), published.size() + " session(s) reverted to draft for cohort(s) " + cohortIds);
         return new TimetableActionResponse(published.size());
+    }
+
+    /** OC-260: decorates {@link TimetableSkeletonService#getCohortTermStatusSummary}'s rows with
+     *  each cohort's Draft/Generated -&gt; Conflicts Resolved -&gt; Published readiness. Lives here
+     *  rather than on {@code TimetableSkeletonService} itself because computing it needs {@link
+     *  TimetableConflictInspectorService} (cohort conflict scan/acknowledgment), which in turn
+     *  depends on {@code TimetableSkeletonService} for row resolution -- putting the computation on
+     *  either of those two would create a circular bean dependency. This service already legitimately
+     *  depends on all four gate-owning services {@link #approve} itself uses, so it's the natural
+     *  place both live without a cycle. */
+    @Transactional(readOnly = true)
+    public List<CohortTermStatusSummary> getCohortTermStatusSummaryWithReadiness(Long termInstanceId) {
+        return timetableSkeletonService.getCohortTermStatusSummary(termInstanceId).stream()
+            .map(row -> new CohortTermStatusSummary(
+                row.cohortId(), row.cohortName(), row.courseName(), row.admissionYearName(),
+                row.status(), row.draftCount(), row.publishedCount(), row.unassignedHours(),
+                computeReadinessStatus(termInstanceId, row)))
+            .toList();
+    }
+
+    private String computeReadinessStatus(Long termInstanceId, CohortTermStatusSummary row) {
+        if ("PUBLISHED".equals(row.status()) || "PARTIALLY_PUBLISHED".equals(row.status())) {
+            return row.status();
+        }
+        // status == "DRAFT": ready ("CONFLICTS_RESOLVED") only once every one of approve()'s own
+        // preflight gates would currently pass for this cohort -- checked in the same cheapest-first
+        // order as approve() itself, short-circuiting on the first failure.
+        Long cohortId = row.cohortId();
+        List<ClassSchedule> cells = timetableSkeletonService.getCohortActiveClassSchedules(termInstanceId, cohortId);
+        boolean unstaffed = cells.stream()
+            .filter(cs -> cs.getStatus() == ClassScheduleStatus.DRAFT)
+            .anyMatch(cs -> cs.getFaculty() == null && cs.getSessionType() != ClassSessionType.LIBRARY);
+        if (unstaffed) {
+            return "DRAFT_GENERATED";
+        }
+        Set<Long> offeringIds = resolveCohortOfferingIds(termInstanceId, List.of(cohortId));
+        boolean offeringGap = courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(termInstanceId).stream()
+            .filter(s -> offeringIds.contains(s.offeringId()))
+            .anyMatch(s -> s.assignmentStatus() == OfferingAssignmentStatus.NONE || s.assignmentStatus() == OfferingAssignmentStatus.PARTIAL);
+        if (offeringGap) {
+            return "DRAFT_GENERATED";
+        }
+        boolean coverageGap = timetableCoverageService.findGaps(termInstanceId).stream()
+            .anyMatch(gap -> gap.cohortId().equals(cohortId));
+        if (coverageGap) {
+            return "DRAFT_GENERATED";
+        }
+        if (timetableConflictInspectorService.scanCohorts(termInstanceId, List.of(cohortId)).violationCount() > 0) {
+            return "DRAFT_GENERATED";
+        }
+        if (!timetableConflictInspectorService.isCohortAcknowledgmentValid(termInstanceId, cohortId)) {
+            return "DRAFT_GENERATED";
+        }
+        return "CONFLICTS_RESOLVED";
     }
 }

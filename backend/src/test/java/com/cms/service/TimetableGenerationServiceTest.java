@@ -3,6 +3,8 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -45,6 +47,9 @@ import com.cms.repository.TermInstanceRepository;
 @ExtendWith(MockitoExtension.class)
 class TimetableGenerationServiceTest {
 
+    private static final Long COHORT_ID = 1L;
+    private static final List<Long> COHORT_IDS = List.of(COHORT_ID);
+
     @Mock private ClassScheduleRepository classScheduleRepository;
     @Mock private TermInstanceRepository termInstanceRepository;
     @Mock private LabAttendanceRepository labAttendanceRepository;
@@ -53,6 +58,8 @@ class TimetableGenerationServiceTest {
     @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
     @Mock private TimetableStaffingAutoAssignService timetableStaffingAutoAssignService;
     @Mock private TimetableCoverageService timetableCoverageService;
+    @Mock private TimetableSkeletonService timetableSkeletonService;
+    @Mock private CourseOfferingService courseOfferingService;
 
     private TimetableGenerationService service;
 
@@ -62,11 +69,20 @@ class TimetableGenerationServiceTest {
         return new ConflictScanResponse(10L, "Test Term", Instant.now(), 2, 0, 0, Map.of(), List.of());
     }
 
+    /** OC-260: the service resolves "which rows belong to this cohort" via {@link
+     *  TimetableSkeletonService#getCohortActiveClassSchedules} — every test that previously relied
+     *  on the whole-term repository finders directly must also stub this to return the exact same
+     *  rows, so the id-membership filter inside the service keeps them. */
+    private void stubCohortSchedules(List<ClassSchedule> cells) {
+        lenient().when(timetableSkeletonService.getCohortActiveClassSchedules(eq(10L), eq(COHORT_ID))).thenReturn(cells);
+    }
+
     @BeforeEach
     void setUp() {
         service = new TimetableGenerationService(classScheduleRepository, termInstanceRepository,
             labAttendanceRepository, auditLogService, timetableConflictInspectorService,
-            courseOfferingSectionFacultyService, timetableStaffingAutoAssignService, timetableCoverageService);
+            courseOfferingSectionFacultyService, timetableStaffingAutoAssignService, timetableCoverageService,
+            timetableSkeletonService, courseOfferingService);
 
         Speciality speciality = new Speciality("Nursing", "NUR", "Nursing Dept", null, null);
         speciality.setId(1L);
@@ -81,7 +97,9 @@ class TimetableGenerationServiceTest {
         // Default every test to an already-satisfied conflict-acknowledgment gate (OC-258) so only
         // the tests specifically about that gate need to override it to false — otherwise every
         // pre-existing "successful approve" test below would fail on a mock's default `false`.
-        lenient().when(timetableConflictInspectorService.isAcknowledgmentValid(any())).thenReturn(true);
+        lenient().when(timetableConflictInspectorService.isCohortAcknowledgmentValid(anyLong(), anyLong())).thenReturn(true);
+        lenient().when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(anyLong())).thenReturn(List.of());
+        lenient().when(timetableCoverageService.findGaps(anyLong())).thenReturn(List.of());
     }
 
     private TermInstance termWithStatus(Long id, TermInstanceStatus status) {
@@ -95,22 +113,24 @@ class TimetableGenerationServiceTest {
     void shouldClearAllRowsForTerm() {
         ClassSchedule row = new ClassSchedule();
         row.setId(1L);
+        stubCohortSchedules(List.of(row));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(labAttendanceRepository.existsByLabScheduleTermInstanceId(10L)).thenReturn(false);
+        when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(false);
         when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(row));
 
-        TimetableActionResponse response = service.clear(10L, "admin");
+        TimetableActionResponse response = service.clear(10L, COHORT_IDS, "admin");
 
         assertThat(response.affectedCount()).isEqualTo(1);
-        verify(classScheduleRepository).deleteByTermInstanceId(10L);
-        verify(auditLogService).record("admin", "TIMETABLE_DISCARDED", "TermInstance", "10", "1 session(s) discarded");
+        verify(classScheduleRepository).deleteAll(List.of(row));
+        verify(auditLogService).record(eq("admin"), eq("TIMETABLE_DISCARDED"), eq("TermInstance"), eq("10"),
+            org.mockito.ArgumentMatchers.contains("1 session(s) discarded"));
     }
 
     @Test
     void shouldThrowWhenClearingNonExistentTerm() {
         when(termInstanceRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.clear(999L, "admin"))
+        assertThatThrownBy(() -> service.clear(999L, COHORT_IDS, "admin"))
             .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -118,21 +138,36 @@ class TimetableGenerationServiceTest {
     void shouldBlockClearWhenTermIsLocked() {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.LOCKED)));
 
-        assertThatThrownBy(() -> service.clear(10L, "admin"))
+        assertThatThrownBy(() -> service.clear(10L, COHORT_IDS, "admin"))
             .isInstanceOf(LifecycleConflictException.class);
 
-        verify(classScheduleRepository, never()).deleteByTermInstanceId(any());
+        verify(classScheduleRepository, never()).deleteAll(anyList());
     }
 
     @Test
     void shouldBlockClearWhenAttendanceAlreadyRecorded() {
+        ClassSchedule row = new ClassSchedule();
+        row.setId(1L);
+        stubCohortSchedules(List.of(row));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
-        when(labAttendanceRepository.existsByLabScheduleTermInstanceId(10L)).thenReturn(true);
+        when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(true);
 
-        assertThatThrownBy(() -> service.clear(10L, "admin"))
+        assertThatThrownBy(() -> service.clear(10L, COHORT_IDS, "admin"))
             .isInstanceOf(LifecycleConflictException.class);
 
-        verify(classScheduleRepository, never()).deleteByTermInstanceId(any());
+        verify(classScheduleRepository, never()).deleteAll(anyList());
+    }
+
+    @Test
+    void shouldRejectClearApproveRevertWithNoCohortsSelected() {
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+
+        assertThatThrownBy(() -> service.clear(10L, List.of(), "admin"))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.approve(10L, List.of(), "admin", false, null))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.revertToDraft(10L, List.of(), "admin"))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -145,19 +180,21 @@ class TimetableGenerationServiceTest {
         draft2.setId(2L);
         draft2.setStatus(ClassScheduleStatus.DRAFT);
         draft2.setFaculty(faculty);
+        stubCohortSchedules(List.of(draft1, draft2));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(draft1, draft2));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableConflictInspectorService.scanCohorts(eq(10L), eq(COHORT_IDS))).thenReturn(cleanScan());
 
-        TimetableActionResponse response = service.approve(10L, "admin");
+        TimetableActionResponse response = service.approve(10L, COHORT_IDS, "admin", false, null);
 
         assertThat(response.affectedCount()).isEqualTo(2);
         assertThat(draft1.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
         assertThat(draft2.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
-        verify(auditLogService).record("admin", "TIMETABLE_APPROVED", "TermInstance", "10", "2 session(s) approved");
+        verify(auditLogService).record(eq("admin"), eq("TIMETABLE_APPROVED"), eq("TermInstance"), eq("10"),
+            org.mockito.ArgumentMatchers.contains("2 session(s) approved"));
     }
 
     @Test
@@ -174,16 +211,15 @@ class TimetableGenerationServiceTest {
         leftover.setStatus(ClassScheduleStatus.DRAFT);
         leftover.setFaculty(faculty);
         leftover.setIsActive(false);
+        stubCohortSchedules(List.of(current));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(current));
-        lenient().when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.DRAFT))
-            .thenReturn(List.of(current, leftover));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableConflictInspectorService.scanCohorts(eq(10L), eq(COHORT_IDS))).thenReturn(cleanScan());
 
-        TimetableActionResponse response = service.approve(10L, "admin");
+        TimetableActionResponse response = service.approve(10L, COHORT_IDS, "admin", false, null);
 
         assertThat(response.affectedCount()).isEqualTo(1);
         assertThat(current.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
@@ -195,7 +231,7 @@ class TimetableGenerationServiceTest {
     void shouldBlockApproveWhenTermIsLocked() {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.LOCKED)));
 
-        assertThatThrownBy(() -> service.approve(10L, "admin"))
+        assertThatThrownBy(() -> service.approve(10L, COHORT_IDS, "admin", false, null))
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
@@ -213,12 +249,13 @@ class TimetableGenerationServiceTest {
         ClassSchedule unstaffed = new ClassSchedule();
         unstaffed.setId(2L);
         unstaffed.setStatus(ClassScheduleStatus.DRAFT);
+        stubCohortSchedules(List.of(staffed, unstaffed));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed, unstaffed));
 
-        assertThatThrownBy(() -> service.approve(10L, "admin"))
+        assertThatThrownBy(() -> service.approve(10L, COHORT_IDS, "admin", false, null))
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
@@ -233,14 +270,18 @@ class TimetableGenerationServiceTest {
         staffed.setId(1L);
         staffed.setStatus(ClassScheduleStatus.DRAFT);
         staffed.setFaculty(faculty);
+        stubCohortSchedules(List.of(staffed));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, COHORT_ID)).thenReturn(List.of(
+            new com.cms.dto.CourseOfferingDto(1L, 10L, null, null, null, null, null, null, null, null, List.of(),
+                null, true, null, false, null, null, null, null, null, null, null, null, null, null, null, null, List.of())));
         when(courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(10L)).thenReturn(List.of(
             new com.cms.dto.CourseOfferingFacultySummaryDto(1L, List.of(), com.cms.model.enums.OfferingAssignmentStatus.NONE)));
 
-        assertThatThrownBy(() -> service.approve(10L, "admin"))
+        assertThatThrownBy(() -> service.approve(10L, COHORT_IDS, "admin", false, null))
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
@@ -248,13 +289,15 @@ class TimetableGenerationServiceTest {
 
     @Test
     void shouldBlockApproveWhenConflictScanFindsViolations() {
-        // OC-125: approve() now re-runs the same whole-term structural scan the Conflict
-        // Inspector dashboard shows -- a staffed-but-still-conflicting draft (e.g. two subjects
-        // double-booking the same faculty) must refuse here, not silently publish.
+        // OC-125: approve() now re-runs the same structural scan the Conflict Inspector dashboard
+        // shows, filtered to the selected cohort(s) (OC-260) -- a staffed-but-still-conflicting
+        // draft (e.g. two subjects double-booking the same faculty) must refuse here, not silently
+        // publish.
         ClassSchedule staffed = new ClassSchedule();
         staffed.setId(1L);
         staffed.setStatus(ClassScheduleStatus.DRAFT);
         staffed.setFaculty(faculty);
+        stubCohortSchedules(List.of(staffed));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
@@ -266,9 +309,9 @@ class TimetableGenerationServiceTest {
             "John Doe", "Room 101", null, ClassScheduleStatus.DRAFT, List.of(violation));
         ConflictScanResponse dirtyScan = new ConflictScanResponse(
             10L, "Test Term", Instant.now(), 1, 1, 1, Map.of("STAFFING_FACULTY_CONFLICT", 1), List.of(row));
-        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(dirtyScan);
+        when(timetableConflictInspectorService.scanCohorts(eq(10L), eq(COHORT_IDS))).thenReturn(dirtyScan);
 
-        assertThatThrownBy(() -> service.approve(10L, "admin"))
+        assertThatThrownBy(() -> service.approve(10L, COHORT_IDS, "admin", false, null))
             .isInstanceOf(TimetableConstraintViolationException.class);
 
         verify(classScheduleRepository, never()).save(any());
@@ -277,20 +320,22 @@ class TimetableGenerationServiceTest {
 
     @Test
     void shouldBlockApproveWhenConflictAcknowledgmentIsMissingOrStale() {
-        // OC-258: a clean scan alone isn't enough -- an admin must have actually revisited Conflict
-        // Inspector after the current skeleton (see TimetableConflictInspectorService#acknowledge).
+        // OC-258/OC-260: a clean scan alone isn't enough -- an admin must have actually revisited
+        // Conflict Inspector for this exact cohort after the current skeleton (see
+        // TimetableConflictInspectorService#acknowledgeCohort).
         ClassSchedule staffed = new ClassSchedule();
         staffed.setId(1L);
         staffed.setStatus(ClassScheduleStatus.DRAFT);
         staffed.setFaculty(faculty);
+        stubCohortSchedules(List.of(staffed));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed));
-        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
-        when(timetableConflictInspectorService.isAcknowledgmentValid(any())).thenReturn(false);
+        when(timetableConflictInspectorService.scanCohorts(eq(10L), eq(COHORT_IDS))).thenReturn(cleanScan());
+        when(timetableConflictInspectorService.isCohortAcknowledgmentValid(10L, COHORT_ID)).thenReturn(false);
 
-        assertThatThrownBy(() -> service.approve(10L, "admin"))
+        assertThatThrownBy(() -> service.approve(10L, COHORT_IDS, "admin", false, null))
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
@@ -306,15 +351,16 @@ class TimetableGenerationServiceTest {
         staffed.setId(1L);
         staffed.setStatus(ClassScheduleStatus.DRAFT);
         staffed.setFaculty(faculty);
+        stubCohortSchedules(List.of(staffed));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed));
-        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableConflictInspectorService.scanCohorts(eq(10L), eq(COHORT_IDS))).thenReturn(cleanScan());
         when(timetableCoverageService.findGaps(10L)).thenReturn(List.of(
-            new TimetableCoverageGap(5L, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
+            new TimetableCoverageGap(COHORT_ID, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
 
-        assertThatThrownBy(() -> service.approve(10L, "admin"))
+        assertThatThrownBy(() -> service.approve(10L, COHORT_IDS, "admin", false, null))
             .isInstanceOf(TimetableCoverageGapException.class);
 
         verify(classScheduleRepository, never()).save(any());
@@ -327,15 +373,16 @@ class TimetableGenerationServiceTest {
         staffed.setId(1L);
         staffed.setStatus(ClassScheduleStatus.DRAFT);
         staffed.setFaculty(faculty);
+        stubCohortSchedules(List.of(staffed));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed));
-        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableConflictInspectorService.scanCohorts(eq(10L), eq(COHORT_IDS))).thenReturn(cleanScan());
         when(timetableCoverageService.findGaps(10L)).thenReturn(List.of(
-            new TimetableCoverageGap(5L, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
+            new TimetableCoverageGap(COHORT_ID, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
 
-        assertThatThrownBy(() -> service.approve(10L, "admin", true, "  "))
+        assertThatThrownBy(() -> service.approve(10L, COHORT_IDS, "admin", true, "  "))
             .isInstanceOf(IllegalArgumentException.class);
 
         verify(classScheduleRepository, never()).save(any());
@@ -347,16 +394,17 @@ class TimetableGenerationServiceTest {
         staffed.setId(1L);
         staffed.setStatus(ClassScheduleStatus.DRAFT);
         staffed.setFaculty(faculty);
+        stubCohortSchedules(List.of(staffed));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(List.of(staffed));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableConflictInspectorService.scanCohorts(eq(10L), eq(COHORT_IDS))).thenReturn(cleanScan());
         when(timetableCoverageService.findGaps(10L)).thenReturn(List.of(
-            new TimetableCoverageGap(5L, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
+            new TimetableCoverageGap(COHORT_ID, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340)));
 
-        TimetableActionResponse response = service.approve(10L, "admin", true, "Phased rollout, Theory starts next month");
+        TimetableActionResponse response = service.approve(10L, COHORT_IDS, "admin", true, "Phased rollout, Theory starts next month");
 
         assertThat(response.affectedCount()).isEqualTo(1);
         assertThat(staffed.getStatus()).isEqualTo(ClassScheduleStatus.PUBLISHED);
@@ -366,11 +414,12 @@ class TimetableGenerationServiceTest {
 
     @Test
     void shouldThrowWhenApprovingWithNoDrafts() {
+        stubCohortSchedules(List.of());
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
             .thenReturn(Collections.emptyList());
 
-        assertThatThrownBy(() -> service.approve(10L, "admin"))
+        assertThatThrownBy(() -> service.approve(10L, COHORT_IDS, "admin", false, null))
             .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -382,26 +431,28 @@ class TimetableGenerationServiceTest {
         ClassSchedule published2 = new ClassSchedule();
         published2.setId(2L);
         published2.setStatus(ClassScheduleStatus.PUBLISHED);
+        stubCohortSchedules(List.of(published1, published2));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(published1, published2));
-        when(labAttendanceRepository.existsByLabScheduleTermInstanceId(10L)).thenReturn(false);
+        when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(false);
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        TimetableActionResponse response = service.revertToDraft(10L, "admin");
+        TimetableActionResponse response = service.revertToDraft(10L, COHORT_IDS, "admin");
 
         assertThat(response.affectedCount()).isEqualTo(2);
         assertThat(published1.getStatus()).isEqualTo(ClassScheduleStatus.DRAFT);
         assertThat(published2.getStatus()).isEqualTo(ClassScheduleStatus.DRAFT);
-        verify(auditLogService).record("admin", "TIMETABLE_REVERTED_TO_DRAFT", "TermInstance", "10", "2 session(s) reverted to draft");
+        verify(auditLogService).record(eq("admin"), eq("TIMETABLE_REVERTED_TO_DRAFT"), eq("TermInstance"), eq("10"),
+            org.mockito.ArgumentMatchers.contains("2 session(s) reverted to draft"));
     }
 
     @Test
     void shouldBlockRevertWhenTermIsLocked() {
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.LOCKED)));
 
-        assertThatThrownBy(() -> service.revertToDraft(10L, "admin"))
+        assertThatThrownBy(() -> service.revertToDraft(10L, COHORT_IDS, "admin"))
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
@@ -409,11 +460,12 @@ class TimetableGenerationServiceTest {
 
     @Test
     void shouldThrowWhenRevertingWithNoPublishedRows() {
+        stubCohortSchedules(List.of());
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(Collections.emptyList());
 
-        assertThatThrownBy(() -> service.revertToDraft(10L, "admin"))
+        assertThatThrownBy(() -> service.revertToDraft(10L, COHORT_IDS, "admin"))
             .isInstanceOf(ResourceNotFoundException.class);
     }
 
@@ -422,13 +474,14 @@ class TimetableGenerationServiceTest {
         ClassSchedule published1 = new ClassSchedule();
         published1.setId(1L);
         published1.setStatus(ClassScheduleStatus.PUBLISHED);
+        stubCohortSchedules(List.of(published1));
 
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
             .thenReturn(List.of(published1));
-        when(labAttendanceRepository.existsByLabScheduleTermInstanceId(10L)).thenReturn(true);
+        when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(true);
 
-        assertThatThrownBy(() -> service.revertToDraft(10L, "admin"))
+        assertThatThrownBy(() -> service.revertToDraft(10L, COHORT_IDS, "admin"))
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
