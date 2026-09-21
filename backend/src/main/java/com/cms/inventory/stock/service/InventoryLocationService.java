@@ -46,6 +46,7 @@ public class InventoryLocationService {
         location.setVirtualName(virtualName);
         location.setLocationRole(role);
         location.setDescription(trim(request.description()));
+        location.setDefaultSupplyingLocation(resolveDefaultSupplyingLocation(request.defaultSupplyingLocationId(), null));
         if (request.isActive() != null) location.setIsActive(request.isActive());
         return toResponse(locationRepository.save(location));
     }
@@ -88,6 +89,7 @@ public class InventoryLocationService {
         location.setVirtualName(virtualName);
         location.setLocationRole(role);
         location.setDescription(trim(request.description()));
+        location.setDefaultSupplyingLocation(resolveDefaultSupplyingLocation(request.defaultSupplyingLocationId(), id));
         if (request.isActive() != null) location.setIsActive(request.isActive());
         return toResponse(locationRepository.save(location));
     }
@@ -125,6 +127,22 @@ public class InventoryLocationService {
             .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + roomId));
     }
 
+    /** @param currentId the location being saved (excluded id on update, {@code null} on create) —
+     *  used only to reject a location naming itself as its own supplying store. */
+    private InventoryLocation resolveDefaultSupplyingLocation(Long defaultSupplyingLocationId, Long currentId) {
+        if (defaultSupplyingLocationId == null) return null;
+        if (defaultSupplyingLocationId.equals(currentId)) {
+            throw new IllegalArgumentException("A location cannot be its own default supplying store");
+        }
+        InventoryLocation supplying = locationRepository.findById(defaultSupplyingLocationId)
+            .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + defaultSupplyingLocationId));
+        if (supplying.getLocationRole() == LocationRole.REQUESTING_POINT) {
+            throw new IllegalArgumentException(
+                "'" + supplying.getVirtualName() + "' is a requesting-point location and cannot be a default supplying store — pick a store location instead");
+        }
+        return supplying;
+    }
+
     private LocationRole parseRole(String value) {
         try {
             return LocationRole.valueOf(value == null ? "" : value.trim().toUpperCase());
@@ -135,9 +153,11 @@ public class InventoryLocationService {
 
     private InventoryLocationResponse toResponse(InventoryLocation l) {
         Room room = l.getRoom();
+        InventoryLocation supplying = l.getDefaultSupplyingLocation();
         return new InventoryLocationResponse(l.getId(), room.getId(), room.getRoomNumber(),
             room.getZone().getId(), room.getZone().getName(), l.getVirtualName(), l.getLocationRole().name(),
-            l.getDescription(), l.getIsActive(), l.getCreatedAt(), l.getUpdatedAt());
+            l.getDescription(), supplying != null ? supplying.getId() : null, supplying != null ? supplying.getVirtualName() : null,
+            l.getIsActive(), l.getCreatedAt(), l.getUpdatedAt());
     }
 
     private static String trim(String s) {

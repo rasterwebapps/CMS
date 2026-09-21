@@ -691,6 +691,32 @@ export const routes: Routes = [
         (m) => m.StockTransferDetailComponent
       ),
   },
+  // Phase B of the Stock Indent auto-indent feature — per-(product, location) Reorder Configuration
+  // (see docs/inventory-management/DECISION_LOG.md's 2026-09-21 "OC-206 reopened" entry).
+  {
+    path: 'inventory/stock/reorder-configs',
+    canActivate: withPermission('INVENTORY_REORDER_CONFIG_VIEW', 'INVENTORY_REORDER_CONFIG_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reorder-config/reorder-config-list/reorder-config-list.component').then(
+        (m) => m.ReorderConfigListComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/reorder-configs/new',
+    canActivate: withPermission('INVENTORY_REORDER_CONFIG_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reorder-config/reorder-config-form/reorder-config-form.component').then(
+        (m) => m.ReorderConfigFormComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/reorder-configs/:id/edit',
+    canActivate: withPermission('INVENTORY_REORDER_CONFIG_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reorder-config/reorder-config-form/reorder-config-form.component').then(
+        (m) => m.ReorderConfigFormComponent
+      ),
+  },
   // Phase 3 "Receiving & Stock Movement" — Return to Supplier (third and final slice, closes Phase 3).
   {
     path: 'inventory/receiving/supplier-returns',

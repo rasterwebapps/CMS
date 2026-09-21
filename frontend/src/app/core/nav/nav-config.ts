@@ -247,6 +247,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Stock Transfers',   icon: 'sync_alt', route: '/inventory/stock/transfers', permissions: ['INVENTORY_STOCK_TRANSFER_VIEW', 'INVENTORY_STOCK_TRANSFER_MANAGE'] },
       { label: 'Supplier Returns',  icon: 'keyboard_return', route: '/inventory/receiving/supplier-returns', permissions: ['INVENTORY_SUPPLIER_RETURN_VIEW', 'INVENTORY_SUPPLIER_RETURN_MANAGE'] },
       // -- Outbound movement (was "Requests, Issues & Returns") --
+      { label: 'Reorder Configuration', icon: 'tune', route: '/inventory/stock/reorder-configs', permissions: ['INVENTORY_REORDER_CONFIG_VIEW', 'INVENTORY_REORDER_CONFIG_MANAGE'] },
       { label: 'Stock Indents', icon: 'outbound', route: '/inventory/indent/stock-indents', permissions: ['INVENTORY_STOCK_INDENT_VIEW', 'INVENTORY_STOCK_INDENT_MANAGE', 'INVENTORY_STOCK_INDENT_APPROVE'] },
       { label: 'Loanable Item Issues', icon: 'assignment_return', route: '/inventory/issue/loanable-item-issues', permissions: ['INVENTORY_LOAN_ISSUE_VIEW', 'INVENTORY_LOAN_ISSUE_MANAGE', 'INVENTORY_LOAN_ISSUE_RETURN'] },
     ],

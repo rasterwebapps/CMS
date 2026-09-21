@@ -1,0 +1,102 @@
+<div class="mlp-page">
+
+  <!-- ── Page Header ─────────────────────────────────────────── -->
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div class="page-title-row">
+        <h1 class="rc-pg-title">Reorder <em>Configuration</em></h1>
+      </div>
+      <p class="rc-pg-sub">A product's reorder level, reorder quantity, and max stock at one location — the trigger a Stock Indent auto-generates from.</p>
+    </div>
+    <div class="mlp-hdr-actions">
+      <button class="btn-primary" (click)="goToNew()" aria-label="Add reorder configuration">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Configuration
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────────── -->
+  <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <select class="field-select rc-filter" [(ngModel)]="locationFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by location">
+      <option [ngValue]="null">All Locations</option>
+      @for (l of locations(); track l.id) {
+        <option [ngValue]="l.id">{{ l.virtualName }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="content-card mlp-table-card">
+    <div class="table-wrapper">
+    <table mat-table [dataSource]="dataSource" class="rc-table">
+      <ng-container matColumnDef="productName">
+        <th mat-header-cell *matHeaderCellDef>Product</th>
+        <td mat-cell *matCellDef="let row">{{ row.productCode }} — {{ row.productName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="locationVirtualName">
+        <th mat-header-cell *matHeaderCellDef>Location</th>
+        <td mat-cell *matCellDef="let row">{{ row.locationVirtualName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="reorderLevel">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Reorder Level</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.reorderLevel }}</td>
+      </ng-container>
+      <ng-container matColumnDef="reorderQty">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Reorder Qty</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.reorderQty }}</td>
+      </ng-container>
+      <ng-container matColumnDef="maxStockQty">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-right">Max Stock</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-right">{{ row.maxStockQty ?? '—' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="autoIndentEnabled">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Auto-Indent</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center">
+          @if (row.autoIndentEnabled && row.defaultSupplyingLocationVirtualName) {
+            <span class="rc-auto-tag rc-auto-tag--on">On → {{ row.defaultSupplyingLocationVirtualName }}</span>
+          } @else if (row.autoIndentEnabled) {
+            <span class="rc-auto-tag rc-auto-tag--warn">On, no store set</span>
+          } @else {
+            <span class="rc-auto-tag rc-auto-tag--off">Off</span>
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="isActive">
+        <th mat-header-cell *matHeaderCellDef class="cell-align-center">Status</th>
+        <td mat-cell *matCellDef="let row" class="cell-align-center">
+          <cms-status-badge [status]="row.isActive ? 'ACTIVE' : 'INACTIVE'" />
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+        <td mat-cell *matCellDef="let row">
+          <div class="row-actions">
+            <cms-row-action-btn variant="warning" [iconOnly]="true" (clicked)="toggleStatus(row)"
+                    [tooltip]="row.isActive ? 'Deactivate' : 'Activate'" ariaLabel="Toggle reorder configuration status">
+              <cms-icon-toggle-status [active]="row.isActive" [size]="14" />
+            </cms-row-action-btn>
+            <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit" (clicked)="editConfig(row)">
+              <cms-icon-edit [size]="14" />
+            </cms-row-action-btn>
+          </div>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding:0; border:none;">
+          <cms-empty-state
+            icon="inventory_2"
+            title="No reorder configurations yet"
+            subtitle="Set a reorder level and quantity for a product at a location to see it here."
+            actionLabel="Add Configuration"
+            (actionClick)="handleEmptyAction()"
+          ></cms-empty-state>
+        </td>
+      </tr>
+    </table>
+    </div>
+    <mat-paginator [length]="totalElements" [pageSizeOptions]="[10, 25, 50]" [pageSize]="25" showFirstLastButtons></mat-paginator>
+  </div>
+
+</div>

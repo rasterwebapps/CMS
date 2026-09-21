@@ -101,6 +101,20 @@
               </select>
             </div>
 
+            <!-- Default Supplying Store -->
+            @if (showsSupplyingStore()) {
+              <div class="field-group">
+                <label for="loc-supplying-store" class="field-label">Default Supplying Store</label>
+                <select id="loc-supplying-store" class="field-select" formControlName="defaultSupplyingLocationId">
+                  <option [ngValue]="null">None yet</option>
+                  @for (s of supplyingStores(); track s.id) {
+                    <option [ngValue]="s.id">{{ s.virtualName }}</option>
+                  }
+                </select>
+                <p class="field-hint">The store an auto-generated Stock Indent from this location targets. Required before enabling auto-indent on any product here.</p>
+              </div>
+            }
+
             <!-- Description -->
             <div class="field-group">
               <label for="loc-desc" class="field-label">Description</label>

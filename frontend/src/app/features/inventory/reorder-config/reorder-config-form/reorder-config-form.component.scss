@@ -1,0 +1,28 @@
+.rc-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.rc-product-picker {
+  min-width: 0;
+}
+
+.rc-max-stock-input {
+  max-width: 200px;
+}
+
+// .checkbox-label is global (styles.scss) but only supplies flex/padding — a bare native
+// <input type="checkbox"> still needs its own sizing here, same as vendor-product-mapping-form's
+// own copy of this block (see that file's comment for which other forms already got this right).
+.checkbox-label {
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.field-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
