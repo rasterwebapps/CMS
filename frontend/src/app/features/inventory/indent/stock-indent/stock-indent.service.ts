@@ -59,4 +59,8 @@ export class StockIndentService {
   cancel(requestId: number): Observable<void> {
     return this.http.post<void>(`${this.baseUrl}/${requestId}/cancel`, {});
   }
+
+  runAutoIndent(): Observable<{ created: number }> {
+    return this.http.post<{ created: number }>(`${this.baseUrl}/auto-run`, {});
+  }
 }

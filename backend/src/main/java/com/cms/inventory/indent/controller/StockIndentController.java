@@ -1,5 +1,7 @@
 package com.cms.inventory.indent.controller;
 
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -24,6 +26,7 @@ import com.cms.inventory.indent.dto.StockIndentItemResponse;
 import com.cms.inventory.indent.dto.StockIndentResolutionRequest;
 import com.cms.inventory.indent.dto.StockIndentResponse;
 import com.cms.inventory.indent.dto.StockIndentReturnLineRequest;
+import com.cms.inventory.indent.service.AutoIndentService;
 import com.cms.inventory.indent.service.StockIndentService;
 
 import jakarta.validation.Valid;
@@ -36,9 +39,11 @@ public class StockIndentController {
         "@perm.hasAny('INVENTORY_STOCK_INDENT_VIEW', 'INVENTORY_STOCK_INDENT_MANAGE', 'INVENTORY_STOCK_INDENT_APPROVE')";
 
     private final StockIndentService requestService;
+    private final AutoIndentService autoIndentService;
 
-    public StockIndentController(StockIndentService requestService) {
+    public StockIndentController(StockIndentService requestService, AutoIndentService autoIndentService) {
         this.requestService = requestService;
+        this.autoIndentService = autoIndentService;
     }
 
     @PostMapping
@@ -110,6 +115,12 @@ public class StockIndentController {
     public ResponseEntity<Void> cancel(@PathVariable Long id) {
         requestService.cancel(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/auto-run")
+    @PreAuthorize("@perm.has('INVENTORY_STOCK_INDENT_AUTO_RUN')")
+    public ResponseEntity<Map<String, Integer>> autoRun() {
+        return ResponseEntity.ok(Map.of("created", autoIndentService.generate()));
     }
 
     private String username(Jwt jwt) {
