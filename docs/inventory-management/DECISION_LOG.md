@@ -2504,4 +2504,58 @@ Outstanding: a manual light/dark/role click-through of the new screens, and of `
 detail/list screens per the Component Touch Rule (their own FK addition didn't change any
 existing template output, but the rule still calls for a look).
 
+## 2026-09-21 — OC-206 ("Auto-restocking") reopened as Auto-Indent; Stock Issue Request renamed to Stock Indent
+
+**Prompted by:** the user's own real deployment policy for stock reorder/replenishment, supplying
+exactly the missing input the "Auto-restocking (OC-206) skipped" entry (2026-09-08) said to wait
+for. Ran as a full Partner Mode specialist round before any code — see that skipped entry for the
+original blocker.
+
+**Decisions:**
+1. **"Indent" is the user's name for the existing `StockIssueRequest` concept, not a separate
+   document.** The user explicitly rejected building a second parallel entity — `StockIssueRequest`
+   (Phase 4's IHMS-referenced `IssueLocationIndent` analogue) is renamed to `StockIndent`
+   throughout: entity/item/both status enums, service, controller, repositories, DTOs, package
+   (`com.cms.inventory.issue` -> `com.cms.inventory.indent`, leaving `LoanableItemIssue*` behind in
+   `issue` since it's an unrelated concept sharing the old package), table names, permission codes
+   (`INVENTORY_ISSUE_REQUEST_*` -> `INVENTORY_STOCK_INDENT_*`, updated in place since it's a rename
+   of the same permission, not a new capability — role grants carry over automatically with no
+   copy-forward migration needed), frontend folder/route/nav. This reverses the "distinct from
+   Purchase Requisition, never conflate" naming caution from the original `StockIssueRequest`
+   slice only insofar as the *user's* vocabulary; the code-level distinction from
+   `PurchaseRequisition` (buying from a supplier vs. requesting on-hand stock) is unchanged.
+2. **Per-location reorder policy, not global.** `Product.reorderLevel`/`reorderQty` stay as they
+   are (global, feeding the existing Wanted List's supplier-side auto-reorder) — the new indent
+   trigger gets its own `(product, location)`-scoped config (reorder level, reorder qty, max stock
+   qty, auto-indent flag), scoped to `REQUESTING_POINT`/`BOTH` locations only. Two-tier this phase
+   (Requesting Point -> Store) — a `STORE` location running low stays the Wanted List's job, not a
+   chained indent; multi-tier (`Store -> bigger Main Store`) explicitly deferred, not designed.
+3. **Explicit "default supplying store" field**, added per requesting-point location, rather than
+   inferring the target store from the campus Branch/Block hierarchy — predictable, no surprise
+   fulfillment routing.
+4. **Store-side fulfillment stays manual for this phase** — an auto-generated indent, once
+   department-head-approved, lands on a decision screen (own stock / other locations' surplus / any
+   open PO shown as context); the store clicks Fulfill / Transfer-in-then-fulfill / Raise PO / Deny.
+   No auto-posting. Matches the original OC-206 blocker's own conclusion that sourcing-preference
+   policy "no ERP-standard default can safely guess" — starting manual, tunable later once real
+   usage is observed, rather than guessing at automation rules now.
+5. **Transfer-in routes via the main store, not directly to the requester** — pulling surplus from
+   another sub-location posts two movements (surplus location -> main store, then main store ->
+   requester) rather than one direct transfer, so the store's own stock ledger always reflects
+   everything it dispatched.
+6. **Manual and auto-generated indents share one lifecycle** — the two-step (department-head
+   approval, then store fulfillment decision) split applies to both, not just auto-generated ones.
+   This is a real behavior change from the original `StockIssueRequest` slice, where approving a
+   line immediately posted the ISSUE movement in one step; the user confirmed unifying both paths
+   rather than keeping instant-issue-on-approve for manual requests.
+
+**Status:** Phase A (pure rename, no behavior change) shipped this entry — V531 (table/constraint/
+index/sequence rename, all names verified against the live local dev DB before writing, not
+guessed) + V532 (permission code rename in place). Booted clean against the migrated local dev DB;
+`StockIndentServiceTest` (10 cases, moved and renamed) green; full backend `compileJava`/
+`compileTestJava` and frontend `tsc --noEmit` + `ng build --configuration=production` all clean.
+Decisions 2-6 above (per-location reorder config, auto-detection job, two-step lifecycle, store
+fulfillment screen) are follow-up phases, not yet built — see `MILESTONES.md`'s Phase 4 entry for
+tracking.
+
 *Next entry goes here — do not insert above this line.*

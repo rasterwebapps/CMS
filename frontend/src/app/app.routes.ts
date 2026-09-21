@@ -716,29 +716,29 @@ export const routes: Routes = [
         (m) => m.SupplierReturnDetailComponent
       ),
   },
-  // Phase 4 "Requests, Issues & Returns" — Stock Issue Request (first slice).
+  // Phase 4 "Requests, Issues & Returns" — Stock Indent (first slice; renamed from Stock Issue Request).
   {
-    path: 'inventory/issue/stock-issue-requests',
-    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'),
+    path: 'inventory/indent/stock-indents',
+    canActivate: withPermission('INVENTORY_STOCK_INDENT_VIEW', 'INVENTORY_STOCK_INDENT_MANAGE', 'INVENTORY_STOCK_INDENT_APPROVE'),
     loadComponent: () =>
-      import('./features/inventory/issue/stock-issue-request/stock-issue-request-list/stock-issue-request-list.component').then(
-        (m) => m.StockIssueRequestListComponent
+      import('./features/inventory/indent/stock-indent/stock-indent-list/stock-indent-list.component').then(
+        (m) => m.StockIndentListComponent
       ),
   },
   {
-    path: 'inventory/issue/stock-issue-requests/new',
-    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_MANAGE'),
+    path: 'inventory/indent/stock-indents/new',
+    canActivate: withPermission('INVENTORY_STOCK_INDENT_MANAGE'),
     loadComponent: () =>
-      import('./features/inventory/issue/stock-issue-request/stock-issue-request-new/stock-issue-request-new.component').then(
-        (m) => m.StockIssueRequestNewComponent
+      import('./features/inventory/indent/stock-indent/stock-indent-new/stock-indent-new.component').then(
+        (m) => m.StockIndentNewComponent
       ),
   },
   {
-    path: 'inventory/issue/stock-issue-requests/:id',
-    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'),
+    path: 'inventory/indent/stock-indents/:id',
+    canActivate: withPermission('INVENTORY_STOCK_INDENT_VIEW', 'INVENTORY_STOCK_INDENT_MANAGE', 'INVENTORY_STOCK_INDENT_APPROVE'),
     loadComponent: () =>
-      import('./features/inventory/issue/stock-issue-request/stock-issue-request-detail/stock-issue-request-detail.component').then(
-        (m) => m.StockIssueRequestDetailComponent
+      import('./features/inventory/indent/stock-indent/stock-indent-detail/stock-indent-detail.component').then(
+        (m) => m.StockIndentDetailComponent
       ),
   },
   // Phase 4 "Requests, Issues & Returns" — Loanable Item Issue (fourth and final slice, closes Phase 4).

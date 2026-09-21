@@ -1,0 +1,385 @@
+package com.cms.inventory.indent.service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Locale;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.cms.exception.ResourceNotFoundException;
+import com.cms.inventory.catalog.model.Product;
+import com.cms.inventory.catalog.model.ProductVariant;
+import com.cms.inventory.catalog.repository.ProductRepository;
+import com.cms.inventory.catalog.repository.ProductVariantRepository;
+import com.cms.inventory.indent.dto.StockIndentAddLineRequest;
+import com.cms.inventory.indent.dto.StockIndentCreateRequest;
+import com.cms.inventory.indent.dto.StockIndentItemResponse;
+import com.cms.inventory.indent.dto.StockIndentResolutionRequest;
+import com.cms.inventory.indent.dto.StockIndentResponse;
+import com.cms.inventory.indent.dto.StockIndentReturnLineRequest;
+import com.cms.inventory.indent.model.StockIndent;
+import com.cms.inventory.indent.model.StockIndentItem;
+import com.cms.inventory.indent.model.enums.StockIndentItemStatus;
+import com.cms.inventory.indent.model.enums.StockIndentStatus;
+import com.cms.inventory.indent.repository.StockIndentItemRepository;
+import com.cms.inventory.indent.repository.StockIndentRepository;
+import com.cms.inventory.stock.dto.StockMovementRequest;
+import com.cms.inventory.stock.model.InventoryLocation;
+import com.cms.inventory.stock.model.enums.LocationRole;
+import com.cms.inventory.stock.repository.InventoryLocationRepository;
+import com.cms.inventory.stock.repository.StockBalanceRepository;
+import com.cms.inventory.stock.service.StockMovementService;
+
+/**
+ * Owns the Stock Indent workflow — Phase 4's ("Requests, Issues & Returns") first slice.
+ * Mirrors {@code PurchaseRequisitionService}'s header/line shape (DRAFT -> SUBMITTED ->
+ * COMPLETED/CANCELLED, per-line PENDING -> APPROVED/REJECTED, {@code CANCELLED} reachable only
+ * from {@code DRAFT}) almost exactly — the closest in-repo precedent — except {@link
+ * #approveLine} also posts a real {@code ISSUE} stock movement decreasing the issuing location's
+ * balance through the existing {@code StockMovementService}, rather than only reaching a
+ * terminal sign-off state with nothing downstream to pick it up. If the issuing location doesn't
+ * have enough on hand, {@code recordMovement}'s existing negative-stock guard rejects the whole
+ * approval — the line stays {@code PENDING}, no partial posting. See the "Stock Indent
+ * slice" decision-log entry.
+ */
+@Service
+@Transactional(readOnly = true)
+public class StockIndentService {
+
+    private final StockIndentRepository requestRepository;
+    private final StockIndentItemRepository lineRepository;
+    private final InventoryLocationRepository locationRepository;
+    private final ProductRepository productRepository;
+    private final StockMovementService stockMovementService;
+    private final ProductVariantRepository variantRepository;
+    private final StockBalanceRepository balanceRepository;
+
+    public StockIndentService(StockIndentRepository requestRepository,
+                               StockIndentItemRepository lineRepository,
+                               InventoryLocationRepository locationRepository,
+                               ProductRepository productRepository,
+                               StockMovementService stockMovementService,
+                               ProductVariantRepository variantRepository,
+                               StockBalanceRepository balanceRepository) {
+        this.requestRepository = requestRepository;
+        this.lineRepository = lineRepository;
+        this.locationRepository = locationRepository;
+        this.productRepository = productRepository;
+        this.stockMovementService = stockMovementService;
+        this.variantRepository = variantRepository;
+        this.balanceRepository = balanceRepository;
+    }
+
+    @Transactional
+    public StockIndentResponse create(StockIndentCreateRequest request, String createdBy) {
+        if (request.requestingLocationId().equals(request.issuingLocationId())) {
+            throw new IllegalArgumentException("Requesting and issuing locations must be different");
+        }
+        InventoryLocation requestingLocation = locationRepository.findById(request.requestingLocationId())
+            .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + request.requestingLocationId()));
+        InventoryLocation issuingLocation = locationRepository.findById(request.issuingLocationId())
+            .orElseThrow(() -> new ResourceNotFoundException("Inventory location not found with id: " + request.issuingLocationId()));
+        requireCanRequest(requestingLocation);
+        requireCanIssue(issuingLocation);
+
+        StockIndent indent = new StockIndent();
+        indent.setRequestingLocation(requestingLocation);
+        indent.setIssuingLocation(issuingLocation);
+        indent.setStatus(StockIndentStatus.DRAFT);
+        indent.setRequestDate(request.requestDate() != null ? request.requestDate() : LocalDate.now());
+        indent.setNotes(trim(request.notes()));
+        indent.setCreatedBy(createdBy);
+        indent.setCreatedAt(Instant.now());
+        indent.setUpdatedAt(Instant.now());
+        return toResponse(requestRepository.save(indent));
+    }
+
+    public Page<StockIndentResponse> findPage(Long locationId, String status, Pageable pageable) {
+        Specification<StockIndent> spec = (root, query, cb) -> {
+            var predicate = cb.conjunction();
+            if (locationId != null) {
+                predicate = cb.and(predicate, cb.or(
+                    cb.equal(root.get("requestingLocation").get("id"), locationId),
+                    cb.equal(root.get("issuingLocation").get("id"), locationId)));
+            }
+            if (status != null && !status.isBlank()) predicate = cb.and(predicate, cb.equal(root.get("status"), parseStatus(status)));
+            return predicate;
+        };
+        return requestRepository.findAll(spec, pageable).map(r -> toResponse(r, false));
+    }
+
+    public StockIndentResponse findById(Long id) {
+        return toResponse(requireRequest(id));
+    }
+
+    @Transactional
+    public StockIndentItemResponse addLine(Long requestId, StockIndentAddLineRequest request) {
+        StockIndent indent = requireRequest(requestId);
+        requireStatus(indent, StockIndentStatus.DRAFT, "add a product to");
+        Product product = productRepository.findById(request.productId())
+            .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + request.productId()));
+        ProductVariant variant = resolveVariant(product, request.variantId());
+        boolean alreadyOnRequest = variant != null
+            ? lineRepository.existsByStockIndentIdAndProductIdAndVariantId(requestId, product.getId(), variant.getId())
+            : lineRepository.existsByStockIndentIdAndProductIdAndVariantIsNull(requestId, product.getId());
+        if (alreadyOnRequest) {
+            throw new IllegalArgumentException("This product is already on the request");
+        }
+
+        StockIndentItem line = new StockIndentItem();
+        line.setStockIndent(indent);
+        line.setProduct(product);
+        line.setVariant(variant);
+        line.setRequestedQty(request.requestedQty());
+        line.setNotes(trim(request.notes()));
+        return toLineResponse(lineRepository.save(line));
+    }
+
+    @Transactional
+    public void removeLine(Long requestId, Long lineId) {
+        StockIndent indent = requireRequest(requestId);
+        requireStatus(indent, StockIndentStatus.DRAFT, "remove a line from");
+        StockIndentItem line = requireLine(indent, lineId);
+        lineRepository.delete(line);
+    }
+
+    @Transactional
+    public StockIndentResponse submit(Long requestId, String submittedBy) {
+        StockIndent indent = requireRequest(requestId);
+        requireStatus(indent, StockIndentStatus.DRAFT, "submit");
+        List<StockIndentItem> lines = lineRepository.findByStockIndentIdOrderByIdAsc(requestId);
+        if (lines.isEmpty()) {
+            throw new IllegalArgumentException("Add at least one product to the request before submitting");
+        }
+        indent.setStatus(StockIndentStatus.SUBMITTED);
+        indent.setSubmittedBy(submittedBy);
+        indent.setSubmittedAt(Instant.now());
+        indent.setUpdatedAt(Instant.now());
+        requestRepository.save(indent);
+        return toResponse(indent);
+    }
+
+    @Transactional
+    public StockIndentItemResponse approveLine(Long requestId, Long lineId, StockIndentResolutionRequest request, String resolvedBy) {
+        StockIndent indent = requireRequest(requestId);
+        requireStatus(indent, StockIndentStatus.SUBMITTED, "approve a line on");
+        StockIndentItem line = requireLine(indent, lineId);
+        if (line.getStatus() != StockIndentItemStatus.PENDING) {
+            throw new IllegalArgumentException("This line has already been resolved");
+        }
+
+        stockMovementService.recordMovement(new StockMovementRequest(
+            line.getProduct().getId(), line.getVariant() != null ? line.getVariant().getId() : null,
+            indent.getIssuingLocation().getId(), null, null,
+            "ISSUE", null, line.getRequestedQty(), null,
+            "Stock Indent #" + indent.getId() + " to " + indent.getRequestingLocation().getVirtualName(), null
+        ), resolvedBy);
+
+        line.setStatus(StockIndentItemStatus.APPROVED);
+        line.setResolvedBy(resolvedBy);
+        line.setResolvedAt(Instant.now());
+        line.setResolutionNotes(trim(request != null ? request.notes() : null));
+        lineRepository.save(line);
+        completeIfResolved(indent);
+        return toLineResponse(line);
+    }
+
+    @Transactional
+    public StockIndentItemResponse rejectLine(Long requestId, Long lineId, StockIndentResolutionRequest request, String resolvedBy) {
+        StockIndent indent = requireRequest(requestId);
+        requireStatus(indent, StockIndentStatus.SUBMITTED, "reject a line on");
+        StockIndentItem line = requireLine(indent, lineId);
+        if (line.getStatus() != StockIndentItemStatus.PENDING) {
+            throw new IllegalArgumentException("This line has already been resolved");
+        }
+        line.setStatus(StockIndentItemStatus.REJECTED);
+        line.setResolvedBy(resolvedBy);
+        line.setResolvedAt(Instant.now());
+        line.setResolutionNotes(trim(request != null ? request.notes() : null));
+        lineRepository.save(line);
+        completeIfResolved(indent);
+        return toLineResponse(line);
+    }
+
+    @Transactional
+    public void cancel(Long requestId) {
+        StockIndent indent = requireRequest(requestId);
+        requireStatus(indent, StockIndentStatus.DRAFT, "cancel");
+        indent.setStatus(StockIndentStatus.CANCELLED);
+        indent.setUpdatedAt(Instant.now());
+        requestRepository.save(indent);
+    }
+
+    private void completeIfResolved(StockIndent indent) {
+        if (indent.getStatus() != StockIndentStatus.SUBMITTED) return;
+        boolean anyPending = lineRepository.existsByStockIndentIdAndStatus(indent.getId(), StockIndentItemStatus.PENDING);
+        if (!anyPending) {
+            indent.setStatus(StockIndentStatus.COMPLETED);
+            indent.setCompletedAt(Instant.now());
+            indent.setUpdatedAt(Instant.now());
+            requestRepository.save(indent);
+        }
+    }
+
+    /** Same weighted-average formula {@code StockMovementService}'s own decrease-valuation uses,
+     *  and the same lookup {@code StockTransferService.currentUnbatchedUnitCost} uses — without
+     *  it, an Internal Return's INCREASE movement would resolve to a null unit cost, which {@code
+     *  StockMovementService.recordMovement} defaults to zero on an increase, silently diluting the
+     *  issuing location's weighted-average cost on every return. */
+    private BigDecimal currentUnbatchedUnitCost(Long productId, Long variantId, Long locationId) {
+        var balance = variantId != null
+            ? balanceRepository.findByProductIdAndVariantIdAndLocationIdAndBatchIsNull(productId, variantId, locationId)
+            : balanceRepository.findByProductIdAndVariantIsNullAndLocationIdAndBatchIsNull(productId, locationId);
+        return balance
+            .filter(b -> b.getQtyOnHand().signum() > 0)
+            .map(b -> b.getValueOnHand().divide(b.getQtyOnHand(), 2, RoundingMode.HALF_UP))
+            .orElse(BigDecimal.ZERO);
+    }
+
+    /**
+     * Resolves {@code variantId} against {@code product}, enforcing that it actually belongs to
+     * that product and that one is given at all once the product has any active variant — the
+     * same "variant becomes required once the product has any" rule as {@code
+     * StockMovementService.resolveVariant}.
+     */
+    private ProductVariant resolveVariant(Product product, Long variantId) {
+        if (variantId != null) {
+            return variantRepository.findByIdAndProductId(variantId, product.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                    "Variant " + variantId + " does not belong to '" + product.getProductName() + "'"));
+        }
+        if (variantRepository.existsByProductIdAndIsActiveTrue(product.getId())) {
+            throw new IllegalArgumentException(
+                "'" + product.getProductName() + "' has active variants — select one for this line");
+        }
+        return null;
+    }
+
+    /** A {@code STORE}-role location is the parent — it stocks and issues, never requests. */
+    private void requireCanRequest(InventoryLocation location) {
+        if (location.getLocationRole() == LocationRole.STORE) {
+            throw new IllegalArgumentException(
+                "'" + location.getVirtualName() + "' is a store location and cannot request stock — pick a requesting-point location instead");
+        }
+    }
+
+    /** A {@code REQUESTING_POINT}-role location is a sister — it draws stock, never issues it
+     *  to another location, so sisters can never request-from-issue directly between each other. */
+    private void requireCanIssue(InventoryLocation location) {
+        if (location.getLocationRole() == LocationRole.REQUESTING_POINT) {
+            throw new IllegalArgumentException(
+                "'" + location.getVirtualName() + "' is a requesting-point location and cannot issue stock — pick a store location instead");
+        }
+    }
+
+    private StockIndent requireRequest(Long id) {
+        return requestRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Stock indent not found with id: " + id));
+    }
+
+    private StockIndentItem requireLine(StockIndent indent, Long lineId) {
+        StockIndentItem line = lineRepository.findById(lineId)
+            .orElseThrow(() -> new ResourceNotFoundException("Stock indent line not found with id: " + lineId));
+        if (!line.getStockIndent().getId().equals(indent.getId())) {
+            throw new ResourceNotFoundException("Stock indent line not found with id: " + lineId);
+        }
+        return line;
+    }
+
+    private void requireStatus(StockIndent indent, StockIndentStatus required, String action) {
+        if (indent.getStatus() != required) {
+            throw new IllegalArgumentException(
+                "Cannot " + action + " a request that is " + indent.getStatus().name().toLowerCase(Locale.ROOT)
+                    + " — it must be " + required.name().toLowerCase(Locale.ROOT));
+        }
+    }
+
+    private StockIndentStatus parseStatus(String value) {
+        try {
+            return StockIndentStatus.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status '" + value + "'");
+        }
+    }
+
+    private static String trim(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private StockIndentResponse toResponse(StockIndent indent) {
+        return toResponse(indent, true);
+    }
+
+    private StockIndentResponse toResponse(StockIndent indent, boolean includeLines) {
+        List<StockIndentItem> lines = lineRepository.findByStockIndentIdOrderByIdAsc(indent.getId());
+        long pending = lines.stream().filter(l -> l.getStatus() == StockIndentItemStatus.PENDING).count();
+        InventoryLocation requestingLocation = indent.getRequestingLocation();
+        InventoryLocation issuingLocation = indent.getIssuingLocation();
+        return new StockIndentResponse(
+            indent.getId(), requestingLocation.getId(), requestingLocation.getVirtualName(),
+            issuingLocation.getId(), issuingLocation.getVirtualName(),
+            indent.getStatus().name(), indent.getRequestDate(), indent.getNotes(),
+            indent.getCreatedBy(), indent.getCreatedAt(),
+            indent.getSubmittedBy(), indent.getSubmittedAt(), indent.getCompletedAt(),
+            lines.size(), (int) pending,
+            includeLines ? lines.stream().map(this::toLineResponse).toList() : null);
+    }
+
+    /**
+     * Returns previously-issued stock back to this request's issuing location (Phase 4's
+     * "Internal Return" concept) — only meaningful once the line is {@code APPROVED} (issued).
+     * Posts an increasing {@code RETURN} movement (opposite direction from {@code
+     * SupplierReturnService}'s own decreasing use of the same transaction type) and accumulates
+     * the line's own {@code returnedQty} running total. See the "Internal Return slice"
+     * decision-log entry.
+     */
+    @Transactional
+    public StockIndentItemResponse returnLine(Long requestId, Long lineId, StockIndentReturnLineRequest request, String actor) {
+        StockIndent indent = requireRequest(requestId);
+        StockIndentItem line = requireLine(indent, lineId);
+        if (line.getStatus() != StockIndentItemStatus.APPROVED) {
+            throw new IllegalArgumentException("Only an approved (issued) line can be returned");
+        }
+        BigDecimal openQty = line.getRequestedQty().subtract(line.getReturnedQty());
+        if (request.returnedQty().compareTo(openQty) > 0) {
+            throw new IllegalArgumentException(
+                "Returned quantity (" + request.returnedQty() + ") exceeds what's still returnable on this line (" + openQty + ")");
+        }
+
+        Long variantId = line.getVariant() != null ? line.getVariant().getId() : null;
+        BigDecimal unitCost = currentUnbatchedUnitCost(line.getProduct().getId(), variantId, indent.getIssuingLocation().getId());
+
+        stockMovementService.recordMovement(new StockMovementRequest(
+            line.getProduct().getId(), variantId,
+            indent.getIssuingLocation().getId(), null, null,
+            "RETURN", "INCREASE", request.returnedQty(), unitCost,
+            "Internal Return — Stock Indent #" + indent.getId() + " line #" + line.getId()
+                + (request.notes() != null ? " — " + request.notes() : ""), null
+        ), actor);
+
+        line.setReturnedQty(line.getReturnedQty().add(request.returnedQty()));
+        lineRepository.save(line);
+        return toLineResponse(line);
+    }
+
+    private StockIndentItemResponse toLineResponse(StockIndentItem line) {
+        Product product = line.getProduct();
+        ProductVariant variant = line.getVariant();
+        return new StockIndentItemResponse(
+            line.getId(), product.getId(), product.getProductCode(), product.getProductName(),
+            variant != null ? variant.getId() : null, variant != null ? variant.getVariantCode() : null, variant != null ? variant.getVariantName() : null,
+            product.getBaseUom() != null ? product.getBaseUom().getCode() : null,
+            line.getRequestedQty(), line.getStatus().name(),
+            line.getResolvedBy(), line.getResolvedAt(), line.getResolutionNotes(),
+            line.getReturnedQty(), line.getNotes());
+    }
+}

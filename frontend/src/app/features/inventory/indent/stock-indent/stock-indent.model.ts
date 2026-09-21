@@ -1,0 +1,73 @@
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
+
+export type StockIndentStatus = 'DRAFT' | 'SUBMITTED' | 'COMPLETED' | 'CANCELLED';
+export type StockIndentItemStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface StockIndentCreateRequest {
+  requestingLocationId: number;
+  issuingLocationId: number;
+  requestDate?: string;
+  notes?: string;
+}
+
+export interface StockIndentAddLineRequest {
+  productId: number;
+  /** Required once the product has any active ProductVariant. */
+  variantId?: number;
+  requestedQty: number;
+  notes?: string;
+}
+
+export interface StockIndentResolutionRequest {
+  notes?: string;
+}
+
+export interface StockIndentReturnLineRequest {
+  returnedQty: number;
+  notes?: string;
+}
+
+export interface StockIndentItem {
+  id: number;
+  productId: number;
+  productCode: string;
+  productName: string;
+  variantId: number | null;
+  variantCode: string | null;
+  variantName: string | null;
+  uomCode: string | null;
+  requestedQty: number;
+  status: StockIndentItemStatus;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  resolutionNotes: string | null;
+  returnedQty: number;
+  notes: string | null;
+}
+
+export interface StockIndent {
+  id: number;
+  requestingLocationId: number;
+  requestingLocationVirtualName: string;
+  issuingLocationId: number;
+  issuingLocationVirtualName: string;
+  status: StockIndentStatus;
+  requestDate: string;
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  submittedBy: string | null;
+  submittedAt: string | null;
+  completedAt: string | null;
+  lineCount: number;
+  pendingCount: number;
+  lines: StockIndentItem[] | null;
+}
