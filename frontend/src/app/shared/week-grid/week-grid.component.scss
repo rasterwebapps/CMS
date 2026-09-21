@@ -176,6 +176,36 @@
   outline-offset: 1px;
 }
 
+// Date-wise-weekly view only (see WeekGridSession.occurrenceStatus) -- a specific date's real
+// outcome for an otherwise-recurring slot, never set by the generic template consumers.
+.session-chip--cancelled {
+  background: var(--cms-bg-muted);
+  border-color: var(--cms-border-default);
+  opacity: 0.7;
+
+  &:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .session-chip__subject {
+    text-decoration: line-through;
+    color: var(--cms-text-muted);
+  }
+}
+
+.session-chip--substituted {
+  border-style: dashed;
+  border-color: var(--cms-badge-amber-text, #b45309);
+}
+
+.session-chip__cancelled-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--cms-text-muted);
+  line-height: 1.2;
+}
+
 .session-chip__subject {
   font-size: var(--cms-text-xs);
   font-weight: 700;

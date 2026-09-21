@@ -200,6 +200,10 @@ export interface TermInstance {
   status: TermInstanceStatus;
   createdAt: string;
   updatedAt: string;
+  /** The term's real working-Saturday count -- 0 means the term hasn't opted in to Saturday
+   *  scheduling at all (Mon-Fri only). Drives the published timetable's Generic week grid's
+   *  Saturday column visibility (see CmsWeekGridComponent.workingSaturdayCount). */
+  workingSaturdayCount: number;
 }
 
 export interface TermInstanceUpdateRequest {

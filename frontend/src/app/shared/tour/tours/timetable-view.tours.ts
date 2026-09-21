@@ -18,7 +18,7 @@ export const TIMETABLE_VIEW_TOUR: TourDefinition = {
       popover: {
         title: 'Term, View, and Filters',
         description:
-          'Pick a term, switch between Week / Month / Day views, and filter by faculty, room, or batch to focus on what matters.',
+          'Pick a term, switch between Generic / Date-wise / Day views, and filter by faculty, room, or batch to focus on what matters.',
         side: 'bottom',
         align: 'start',
       },
@@ -28,7 +28,7 @@ export const TIMETABLE_VIEW_TOUR: TourDefinition = {
       popover: {
         title: 'The Timetable',
         description:
-          'Week shows a real weekly grid, Month shows a calendar of session-days, and Day shows a full agenda for one date — with room relocation available where permitted.',
+          'Generic shows the recurring weekly pattern, Date-wise shows one real calendar week at a time with any per-date changes, and Day shows a full agenda for one date — with room relocation available where permitted.',
         side: 'top',
         align: 'start',
       },
@@ -57,8 +57,8 @@ export const TIMETABLE_VIEW_FLOW_MAP: TourFlowMap = {
   ],
   currentIndex: 7,
   steps: [
-    { label: 'Term, View & Filters', icon: 'search', detail: 'Pick a term, switch Week/Month/Day views, and filter by faculty, room, or batch.' },
-    { label: 'Browse the Grid', icon: 'checklist', detail: 'Week/Month/Day views of the published, approved schedule.' },
+    { label: 'Term, View & Filters', icon: 'search', detail: 'Pick a term, switch Generic/Date-wise/Day views, and filter by faculty, room, or batch.' },
+    { label: 'Browse the Grid', icon: 'checklist', detail: 'Generic/Date-wise/Day views of the published, approved schedule.' },
     { label: 'Relocate a Room', icon: 'open', detail: 'Where permitted, relocate a session\'s room directly from the Day view.' },
     { label: 'Always Current', icon: 'send', detail: 'Reflects whatever was last approved in Timetable Draft Review, automatically.' },
   ],

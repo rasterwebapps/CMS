@@ -6,7 +6,10 @@
         <h1 class="mlp-title">My <em>Timetable</em></h1>
         <cms-tour-button tourKey="my-timetable" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="page-subtitle">Your published theory and lab schedule for the selected term</p>
+      <p class="page-subtitle">
+        Your published theory and lab schedule for the selected term
+        @if (audience === 'STAFF') { — Staff view } @else { — Student view }
+      </p>
     </div>
   </div>
 
@@ -27,8 +30,8 @@
     </select>
 
     <div class="view-mode-toggle">
-      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'week'" (click)="setViewMode('week')">Week</button>
-      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'month'" (click)="setViewMode('month')">Month</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'week'" (click)="setViewMode('week')">Generic</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'dateWise'" (click)="setViewMode('dateWise')">Date-wise</button>
       <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'day'" (click)="setViewMode('day')">Day</button>
     </div>
 
@@ -38,6 +41,9 @@
         <input type="date" class="field-input" [(ngModel)]="weekStart" (ngModelChange)="onWeekStartChange()"
           [min]="weekMin()" [max]="weekMax()" aria-label="Week start date" />
       </label>
+    }
+    @if (viewMode() === 'dateWise') {
+      <cms-week-navigator [weekStart]="weekStart" [min]="weekMin()" [max]="weekMax()" (weekStartChange)="onDateWiseWeekChange($event)" />
     }
     @if (viewMode() === 'day') {
       <label class="week-picker">
@@ -56,16 +62,17 @@
         </div>
       } @else {
         <cms-week-grid mode="personal" [sessions]="sessions()" [holidays]="holidays()" [weekStart]="weekStart"
+          [workingSaturdayCount]="selectedTerm()?.workingSaturdayCount ?? null"
           (sessionClick)="openLogProgress($event)" />
       }
-    } @else if (viewMode() === 'month') {
+    } @else if (viewMode() === 'dateWise') {
       @if (occurrencesLoading()) {
         <div class="loading-container">
-          <mat-spinner diameter="36" aria-label="Loading month view"></mat-spinner>
+          <mat-spinner diameter="36" aria-label="Loading date-wise view"></mat-spinner>
         </div>
       } @else {
-        <cms-month-grid [year]="monthYear()" [month]="monthMonth()" [occurrences]="occurrences()"
-          (monthChange)="onMonthChange($event)" (dayClick)="onMonthDayClick($event)" />
+        <cms-week-grid mode="personal" [sessions]="dateWiseSessions()" [weekStart]="weekStart"
+          [workingSaturdayCount]="selectedTerm()?.workingSaturdayCount ?? null" />
       }
     } @else {
       @if (occurrencesLoading()) {

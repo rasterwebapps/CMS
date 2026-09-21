@@ -81,7 +81,14 @@ export class CmsWeekGridComponent {
   @Output() revertClick = new EventEmitter<void>();
   @Output() cellClick = new EventEmitter<WeekGridCandidateCell>();
 
-  protected readonly days = WEEK_GRID_DAYS;
+  /** The term's real working-Saturday count, from TermInstanceDto.workingSaturdayCount -- 0 means
+   *  the term hasn't opted in to Saturday scheduling at all (see WorkingSaturdaysFlyoutComponent's
+   *  doc comment: Mon-Fri only, hard-blocked). Null (default) keeps every existing consumer that
+   *  doesn't pass it unaffected and always shows all 6 days, same as before this input existed. */
+  @Input() workingSaturdayCount: number | null = null;
+
+  protected readonly days = computed(() =>
+    this.workingSaturdayCount === 0 ? WEEK_GRID_DAYS.filter((d) => d !== 'SATURDAY') : WEEK_GRID_DAYS);
   protected readonly dayLabels = WEEK_GRID_DAY_LABELS;
 
   protected readonly isHoliday = computed(() => {

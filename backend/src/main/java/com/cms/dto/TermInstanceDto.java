@@ -15,5 +15,10 @@ public record TermInstanceDto(
     LocalDate endDate,
     TermInstanceStatus status,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    /** How many real working Saturdays this term has, per its configured pattern (see
+     *  WorkingSaturdaysFlyoutComponent) -- 0 means the term hasn't opted in to Saturday scheduling
+     *  at all (Mon-Fri only). Drives the published timetable's Generic week grid's Saturday
+     *  column visibility. */
+    long workingSaturdayCount
 ) {}

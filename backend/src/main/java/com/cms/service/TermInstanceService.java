@@ -290,7 +290,8 @@ public class TermInstanceService {
             ti.getEndDate(),
             ti.getStatus(),
             ti.getCreatedAt(),
-            ti.getUpdatedAt()
+            ti.getUpdatedAt(),
+            WorkingSaturdayCalculator.enabledWorkingSaturdayCount(ti)
         );
     }
 

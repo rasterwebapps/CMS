@@ -89,4 +89,13 @@ final class WorkingSaturdayCalculator {
         }
         return count;
     }
+
+    /** Unlike {@link #workingSaturdayCount}, this is safe for a caller that does NOT already know
+     *  whether Saturday scheduling is enabled — it answers "is Saturday a working day for this term,
+     *  and if so how many" in one call: 0 for an unconfigured (Mon-Fri only, hard-blocked) term,
+     *  otherwise the real count. Used to gate a UI's Saturday-column visibility (e.g. the published
+     *  timetable's Generic week grid, and Skeleton Builder's own grid). */
+    static long enabledWorkingSaturdayCount(TermInstance term) {
+        return term.getWorkingSaturdayWeeks().isEmpty() ? 0L : workingSaturdayCount(term);
+    }
 }

@@ -124,4 +124,74 @@ describe('CmsWeekGridComponent', () => {
       expect(publishBtn.nativeElement.disabled).toBe(true);
     });
   });
+
+  // The Date-wise-weekly view feeds this grid real dated occurrences instead of the recurring
+  // template, so a specific date's CANCELLED/SUBSTITUTED outcome must render distinctly.
+  describe('occurrenceStatus (Date-wise-weekly view)', () => {
+    it('renders a CANCELLED session struck-through with its reason, hiding room/faculty', () => {
+      fixture.componentInstance.sessions = [
+        { ...baseSession, occurrenceStatus: 'CANCELLED', cancelReason: 'Republic Day' },
+      ];
+      fixture.detectChanges();
+
+      const chip = fixture.debugElement.query(By.css('.session-chip'));
+      expect(chip.classes['session-chip--cancelled']).toBe(true);
+      expect(chip.nativeElement.textContent).toContain('Cancelled — Republic Day');
+      expect(chip.nativeElement.textContent).not.toContain('Room 101');
+    });
+
+    it('renders a SUBSTITUTED session with its own styling and full details', () => {
+      fixture.componentInstance.sessions = [
+        { ...baseSession, occurrenceStatus: 'SUBSTITUTED', facultyName: 'Dr. Iyer' },
+      ];
+      fixture.detectChanges();
+
+      const chip = fixture.debugElement.query(By.css('.session-chip'));
+      expect(chip.classes['session-chip--substituted']).toBe(true);
+      expect(chip.nativeElement.textContent).toContain('Dr. Iyer');
+    });
+
+    it('renders a plain session with no occurrenceStatus exactly as before (no cancelled/substituted class)', () => {
+      fixture.componentInstance.sessions = [baseSession];
+      fixture.detectChanges();
+
+      const chip = fixture.debugElement.query(By.css('.session-chip'));
+      expect(chip.classes['session-chip--cancelled']).toBeFalsy();
+      expect(chip.classes['session-chip--substituted']).toBeFalsy();
+    });
+  });
+
+  // The published Week/Generic grid must hide Saturday for a 5-day term the same way Skeleton
+  // Builder already does, driven by the term's real workingSaturdayCount (see
+  // WorkingSaturdayCalculator#workingSaturdayCount, surfaced on TermInstanceDto).
+  describe('workingSaturdayCount (Saturday column visibility)', () => {
+    it('shows all 6 day columns when workingSaturdayCount is not passed (default, existing consumers unaffected)', () => {
+      fixture.componentInstance.sessions = [baseSession];
+      fixture.detectChanges();
+
+      const dayCells = fixture.debugElement.queryAll(By.css('.week-grid__day-cell'));
+      expect(dayCells.length).toBe(6);
+      expect(dayCells.map((d) => d.nativeElement.textContent)).toEqual(
+        expect.arrayContaining([expect.stringContaining('Sat')]));
+    });
+
+    it('hides the Saturday column when workingSaturdayCount is 0', () => {
+      fixture.componentInstance.sessions = [baseSession];
+      fixture.componentInstance.workingSaturdayCount = 0;
+      fixture.detectChanges();
+
+      const dayCells = fixture.debugElement.queryAll(By.css('.week-grid__day-cell'));
+      expect(dayCells.length).toBe(5);
+      expect(dayCells.some((d) => d.nativeElement.textContent.includes('Sat'))).toBe(false);
+    });
+
+    it('shows all 6 day columns when workingSaturdayCount is positive', () => {
+      fixture.componentInstance.sessions = [baseSession];
+      fixture.componentInstance.workingSaturdayCount = 12;
+      fixture.detectChanges();
+
+      const dayCells = fixture.debugElement.queryAll(By.css('.week-grid__day-cell'));
+      expect(dayCells.length).toBe(6);
+    });
+  });
 });

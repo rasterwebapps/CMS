@@ -1,6 +1,11 @@
 export type WeekGridSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
 export type WeekGridSessionStatus = 'DRAFT' | 'PUBLISHED';
 
+/** Mirrors the feature-level OccurrenceStatus (see timetable.model.ts) -- duplicated locally the
+ *  same way WeekGridSessionType/WeekGridSessionStatus already are, so this shared component never
+ *  imports from a feature folder. */
+export type WeekGridOccurrenceStatus = 'HELD' | 'SUBSTITUTED' | 'CANCELLED';
+
 /** Session-type-neutral shape a week-grid cell renders — matches the backend's
  *  ClassScheduleResponse fields that stay meaningful regardless of THEORY vs LAB. */
 export interface WeekGridSession {
@@ -18,6 +23,11 @@ export interface WeekGridSession {
   startTime: string;
   endTime: string;
   slotName: string;
+  /** Set only by a real dated occurrence (the Date-wise-weekly view) -- undefined for the generic
+   *  recurring-template consumers (Draft Review, the Generic week view), which never carry a
+   *  per-date HELD/SUBSTITUTED/CANCELLED fact and render every chip the same as before. */
+  occurrenceStatus?: WeekGridOccurrenceStatus;
+  cancelReason?: string | null;
 }
 
 export type WeekGridMode = 'review' | 'personal' | 'browse';

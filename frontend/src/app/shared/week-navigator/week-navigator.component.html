@@ -1,0 +1,10 @@
+<div class="week-navigator">
+  <button type="button" mat-icon-button [disabled]="!canGoPrevious()" (click)="previousWeek()" aria-label="Previous week">
+    <mat-icon>chevron_left</mat-icon>
+  </button>
+  <span class="week-navigator__range">{{ rangeLabel() }}</span>
+  <button type="button" mat-icon-button [disabled]="!canGoNext()" (click)="nextWeek()" aria-label="Next week">
+    <mat-icon>chevron_right</mat-icon>
+  </button>
+  <button type="button" mat-stroked-button class="week-navigator__today-btn" (click)="today()">Today</button>
+</div>

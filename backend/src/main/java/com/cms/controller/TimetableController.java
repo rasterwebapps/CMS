@@ -98,7 +98,7 @@ public class TimetableController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("@perm.hasAny('TIMETABLE_VIEW', 'MY_TIMETABLE_VIEW')")
+    @PreAuthorize("@perm.hasAny('TIMETABLE_VIEW', 'MY_TIMETABLE_VIEW', 'MY_TIMETABLE_VIEW_STUDENT', 'MY_TIMETABLE_VIEW_STAFF')")
     public ResponseEntity<MyTimetableResponse> findMyTimetable(
             @RequestParam Long termInstanceId,
             @RequestParam(required = false) LocalDate weekStart) {
@@ -107,10 +107,11 @@ public class TimetableController {
     }
 
     // scope=browse (the default) returns every section's published sessions for the whole term and
-    // must stay behind the broader TIMETABLE_VIEW; MY_TIMETABLE_VIEW only ever unlocks scope=personal
-    // (self-scoped via PersonalTimetableService), so it can never be used to widen into scope=browse.
+    // must stay behind the broader TIMETABLE_VIEW; the MY_TIMETABLE_VIEW* permissions only ever
+    // unlock scope=personal (self-scoped via PersonalTimetableService), so none of them can be used
+    // to widen into scope=browse.
     @GetMapping("/occurrences")
-    @PreAuthorize("@perm.has('TIMETABLE_VIEW') or (#scope == 'personal' and @perm.has('MY_TIMETABLE_VIEW'))")
+    @PreAuthorize("@perm.has('TIMETABLE_VIEW') or (#scope == 'personal' and @perm.hasAny('MY_TIMETABLE_VIEW', 'MY_TIMETABLE_VIEW_STUDENT', 'MY_TIMETABLE_VIEW_STAFF'))")
     public ResponseEntity<List<ClassScheduleOccurrenceResponse>> findOccurrences(
             @RequestParam Long termInstanceId,
             @RequestParam LocalDate from,

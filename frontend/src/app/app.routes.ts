@@ -1805,8 +1805,18 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'my-timetable',
-    canActivate: withPermission('TIMETABLE_VIEW'),
+    path: 'my-timetable/student',
+    canActivate: withPermission('MY_TIMETABLE_VIEW_STUDENT', 'TIMETABLE_VIEW'),
+    data: { audience: 'STUDENT' },
+    loadComponent: () =>
+      import('./features/timetable/my-timetable/my-timetable.component').then(
+        (m) => m.MyTimetableComponent
+      ),
+  },
+  {
+    path: 'my-timetable/staff',
+    canActivate: withPermission('MY_TIMETABLE_VIEW_STAFF', 'TIMETABLE_VIEW'),
+    data: { audience: 'STAFF' },
     loadComponent: () =>
       import('./features/timetable/my-timetable/my-timetable.component').then(
         (m) => m.MyTimetableComponent

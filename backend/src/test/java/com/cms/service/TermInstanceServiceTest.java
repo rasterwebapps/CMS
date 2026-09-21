@@ -182,6 +182,38 @@ class TermInstanceServiceTest {
         assertThat(dto.termType()).isEqualTo(TermType.ODD);
     }
 
+    // The published timetable's Generic week grid hides its Saturday column for a term that hasn't
+    // opted in to Saturday scheduling. Per WorkingSaturdaysFlyoutComponent's own doc comment, an
+    // *empty* workingSaturdayWeeks pattern means exactly that (Mon-Fri only, hard-blocked) -- so
+    // TermInstanceDto must report 0 in that case, not WorkingSaturdayCalculator's raw Saturday
+    // total (which answers a different question: an already-placed Saturday session's honest hours
+    // contribution, and is non-zero for an empty pattern for that reason).
+    @Test
+    void shouldReturnZeroWorkingSaturdayCountForATermWithNoWorkingSaturdayPattern() {
+        TermInstance ti = createTermInstance(1L, testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 30), TermInstanceStatus.PLANNED);
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+
+        TermInstanceDto dto = termInstanceService.getById(1L);
+
+        assertThat(dto.workingSaturdayCount()).isZero();
+    }
+
+    @Test
+    void shouldReturnThePositiveWorkingSaturdayCountForATermWithAConfiguredPattern() {
+        TermInstance ti = createTermInstance(1L, testAcademicYear, TermType.ODD,
+            LocalDate.of(2026, 6, 1), LocalDate.of(2026, 11, 30), TermInstanceStatus.PLANNED);
+        ti.setWorkingSaturdayWeeks(java.util.Set.of(
+            com.cms.model.enums.WeekOfMonth.SECOND, com.cms.model.enums.WeekOfMonth.FOURTH));
+
+        when(termInstanceRepository.findById(1L)).thenReturn(Optional.of(ti));
+
+        TermInstanceDto dto = termInstanceService.getById(1L);
+
+        assertThat(dto.workingSaturdayCount()).isPositive();
+    }
+
     @Test
     void shouldThrowWhenTermInstanceNotFoundById() {
         when(termInstanceRepository.findById(999L)).thenReturn(Optional.empty());
