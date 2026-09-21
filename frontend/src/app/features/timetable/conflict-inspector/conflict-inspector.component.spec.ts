@@ -27,8 +27,8 @@ describe('ConflictInspectorComponent', () => {
     { id: 1, name: '2024-2025', startDate: '2024-06-01', endDate: '2025-05-31', isCurrent: true, createdAt: '', updatedAt: '' },
   ];
   const termInstances: TermInstance[] = [
-    { id: 10, academicYearId: 1, academicYearName: '2024-2025', termType: 'ODD', startDate: '2024-06-01', endDate: '2024-11-30', status: 'OPEN', createdAt: '', updatedAt: '' },
-    { id: 20, academicYearId: 1, academicYearName: '2024-2025', termType: 'EVEN', startDate: '2024-12-01', endDate: '2025-05-31', status: 'OPEN', createdAt: '', updatedAt: '' },
+    { id: 10, academicYearId: 1, academicYearName: '2024-2025', termType: 'ODD', startDate: '2024-06-01', endDate: '2024-11-30', status: 'OPEN', createdAt: '', updatedAt: '', workingSaturdayCount: 0 },
+    { id: 20, academicYearId: 1, academicYearName: '2024-2025', termType: 'EVEN', startDate: '2024-12-01', endDate: '2025-05-31', status: 'OPEN', createdAt: '', updatedAt: '', workingSaturdayCount: 0 },
   ];
   const cleanScan: ConflictScanResponse = {
     termInstanceId: 20, termLabel: '2024-2025 EVEN', scannedAt: '', scannedCellCount: 2, violationCellCount: 0, violationCount: 0, countsByCode: {}, rows: [],
@@ -90,9 +90,7 @@ describe('ConflictInspectorComponent', () => {
     internal().onProceedToReview();
 
     expect(conflictInspectorService.acknowledge).toHaveBeenCalledWith(20);
-    expect(router.navigate).toHaveBeenCalledWith(['/timetable/draft-review'], {
-      queryParams: { academicYearId: 1, termInstanceId: 20 },
-    });
+    expect(router.navigate).toHaveBeenCalledWith(['/timetable/skeleton-builder']);
   });
 
   it('rescans instead of navigating when acknowledgment is rejected as no longer clean', () => {

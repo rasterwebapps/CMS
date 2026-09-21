@@ -1845,14 +1845,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'timetable/draft-review',
-    canActivate: withPermission('TIMETABLE_MANAGE'),
-    loadComponent: () =>
-      import('./features/timetable/timetable-draft-review/timetable-draft-review.component').then(
-        (m) => m.TimetableDraftReviewComponent
-      ),
-  },
-  {
     path: 'timetable/skeleton-builder',
     canActivate: withPermission('TIMETABLE_VIEW'),
     loadComponent: () =>

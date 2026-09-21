@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { SelectionModel } from '@angular/cdk/collections';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { from } from 'rxjs';
 import { concatMap } from 'rxjs/operators';
@@ -25,11 +27,23 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { GlobalAutoScheduleReportFlyoutComponent } from './global-auto-schedule-report-flyout.component';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
-import { colorForSubject, LIBRARY_CELL_COLOR, SPORTS_CELL_COLOR } from './subject-color.util';
+import { colorForCell, LIBRARY_CELL_COLOR, SPORTS_CELL_COLOR } from './subject-color.util';
 import { violationText } from '../../../shared/util/violation-text';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { SKELETON_BUILDER_TOUR, SKELETON_BUILDER_FLOW_MAP } from '../../../shared/tour/tours/skeleton-builder.tours';
+import { HoursProgressCardComponent } from './hours-progress-card/hours-progress-card.component';
+import { TimetableService } from '../timetable.service';
+import { CohortTermStatusSummary, TimetableCoverageGap } from '../timetable.model';
+import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CoverageOverrideDialogComponent } from './coverage-override-dialog.component';
+
+/** Matches the DecimalPipe '1.0-1' format used throughout this component's template (at most one
+ *  decimal, dropped entirely for a whole number) — for the one caption string built in TS rather
+ *  than the template, so it doesn't read differently from every other hour figure on this screen. */
+function formatHours(value: number): string {
+  return Number(value.toFixed(1)).toString();
+}
 
 /** "HH:mm[:ss]" -> minutes since midnight. */
 function minutesOfDay(time: string): number {
@@ -99,7 +113,7 @@ interface HoursSummary {
 @Component({
   selector: 'app-skeleton-builder',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, RouterLink, MatDialogModule, MatMenuModule, MatProgressSpinnerModule, GlobalAutoScheduleReportFlyoutComponent, WorkingSaturdaysFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent],
+  imports: [DecimalPipe, FormsModule, RouterLink, MatDialogModule, MatMenuModule, MatProgressSpinnerModule, MatCheckboxModule, GlobalAutoScheduleReportFlyoutComponent, WorkingSaturdaysFlyoutComponent, CmsEmptyStateComponent, DragDropModule, CmsTourButtonComponent, HoursProgressCardComponent, CmsStatusBadgeComponent],
   templateUrl: './skeleton-builder.component.html',
   styleUrl: './skeleton-builder.component.scss',
 })
@@ -111,6 +125,7 @@ export class SkeletonBuilderComponent implements OnInit {
   // `staffCell` already handles reassignment (it grandfathers the current holder) and applies a
   // multi-period session's rows atomically.
   private readonly staffingService = inject(StaffingService);
+  private readonly timetableService = inject(TimetableService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -162,7 +177,27 @@ export class SkeletonBuilderComponent implements OnInit {
   protected readonly allCohortsSelected = signal(false);
   protected readonly showGlobalAutoSchedule = signal(false);
 
-  protected readonly days = WEEK_GRID_DAYS;
+  /** "All cohorts" mode's own content — a per-cohort status summary (assigned via draftCount/
+   *  publishedCount/unassignedHours, same shape and endpoint Draft Review's own landing page
+   *  already uses) instead of the empty illustration this used to show even when every cohort
+   *  already had real draft data (2026-09-21). Clicking a row switches into that cohort's own
+   *  grid, unlike Draft Review's version of this table (whose grid is term-wide, not per-cohort). */
+  protected readonly cohortStatusSummary = signal<CohortTermStatusSummary[]>([]);
+  protected readonly cohortStatusSummaryLoading = signal(false);
+  /** OC-260: multi-select over {@link cohortStatusSummary}'s rows, driving the bulk Publish/Revert/
+   *  Discard action bar -- every fresh load pre-selects every row (see {@link loadCohortStatusSummary})
+   *  so "publish everything just generated" stays a single click, same as before this merge. */
+  protected readonly cohortSummarySelection = new SelectionModel<CohortTermStatusSummary>(true, []);
+  /** Set for the duration of one row's own "Check & Resolve Conflicts" call. */
+  protected readonly rowActionPendingCohortId = signal<number | null>(null);
+  /** Set for the duration of a bulk Publish/Revert/Discard call. */
+  protected readonly bulkActionPending = signal(false);
+
+  /** Saturday only ever shows a row when this term has actually opted into at least one working
+   *  Saturday pattern (workingSaturdayCount > 0, see SkeletonBuilderResponse) — otherwise it's
+   *  permanently empty dead space, since nothing can ever be placed on a non-working day. */
+  protected readonly days = computed(() =>
+    (this.skeleton()?.workingSaturdayCount ?? 0) > 0 ? WEEK_GRID_DAYS : WEEK_GRID_DAYS.filter((d) => d !== 'SATURDAY'));
   protected readonly dayLabels = WEEK_GRID_DAY_LABELS;
 
   protected readonly showWorkingSaturdays = signal(false);
@@ -429,6 +464,18 @@ export class SkeletonBuilderComponent implements OnInit {
     return { availableHours, overall, theory, lab, clinical };
   });
 
+  /** The term-load card's status line below its progress bar — e.g. "820h required · fully
+   *  scheduled" or "820h required · 40h short". Null (card renders no status line at all) only
+   *  before {@link hoursSummary} has anything to report. */
+  protected readonly termLoadStatusCaption = computed<string | null>(() => {
+    const hours = this.hoursSummary();
+    if (!hours) return null;
+    const requiredLabel = `${formatHours(hours.overall.total)}h required`;
+    return hours.overall.unassigned > 0.05
+      ? `${requiredLabel} · ${formatHours(hours.overall.unassigned)}h short`
+      : `${requiredLabel} · fully scheduled`;
+  });
+
   protected canManage(): boolean {
     return this.permissionService.has('TIMETABLE_SKELETON_MANAGE');
   }
@@ -662,6 +709,16 @@ export class SkeletonBuilderComponent implements OnInit {
    *  of the *same* cohort) must not, or every drag/remove would silently kick the admin back to
    *  the combined "All Sections" view they'd deliberately narrowed away from. */
   private tryLoadSkeleton(): void {
+    if (this.allCohortsSelected()) {
+      this.skeleton.set(null);
+      this.displacedShortfalls.set([]);
+      if (this.selectedTermInstanceId) {
+        this.loadCohortStatusSummary(this.selectedTermInstanceId);
+      } else {
+        this.cohortStatusSummary.set([]);
+      }
+      return;
+    }
     if (this.selectedTermInstanceId && this.selectedCohortId) {
       this.selectedSectionId.set('ALL');
       // Displaced-subject figures are per-cohort and per-term, so they're meaningless once either
@@ -673,6 +730,215 @@ export class SkeletonBuilderComponent implements OnInit {
       this.skeleton.set(null);
       this.displacedShortfalls.set([]);
     }
+  }
+
+  private loadCohortStatusSummary(termInstanceId: number): void {
+    this.cohortStatusSummaryLoading.set(true);
+    this.timetableService.getCohortStatusSummary(termInstanceId).subscribe({
+      next: (rows) => {
+        this.cohortStatusSummary.set(rows);
+        // Every row starts checked -- "publish everything Global Auto-Schedule just generated" stays
+        // a single click of the bulk bar, same as this screen's pre-merge one-shot Approve did.
+        this.cohortSummarySelection.clear();
+        rows.forEach((row) => this.cohortSummarySelection.select(row));
+        this.cohortStatusSummaryLoading.set(false);
+      },
+      error: () => { this.toast.error('Failed to load cohort status summary'); this.cohortStatusSummaryLoading.set(false); },
+    });
+  }
+
+  /** A row's default action: switch out of "All cohorts" into that cohort's own grid — the same
+   *  path {@link onCohortSelectionChange} takes for a direct dropdown pick. Row-level Publish/
+   *  Revert/Discard/Check-Conflicts buttons and the checkbox both call `stopPropagation()` so they
+   *  never also trigger this. */
+  protected onCohortSummaryRowClick(cohortId: number): void {
+    this.allCohortsSelected.set(false);
+    this.cohortSelection = cohortId;
+    this.selectedCohortId = cohortId;
+    this.onCohortChange();
+  }
+
+  protected isAllCohortSummarySelected(): boolean {
+    const rows = this.cohortStatusSummary();
+    return rows.length > 0 && this.cohortSummarySelection.selected.length === rows.length;
+  }
+
+  protected toggleAllCohortSummary(): void {
+    if (this.isAllCohortSummarySelected()) this.cohortSummarySelection.clear();
+    else this.cohortStatusSummary().forEach((row) => this.cohortSummarySelection.select(row));
+  }
+
+  protected canPublish(): boolean {
+    return this.permissionService.has('TIMETABLE_PUBLISH');
+  }
+
+  protected canDiscardDraft(): boolean {
+    return this.permissionService.has('TIMETABLE_DISCARD_DRAFT');
+  }
+
+  protected canRevertToDraft(): boolean {
+    return this.permissionService.has('TIMETABLE_DISCARD_PUBLISHED');
+  }
+
+  /** Null when the bulk Publish button should be enabled; otherwise the reason it's disabled, shown
+   *  as its title/tooltip so a mixed selection explains itself instead of silently doing nothing. */
+  protected bulkPublishDisabledReason(): string | null {
+    const selected = this.cohortSummarySelection.selected;
+    if (selected.length === 0) return 'Select at least one cohort';
+    if (!selected.every((r) => r.readinessStatus === 'CONFLICTS_RESOLVED' || r.readinessStatus === 'PARTIALLY_PUBLISHED')) {
+      return 'Every selected cohort must be Conflicts Resolved before it can be published';
+    }
+    return null;
+  }
+
+  protected bulkRevertDisabledReason(): string | null {
+    const selected = this.cohortSummarySelection.selected;
+    if (selected.length === 0) return 'Select at least one cohort';
+    if (!selected.every((r) => r.readinessStatus === 'PUBLISHED' || r.readinessStatus === 'PARTIALLY_PUBLISHED')) {
+      return 'Every selected cohort must have a published timetable to revert';
+    }
+    return null;
+  }
+
+  protected bulkDiscardDisabledReason(): string | null {
+    const selected = this.cohortSummarySelection.selected;
+    if (selected.length === 0) return 'Select at least one cohort';
+    if (!selected.every((r) => r.readinessStatus !== 'PUBLISHED')) {
+      return 'A fully published cohort has no draft left to discard — revert it to draft first';
+    }
+    return null;
+  }
+
+  /** Row-level "Check & Resolve Conflicts" -- OC-260's per-cohort counterpart of Conflict
+   *  Inspector's term-wide "Proceed to Review". Re-scans just this cohort's own cells and, if
+   *  clean, records a fresh acknowledgment so the row can advance to Conflicts Resolved. */
+  protected checkAndResolveConflicts(row: CohortTermStatusSummary, event: Event): void {
+    event.stopPropagation();
+    const termInstanceId = this.selectedTermInstanceId;
+    if (!termInstanceId) return;
+    this.rowActionPendingCohortId.set(row.cohortId);
+    this.timetableService.acknowledgeCohortConflicts(termInstanceId, row.cohortId).subscribe({
+      next: () => {
+        this.toast.success(`${row.cohortName}: no conflicts found — ready to publish`);
+        this.rowActionPendingCohortId.set(null);
+        this.loadCohortStatusSummary(termInstanceId);
+      },
+      error: (err) => {
+        this.rowActionPendingCohortId.set(null);
+        this.toast.error(violationText(err) ?? `${row.cohortName} still has unresolved conflicts`);
+      },
+    });
+  }
+
+  protected publishRow(row: CohortTermStatusSummary, event: Event): void {
+    event.stopPropagation();
+    this.publishCohorts([row.cohortId]);
+  }
+
+  protected publishSelected(): void {
+    this.publishCohorts(this.cohortSummarySelection.selected.map((r) => r.cohortId));
+  }
+
+  private publishCohorts(cohortIds: number[], overrideIncompleteCoverage = false, overrideReason?: string): void {
+    const termInstanceId = this.selectedTermInstanceId;
+    if (!termInstanceId || cohortIds.length === 0) return;
+    this.bulkActionPending.set(true);
+    this.timetableService.approve(termInstanceId, cohortIds, overrideIncompleteCoverage, overrideReason).subscribe({
+      next: (response) => {
+        this.toast.success(`Published ${response.affectedCount} session(s) for ${cohortIds.length} cohort(s)`);
+        this.bulkActionPending.set(false);
+        this.loadCohortStatusSummary(termInstanceId);
+      },
+      error: (err) => {
+        this.bulkActionPending.set(false);
+        const gaps = err?.error?.gaps as TimetableCoverageGap[] | undefined;
+        if (gaps?.length) {
+          if (this.permissionService.has('TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE')) {
+            this.dialog.open(CoverageOverrideDialogComponent, { data: { gaps }, width: '520px' })
+              .afterClosed().subscribe((reason: string | null) => {
+                if (reason) this.publishCohorts(cohortIds, true, reason);
+              });
+          } else {
+            this.toast.error(`${gaps.length} cohort/subject-type combination(s) still have unscheduled curriculum hours — `
+              + 'ask an admin with override permission to approve.');
+          }
+          return;
+        }
+        this.toast.error(violationText(err) ?? 'Failed to publish');
+      },
+    });
+  }
+
+  protected revertRow(row: CohortTermStatusSummary, event: Event): void {
+    event.stopPropagation();
+    this.revertCohorts([row.cohortId]);
+  }
+
+  protected revertSelected(): void {
+    this.revertCohorts(this.cohortSummarySelection.selected.map((r) => r.cohortId));
+  }
+
+  private revertCohorts(cohortIds: number[]): void {
+    const termInstanceId = this.selectedTermInstanceId;
+    if (!termInstanceId || cohortIds.length === 0) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Revert to Draft?',
+        message: `Revert ${cohortIds.length} cohort(s) back to Draft? Their published timetable stays intact until re-approved.`,
+        confirmText: 'Revert',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.bulkActionPending.set(true);
+      this.timetableService.revertToDraft(termInstanceId, cohortIds).subscribe({
+        next: (response) => {
+          this.toast.success(`Reverted ${response.affectedCount} session(s) to draft`);
+          this.bulkActionPending.set(false);
+          this.loadCohortStatusSummary(termInstanceId);
+        },
+        error: (err) => {
+          this.bulkActionPending.set(false);
+          this.toast.error(err?.error?.message ?? 'Failed to revert to draft');
+        },
+      });
+    });
+  }
+
+  protected discardDraftRow(row: CohortTermStatusSummary, event: Event): void {
+    event.stopPropagation();
+    this.discardDraftCohorts([row.cohortId]);
+  }
+
+  protected discardDraftSelected(): void {
+    this.discardDraftCohorts(this.cohortSummarySelection.selected.map((r) => r.cohortId));
+  }
+
+  private discardDraftCohorts(cohortIds: number[]): void {
+    const termInstanceId = this.selectedTermInstanceId;
+    if (!termInstanceId || cohortIds.length === 0) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Discard Draft?',
+        message: `Permanently discard the draft timetable for ${cohortIds.length} cohort(s)? This cannot be undone.`,
+        confirmText: 'Discard',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (!confirmed) return;
+      this.bulkActionPending.set(true);
+      this.timetableService.clear(termInstanceId, cohortIds).subscribe({
+        next: () => {
+          this.toast.success('Draft discarded');
+          this.bulkActionPending.set(false);
+          this.loadCohortStatusSummary(termInstanceId);
+        },
+        error: (err) => {
+          this.bulkActionPending.set(false);
+          this.toast.error(err?.error?.message ?? 'Failed to discard draft');
+        },
+      });
+    });
   }
 
   private reloadSkeleton(): void {
@@ -712,12 +978,14 @@ export class SkeletonBuilderComponent implements OnInit {
       sectionFilter === 'ALL' || c.cohortSectionId == null || c.cohortSectionId === sectionFilter) ?? [];
   }
 
-  /** A cell's accent: its own fixed Sports colour, otherwise its subject's (an elective group shares
-   *  one), with Library's fixed slate for the other offering-less cell. */
+  /** A cell's accent: Sports/Library keep their own fixed colors (neither has a curriculum
+   *  category to tint by); every other cell gets one of four primary-color tints by category —
+   *  Theory/Lab/Clinical by session type, Co-curricular (advisory) overriding all three when the
+   *  subject is curriculum-typed that way — see {@link colorForCell}. */
   protected cellColor(cell: SkeletonCell): string {
     if (cell.sessionType === 'SPORTS') return SPORTS_CELL_COLOR;
-    const colorKey = cell.electiveGroupId ?? cell.courseOfferingId;
-    return colorKey == null ? LIBRARY_CELL_COLOR : colorForSubject(colorKey);
+    if (cell.sessionType === 'LIBRARY') return LIBRARY_CELL_COLOR;
+    return colorForCell(cell.sessionType, cell.coCurricular);
   }
 
   /** Whether {@code cell} has a same-subject/type/occupant cell in the immediately adjacent period

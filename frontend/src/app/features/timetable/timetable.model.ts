@@ -37,7 +37,16 @@ export interface ClinicalShiftSummaryItem {
 
 export type CohortTermStatus = 'DRAFT' | 'PUBLISHED' | 'PARTIALLY_PUBLISHED';
 
-/** One row of Draft Review's landing summary table -- a cohort's aggregate publish status for a
+/** OC-260: a cohort's own position in the Draft/Generated -> Conflicts Resolved -> Published
+ *  lifecycle Skeleton Builder's row actions are driven from. "CONFLICTS_RESOLVED" means every one
+ *  of Approve's preflight gates (staffing, offering-assignment, conflict scan, coverage, and a
+ *  fresh per-cohort conflict acknowledgment) currently passes for this cohort -- computed
+ *  server-side from the same checks Approve itself enforces, so this can never say "ready" when
+ *  Publish would actually still fail. */
+export type CohortReadinessStatus = 'DRAFT_GENERATED' | 'CONFLICTS_RESOLVED' | 'PUBLISHED' | 'PARTIALLY_PUBLISHED';
+
+/** One row of Skeleton Builder's "All cohorts" landing summary table (OC-260 folded the former
+ *  Draft Review screen's own identical table in here) -- a cohort's aggregate publish status for a
  *  term instance, synthesized server-side from its sessions' DRAFT/PUBLISHED status; never a
  *  persisted value itself. "PARTIALLY_PUBLISHED" reflects the real, already-existing scenario
  *  where a post-publish edit (Staff Session Swap, an individual Skeleton Builder placement)
@@ -53,6 +62,7 @@ export interface CohortTermStatusSummary {
   /** Curriculum-required THEORY/LAB/CLINICAL hours not yet placed as real sessions (0 = fully
    *  covered) -- the same figure that gates Publish. */
   unassignedHours: number;
+  readinessStatus: CohortReadinessStatus;
 }
 
 export interface MyTimetableResponse {

@@ -27,6 +27,58 @@
   margin: 0;
 }
 
+// ── "All cohorts" summary table (2026-09-21, folded in from the former Timetable Draft Review
+// screen per OC-260) ─────────────────────────────────────────────────────────────────────────────
+.cohort-summary-row {
+  cursor: pointer;
+
+  &__chevron {
+    color: var(--cms-text-muted);
+    font-size: 1.25rem;
+    text-align: center;
+    width: 32px;
+  }
+
+  &__actions {
+    white-space: nowrap;
+  }
+
+  &__action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+}
+
+// OC-260: bulk Publish/Revert/Discard bar shown above the table once at least one row is checked --
+// reuses this file's own .toolbar-right for the button group rather than inventing a parallel class.
+.cohort-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  &__count {
+    color: var(--cms-text-secondary);
+    font-size: var(--cms-text-sm);
+    font-weight: 600;
+  }
+}
+
+.cell-name {
+  display: block;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.cell-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+  margin-top: 1px;
+}
+
 // ── Cohort/term heading (grid is full-width since the R4 automate-first revamp) ────
 .skeleton-cohort-hdr {
   margin: 0;
@@ -43,24 +95,16 @@
 .skeleton-hours-summary {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
-.skeleton-hours-summary__row {
-  margin-bottom: 0;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-}
-
-.skeleton-hours-gap {
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-// "+N h extra" — hours beyond a subject's curriculum (extra-hours filler); informational, muted.
-.skeleton-hours-extra {
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin-top: 2px;
+// Term load / Theory / Lab / Clinical hour-progress cards (2026-09-21 redesign) — four equal
+// columns down to tablet width, then wraps to fit narrower screens rather than squeezing. 16px
+// throughout, matching .mlp-page's own gap (see the comment above) rather than a one-off value.
+.skeleton-hours-summary--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
 }
 
 // ── Section filter tabs (mirrors Capacity Planner's .cap-tab-toggle pattern) ──────
@@ -100,10 +144,21 @@
 .skeleton-grid {
   border-collapse: collapse;
   width: 100%;
+  // Fixed, not auto (the default): without this, each column's width is driven by whatever
+  // content happens to render widest across the WHOLE table, so the Clinical Shift banner's
+  // 3-period colspan (Mon-Wed) could distort width distribution unevenly across just the columns
+  // it spans, most visibly at the first/last period's own edges — exactly the "first and last
+  // period never matched the uniform gap" symptom this fixes structurally, not just cosmetically.
+  table-layout: fixed;
 }
 
+// Sets the first column's width for the WHOLE table (table-layout: fixed takes a first-row cell's
+// width as authoritative for every row below it, including every .skeleton-grid__day-hdr cell) --
+// was 90px, generous enough for a full word, but the day column only ever holds a 3-letter
+// abbreviation ("Mon", "Tue"...), so that reserved almost 40px of dead space nothing ever used,
+// reading as a gap before Period 1 even starts.
 .skeleton-grid__corner {
-  width: 90px;
+  width: 56px;
 }
 
 .skeleton-grid__period-hdr {
@@ -122,7 +177,11 @@
 }
 
 .skeleton-grid__day-hdr {
-  padding: 8px 12px;
+  // Right padding matches .skeleton-grid__cell/.skeleton-grid__period-hdr's own 8px exactly, so
+  // the gap at the day-label/Period-1 boundary reads the same as every other column-to-column
+  // gap — only the left side (the table's true outer edge, not a boundary with anything) keeps
+  // extra room for the day name's own legibility.
+  padding: 8px 8px 8px 12px;
   font-size: var(--cms-text-xs);
   font-weight: 700;
   color: var(--cms-text-secondary);
@@ -131,7 +190,10 @@
 }
 
 .skeleton-grid__cell {
-  padding: 4px;
+  // Horizontal padding matches .skeleton-grid__period-hdr's 8px (was 4px) so a period column's
+  // header and body line up on the same edges instead of the body content sitting closer to the
+  // column boundary than its own header does.
+  padding: 4px 8px;
   border-bottom: 1px solid var(--cms-border-default);
   vertical-align: middle;
 }
@@ -141,7 +203,7 @@
 // visibly occupies the real grid space it blocks (e.g. through Period 5) instead of each period
 // rendering individually. Never a placement target (no cdkDropList here at all).
 .skeleton-grid__cell--shift {
-  padding: 4px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--cms-border-default);
   vertical-align: middle;
   min-width: 90px;
@@ -156,8 +218,11 @@
   min-height: 48px;
   padding: 4px 6px;
   border-radius: 8px;
-  background: var(--cms-warning-light);
-  box-shadow: inset 0 0 0 1px var(--cms-warning);
+  // Same primary tint as .skeleton-cell--clinical (2026-09-21) — this banner IS the Clinical duty
+  // window, just rendered as one wide block instead of per-period cells, so it reads as the same
+  // category rather than a separate warning/amber tone.
+  background: rgba(var(--cms-primary-rgb), 0.22);
+  box-shadow: inset 0 0 0 1px rgba(var(--cms-primary-rgb), 0.35);
   color: var(--cms-text-secondary);
   font-size: var(--cms-text-xs);
   font-weight: 600;
@@ -297,50 +362,43 @@
     transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
   }
 
+  // Four primary tints (2026-09-21), replacing the old fixed blue/green badge fills — mandatory
+  // Theory reads strongest, advisory Co-curricular faintest, matching its lower scheduling
+  // priority (see TimetableGlobalAutoScheduleService#isAdvisoryRow). All four stay in the same
+  // "light tint" range Lab's original 8% already proved safe, so every cell keeps using the normal
+  // page-surface text tokens — no fixed on-fill text colour needed anymore.
+  //
+  // The rule this replaced used a SOLID saturated fill for Theory/Clinical (with forced light text
+  // to match) specifically because a light tint at THAT fill's darkness read as invisible dark-grey
+  // text on mid-blue in dark mode. That risk doesn't apply here: every tint below stays well inside
+  // the light range Lab's 8% already shipped and proved safe, so re-check contrast in both themes
+  // when you look at this live, but this isn't the same fill depth the old comment was warning about.
   &--theory {
-    border-style: solid;
-    background: var(--cms-badge-blue-bg);
-  }
-  &--lab {
     border-style: solid;
     background: rgba(var(--cms-primary-rgb), 0.08);
   }
+  &--lab {
+    border-style: solid;
+    background: rgba(var(--cms-primary-rgb), 0.16);
+  }
   &--clinical {
     border-style: solid;
-    background: var(--cms-badge-green-bg);
+    background: rgba(var(--cms-primary-rgb), 0.22);
+  }
+  // Deliberately keeps the base rule's dashed border (no border-style override here, unlike the
+  // three mandatory variants above) instead of relying on alpha alone to read as different — a
+  // real incident (2026-09-21) showed 5% vs Theory's 16% tint was numerically distinct but not
+  // visually distinguishable at a glance, especially stacked under --staffed's own 0.75 opacity.
+  // A dashed border is a genuinely different visual cue, not just a fainter one, matching this
+  // subject's actual advisory/uncertain status.
+  &--co-curricular {
+    background: rgba(var(--cms-primary-rgb), 0.05);
   }
   // A light tint of SPORTS_CELL_COLOR (#65a30d), like Lab's tint rather than a solid fill, so the
   // page-surface text tokens keep reading in both themes.
   &--sports {
     border-style: solid;
     background: rgba(101, 163, 13, 0.14);
-  }
-
-  // Theory and Clinical fill with a SOLID badge colour (`--cms-badge-blue-bg` #1d4ed8 light /
-  // #2563eb dark; `--cms-badge-green-bg` #059669), dark and saturated in BOTH themes. Lab is only
-  // an 8% tint and Library is transparent, so those two keep the page-surface text tokens.
-  //
-  // On a solid fill those tokens fail in both directions: `--cms-text-muted` is #94a3b8 in light
-  // but #64748b in dark, and `--cms-text-primary` is #0f172a in light — so the subject code and
-  // section label rendered as dark grey on mid-blue in dark mode (present in the DOM, effectively
-  // invisible), and near-black on dark blue in light mode. A theme token cannot fix this, because
-  // the surface it sits on does not flip with the theme the way the page background does. A fixed
-  // light on-fill colour is the only thing that reads on both.
-  &--theory,
-  &--clinical {
-    .skeleton-cell__subject,
-    .skeleton-cell__type,
-    .skeleton-cell__batch,
-    .skeleton-cell__elective-tag {
-      color: #f8fafc;
-    }
-
-    .skeleton-cell__subject,
-    .skeleton-cell__batch {
-      // Keeps the subject/section subordinate to the session type without dropping to a colour
-      // that stops contrasting with the fill.
-      opacity: 0.82;
-    }
   }
 
   &--staffed {

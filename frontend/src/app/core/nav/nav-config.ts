@@ -51,7 +51,8 @@ export const NAV_ENTRIES: NavEntry[] = [
     items: [
       { label: 'Dashboard',  icon: 'dashboard', route: '/dashboard' },
       { label: 'My Profile', icon: 'id_card',   route: '/profile' },
-      { label: 'My Timetable', icon: 'event_note', route: '/my-timetable', permissions: ['TIMETABLE_VIEW'], modules: ['ACADEMICS'] },
+      { label: 'My Timetable (Student)', icon: 'event_note', route: '/my-timetable/student', permissions: ['MY_TIMETABLE_VIEW_STUDENT'], modules: ['ACADEMICS'] },
+      { label: 'My Timetable (Staff)', icon: 'event_note', route: '/my-timetable/staff', permissions: ['MY_TIMETABLE_VIEW_STAFF'], modules: ['ACADEMICS'] },
       { label: 'My Dashboard', icon: 'school', route: '/student/my-dashboard', permissions: ['MY_ATTENDANCE_VIEW', 'MY_EXAM_RESULT_VIEW'] },
       { label: 'My Fees', icon: 'payments', route: '/student/my-fees', permissions: ['MY_FEE_VIEW'] },
       { label: 'My Wards', icon: 'family_restroom', route: '/parent/my-wards', permissions: ['MY_WARD_ATTENDANCE_VIEW', 'MY_WARD_EXAM_RESULT_VIEW'] },
@@ -139,7 +140,6 @@ export const NAV_ENTRIES: NavEntry[] = [
       // No standalone Staffing nav entry -- Approve now auto-staffs the draft itself (OC-230), and
       // any leftover unstaffed cell is fixed in-grid via Skeleton Builder's Reassign Faculty dialog.
       { label: 'Conflict Inspector',  icon: 'fact_check',         route: '/timetable/conflict-inspector', permissions: ['TIMETABLE_CONFLICT_INSPECTOR_VIEW'] },
-      { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_MANAGE'] },
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
       { label: 'Resource Timetable',  icon: 'grid_view',          route: '/timetable/resource-grid', permissions: ['TIMETABLE_FACULTY_GRID_VIEW', 'TIMETABLE_CLASSROOM_GRID_VIEW'] },
       // Lab Schedules is a manual CRUD screen over the same ClassSchedule rows the timetable

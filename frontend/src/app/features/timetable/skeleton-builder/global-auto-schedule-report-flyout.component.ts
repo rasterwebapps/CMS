@@ -234,6 +234,62 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  training site, not a value safe to infer from scheduling pressure. */
   protected readonly hasVenueCapacityGap = computed(() => (this.result()?.venueCapacityGaps?.length ?? 0) > 0);
 
+  /** Whether the success view opens with everything expanded — real-world feedback (2026-09-21) was
+   *  that a full run report reads as a wall of text nobody actually wants on the happy path. Default
+   *  false: the headline below + a short "what still needs you" list is the whole story for someone
+   *  just confirming the run worked; every existing detail section (unchanged, nothing removed) sits
+   *  behind this one toggle for whoever's actually auditing why a gap exists. */
+  protected readonly showFullDetails = signal(false);
+
+  protected toggleFullDetails(): void {
+    this.showFullDetails.update((v) => !v);
+  }
+
+  /** True when ANY category the success view can report needs a human decision — drives the
+   *  headline's ✓/⚠ and whether {@link nextStepSummaries} has anything in it. Substitution tips are
+   *  deliberately excluded: confirming one only changes who's on record as the section's official
+   *  teacher going forward, never whether this run's own placement succeeded (see the tip panel's
+   *  own "no action needed" copy), so a run with only substitutions to confirm still reads as a
+   *  clean ✓. */
+  protected readonly hasAnyRealGap = computed(() => {
+    const r = this.result();
+    if (!r) return false;
+    return this.hasShortfall() || this.hasCapacityCausedGap() || this.hasVenueCapacityGap()
+      || r.clinicalResiduals.length > 0 || r.postRunConflicts.length > 0 || r.electiveUnplaced.length > 0;
+  });
+
+  /** One short line per category of outstanding item, for the always-visible headline — the same
+   *  underlying data every detail section below already renders in full, just compressed to a
+   *  count and a label instead of each row's own paragraph. */
+  protected readonly nextStepSummaries = computed(() => {
+    const r = this.result();
+    if (!r) return [];
+    const lines: string[] = [];
+    if (r.clinicalResiduals.length > 0) {
+      lines.push(`${r.clinicalResiduals.length} Clinical subject(s) still short on duty hours`);
+    }
+    if (r.postRunConflicts.length > 0) {
+      lines.push(`${r.postRunConflicts.length} conflict(s) found — review in Conflict Inspector`);
+    }
+    if (r.electiveUnplaced.length > 0) {
+      lines.push(`${r.electiveUnplaced.length} elective group(s) not assigned`);
+    }
+    if (this.hasShortfall()) {
+      lines.push('Some hours still need a working Saturday or a Special Class');
+    }
+    if (this.hasCapacityCausedGap()) {
+      lines.push('Some of the gap is a real staffing ceiling, not a scheduling conflict');
+    }
+    if (this.hasVenueCapacityGap()) {
+      lines.push('Some of the gap is a real venue capacity ceiling');
+    }
+    const unconfirmedTips = r.facultySubstitutionTips.filter((tip) => !this.isTipSubmitted(tip)).length;
+    if (unconfirmedTips > 0) {
+      lines.push(`${unconfirmedTips} substitute(s) can be confirmed as official teacher`);
+    }
+    return lines;
+  });
+
   /** Pre-run counterparts of {@link hasVenueCapacityGap} — from {@link prerequisites}'s {@code
    *  labClinicalVenueCapacity}, backing the checklist's `venue-over-capacity`/`venue-tight-capacity`
    *  items (see {@link finishPrerequisiteCheck}). Same underlying backend computation as the
@@ -784,6 +840,7 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
           this.result.set(result);
           this.confirmedTipKeys.set(new Set(result.facultySubstitutionTips.map((tip) => this.tipKey(tip))));
           this.submittedTipKeys.set(new Set());
+          this.showFullDetails.set(false);
           this.step.set('success');
           this.scheduled.emit();
         },

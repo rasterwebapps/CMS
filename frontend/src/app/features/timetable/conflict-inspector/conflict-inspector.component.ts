@@ -92,9 +92,10 @@ export class ConflictInspectorComponent implements OnInit {
     this.conflictInspectorService.acknowledge(this.selectedTermInstanceId).subscribe({
       next: () => {
         this.proceeding.set(false);
-        this.router.navigate(['/timetable/draft-review'], {
-          queryParams: { academicYearId: this.selectedAcademicYearId, termInstanceId: this.selectedTermInstanceId },
-        });
+        // OC-260 retired the separate Timetable Draft Review screen into Skeleton Builder -- Publish
+        // now lives there, gated per-cohort via that screen's own "Check & Resolve Conflicts" row
+        // action rather than this term-wide acknowledgment (kept only as a term-wide diagnostic).
+        this.router.navigate(['/timetable/skeleton-builder']);
       },
       error: (err) => {
         this.proceeding.set(false);

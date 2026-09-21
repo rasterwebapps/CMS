@@ -64,31 +64,138 @@
     </select>
     @if (selectedTermInstanceId && ((canGlobalAutoPlace() && (allCohortsSelected() || selectedCohortId)) || canManageWorkingSaturdays() || canViewConflictInspector())) {
       <div class="toolbar-right">
-        @if (canGlobalAutoPlace() && (allCohortsSelected() || selectedCohortId)) {
-          <button type="button" class="btn-secondary" [disabled]="!allCohortsSelected() && termTimetablePublished()"
-            [title]="!allCohortsSelected() && termTimetablePublished() ? 'This term\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
-            (click)="confirmAndOpenGlobalAutoSchedule()">{{ allCohortsSelected() ? 'Run Global Auto-Schedule' : 'Run Automation' }}</button>
+        @if (canViewConflictInspector()) {
+          <a class="btn-secondary" routerLink="/timetable/conflict-inspector"
+            [queryParams]="{ academicYearId: selectedAcademicYearId, termInstanceId: selectedTermInstanceId }">
+            Check Conflicts →
+          </a>
         }
         @if (canManageWorkingSaturdays()) {
           <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
         }
-        @if (canViewConflictInspector()) {
-          <a class="btn-primary" routerLink="/timetable/conflict-inspector"
-            [queryParams]="{ academicYearId: selectedAcademicYearId, termInstanceId: selectedTermInstanceId }">
-            Check Conflicts →
-          </a>
+        @if (canGlobalAutoPlace() && (allCohortsSelected() || selectedCohortId)) {
+          <button type="button" class="btn-primary" [disabled]="!allCohortsSelected() && termTimetablePublished()"
+            [title]="!allCohortsSelected() && termTimetablePublished() ? 'This term\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
+            (click)="confirmAndOpenGlobalAutoSchedule()">{{ allCohortsSelected() ? 'Run Global Auto-Schedule' : 'Run Automation' }}</button>
         }
       </div>
     }
   </div>
 
+  @if (allCohortsSelected() && cohortSummarySelection.selected.length > 0) {
+    <div class="mlp-toolbar cohort-bulk-bar anim-rise anim-rise--d1">
+      <span class="cohort-bulk-bar__count">{{ cohortSummarySelection.selected.length }} cohort(s) selected</span>
+      <div class="toolbar-right">
+        @if (canDiscardDraft()) {
+          <button type="button" class="btn-secondary" [disabled]="bulkActionPending() || !!bulkDiscardDisabledReason()"
+            [title]="bulkDiscardDisabledReason() ?? ''" (click)="discardDraftSelected()">
+            Discard Selected Draft ({{ cohortSummarySelection.selected.length }})
+          </button>
+        }
+        @if (canRevertToDraft()) {
+          <button type="button" class="btn-secondary" [disabled]="bulkActionPending() || !!bulkRevertDisabledReason()"
+            [title]="bulkRevertDisabledReason() ?? ''" (click)="revertSelected()">
+            Revert Selected ({{ cohortSummarySelection.selected.length }})
+          </button>
+        }
+        @if (canPublish()) {
+          <button type="button" class="btn-primary" [disabled]="bulkActionPending() || !!bulkPublishDisabledReason()"
+            [title]="bulkPublishDisabledReason() ?? ''" (click)="publishSelected()">
+            Publish Selected ({{ cohortSummarySelection.selected.length }})
+          </button>
+        }
+      </div>
+    </div>
+  }
+
   @if (allCohortsSelected()) {
     <div class="content-card anim-rise anim-rise--d2">
-      <cms-empty-state
-        icon="auto_awesome"
-        title="Global Auto-Schedule"
-        subtitle="Rebuilds every cohort's whole draft for this term at once, using each offering's assigned faculty — pinned sessions stay put, everything else is cleared and re-placed. Checks prerequisites and every faculty's real capacity first — nothing is placed for any cohort unless everyone fits. Use Run Global Auto-Schedule above to start.">
-      </cms-empty-state>
+      @if (cohortStatusSummaryLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36" aria-label="Loading cohort status summary"></mat-spinner>
+        </div>
+      } @else if (cohortStatusSummary().length === 0) {
+        <cms-empty-state
+          icon="auto_awesome"
+          title="Global Auto-Schedule"
+          subtitle="Rebuilds every cohort's whole draft for this term at once, using each offering's assigned faculty — pinned sessions stay put, everything else is cleared and re-placed. Checks prerequisites and every faculty's real capacity first — nothing is placed for any cohort unless everyone fits. Use Run Global Auto-Schedule above to start.">
+        </cms-empty-state>
+      } @else {
+        <div class="table-wrapper">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th class="mat-header-cell">
+                  <mat-checkbox [checked]="isAllCohortSummarySelected()" (change)="toggleAllCohortSummary()" aria-label="Select all cohorts" />
+                </th>
+                <th class="mat-header-cell">Cohort</th>
+                <th class="mat-header-cell">Status</th>
+                <th class="mat-header-cell cell-align-right">Draft / Published</th>
+                <th class="mat-header-cell cell-align-right">Unassigned Hrs</th>
+                <th class="mat-header-cell">Action</th>
+                <th class="mat-header-cell" aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of cohortStatusSummary(); track row.cohortId) {
+                <tr class="table-row cohort-summary-row" tabindex="0"
+                  (click)="onCohortSummaryRowClick(row.cohortId)" (keydown.enter)="onCohortSummaryRowClick(row.cohortId)">
+                  <td class="mat-cell" (click)="$event.stopPropagation()">
+                    <mat-checkbox [checked]="cohortSummarySelection.isSelected(row)" (change)="cohortSummarySelection.toggle(row)"
+                      (click)="$event.stopPropagation()" [aria-label]="'Select ' + row.cohortName" />
+                  </td>
+                  <td class="mat-cell">
+                    <span class="cell-name">{{ row.cohortName }}</span>
+                    @if (row.courseName || row.admissionYearName) {
+                      <span class="cell-sub">{{ row.courseName }}{{ row.courseName && row.admissionYearName ? ' · ' : '' }}{{ row.admissionYearName }}</span>
+                    }
+                  </td>
+                  <td class="mat-cell"><cms-status-badge [status]="row.status" /></td>
+                  <td class="mat-cell cell-align-right cell-muted">{{ row.draftCount }} / {{ row.publishedCount }}</td>
+                  <td class="mat-cell cell-align-right">
+                    @if (row.unassignedHours > 0) {
+                      <span class="cms-badge cms-badge--amber">{{ row.unassignedHours | number:'1.0-1' }} h</span>
+                    } @else {
+                      <span class="cell-muted">All covered</span>
+                    }
+                  </td>
+                  <td class="mat-cell cohort-summary-row__actions">
+                    @switch (row.readinessStatus) {
+                      @case ('DRAFT_GENERATED') {
+                        <button type="button" class="btn-secondary btn-sm" [disabled]="rowActionPendingCohortId() === row.cohortId"
+                          (click)="checkAndResolveConflicts(row, $event)">
+                          {{ rowActionPendingCohortId() === row.cohortId ? 'Checking…' : 'Check & Resolve Conflicts' }}
+                        </button>
+                      }
+                      @case ('CONFLICTS_RESOLVED') {
+                        @if (canPublish()) {
+                          <button type="button" class="btn-primary btn-sm" [disabled]="bulkActionPending()" (click)="publishRow(row, $event)">Publish</button>
+                        }
+                      }
+                      @case ('PUBLISHED') {
+                        @if (canRevertToDraft()) {
+                          <button type="button" class="btn-secondary btn-sm" [disabled]="bulkActionPending()" (click)="revertRow(row, $event)">Revert to Draft</button>
+                        }
+                      }
+                      @case ('PARTIALLY_PUBLISHED') {
+                        <div class="cohort-summary-row__action-group">
+                          @if (canPublish()) {
+                            <button type="button" class="btn-primary btn-sm" [disabled]="bulkActionPending()" (click)="publishRow(row, $event)">Publish Remaining</button>
+                          }
+                          @if (canRevertToDraft()) {
+                            <button type="button" class="btn-secondary btn-sm" [disabled]="bulkActionPending()" (click)="revertRow(row, $event)">Revert to Draft</button>
+                          }
+                        </div>
+                      }
+                    }
+                  </td>
+                  <td class="mat-cell cohort-summary-row__chevron" aria-hidden="true">&rsaquo;</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     </div>
   } @else if (skeletonLoading()) {
     <div class="content-card">
@@ -121,67 +228,27 @@
     <h2 class="skeleton-cohort-hdr anim-rise anim-rise--d2">{{ skeleton()!.cohortName }} — {{ skeleton()!.termInstanceLabel }}</h2>
 
     @if (hoursSummary(); as hours) {
-      <div class="skeleton-hours-summary anim-rise anim-rise--d2">
-        <div class="stat-grid skeleton-hours-summary__row">
-          <div class="stat-card" title="Every working day's clock time for one section across the term: all periods, plus Clinical duty time outside them. Monday–Friday every week; Saturday only on working Saturdays. This is a workload total, not free scheduling capacity — a Clinical duty day's periods are already spent by that duty and can't also host Theory/Lab, so this figure can look far higher than what's actually placeable.">
-            <div class="stat-label">Total Hours Available (Term)</div>
-            <div class="stat-value">{{ hours.availableHours | number: '1.0-1' }}h</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Total Hours Required (Term)</div>
-            <div class="stat-value">{{ hours.overall.total | number: '1.0-1' }}h</div>
-          </div>
-          <div class="stat-card" title="Curriculum hours placed, counted up to each subject's own requirement. Hours beyond a subject's curriculum are shown as extra.">
-            <div class="stat-label">Total Assigned</div>
-            <div class="stat-value">{{ hours.overall.assigned | number: '1.0-1' }}h</div>
-            @if (hours.overall.extra > 0.05) {
-              <div class="text-muted skeleton-hours-extra">+{{ hours.overall.extra | number: '1.0-1' }}h extra beyond curriculum</div>
-            }
-          </div>
-          <div class="stat-card" [class.stat-card--accent]="hours.overall.unassigned > 0.05">
-            <div class="stat-label">Total Unassigned</div>
-            <div class="stat-value" [class.penalty]="hours.overall.unassigned > 0.05">{{ hours.overall.unassigned | number: '1.0-1' }}h</div>
-          </div>
-        </div>
-
-        <div class="stat-grid skeleton-hours-summary__row">
-          @if (hours.theory.total > 0) {
-            <div class="stat-card" [class.stat-card--accent]="hours.theory.unassigned > 0.05">
-              <div class="stat-label">Theory — Assigned / Total</div>
-              <div class="stat-value">{{ hours.theory.assigned | number: '1.0-1' }}h <span class="text-muted">/ {{ hours.theory.total | number: '1.0-1' }}h</span></div>
-              @if (hours.theory.unassigned > 0.05) {
-                <div class="stat-value penalty skeleton-hours-gap">{{ hours.theory.unassigned | number: '1.0-1' }}h unassigned</div>
-              }
-              @if (hours.theory.extra > 0.05) {
-                <div class="text-muted skeleton-hours-extra">+{{ hours.theory.extra | number: '1.0-1' }}h extra</div>
-              }
-            </div>
-          }
-          @if (hours.lab.total > 0) {
-            <div class="stat-card" [class.stat-card--accent]="hours.lab.unassigned > 0.05">
-              <div class="stat-label">Lab — Assigned / Total</div>
-              <div class="stat-value">{{ hours.lab.assigned | number: '1.0-1' }}h <span class="text-muted">/ {{ hours.lab.total | number: '1.0-1' }}h</span></div>
-              @if (hours.lab.unassigned > 0.05) {
-                <div class="stat-value penalty skeleton-hours-gap">{{ hours.lab.unassigned | number: '1.0-1' }}h unassigned</div>
-              }
-              @if (hours.lab.extra > 0.05) {
-                <div class="text-muted skeleton-hours-extra">+{{ hours.lab.extra | number: '1.0-1' }}h extra</div>
-              }
-            </div>
-          }
-          @if (hours.clinical.total > 0) {
-            <div class="stat-card" [class.stat-card--accent]="hours.clinical.unassigned > 0.05">
-              <div class="stat-label">Clinical — Assigned / Total</div>
-              <div class="stat-value">{{ hours.clinical.assigned | number: '1.0-1' }}h <span class="text-muted">/ {{ hours.clinical.total | number: '1.0-1' }}h</span></div>
-              @if (hours.clinical.unassigned > 0.05) {
-                <div class="stat-value penalty skeleton-hours-gap">{{ hours.clinical.unassigned | number: '1.0-1' }}h unassigned</div>
-              }
-              @if (hours.clinical.extra > 0.05) {
-                <div class="text-muted skeleton-hours-extra">+{{ hours.clinical.extra | number: '1.0-1' }}h extra</div>
-              }
-            </div>
-          }
-        </div>
+      <div class="skeleton-hours-summary skeleton-hours-summary--cards anim-rise anim-rise--d2"
+        title="Term load is every working day's clock time for one section across the term: all periods, plus Clinical duty time outside them. Monday–Friday every week; Saturday only on working Saturdays. It's a workload total, not free scheduling capacity — a Clinical duty day's periods are already spent by that duty and can't also host Theory/Lab, so this figure can look far higher than what's actually placeable.">
+        <app-hours-progress-card label="Term load" icon="schedule" variant="term"
+          [value]="hours.overall.assigned" [total]="hours.availableHours" totalSuffix="available"
+          [unassigned]="hours.overall.unassigned" [extra]="hours.overall.extra"
+          [requiredCaption]="termLoadStatusCaption()" />
+        @if (hours.theory.total > 0) {
+          <app-hours-progress-card label="Theory" icon="menu_book" variant="theory"
+            [value]="hours.theory.assigned" [total]="hours.theory.total"
+            [unassigned]="hours.theory.unassigned" [extra]="hours.theory.extra" />
+        }
+        @if (hours.lab.total > 0) {
+          <app-hours-progress-card label="Lab" icon="science" variant="lab"
+            [value]="hours.lab.assigned" [total]="hours.lab.total"
+            [unassigned]="hours.lab.unassigned" [extra]="hours.lab.extra" />
+        }
+        @if (hours.clinical.total > 0) {
+          <app-hours-progress-card label="Clinical" icon="favorite" variant="clinical"
+            [value]="hours.clinical.assigned" [total]="hours.clinical.total"
+            [unassigned]="hours.clinical.unassigned" [extra]="hours.clinical.extra" />
+        }
       </div>
     }
 
@@ -243,7 +310,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (day of days; track day) {
+            @for (day of days(); track day) {
               <tr>
                 <td class="skeleton-grid__day-hdr">{{ dayLabels[day] }}</td>
                 @for (seg of rowSegments(day); track seg.key) {
@@ -308,9 +375,10 @@
                         @for (cell of cellsFor(day, seg.period.id); track cell.id) {
                           <button type="button" class="skeleton-cell"
                             [style.--subject-color]="cellColor(cell)"
-                            [class.skeleton-cell--theory]="cell.sessionType === 'THEORY'"
-                            [class.skeleton-cell--lab]="cell.sessionType === 'LAB'"
-                            [class.skeleton-cell--clinical]="cell.sessionType === 'CLINICAL'"
+                            [class.skeleton-cell--co-curricular]="cell.coCurricular"
+                            [class.skeleton-cell--theory]="cell.sessionType === 'THEORY' && !cell.coCurricular"
+                            [class.skeleton-cell--lab]="cell.sessionType === 'LAB' && !cell.coCurricular"
+                            [class.skeleton-cell--clinical]="cell.sessionType === 'CLINICAL' && !cell.coCurricular"
                             [class.skeleton-cell--sports]="cell.sessionType === 'SPORTS'"
                             [class.skeleton-cell--staffed]="cell.isStaffed"
                             [class.skeleton-cell--joined-next]="hasMatchingAdjacent(cell, 1)"
@@ -336,7 +404,10 @@
                               <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
                             }
                             @if (cell.electiveGroupId != null) { <span class="skeleton-cell__elective-tag">Elective</span> }
-                            @if (cell.isStaffed) { <span class="cms-badge cms-badge--green">staffed</span> }
+                            @if (cell.coCurricular) { <span class="skeleton-cell__elective-tag">Advisory</span> }
+                            @if (!cell.isStaffed && cell.sessionType !== 'LIBRARY') {
+                              <span class="cms-badge cms-badge--red" title="No faculty assigned yet — this blocks approving the term timetable until it's staffed">⚠ not staffed</span>
+                            }
                             @if (cell.pinned) { <span class="cms-badge cms-badge--amber">pinned</span> }
                             @if (canPin() && cell.status === 'DRAFT') {
                               <span class="skeleton-cell__pin"

@@ -208,6 +208,47 @@
   }
 }
 
+.gas-outcome {
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-warning);
+  background: var(--cms-warning-light, rgba(217, 119, 6, 0.08));
+
+  &--clear {
+    border-color: var(--cms-success, #15803d);
+    background: var(--cms-success-light, rgba(21, 128, 61, 0.08));
+  }
+
+  .field-hint {
+    margin: 4px 0 0;
+  }
+}
+
+.gas-outcome__headline {
+  font-size: var(--cms-text-md);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.gas-outcome__icon {
+  margin-right: 4px;
+}
+
+.gas-outcome__actions {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+}
+
+.gas-details-toggle {
+  margin-bottom: 16px;
+}
+
 .gas-checklist-allclear-banner {
   margin: 4px 0 16px;
   padding: 10px 12px;

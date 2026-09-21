@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
+import { ConflictAcknowledgmentStatus } from './conflict-inspector/conflict-inspector.model';
 import {
   ClassSchedule,
   ClassScheduleOccurrence,
@@ -42,20 +43,36 @@ export class TimetableService {
     return this.http.get<CohortTermStatusSummary[]>(`${this.baseUrl}/draft/cohort-status-summary`, { params });
   }
 
-  /** `overrideIncompleteCoverage`/`overrideReason` are only ever sent on a resubmission after the
-   *  plain first attempt came back with a coverage-gap conflict (see {@link TimetableCoverageGap})
-   *  and an authorized reviewer (TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE) accepted it with a reason —
-   *  see TimetableController#approve's `@PreAuthorize`, the actual enforcement point. */
-  approve(termInstanceId: number, overrideIncompleteCoverage = false, overrideReason?: string): Observable<TimetableActionResponse> {
-    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/approve`, { overrideIncompleteCoverage, overrideReason });
+  /** OC-260: `cohortIds` is required -- Approve is cohort-scoped now, publishing the chosen subset
+   *  without touching any other cohort's draft. `overrideIncompleteCoverage`/`overrideReason` are
+   *  only ever sent on a resubmission after the plain first attempt came back with a coverage-gap
+   *  conflict (see {@link TimetableCoverageGap}) and an authorized reviewer
+   *  (TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE) accepted it with a reason — see
+   *  TimetableController#approve's `@PreAuthorize`, the actual enforcement point. */
+  approve(termInstanceId: number, cohortIds: number[], overrideIncompleteCoverage = false, overrideReason?: string): Observable<TimetableActionResponse> {
+    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/approve`, { cohortIds, overrideIncompleteCoverage, overrideReason });
   }
 
-  clear(termInstanceId: number): Observable<TimetableActionResponse> {
-    return this.http.delete<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}`);
+  /** OC-260: moved from a bodyless DELETE to a body-bearing POST so it can carry the cohort
+   *  selection, matching {@link revertToDraft}'s own shape. */
+  clear(termInstanceId: number, cohortIds: number[]): Observable<TimetableActionResponse> {
+    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/discard-draft`, { cohortIds });
   }
 
-  revertToDraft(termInstanceId: number): Observable<TimetableActionResponse> {
-    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/revert-to-draft`, null);
+  revertToDraft(termInstanceId: number, cohortIds: number[]): Observable<TimetableActionResponse> {
+    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/revert-to-draft`, { cohortIds });
+  }
+
+  /** OC-260: per-cohort counterpart of {@link ConflictInspectorService#getAcknowledgmentStatus} --
+   *  whether this cohort's own row can show "Conflicts Resolved" right now. */
+  getCohortConflictStatus(termInstanceId: number, cohortId: number): Observable<ConflictAcknowledgmentStatus> {
+    return this.http.get<ConflictAcknowledgmentStatus>(`${this.baseUrl}/${termInstanceId}/cohorts/${cohortId}/conflict-status`);
+  }
+
+  /** Rejects (409, same shape as a conflict scan's violations) if this cohort isn't actually clean
+   *  at the moment of calling — the backend always re-scans rather than trusting a stale result. */
+  acknowledgeCohortConflicts(termInstanceId: number, cohortId: number): Observable<ConflictAcknowledgmentStatus> {
+    return this.http.post<ConflictAcknowledgmentStatus>(`${this.baseUrl}/${termInstanceId}/cohorts/${cohortId}/acknowledge-conflicts`, null);
   }
 
   getOccurrences(

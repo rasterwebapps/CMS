@@ -77,6 +77,11 @@ export interface SkeletonCell {
    *  explicit pin). A pinned cell survives the next Global Auto-Schedule rebuild — automation packs
    *  the rest of the week around it instead of clearing it. */
   pinned: boolean;
+  /** True when this cell's subject is curriculum-typed CO_CURRICULAR (e.g. Self-Study) — advisory
+   *  content the auto-scheduler always places last, never a real curriculum requirement. False for
+   *  LIBRARY/SPORTS too (no CourseOffering to type at all — the grid colors those as their own
+   *  fixed categories, not this one). Drives the grid's cell coloring. */
+  coCurricular: boolean;
 }
 
 export interface SkeletonBatchOption {

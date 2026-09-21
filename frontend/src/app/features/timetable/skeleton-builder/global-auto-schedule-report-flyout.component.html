@@ -354,6 +354,29 @@
 
       @case ('success') {
         @if (result(); as r) {
+          <div class="gas-outcome" [class.gas-outcome--clear]="!hasAnyRealGap()">
+            <div class="gas-outcome__headline">
+              @if (hasAnyRealGap()) {
+                <span class="gas-outcome__icon">⚠</span> {{ nextStepSummaries().length }} thing(s) need your attention
+              } @else {
+                <span class="gas-outcome__icon">✓</span> Fully scheduled
+              }
+            </div>
+            <p class="field-hint">{{ r.totalPlaced }} session(s) placed and staffed across {{ r.cohortSummaries.length }} cohort(s).</p>
+            @if (nextStepSummaries().length > 0) {
+              <ul class="gas-outcome__actions">
+                @for (line of nextStepSummaries(); track line) {
+                  <li>{{ line }}</li>
+                }
+              </ul>
+            }
+          </div>
+
+          <button type="button" class="gas-checklist-group__toggle gas-details-toggle" (click)="toggleFullDetails()">
+            {{ showFullDetails() ? '▾ Hide full run details' : '▸ Show full run details' }}
+          </button>
+
+          @if (showFullDetails()) {
           <div class="gas-prereq-group">
             <div class="gas-prereq-group__title">What this run did</div>
             @if (r.staleDraftsCleared > 0) {
@@ -624,11 +647,13 @@
               }
             </div>
           }
+          }
 
-          <a class="btn-secondary" routerLink="/timetable/draft-review"
-            [queryParams]="{ academicYearId: academicYearId(), termInstanceId: termInstanceId() }">
-            Review and approve on Draft Review →
-          </a>
+          <!-- OC-260: Draft Review is retired into this same screen -- closing the flyout already
+               shows the cohort list with each row's own Check-Conflicts/Publish action below. -->
+          <button type="button" class="btn-secondary" (click)="onClose()">
+            Close and review cohorts below
+          </button>
         }
       }
 
