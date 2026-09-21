@@ -6,6 +6,9 @@ import java.time.Instant;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.indent.model.enums.StockIndentItemStatus;
+import com.cms.inventory.procurement.model.PurchaseRequisition;
+import com.cms.inventory.procurement.model.PurchaseRequisitionItem;
+import com.cms.inventory.stock.model.StockTransfer;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -60,7 +63,7 @@ public class StockIndentItem {
 
     /**
      * Running total returned back to the issuing location so far (Phase 4's "Internal Return"
-     * slice) — only meaningful once {@code status = APPROVED} (issued). Mirrors {@code
+     * slice) — only meaningful once {@code status = FULFILLED} (issued). Mirrors {@code
      * PurchaseOrderItem.receivedQty}'s "running total on the line itself" shape.
      */
     @Column(name = "returned_qty", nullable = false, precision = 14, scale = 3)
@@ -68,6 +71,37 @@ public class StockIndentItem {
 
     @Column(length = 500)
     private String notes;
+
+    /**
+     * The store's own decision audit trail (Phase D) — deliberately separate from {@code
+     * resolvedBy}/{@code resolvedAt}/{@code resolutionNotes} above, which stay the department
+     * head's own audit trail from the earlier PENDING -> APPROVED/REJECTED decision. Populated by
+     * whichever of {@code fulfillLine}/{@code fulfillViaTransferLine}/{@code raisePoLine}/{@code
+     * denyLine} the store used.
+     */
+    @Column(name = "store_decided_by", length = 255)
+    private String storeDecidedBy;
+
+    @Column(name = "store_decided_at")
+    private Instant storeDecidedAt;
+
+    @Column(name = "store_decision_notes", length = 500)
+    private String storeDecisionNotes;
+
+    /** Set only when {@code status = FULFILLED} via a transfer-in from another location first —
+     *  {@code null} means a direct issue from the issuing location's own stock. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_transfer_id")
+    private StockTransfer sourceTransfer;
+
+    /** Set only when {@code status = PO_RAISED}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "raised_requisition_id")
+    private PurchaseRequisition raisedRequisition;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "raised_requisition_item_id")
+    private PurchaseRequisitionItem raisedRequisitionItem;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -101,4 +135,22 @@ public class StockIndentItem {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getStoreDecidedBy() { return storeDecidedBy; }
+    public void setStoreDecidedBy(String storeDecidedBy) { this.storeDecidedBy = storeDecidedBy; }
+
+    public Instant getStoreDecidedAt() { return storeDecidedAt; }
+    public void setStoreDecidedAt(Instant storeDecidedAt) { this.storeDecidedAt = storeDecidedAt; }
+
+    public String getStoreDecisionNotes() { return storeDecisionNotes; }
+    public void setStoreDecisionNotes(String storeDecisionNotes) { this.storeDecisionNotes = storeDecisionNotes; }
+
+    public StockTransfer getSourceTransfer() { return sourceTransfer; }
+    public void setSourceTransfer(StockTransfer sourceTransfer) { this.sourceTransfer = sourceTransfer; }
+
+    public PurchaseRequisition getRaisedRequisition() { return raisedRequisition; }
+    public void setRaisedRequisition(PurchaseRequisition raisedRequisition) { this.raisedRequisition = raisedRequisition; }
+
+    public PurchaseRequisitionItem getRaisedRequisitionItem() { return raisedRequisitionItem; }
+    public void setRaisedRequisitionItem(PurchaseRequisitionItem raisedRequisitionItem) { this.raisedRequisitionItem = raisedRequisitionItem; }
 }

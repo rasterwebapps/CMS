@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +26,8 @@ import com.cms.inventory.catalog.model.ProductVariant;
 import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.catalog.repository.ProductVariantRepository;
 import com.cms.inventory.indent.dto.StockIndentAddLineRequest;
+import com.cms.inventory.indent.dto.StockIndentFulfillViaTransferRequest;
+import com.cms.inventory.indent.dto.StockIndentRaisePoRequest;
 import com.cms.inventory.indent.dto.StockIndentReturnLineRequest;
 import com.cms.inventory.indent.model.StockIndent;
 import com.cms.inventory.indent.model.StockIndentItem;
@@ -31,12 +35,20 @@ import com.cms.inventory.indent.model.enums.StockIndentItemStatus;
 import com.cms.inventory.indent.model.enums.StockIndentStatus;
 import com.cms.inventory.indent.repository.StockIndentItemRepository;
 import com.cms.inventory.indent.repository.StockIndentRepository;
+import com.cms.inventory.procurement.dto.PurchaseRequisitionItemResponse;
+import com.cms.inventory.procurement.dto.PurchaseRequisitionResponse;
+import com.cms.inventory.procurement.repository.PurchaseRequisitionItemRepository;
+import com.cms.inventory.procurement.repository.PurchaseRequisitionRepository;
+import com.cms.inventory.procurement.service.PurchaseRequisitionService;
 import com.cms.inventory.stock.dto.StockMovementRequest;
+import com.cms.inventory.stock.dto.StockTransferResponse;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.model.StockBalance;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
 import com.cms.inventory.stock.repository.StockBalanceRepository;
+import com.cms.inventory.stock.repository.StockTransferRepository;
 import com.cms.inventory.stock.service.StockMovementService;
+import com.cms.inventory.stock.service.StockTransferService;
 
 @ExtendWith(MockitoExtension.class)
 class StockIndentServiceTest {
@@ -48,6 +60,11 @@ class StockIndentServiceTest {
     @Mock private StockMovementService stockMovementService;
     @Mock private ProductVariantRepository variantRepository;
     @Mock private StockBalanceRepository balanceRepository;
+    @Mock private StockTransferService stockTransferService;
+    @Mock private StockTransferRepository stockTransferRepository;
+    @Mock private PurchaseRequisitionService purchaseRequisitionService;
+    @Mock private PurchaseRequisitionRepository purchaseRequisitionRepository;
+    @Mock private PurchaseRequisitionItemRepository purchaseRequisitionItemRepository;
     private StockIndentService service;
 
     private final InventoryLocation requesting = location(1L, "Ward A");
@@ -57,7 +74,9 @@ class StockIndentServiceTest {
     @BeforeEach
     void setUp() {
         service = new StockIndentService(requestRepository, lineRepository, locationRepository, productRepository,
-            stockMovementService, variantRepository, balanceRepository);
+            stockMovementService, variantRepository, balanceRepository, stockTransferService, stockTransferRepository,
+            purchaseRequisitionService, purchaseRequisitionRepository, purchaseRequisitionItemRepository);
+        lenient().when(lineRepository.existsByStockIndentIdAndStatusIn(any(), any())).thenReturn(true);
     }
 
     @Test
@@ -139,27 +158,17 @@ class StockIndentServiceTest {
     }
 
     @Test
-    void shouldPostAnIssueMovementAgainstTheLinesVariantOnApprove() {
+    void shouldApproveLineWithoutPostingAnyMovement() {
         StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
-        ProductVariant variant = variant(77L);
-        StockIndentItem line = new StockIndentItem();
-        line.setId(500L);
-        line.setStockIndent(indent);
-        line.setProduct(product);
-        line.setVariant(variant);
-        line.setRequestedQty(new BigDecimal("5"));
-        line.setStatus(StockIndentItemStatus.PENDING);
-
+        StockIndentItem line = pendingLine(500L, indent);
         when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
         when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
-        when(lineRepository.existsByStockIndentIdAndStatus(1L, StockIndentItemStatus.PENDING)).thenReturn(false);
 
-        service.approveLine(1L, 500L, null, "clerk");
+        service.approveLine(1L, 500L, null, "dept-head");
 
-        verify(stockMovementService).recordMovement(org.mockito.ArgumentMatchers.argThat(
-            (StockMovementRequest r) -> r.productId().equals(10L) && r.variantId().equals(77L)
-                && r.locationId().equals(2L) && "ISSUE".equals(r.txnType())), eq("clerk"));
         assertThat(line.getStatus()).isEqualTo(StockIndentItemStatus.APPROVED);
+        assertThat(line.getResolvedBy()).isEqualTo("dept-head");
+        verify(stockMovementService, never()).recordMovement(any(), any());
     }
 
     @Test
@@ -179,6 +188,97 @@ class StockIndentServiceTest {
     }
 
     @Test
+    void shouldRejectStoreActionsOnAPendingLine() {
+        StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
+        StockIndentItem line = pendingLine(500L, indent);
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
+        when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
+
+        assertThatThrownBy(() -> service.fulfillLine(1L, 500L, null, "store-keeper"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("must be approved by the department head first");
+    }
+
+    @Test
+    void shouldPostAnIssueMovementOnFulfillLine() {
+        StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
+        ProductVariant variant = variant(77L);
+        StockIndentItem line = approvedLine(500L, indent, variant);
+
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
+        when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
+
+        service.fulfillLine(1L, 500L, null, "store-keeper");
+
+        verify(stockMovementService).recordMovement(org.mockito.ArgumentMatchers.argThat(
+            (StockMovementRequest r) -> r.productId().equals(10L) && r.variantId().equals(77L)
+                && r.locationId().equals(2L) && "ISSUE".equals(r.txnType())), eq("store-keeper"));
+        assertThat(line.getStatus()).isEqualTo(StockIndentItemStatus.FULFILLED);
+        assertThat(line.getStoreDecidedBy()).isEqualTo("store-keeper");
+    }
+
+    @Test
+    void shouldFulfillViaTransferAndPostBothTheTransferAndTheIssue() {
+        StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
+        StockIndentItem line = approvedLine(500L, indent, null);
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
+        when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
+        when(stockTransferService.create(any(), eq("store-keeper"))).thenReturn(transferResponse(900L));
+
+        var req = new StockIndentFulfillViaTransferRequest(3L, new BigDecimal("5"), "pulled from Lab Store");
+        service.fulfillViaTransferLine(1L, 500L, req, "store-keeper");
+
+        verify(stockTransferService).addLine(eq(900L), any());
+        verify(stockTransferService).complete(900L, "store-keeper");
+        verify(stockMovementService).recordMovement(org.mockito.ArgumentMatchers.argThat(
+            (StockMovementRequest r) -> "ISSUE".equals(r.txnType())), eq("store-keeper"));
+        assertThat(line.getStatus()).isEqualTo(StockIndentItemStatus.FULFILLED);
+    }
+
+    @Test
+    void shouldRejectTransferFulfillmentWhenSourceIsTheIssuingLocationItself() {
+        StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
+        StockIndentItem line = approvedLine(500L, indent, null);
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
+        when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
+
+        var req = new StockIndentFulfillViaTransferRequest(2L, new BigDecimal("5"), null);
+        assertThatThrownBy(() -> service.fulfillViaTransferLine(1L, 500L, req, "store-keeper"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("must be different");
+    }
+
+    @Test
+    void shouldRaisePurchaseRequisitionAndMarkPoRaised() {
+        StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
+        StockIndentItem line = approvedLine(500L, indent, null);
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
+        when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
+        when(purchaseRequisitionService.create(any(), eq("store-keeper"))).thenReturn(requisitionResponse(700L));
+        when(purchaseRequisitionService.addLine(eq(700L), any())).thenReturn(requisitionItemResponse(701L));
+
+        var req = new StockIndentRaisePoRequest(new BigDecimal("5"), "no stock anywhere");
+        service.raisePoLine(1L, 500L, req, "store-keeper");
+
+        verify(purchaseRequisitionService).submit(700L, "store-keeper");
+        assertThat(line.getStatus()).isEqualTo(StockIndentItemStatus.PO_RAISED);
+        assertThat(line.getStoreDecisionNotes()).isEqualTo("no stock anywhere");
+    }
+
+    @Test
+    void shouldDenyLineWithoutPostingAnyMovement() {
+        StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
+        StockIndentItem line = approvedLine(500L, indent, null);
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
+        when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
+
+        service.denyLine(1L, 500L, null, "store-keeper");
+
+        assertThat(line.getStatus()).isEqualTo(StockIndentItemStatus.DENIED);
+        verify(stockMovementService, never()).recordMovement(any(), any());
+    }
+
+    @Test
     void shouldReturnStockAgainstTheLinesVariant() {
         StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
         ProductVariant variant = variant(77L);
@@ -189,7 +289,7 @@ class StockIndentServiceTest {
         line.setVariant(variant);
         line.setRequestedQty(new BigDecimal("5"));
         line.setReturnedQty(BigDecimal.ZERO);
-        line.setStatus(StockIndentItemStatus.APPROVED);
+        line.setStatus(StockIndentItemStatus.FULFILLED);
 
         when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
         when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
@@ -208,6 +308,19 @@ class StockIndentServiceTest {
                 && "RETURN".equals(r.txnType()) && "INCREASE".equals(r.direction())
                 && r.unitCost().compareTo(new BigDecimal("2.00")) == 0), eq("clerk"));
         assertThat(line.getReturnedQty()).isEqualByComparingTo("2");
+    }
+
+    @Test
+    void shouldRejectReturningALineThatIsOnlyApprovedNotYetFulfilled() {
+        StockIndent indent = indent(1L, StockIndentStatus.SUBMITTED);
+        StockIndentItem line = approvedLine(500L, indent, null);
+        when(requestRepository.findById(1L)).thenReturn(Optional.of(indent));
+        when(lineRepository.findById(500L)).thenReturn(Optional.of(line));
+
+        var req = new StockIndentReturnLineRequest(new BigDecimal("2"), null);
+        assertThatThrownBy(() -> service.returnLine(1L, 500L, req, "clerk"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Only a fulfilled");
     }
 
     @Test
@@ -249,5 +362,37 @@ class StockIndentServiceTest {
         r.setIssuingLocation(issuing);
         r.setRequestDate(LocalDate.now());
         return r;
+    }
+
+    private StockIndentItem pendingLine(Long id, StockIndent indent) {
+        StockIndentItem line = new StockIndentItem();
+        line.setId(id);
+        line.setStockIndent(indent);
+        line.setProduct(product);
+        line.setRequestedQty(new BigDecimal("5"));
+        line.setStatus(StockIndentItemStatus.PENDING);
+        return line;
+    }
+
+    private StockIndentItem approvedLine(Long id, StockIndent indent, ProductVariant variant) {
+        StockIndentItem line = pendingLine(id, indent);
+        line.setVariant(variant);
+        line.setStatus(StockIndentItemStatus.APPROVED);
+        return line;
+    }
+
+    private StockTransferResponse transferResponse(Long id) {
+        return new StockTransferResponse(id, 3L, "Lab Store", 2L, "Main Store", "DRAFT", LocalDate.now(),
+            null, "store-keeper", null, null, null, 1, List.of());
+    }
+
+    private PurchaseRequisitionResponse requisitionResponse(Long id) {
+        return new PurchaseRequisitionResponse(id, 2L, "Main Store", "DRAFT", LocalDate.now(), null,
+            "store-keeper", null, null, null, null, 1, 1, List.of());
+    }
+
+    private PurchaseRequisitionItemResponse requisitionItemResponse(Long id) {
+        return new PurchaseRequisitionItemResponse(id, 10L, "PROD-10", "Product 10", null,
+            new BigDecimal("5"), "PENDING", null, null, null, null);
     }
 }

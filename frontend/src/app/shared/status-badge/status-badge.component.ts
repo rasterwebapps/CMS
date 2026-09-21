@@ -84,6 +84,7 @@ export class CmsStatusBadgeComponent {
       case 'PARTIALLY_COMPLETED':
       case 'GATE_VERIFIED':
       case 'EXCUSED':
+      case 'PO_RAISED':
         return 'status-warning';
 
       // ── Neutral / pending states ─────────────────────────────────────────
@@ -112,6 +113,7 @@ export class CmsStatusBadgeComponent {
       case 'NOT_INTERESTED':
       case 'CLOSED':
       case 'REJECTED':
+      case 'DENIED':
       case 'WITHDRAWN':
       case 'NOT_UPLOADED':
       case 'NOT_ALLOCATED':

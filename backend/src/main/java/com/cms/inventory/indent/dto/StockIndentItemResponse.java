@@ -18,5 +18,11 @@ public record StockIndentItemResponse(
     Instant resolvedAt,
     String resolutionNotes,
     BigDecimal returnedQty,
-    String notes
+    String notes,
+    String storeDecidedBy,
+    Instant storeDecidedAt,
+    String storeDecisionNotes,
+    Long sourceTransferId,
+    Long raisedRequisitionId,
+    Long raisedRequisitionItemId
 ) {}

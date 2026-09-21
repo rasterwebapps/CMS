@@ -47,6 +47,19 @@ public interface StockBalanceRepository extends JpaRepository<StockBalance, Long
         """)
     List<ProductQtyProjection> sumQtyByProductForLocation(@Param("locationId") Long locationId);
 
+    /**
+     * The mirror query — every location currently holding any balance of one product, each summed
+     * across its batches/variants. Used to surface "other locations with surplus" candidates on a
+     * Stock Indent's store fulfillment decision screen (Phase D of the auto-indent feature).
+     */
+    @Query("""
+        SELECT b.location.id AS locationId, SUM(b.qtyOnHand) AS qty
+        FROM StockBalance b
+        WHERE b.product.id = :productId
+        GROUP BY b.location.id
+        """)
+    List<LocationQtyProjection> sumQtyByLocationForProduct(@Param("productId") Long productId);
+
     /** Same total as above, for one product only — used when a product is added to a count
      *  sheet ad-hoc. Returns {@code null} (not zero) if the product has no balance row at all. */
     @Query("""

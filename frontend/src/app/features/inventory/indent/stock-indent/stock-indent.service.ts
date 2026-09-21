@@ -7,7 +7,10 @@ import {
   StockIndent,
   StockIndentAddLineRequest,
   StockIndentCreateRequest,
+  StockIndentFulfillViaTransferRequest,
+  StockIndentFulfillmentContext,
   StockIndentItem,
+  StockIndentRaisePoRequest,
   StockIndentResolutionRequest,
   StockIndentReturnLineRequest,
 } from './stock-indent.model';
@@ -54,6 +57,26 @@ export class StockIndentService {
 
   returnLine(requestId: number, lineId: number, request: StockIndentReturnLineRequest): Observable<StockIndentItem> {
     return this.http.post<StockIndentItem>(`${this.baseUrl}/${requestId}/lines/${lineId}/return`, request);
+  }
+
+  getFulfillmentContext(requestId: number, lineId: number): Observable<StockIndentFulfillmentContext> {
+    return this.http.get<StockIndentFulfillmentContext>(`${this.baseUrl}/${requestId}/lines/${lineId}/fulfillment-context`);
+  }
+
+  fulfillLine(requestId: number, lineId: number, request: StockIndentResolutionRequest): Observable<StockIndentItem> {
+    return this.http.post<StockIndentItem>(`${this.baseUrl}/${requestId}/lines/${lineId}/fulfill`, request);
+  }
+
+  fulfillViaTransferLine(requestId: number, lineId: number, request: StockIndentFulfillViaTransferRequest): Observable<StockIndentItem> {
+    return this.http.post<StockIndentItem>(`${this.baseUrl}/${requestId}/lines/${lineId}/fulfill-via-transfer`, request);
+  }
+
+  raisePoLine(requestId: number, lineId: number, request: StockIndentRaisePoRequest): Observable<StockIndentItem> {
+    return this.http.post<StockIndentItem>(`${this.baseUrl}/${requestId}/lines/${lineId}/raise-po`, request);
+  }
+
+  denyLine(requestId: number, lineId: number, request: StockIndentResolutionRequest): Observable<StockIndentItem> {
+    return this.http.post<StockIndentItem>(`${this.baseUrl}/${requestId}/lines/${lineId}/deny`, request);
   }
 
   cancel(requestId: number): Observable<void> {

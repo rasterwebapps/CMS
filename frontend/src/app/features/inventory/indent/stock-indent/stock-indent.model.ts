@@ -9,7 +9,12 @@ export interface Page<T> {
 }
 
 export type StockIndentStatus = 'DRAFT' | 'SUBMITTED' | 'COMPLETED' | 'CANCELLED';
-export type StockIndentItemStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+/** PENDING awaits the department head; APPROVED then awaits the store's own fulfillment decision
+ *  (Phase D) — it no longer means "issued". REJECTED is the department head's negative outcome;
+ *  DENIED is the store's. FULFILLED covers both store fulfillment paths (direct issue, or a
+ *  transfer-in first — see sourceTransferId). PO_RAISED means the store raised a Purchase
+ *  Requisition instead. */
+export type StockIndentItemStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'FULFILLED' | 'PO_RAISED' | 'DENIED';
 
 export interface StockIndentCreateRequest {
   requestingLocationId: number;
@@ -35,6 +40,29 @@ export interface StockIndentReturnLineRequest {
   notes?: string;
 }
 
+export interface StockIndentFulfillViaTransferRequest {
+  sourceLocationId: number;
+  transferQty: number;
+  notes?: string;
+}
+
+export interface StockIndentRaisePoRequest {
+  qty: number;
+  notes?: string;
+}
+
+export interface StockIndentFulfillmentContextCandidateLocation {
+  locationId: number;
+  locationVirtualName: string;
+  qtyOnHand: number;
+}
+
+export interface StockIndentFulfillmentContext {
+  requestedQty: number;
+  issuingLocationQtyOnHand: number;
+  candidateSourceLocations: StockIndentFulfillmentContextCandidateLocation[];
+}
+
 export interface StockIndentItem {
   id: number;
   productId: number;
@@ -51,6 +79,12 @@ export interface StockIndentItem {
   resolutionNotes: string | null;
   returnedQty: number;
   notes: string | null;
+  storeDecidedBy: string | null;
+  storeDecidedAt: string | null;
+  storeDecisionNotes: string | null;
+  sourceTransferId: number | null;
+  raisedRequisitionId: number | null;
+  raisedRequisitionItemId: number | null;
 }
 
 export interface StockIndent {

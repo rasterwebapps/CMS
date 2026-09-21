@@ -22,7 +22,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.inventory.indent.dto.StockIndentAddLineRequest;
 import com.cms.inventory.indent.dto.StockIndentCreateRequest;
+import com.cms.inventory.indent.dto.StockIndentFulfillViaTransferRequest;
+import com.cms.inventory.indent.dto.StockIndentFulfillmentContextResponse;
 import com.cms.inventory.indent.dto.StockIndentItemResponse;
+import com.cms.inventory.indent.dto.StockIndentRaisePoRequest;
 import com.cms.inventory.indent.dto.StockIndentResolutionRequest;
 import com.cms.inventory.indent.dto.StockIndentResponse;
 import com.cms.inventory.indent.dto.StockIndentReturnLineRequest;
@@ -100,6 +103,44 @@ public class StockIndentController {
             @PathVariable Long id, @PathVariable Long lineId,
             @Valid @RequestBody(required = false) StockIndentResolutionRequest request, @AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(requestService.rejectLine(id, lineId, request != null ? request : new StockIndentResolutionRequest(null), username(jwt)));
+    }
+
+    @GetMapping("/{id}/lines/{lineId}/fulfillment-context")
+    @PreAuthorize(VIEW_ANY)
+    public ResponseEntity<StockIndentFulfillmentContextResponse> getFulfillmentContext(@PathVariable Long id, @PathVariable Long lineId) {
+        return ResponseEntity.ok(requestService.getFulfillmentContext(id, lineId));
+    }
+
+    @PostMapping("/{id}/lines/{lineId}/fulfill")
+    @PreAuthorize("@perm.has('INVENTORY_STOCK_INDENT_FULFILL')")
+    public ResponseEntity<StockIndentItemResponse> fulfillLine(
+            @PathVariable Long id, @PathVariable Long lineId,
+            @Valid @RequestBody(required = false) StockIndentResolutionRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(requestService.fulfillLine(id, lineId, request != null ? request : new StockIndentResolutionRequest(null), username(jwt)));
+    }
+
+    @PostMapping("/{id}/lines/{lineId}/fulfill-via-transfer")
+    @PreAuthorize("@perm.has('INVENTORY_STOCK_INDENT_FULFILL')")
+    public ResponseEntity<StockIndentItemResponse> fulfillViaTransferLine(
+            @PathVariable Long id, @PathVariable Long lineId,
+            @Valid @RequestBody StockIndentFulfillViaTransferRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(requestService.fulfillViaTransferLine(id, lineId, request, username(jwt)));
+    }
+
+    @PostMapping("/{id}/lines/{lineId}/raise-po")
+    @PreAuthorize("@perm.has('INVENTORY_STOCK_INDENT_FULFILL')")
+    public ResponseEntity<StockIndentItemResponse> raisePoLine(
+            @PathVariable Long id, @PathVariable Long lineId,
+            @Valid @RequestBody StockIndentRaisePoRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(requestService.raisePoLine(id, lineId, request, username(jwt)));
+    }
+
+    @PostMapping("/{id}/lines/{lineId}/deny")
+    @PreAuthorize("@perm.has('INVENTORY_STOCK_INDENT_FULFILL')")
+    public ResponseEntity<StockIndentItemResponse> denyLine(
+            @PathVariable Long id, @PathVariable Long lineId,
+            @Valid @RequestBody(required = false) StockIndentResolutionRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(requestService.denyLine(id, lineId, request != null ? request : new StockIndentResolutionRequest(null), username(jwt)));
     }
 
     @PostMapping("/{id}/lines/{lineId}/return")

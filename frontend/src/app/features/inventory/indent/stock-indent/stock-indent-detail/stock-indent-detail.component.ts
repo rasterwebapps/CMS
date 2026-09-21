@@ -13,6 +13,7 @@ import { PermissionService } from '../../../../../core/permissions/permission.se
 import { ToastService } from '../../../../../core/toast/toast.service';
 import { ProductVariantService } from '../../../product/product-variant/product-variant.service';
 import { ProductVariant } from '../../../product/product-variant/product-variant.model';
+import { StockIndentFulfillmentDialogComponent } from '../stock-indent-fulfillment-dialog/stock-indent-fulfillment-dialog.component';
 
 @Component({
   selector: 'app-stock-indent-detail',
@@ -47,6 +48,7 @@ export class StockIndentDetailComponent implements OnInit {
   protected readonly variants     = signal<ProductVariant[]>([]);
 
   protected readonly canApprove = computed(() => this.permissionService.has('INVENTORY_STOCK_INDENT_APPROVE'));
+  protected readonly canFulfill = computed(() => this.permissionService.has('INVENTORY_STOCK_INDENT_FULFILL'));
   protected readonly canReturn  = computed(() => this.permissionService.has('INVENTORY_STOCK_INDENT_RETURN'));
 
   protected returnQtyByLine: Record<number, number | null> = {};
@@ -147,7 +149,7 @@ export class StockIndentDetailComponent implements OnInit {
   protected approveLine(line: StockIndentItem): void {
     this.busy.set(true);
     this.requestService.approveLine(this.requestId, line.id, { notes: line.resolutionNotes ?? undefined }).subscribe({
-      next: () => { this.toast.success('Line approved and issued'); this.busy.set(false); this.load(); },
+      next: () => { this.toast.success('Line approved — sent to the store for fulfillment'); this.busy.set(false); this.load(); },
       error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to approve line'); this.busy.set(false); },
     });
   }
@@ -157,6 +159,38 @@ export class StockIndentDetailComponent implements OnInit {
     this.requestService.rejectLine(this.requestId, line.id, { notes: line.resolutionNotes ?? undefined }).subscribe({
       next: () => { this.toast.success('Line rejected'); this.busy.set(false); this.load(); },
       error: (err) => { this.toast.error(err?.error?.message ?? 'Failed to reject line'); this.busy.set(false); },
+    });
+  }
+
+  protected openFulfillmentDialog(line: StockIndentItem): void {
+    this.dialog.open(StockIndentFulfillmentDialogComponent, {
+      data: { requestId: this.requestId, lineId: line.id, productName: line.productName },
+      width: '440px',
+    }).afterClosed().subscribe((result) => {
+      if (!result) return;
+      this.busy.set(true);
+      const notes = result.notes;
+      const done = (label: string) => { this.toast.success(label); this.busy.set(false); this.load(); };
+      const fail = (err: unknown) => {
+        const message = (err as { error?: { message?: string } })?.error?.message;
+        this.toast.error(message ?? 'Failed to record the fulfillment decision');
+        this.busy.set(false);
+      };
+
+      if (result.action === 'fulfill') {
+        this.requestService.fulfillLine(this.requestId, line.id, { notes }).subscribe({ next: () => done('Line fulfilled'), error: fail });
+      } else if (result.action === 'transfer') {
+        this.requestService.fulfillViaTransferLine(this.requestId, line.id,
+          { sourceLocationId: result.sourceLocationId, transferQty: result.transferQty, notes }).subscribe({
+          next: () => done('Stock transferred in and fulfilled'), error: fail,
+        });
+      } else if (result.action === 'raise_po') {
+        this.requestService.raisePoLine(this.requestId, line.id, { qty: result.qty, notes }).subscribe({
+          next: () => done('Purchase requisition raised'), error: fail,
+        });
+      } else {
+        this.requestService.denyLine(this.requestId, line.id, { notes }).subscribe({ next: () => done('Line denied'), error: fail });
+      }
     });
   }
 
