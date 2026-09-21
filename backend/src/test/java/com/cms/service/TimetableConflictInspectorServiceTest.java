@@ -129,6 +129,7 @@ class TimetableConflictInspectorServiceTest {
     private ClassSchedule staffedCell(long id) {
         ClassSchedule cs = new ClassSchedule();
         cs.setId(id);
+        cs.setIsActive(true);
         cs.setSessionType(ClassSessionType.THEORY);
         cs.setStatus(ClassScheduleStatus.PUBLISHED);
         cs.setSubject(subject);
@@ -149,7 +150,7 @@ class TimetableConflictInspectorServiceTest {
     @Test
     void shouldReportNoViolationsForAConflictFreeTerm() {
         ClassSchedule cell = staffedCell(100L);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cell));
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cell));
 
         ConflictScanResponse result = service.scanTerm(10L);
 
@@ -162,7 +163,7 @@ class TimetableConflictInspectorServiceTest {
     @Test
     void shouldFlagACellSittingInABlockedPeriod() {
         ClassSchedule cell = staffedCell(100L);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cell));
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cell));
         when(blockedPeriodChecker.blockReason(DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
 
@@ -181,11 +182,11 @@ class TimetableConflictInspectorServiceTest {
         ClassSchedule cellA = staffedCell(100L);
         ClassSchedule cellB = staffedCell(200L);
 
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cellA, cellB));
-        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
-            ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(List.of(cellB));
-        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
-            ClassScheduleStatus.PUBLISHED, 200L)).thenReturn(List.of(cellA));
+        // scanTerm always binds an AutoScheduleRunCache now, so checkFacultyFree resolves overlap
+        // in-memory from this same findByTermInstanceId snapshot (AutoScheduleRunCache#overlapping)
+        // rather than calling classScheduleRepository.findOverlapping at all -- no separate stub
+        // for it needed here.
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cellA, cellB));
 
         ConflictScanResponse result = service.scanTerm(10L);
 
@@ -203,7 +204,7 @@ class TimetableConflictInspectorServiceTest {
         unstaffed.setFaculty(null);
         unstaffed.setClassroom(null);
         unstaffed.setStatus(ClassScheduleStatus.DRAFT);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(unstaffed));
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(unstaffed));
 
         ConflictScanResponse result = service.scanTerm(10L);
 
@@ -220,8 +221,11 @@ class TimetableConflictInspectorServiceTest {
         ClassSchedule leftover = staffedCell(100L);
         leftover.setStatus(ClassScheduleStatus.DRAFT);
         leftover.setIsActive(false);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(replacement));
-        lenient().when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(leftover, replacement));
+        // AutoScheduleRunCache.run loads via the unfiltered findByTermInstanceId and does its own
+        // isActive filtering in Java (see AutoScheduleRunCache#run) -- scanTerm always binds one,
+        // so this is the only stub needed; leftover (isActive=false) must end up excluded by that
+        // filter on its own, which is exactly what this test is asserting.
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(leftover, replacement));
         // findOverlapping only ever returns active rows, so the replacement sees nobody else.
         lenient().when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(),
             period.getEndTime(), ClassScheduleStatus.DRAFT, 100L)).thenReturn(List.of(replacement));
@@ -236,7 +240,7 @@ class TimetableConflictInspectorServiceTest {
     @Test
     void shouldAcknowledgeACleanTermAndRecordTheCellCountFingerprint() {
         ClassSchedule cell = staffedCell(100L);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cell));
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cell));
         when(classScheduleRepository.countByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(1L);
 
         ConflictAcknowledgmentStatusResponse response = service.acknowledge(10L);
@@ -251,7 +255,7 @@ class TimetableConflictInspectorServiceTest {
     @Test
     void shouldRejectAcknowledgingATermThatIsNotActuallyClean() {
         ClassSchedule cell = staffedCell(100L);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cell));
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cell));
         when(blockedPeriodChecker.blockReason(DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
 

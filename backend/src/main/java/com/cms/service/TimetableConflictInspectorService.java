@@ -183,14 +183,36 @@ public class TimetableConflictInspectorService {
             .orElse(true);
     }
 
+    /** Binds an {@link AutoScheduleRunCache} for the duration of the scan so the per-cell checks
+     *  this reuses (see the class javadoc) hit an in-memory snapshot instead of re-querying the
+     *  same term-wide/cohort-wide data once per cell -- a 4-cohort, ~118-session term measured at
+     *  10+ seconds before this, dominated by {@link TimetableClinicalShiftChecker} re-resolving a
+     *  cohort's shift windows from scratch on every one of that cohort's cells. Skips binding a new
+     *  cache when one is already active on this thread (e.g. {@link
+     *  TimetableGlobalAutoScheduleService}'s own post-run conflict report calls this while its run
+     *  is still in progress) -- {@link AutoScheduleRunCache#run} refuses to nest, and reusing the
+     *  caller's already-current snapshot is correct there anyway, not just exception-avoidance. */
     public ConflictScanResponse scanTerm(Long termInstanceId) {
+        if (AutoScheduleRunCache.current().isPresent()) {
+            return scanTermUncached(termInstanceId);
+        }
+        return AutoScheduleRunCache.run(termInstanceId, classScheduleRepository, () -> scanTermUncached(termInstanceId));
+    }
+
+    private ConflictScanResponse scanTermUncached(Long termInstanceId) {
         TermInstance term = termInstanceRepository.findById(termInstanceId)
             .orElseThrow(() -> new ResourceNotFoundException("Term instance not found with id: " + termInstanceId));
 
         // Active rows only: every auto-schedule rebuild switches the previous run's draft off rather
         // than deleting it, and each switched-off copy sits in the same slot as its replacement --
-        // scanning them reported every rebuilt session as a double-booking of itself.
-        List<ClassSchedule> cells = classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+        // scanning them reported every rebuilt session as a double-booking of itself. Reuses the
+        // active AutoScheduleRunCache's own already-loaded, already-active-filtered snapshot when
+        // one is bound (always true for a standalone call -- see #scanTerm) instead of running a
+        // second separate query here.
+        List<ClassSchedule> cells = AutoScheduleRunCache.current()
+            .map(AutoScheduleRunCache::allCells)
+            .orElseGet(() -> classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId))
+            .stream()
             .filter(cs -> cs.getPeriod() != null)
             .toList();
 

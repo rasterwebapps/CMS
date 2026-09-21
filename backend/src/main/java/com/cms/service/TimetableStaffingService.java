@@ -911,8 +911,7 @@ public class TimetableStaffingService {
                                                  Long termInstanceId, Long excludeClassScheduleId,
                                                  DayOfWeek day, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
-            List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-                day, termInstanceId, start, end, status, excludeClassScheduleId);
+            List<ClassSchedule> overlapping = findOverlappingCached(day, termInstanceId, start, end, status, excludeClassScheduleId);
             boolean conflict = overlapping.stream().anyMatch(other -> conflictsOnRoom(other, type, venueId, physicalRoom));
             if (conflict) {
                 return Optional.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT",
