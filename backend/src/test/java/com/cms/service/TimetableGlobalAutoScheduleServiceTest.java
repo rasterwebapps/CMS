@@ -81,6 +81,7 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.OfferingAssignmentStatus;
+import com.cms.model.enums.SubjectType;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.model.enums.WeekOfMonth;
@@ -256,6 +257,16 @@ class TimetableGlobalAutoScheduleServiceTest {
         offering.setTermInstance(termInstance);
         when(courseOfferingRepository.findById(id)).thenReturn(Optional.of(offering));
         lenient().when(timetableSkeletonService.isElectiveOffering(offering)).thenReturn(false);
+        return offering;
+    }
+
+    /** Same as {@link #offeringEntity(Long, int, int, int)} but with an explicit {@link
+     *  SubjectType} — used to exercise the CO_CURRICULAR-is-always-placed-last partition in
+     *  {@code SHORTFALL_ROW_ORDER}, distinct from every other offeringEntity fixture which stays
+     *  on the entity's default CORE. */
+    private CourseOffering offeringEntity(Long id, int theoryHours, int labHours, int clinicalHours, SubjectType subjectType) {
+        CourseOffering offering = offeringEntity(id, theoryHours, labHours, clinicalHours);
+        offering.getCurriculumSemesterCourse().setSubjectType(subjectType);
         return offering;
     }
 
@@ -680,6 +691,62 @@ class TimetableGlobalAutoScheduleServiceTest {
         verify(timetableSkeletonService, org.mockito.Mockito.times(8)).placeCell(any(SkeletonCellPlacementRequest.class));
     }
 
+    /** Real incident fixture: "Forensic Nursing and Indian Laws" (CORE, 1 session/week owed) and
+     *  "Self-Study/Co-curricular V" (CO_CURRICULAR, 2 sessions/week owed) compete for the cohort's
+     *  one remaining free slot. Self-Study has the BIGGER shortfall, so the old descending-
+     *  shortfall-only comparator tried it first and let it claim the slot, starving the real
+     *  curriculum requirement (Forensic Nursing) entirely — exactly what was reported. {@code
+     *  SHORTFALL_ROW_ORDER}'s mandatory-vs-advisory partition must place Forensic Nursing first
+     *  regardless of the shortfall gap. */
+    @Test
+    void runPlacesMandatoryCoreSubjectBeforeAdvisoryCoCurricularSubject_evenWithASmallerShortfall() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 8);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(100L, "Forensic Nursing and Indian Laws"), offeringDto(200L, "Self-Study/Co-curricular V")));
+        assignWholeCohort(100L, 1L, 500L);
+        assignWholeCohort(200L, 1L, 500L);
+        offeringEntity(100L, 20, 0, 0);
+        offeringEntity(200L, 40, 0, 0, SubjectType.CO_CURRICULAR);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget forensicBudget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 20, 26, 1, 0);
+        SkeletonSubjectBudget selfStudyBudget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 40, 26, 2, 0);
+        SkeletonSubjectResponse forensicSubject = new SkeletonSubjectResponse(100L, "Forensic Nursing and Indian Laws", "FORE", List.of(forensicBudget), null, null);
+        SkeletonSubjectResponse selfStudySubject = new SkeletonSubjectResponse(200L, "Self-Study/Co-curricular V", "SELF", List.of(selfStudyBudget), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term",
+            List.of(forensicSubject, selfStudySubject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        // Only one placement can ever succeed -- simulates the cohort's week being fully saturated
+        // except for this single free slot, exactly like the reported real-world scenario.
+        java.util.concurrent.atomic.AtomicInteger placeCalls = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicLong placedOfferingId = new java.util.concurrent.atomic.AtomicLong(-1);
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class))).thenAnswer(invocation -> {
+            SkeletonCellPlacementRequest request = invocation.getArgument(0);
+            if (placeCalls.getAndIncrement() == 0) {
+                placedOfferingId.set(request.courseOfferingId());
+                return new SkeletonCellResponse(900L, request.sessionType(), request.dayOfWeek(), request.periodId(), "1st Period",
+                    LocalTime.of(9, 0), LocalTime.of(9, 50), null, null, null, null, false, null, null, List.of(),
+                    request.courseOfferingId(), "Offering", "OFF", null, null, null, false, false);
+            }
+            throw new TimetableConstraintViolationException(List.of(
+                new com.cms.dto.ConstraintViolation("SKELETON_CELL_ALREADY_PLACED", "only one free slot in this fixture")));
+        });
+        lenient().when(timetableStaffingService.staffCell(eq(900L), any(StaffingAssignmentRequest.class)))
+            .thenReturn(new UnstaffedCellResponse(900L, 100L, "Offering", "OFF", null, null,
+                ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50),
+                null, null, null, null, null, false, List.of(), null, null));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.totalPlaced()).isEqualTo(1);
+        assertThat(placedOfferingId.get()).isEqualTo(100L);
+    }
+
     // ── Phase B — cross-offering LAB pairing ──────────────────────────────
 
     private java.util.concurrent.atomic.AtomicLong stubPlaceCellAlwaysSucceeds() {
@@ -1046,17 +1113,19 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(runLibraryOnEmptyWeek().blockDays()).hasSize(1);
     }
 
-    /** Regression for 2026-09-18: the bonus second Library session used to run BEFORE {@code
-     *  fillSelfStudyGaps}'s shortfall-aware pass ever got a look at the same free periods, so a
-     *  cohort with a genuine, unresolvable Theory shortfall could still have those free periods
-     *  consumed by an entirely optional bonus Library session -- exactly the real-world "38.3h
-     *  Theory unassigned, +23.3h Theory extra, 475h of term-wide spare capacity" complaint this
-     *  closes. Same free-period shape as {@link #librarySecondSessionIsABonus_whenTheWeekHasPlentyOfFreePeriods}
+    /** Regression for 2026-09-18 (bonus session) extended 2026-09-21 to Library's OWN required
+     *  quota, not just the bonus: both used to run without ever checking {@code theoryStillOwedRuns},
+     *  so a cohort with a genuine, unresolvable Theory shortfall could still have its free periods
+     *  consumed by Library -- exactly the real-world "38.3h Theory unassigned, +23.3h Theory extra,
+     *  475h of term-wide spare capacity" complaint this closes, and the follow-up report that Library
+     *  and Sports (both non-curriculum, advisory/co-curricular filler, same as Self-Study) were still
+     *  claiming slots ahead of an unmet curriculum requirement even after the bonus-only gate.
+     *  Same free-period shape as {@link #librarySecondSessionIsABonus_whenTheWeekHasPlentyOfFreePeriods}
      *  (10 free periods, above the default 8-period bonus threshold) but with one Theory offering
-     *  that can never be placed anywhere, so the cohort has a real shortfall the bonus must yield
-     *  to even though the free-period threshold alone would still allow it. */
+     *  that can never be placed anywhere, so the cohort has a real shortfall Library must yield to
+     *  entirely, even though the free-period threshold alone would still allow it. */
     @Test
-    void librarySecondSessionIsSkipped_whenTheCohortStillHasAGenuineTheoryShortfall() {
+    void libraryIsWithheldEntirely_whenTheCohortStillHasAGenuineTheoryShortfall() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
@@ -1078,7 +1147,10 @@ class TimetableGlobalAutoScheduleServiceTest {
         libraryRoom.setId(50L);
         when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(any()))
             .thenReturn(List.of(libraryRoom));
-        when(timetableSkeletonService.isSlotFreeForCohort(eq(1L), eq(10L), any(), any())).thenReturn(true);
+        // lenient(): the theoryStillOwedRuns gate now returns before Library ever checks slot
+        // freedom or saves a cell -- these stubs stay only to document what WOULD have been asked,
+        // matching this test's pre-gate sibling that still exercises the placement path.
+        lenient().when(timetableSkeletonService.isSlotFreeForCohort(eq(1L), eq(10L), any(), any())).thenReturn(true);
 
         Period p2 = new Period("2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), 2);
         p2.setId(2L);
@@ -1094,7 +1166,7 @@ class TimetableGlobalAutoScheduleServiceTest {
                 new com.cms.dto.ConstraintViolation("SKELETON_CELL_COHORT_CLASH", "clash"))));
 
         List<DayOfWeek> blockDays = new ArrayList<>();
-        when(timetableSkeletonService.saveLibraryBlockCells(any(), any(), any(), any(), any(), any()))
+        lenient().when(timetableSkeletonService.saveLibraryBlockCells(any(), any(), any(), any(), any(), any()))
             .thenAnswer(inv -> {
                 DayOfWeek day = inv.getArgument(2);
                 blockDays.add(day);
@@ -1114,10 +1186,11 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         service.runGlobalAutoSchedule(10L, null);
 
-        // Only Library's required 1/week quota is placed -- the bonus second session (which the
-        // identical free-period count earned in librarySecondSessionIsABonus_...) is withheld
-        // because this cohort still genuinely owes Theory hours.
-        assertThat(blockDays).hasSize(1);
+        // Neither Library session places -- not the bonus (which the identical free-period count
+        // earned in librarySecondSessionIsABonus_...), and not even the required 1/week quota --
+        // because this cohort still genuinely owes Theory hours and Library, like Self-Study and
+        // Sports, is advisory/co-curricular filler that must yield entirely to a real requirement.
+        assertThat(blockDays).isEmpty();
     }
 
     /** Regression: a Library session {@code attemptBacktrack} displaces mid-run has no
@@ -1175,6 +1248,46 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result).isPresent();
         assertThat(result.get().dayOfWeek()).isEqualTo(DayOfWeek.WEDNESDAY);
+    }
+
+    /** Regression for the real incident this session found: a bumped idle-batch Library filler
+     *  session (courseOfferingId null, exactly {@link #saveIdleBatchLibraryCell}'s shape) used to
+     *  get actively relocated to any other free Monday-Friday slot by the method above -- with no
+     *  way to know whether a not-yet-processed lower-priority row like Self-Study might need that
+     *  exact slot, since Self-Study is deliberately placed LAST in Phase 2's {@code
+     *  SHORTFALL_ROW_ORDER} and its own shortfall isn't known yet when an earlier mandatory row's
+     *  backtrack bumps an idle-batch Library filler mid-Phase-2. A real run showed this relocation
+     *  claiming a whole-section Thursday Library block ahead of a cohort's still-unplaced Self-
+     *  Study/Co-curricular V, invisible to every later gate ({@code fillLibraryGaps}/{@code
+     *  fillSportsGaps}) because it ran mid-Phase-2, long before either of those Phase 4 gates even
+     *  starts. Asserts {@code restoreBumpedOrReportUnplaced} now simply reports the bumped session
+     *  unplaced -- never relocated, never touching the Library classroom/slot-freedom lookups at
+     *  all. */
+    @Test
+    void restoreBumpedOrReportUnplacedNeverRelocatesABumpedLibrarySession() {
+        List<TimetableGlobalAutoScheduleService.Placement> placedThisCohortRun = new ArrayList<>();
+        List<AutoPlaceUnplacedItem> unplacedForCohort = new ArrayList<>();
+        java.util.Map<DayOfWeek, Integer> dayLoad = new java.util.HashMap<>();
+        java.util.Map<String, Integer> theoryStillOwedRuns = new java.util.HashMap<>();
+
+        TimetableGlobalAutoScheduleService.Placement bumped = new TimetableGlobalAutoScheduleService.Placement(
+            700L, null, ClassSessionType.LIBRARY, null, null, null, "Library", "Whole cohort",
+            DayOfWeek.THURSDAY, List.of(1L, 2L));
+
+        service.restoreBumpedOrReportUnplaced(bumped, 1L, placedThisCohortRun, unplacedForCohort, dayLoad,
+            termInstance, List.of(period1),
+            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0),
+            new ArrayList<>(), theoryStillOwedRuns);
+
+        assertThat(placedThisCohortRun).isEmpty();
+        assertThat(unplacedForCohort).hasSize(1);
+        AutoPlaceUnplacedItem item = unplacedForCohort.get(0);
+        assertThat(item.subjectName()).isEqualTo("Library");
+        assertThat(item.reason()).contains("displaced during a backtrack attempt");
+        assertThat(item.advisoryOnly()).isTrue();
+        verify(timetableSkeletonService, never()).saveLibraryBlockCells(any(), any(), any(), any(), any(), any());
+        verify(timetableSkeletonService, never()).isSlotFreeForCohort(anyLong(), anyLong(), any(), any());
+        verify(subjectRepository, never()).findByCode(anyString());
     }
 
     /** Regression for the real-world "Self-Study/Co-curricular V shows both 'displaced during a
@@ -3104,11 +3217,12 @@ class TimetableGlobalAutoScheduleServiceTest {
      *  to its own sole faculty (a third Speciality only faculty 650 holds) -- so unlike that test, no
      *  fallback exists and the restore permanently fails, exactly like the real run's two stranded
      *  subjects. A Library classroom is configured with the bonus session's free-period threshold
-     *  trivially met, so the old bug (bonus fires anyway) and the fix (bonus withheld because {@code
-     *  theoryStillOwedRuns} now correctly shows Filler2's reopened gap) are distinguishable by a
-     *  single count: one Library block placed, not two. */
+     *  trivially met, so the old bug (Library fires anyway) and the fix (Library withheld entirely
+     *  because {@code theoryStillOwedRuns} now correctly shows Filler2's reopened gap, and Library's
+     *  own required quota -- not just its bonus -- is now gated on it too) are distinguishable by a
+     *  single count: zero Library blocks placed, not one or two. */
     @Test
-    void bumpedTheorySessionWithNoFallback_reopensTheoryStillOwedRuns_soLibraryBonusIsWithheld() {
+    void bumpedTheorySessionWithNoFallback_reopensTheoryStillOwedRuns_soLibraryIsWithheldEntirely() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
@@ -3249,10 +3363,12 @@ class TimetableGlobalAutoScheduleServiceTest {
         libraryRoom.setId(50L);
         when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(any()))
             .thenReturn(List.of(libraryRoom));
-        when(timetableSkeletonService.isSlotFreeForCohort(eq(1L), eq(10L), any(), any())).thenReturn(true);
+        // lenient(): the theoryStillOwedRuns gate now returns before Library ever checks slot
+        // freedom or saves a cell.
+        lenient().when(timetableSkeletonService.isSlotFreeForCohort(eq(1L), eq(10L), any(), any())).thenReturn(true);
         libraryConfig("timetable.library_extra_session_min_free_periods", "1");
         List<DayOfWeek> libraryBlockDays = new ArrayList<>();
-        when(timetableSkeletonService.saveLibraryBlockCells(any(), any(), any(), any(), any(), any()))
+        lenient().when(timetableSkeletonService.saveLibraryBlockCells(any(), any(), any(), any(), any(), any()))
             .thenAnswer(inv -> {
                 DayOfWeek day = inv.getArgument(2);
                 libraryBlockDays.add(day);
@@ -3277,10 +3393,10 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.cohortSummaries()).hasSize(1);
         assertThat(result.cohortSummaries().get(0).unplaced())
             .anyMatch(item -> "Filler2".equals(item.subjectName()) && item.slotShortfall());
-        // ...and that reopened gap must be visible to the Library bonus gate: only the required 1
-        // weekly session is placed, never the bonus second one, even though the free-period threshold
-        // alone (met trivially above) would otherwise allow it.
-        assertThat(libraryBlockDays).hasSize(1);
+        // ...and that reopened gap must be visible to Library's own gate: neither the required
+        // session nor the bonus second one is placed, even though the free-period threshold alone
+        // (met trivially above) would otherwise allow the bonus.
+        assertThat(libraryBlockDays).isEmpty();
     }
 
     @Test
@@ -3789,6 +3905,55 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.cohortSummaries().get(0).infoNotes())
             .anyMatch(note -> note.startsWith("Sports not placed — no room is tagged Sports & Recreation"));
         verify(timetableSkeletonService, never()).saveSportsBlockCells(any(), any(), any(), any(), any(), any());
+    }
+
+    /** Sports' counterpart of {@link #libraryIsWithheldEntirely_whenTheCohortStillHasAGenuineTheoryShortfall}:
+     *  Sports (advisory/co-curricular filler, same as Library and Self-Study) must yield its whole
+     *  required quota, not just claim whatever's free, while this cohort still genuinely owes a real
+     *  Theory offering it can never place. Room/faculty setup is trivially satisfiable, so the only
+     *  thing that can withhold Sports is the {@code theoryStillOwedRuns} gate. */
+    @Test
+    void sportsIsWithheldEntirely_whenTheCohortStillHasAGenuineTheoryShortfall() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        offeringEntity(100L, 10, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget theoryBudget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 0);
+        SkeletonSubjectResponse theorySubject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(theoryBudget), null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(theorySubject),
+            List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        // Theory can never be placed anywhere -- guarantees a genuine, unresolvable shortfall.
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class)))
+            .thenThrow(new TimetableConstraintViolationException(List.of(
+                new com.cms.dto.ConstraintViolation("SKELETON_CELL_COHORT_CLASH", "clash"))));
+
+        Faculty pe = activeFaculty(700L, "PE");
+        when(facultyRepository.findByStatus(FacultyStatus.ACTIVE)).thenReturn(List.of(pe));
+        Classroom ground = new Classroom("Ground", null, null, 120);
+        ground.setId(60L);
+        Subject sports = new Subject();
+        sports.setId(998L);
+        sports.setCode("SYSTEM-SPORTS");
+        sports.setEligibleFaculty(new HashSet<>(Set.of(pe)));
+        // lenient(): the theoryStillOwedRuns gate now returns before Sports ever looks up its
+        // subject/room or checks slot freedom.
+        lenient().when(subjectRepository.findByCode("SYSTEM-SPORTS")).thenReturn(Optional.of(sports));
+        lenient().when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(
+            com.cms.model.enums.RoomPurposeCategoryCode.SPORTS)).thenReturn(List.of(ground));
+        lenient().when(timetableSkeletonService.isSlotFreeForCohort(eq(1L), eq(10L), any(), any())).thenReturn(true);
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        verify(timetableSkeletonService, never()).saveSportsBlockCells(any(), any(), any(), any(), any(), any());
+        assertThat(result.cohortSummaries().get(0).infoNotes()).anyMatch(note -> note.startsWith("Sports reduced to 0 of"));
     }
 
     /** Leftover periods are extra revision for the cohort's other curriculum subjects, shared

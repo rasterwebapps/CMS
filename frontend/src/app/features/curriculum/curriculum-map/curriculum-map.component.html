@@ -47,8 +47,9 @@
                         <span class="course-item__code">{{ course.subjectCode }}</span>
                         <span class="subject-type-badge" [class.subject-type-badge--core]="course.subjectType === 'CORE'"
                           [class.subject-type-badge--foundational]="course.subjectType === 'FOUNDATIONAL'"
-                          [class.subject-type-badge--elective]="course.subjectType === 'ELECTIVE'">
-                          {{ course.subjectType }}
+                          [class.subject-type-badge--elective]="course.subjectType === 'ELECTIVE'"
+                          [class.subject-type-badge--co-curricular]="course.subjectType === 'CO_CURRICULAR'">
+                          {{ course.subjectType === 'CO_CURRICULAR' ? 'CO-CURRICULAR' : course.subjectType }}
                         </span>
                         @if (course.isLocked) {
                           <mat-icon class="locked-icon" matTooltip="Locked — already used in a course offering"
@@ -198,7 +199,7 @@
                   <label class="field-label">Subject Type (INC category)</label>
                   <select class="field-input" formControlName="subjectType">
                     @for (type of subjectTypes; track type) {
-                      <option [value]="type">{{ type }}</option>
+                      <option [value]="type">{{ type === 'CO_CURRICULAR' ? 'CO-CURRICULAR (advisory)' : type }}</option>
                     }
                   </select>
                 </div>

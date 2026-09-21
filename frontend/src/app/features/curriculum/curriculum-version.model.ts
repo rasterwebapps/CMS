@@ -36,7 +36,7 @@ export interface CurriculumVersionRequest {
   isActive?: boolean;
 }
 
-export type SubjectType = 'CORE' | 'FOUNDATIONAL' | 'ELECTIVE';
+export type SubjectType = 'CORE' | 'FOUNDATIONAL' | 'ELECTIVE' | 'CO_CURRICULAR';
 
 export interface CurriculumSemesterCourse {
   id: number;

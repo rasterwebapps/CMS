@@ -90,6 +90,7 @@ import com.cms.model.enums.OfferingAssignmentStatus;
 import com.cms.model.enums.PlanningBasis;
 import com.cms.model.enums.RegistrationStatus;
 import com.cms.model.enums.RoomPurposeCategoryCode;
+import com.cms.model.enums.SubjectType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
@@ -1514,7 +1515,7 @@ public class TimetableGlobalAutoScheduleService {
         for (CohortRunContext context : libraryFillOrder) {
             LibraryGapFillOutcome libraryOutcome = fillLibraryGaps(context.cohortId(), term, periods,
                 context.dayLoad(), context.unplacedForCohort(), context.skeleton().cells(), context.placedThisCohortRun(),
-                saturdayIsWorkingDay(term));
+                saturdayIsWorkingDay(term), context.theoryStillOwedRuns());
             context.placedThisCohortRun().addAll(libraryOutcome.filled());
             libraryOutcomes.put(context.cohortId(), libraryOutcome);
         }
@@ -1524,7 +1525,7 @@ public class TimetableGlobalAutoScheduleService {
         Map<Long, SportsGapFillOutcome> sportsOutcomes = new LinkedHashMap<>();
         for (CohortRunContext context : libraryFillOrder) {
             SportsGapFillOutcome sportsOutcome = fillSportsGaps(context.cohortId(), term, periods, context.dayLoad(),
-                context.skeleton().cells(), termDemand, saturdayIsWorkingDay(term));
+                context.skeleton().cells(), termDemand, saturdayIsWorkingDay(term), context.theoryStillOwedRuns());
             context.placedThisCohortRun().addAll(sportsOutcome.filled());
             sportsOutcomes.put(context.cohortId(), sportsOutcome);
         }
@@ -2472,15 +2473,41 @@ public class TimetableGlobalAutoScheduleService {
     }
 
     /** Most-constrained-first: LAB/CLINICAL rows (venue- and batch-scoped, generally far fewer
-     *  interchangeable slots than a THEORY lecture) are attempted before THEORY, and within the
-     *  same session type, a row with a bigger remaining shortfall (more sessions still needing a
-     *  home) goes before one with a smaller one. This is a cheap ordering heuristic, not an actual
-     *  per-row feasible-slot count — a real constraint-count scan would be more precise but isn't
-     *  worth the complexity for a first cut; {@link #attemptBacktrack} is what actually recovers
-     *  from a wrong ordering guess, not this comparator alone. */
+     *  interchangeable slots than a THEORY lecture) are attempted before THEORY. Within the same
+     *  session type, a mandatory row (CORE/FOUNDATIONAL/ELECTIVE) always goes before an advisory
+     *  {@code CO_CURRICULAR} row (e.g. Self-Study) — a hard partition, not a heuristic — since an
+     *  advisory line must never starve a real curriculum requirement out of a tight week. Within
+     *  each of those tiers, a row with a bigger remaining shortfall (more sessions still needing a
+     *  home) goes before one with a smaller one. The shortfall ordering is a cheap heuristic, not an
+     *  actual per-row feasible-slot count — a real constraint-count scan would be more precise but
+     *  isn't worth the complexity for a first cut; {@link #attemptBacktrack} is what actually
+     *  recovers from a wrong ordering guess, not this comparator alone. */
     private static final Comparator<ShortfallRow> SHORTFALL_ROW_ORDER = Comparator
         .comparing((ShortfallRow r) -> r.budget().sessionType() == ClassSessionType.THEORY ? 1 : 0)
+        .thenComparing((ShortfallRow r) -> isAdvisoryRow(r) ? 1 : 0)
         .thenComparing((ShortfallRow r) -> -r.shortfall());
+
+    /** True for a curriculum-backed row explicitly typed {@code CO_CURRICULAR} (advisory, e.g.
+     *  Self-Study) — false for anything mandatory (CORE/FOUNDATIONAL/ELECTIVE) and false for a
+     *  row with no {@link CurriculumSemesterCourse} at all (e.g. a system-owned Library/Sports
+     *  filler offering), which is unaffected by this partition. */
+    private static boolean isAdvisoryRow(ShortfallRow row) {
+        CourseOffering offering = row.offering();
+        CurriculumSemesterCourse csc = offering != null ? offering.getCurriculumSemesterCourse() : null;
+        return csc != null && csc.getSubjectType() == SubjectType.CO_CURRICULAR;
+    }
+
+    /** Same check as {@link #isAdvisoryRow}, from a bare offering id — used by {@link
+     *  #attemptBacktrack}, which only has the already-placed {@link Placement}'s id, not its
+     *  original {@link ShortfallRow}. */
+    private boolean isAdvisoryOfferingId(Long offeringId) {
+        if (offeringId == null) {
+            return false;
+        }
+        CourseOffering offering = courseOfferingRepository.findById(offeringId).orElse(null);
+        CurriculumSemesterCourse csc = offering != null ? offering.getCurriculumSemesterCourse() : null;
+        return csc != null && csc.getSubjectType() == SubjectType.CO_CURRICULAR;
+    }
 
     /** {@code dayPlaced} null means every day/period combination was exhausted — {@code
      *  failureReason} then names the constraint that blocked the largest share of attempts (see
@@ -3222,7 +3249,7 @@ public class TimetableGlobalAutoScheduleService {
     private LibraryGapFillOutcome fillLibraryGaps(Long cohortId, TermInstance term, List<Period> periods,
                                                    Map<DayOfWeek, Integer> dayLoad, List<AutoPlaceUnplacedItem> unplacedForCohort,
                                                    List<SkeletonCellResponse> existingCells, List<Placement> placedThisRun,
-                                                   boolean saturdayOpen) {
+                                                   boolean saturdayOpen, Map<String, Integer> theoryStillOwedRuns) {
         // Library is filler (OC-227): it takes the working-day periods curriculum left free --
         // Saturday included as a regular day when the term has chosen working Saturdays
         // (saturdayOpen, see #saturdayIsWorkingDay). Whatever doesn't fit shrinks, reported as a
@@ -3249,6 +3276,17 @@ public class TimetableGlobalAutoScheduleService {
 
         List<CohortSection> activeSections = timetableSkeletonService.resolveActiveSections(cohortId, term.getId());
         List<CohortSection> audiences = activeSections.isEmpty() ? Arrays.asList((CohortSection) null) : activeSections;
+
+        // Library yields to curriculum (OC-227) -- including its OWN required quota, not just the
+        // bonus second session (#fillExtraLibrarySession already gated this; this quota didn't,
+        // which let it claim a period ahead of a still-short mandatory or CO_CURRICULAR row). Same
+        // principle #fillSelfStudyGaps applies to its own filler: every offering's real required
+        // hours come first, Library (and Sports, gated the same way) only takes what's genuinely
+        // left over.
+        if (theoryStillOwedRuns.values().stream().anyMatch(owed -> owed > 0)) {
+            int target = sessionsPerWeek * audiences.size();
+            return new LibraryGapFillOutcome(filled, target, target);
+        }
 
         int unfillableSessions = 0;
         for (CohortSection section : audiences) {
@@ -3430,12 +3468,20 @@ public class TimetableGlobalAutoScheduleService {
      *  ({@link #sportsInfoNotes}), never an unplaced warning. */
     private SportsGapFillOutcome fillSportsGaps(Long cohortId, TermInstance term, List<Period> periods,
                                                 Map<DayOfWeek, Integer> dayLoad, List<SkeletonCellResponse> existingCells,
-                                                TermDemandAggregation termDemand, boolean saturdayOpen) {
+                                                TermDemandAggregation termDemand, boolean saturdayOpen,
+                                                Map<String, Integer> theoryStillOwedRuns) {
         List<Placement> filled = new ArrayList<>();
         int sessionsPerWeek = resolveLibraryConfigInt(CONFIG_SPORTS_SESSIONS_PER_WEEK, DEFAULT_SPORTS_SESSIONS_PER_WEEK);
         List<CohortSection> activeSections = timetableSkeletonService.resolveActiveSections(cohortId, term.getId());
         List<CohortSection> audiences = activeSections.isEmpty() ? Arrays.asList((CohortSection) null) : activeSections;
         int targetSessions = sessionsPerWeek * audiences.size();
+
+        // Sports yields to curriculum exactly like Library's required quota, just above -- a cohort
+        // with any real Theory shortfall left (mandatory or CO_CURRICULAR) keeps every remaining
+        // free period until that's closed.
+        if (theoryStillOwedRuns.values().stream().anyMatch(owed -> owed > 0)) {
+            return new SportsGapFillOutcome(filled, targetSessions, targetSessions, null);
+        }
 
         Subject sportsSubject = subjectRepository.findByCode(SPORTS_SUBJECT_CODE).orElse(null);
         List<Classroom> sportsVenues = classroomRepository
@@ -4127,6 +4173,12 @@ public class TimetableGlobalAutoScheduleService {
             if (bumped.sameRowAs(row)) {
                 continue;
             }
+            // Mandatory always beats advisory (see SHORTFALL_ROW_ORDER) -- an advisory row (e.g.
+            // Self-Study) must never evict an already-placed mandatory session just to find itself
+            // a home. A mandatory row may still bump anything, advisory included.
+            if (isAdvisoryRow(row) && !isAdvisoryOfferingId(bumped.courseOfferingId())) {
+                continue;
+            }
             // Bumped is removed from both the database and this run's own tracking list up front,
             // unconditionally — its cell no longer exists either way once forceRemoveCell runs, so
             // the list must never keep a stale reference to it regardless of how the retry below
@@ -4232,11 +4284,13 @@ public class TimetableGlobalAutoScheduleService {
      *  re-opened a genuine 20h/week Theory hole, which is exactly what a real 2026-2027 ODD BSc
      *  Nursing run did, unchanged across three separate re-runs, because the gate could never see
      *  what this method itself only found out about after the gate had already been read. */
-    private void restoreBumpedOrReportUnplaced(Placement bumped, Long cohortId, List<Placement> placedThisCohortRun,
-                                                List<AutoPlaceUnplacedItem> unplacedForCohort, Map<DayOfWeek, Integer> dayLoad,
-                                                TermInstance term, List<Period> periods, TermDemandAggregation termDemand,
-                                                List<FacultySubstitutionEvent> facultySubstitutionEvents,
-                                                Map<String, Integer> theoryStillOwedRuns) {
+    // Package-private (not private) so the no-longer-relocates-a-bumped-Library-session regression
+    // can be verified directly, matching #tryRePlaceBumpedLibrarySession's own visibility.
+    void restoreBumpedOrReportUnplaced(Placement bumped, Long cohortId, List<Placement> placedThisCohortRun,
+                                        List<AutoPlaceUnplacedItem> unplacedForCohort, Map<DayOfWeek, Integer> dayLoad,
+                                        TermInstance term, List<Period> periods, TermDemandAggregation termDemand,
+                                        List<FacultySubstitutionEvent> facultySubstitutionEvents,
+                                        Map<String, Integer> theoryStillOwedRuns) {
         Optional<Placement> restored = tryRestoreExact(bumped, cohortId);
         if (restored.isPresent()) {
             placedThisCohortRun.add(restored.get());
@@ -4305,17 +4359,20 @@ public class TimetableGlobalAutoScheduleService {
                 }
                 return;
             }
-        } else if (bumped.sessionType() == ClassSessionType.LIBRARY) {
-            // No CourseOffering exists for Library, so the branch above can never run for it -- without
-            // this, every bumped Library session was reported unplaced the instant its exact original
-            // slot was gone, even when a different Monday-Friday day was still genuinely free (see
-            // #tryRePlaceBumpedLibrarySession).
-            Optional<Placement> relocated = tryRePlaceBumpedLibrarySession(bumped, cohortId, term, periods, dayLoad, placedThisCohortRun);
-            if (relocated.isPresent()) {
-                placedThisCohortRun.add(relocated.get());
-                return;
-            }
         }
+        // 2026-09-21: deliberately no longer relocating a bumped LIBRARY session (that path -- see
+        // #tryRePlaceBumpedLibrarySession, kept for its own direct test coverage but no longer called
+        // here -- searched for ANY other free Monday-Friday day/room, with no way to know whether a
+        // not-yet-processed lower-priority row like Self-Study would need that exact slot, since
+        // Self-Study is deliberately placed LAST in Phase 2's SHORTFALL_ROW_ORDER and its own
+        // shortfall isn't known yet when an earlier mandatory row's backtrack bumps an idle-batch
+        // Library filler mid-Phase-2). A bumped Library session (always advisory/idle-batch filler,
+        // never real curriculum) is now simply left lost and reported as a neutral note below --
+        // consistent with the same "Library/Sports/Self-Study never claim a period a real requirement
+        // might need" principle already enforced in #fillLibraryGaps and #fillSportsGaps. Real
+        // incident: this exact relocation created a whole-section Thursday Library block ahead of a
+        // cohort's still-unplaced Self-Study/Co-curricular V, invisible to every later gate because it
+        // ran mid-Phase-2, long before Phase 4 (Library) even starts.
         unplacedForCohort.add(new AutoPlaceUnplacedItem(bumped.subjectName(), bumped.sessionType(), bumped.occupantLabel(),
             "displaced during a backtrack attempt and could not be placed at its original slot or any other free day/period",
             bumped.courseOfferingId(), true, bumped.sessionType() == ClassSessionType.LIBRARY));
