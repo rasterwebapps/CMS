@@ -317,15 +317,28 @@ public class TimetableGenerationService {
      *  place both live without a cycle. */
     @Transactional(readOnly = true)
     public List<CohortTermStatusSummary> getCohortTermStatusSummaryWithReadiness(Long termInstanceId) {
-        return timetableSkeletonService.getCohortTermStatusSummary(termInstanceId).stream()
+        List<CohortTermStatusSummary> rows = timetableSkeletonService.getCohortTermStatusSummary(termInstanceId);
+        // Hoisted out of the per-cohort loop below: each of these is already whole-term, so
+        // computing it once and reusing it per row avoids the term getting re-scanned/re-queried
+        // once per still-draft cohort. The original version called scanCohorts (a full
+        // scanTerm) separately per cohort, so a 4-cohort term ran the whole-term structural scan
+        // 4 times just to render 4 rows -- visibly slow in practice, fixed here.
+        List<CourseOfferingFacultySummaryDto> assignmentSummaries =
+            courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(termInstanceId);
+        List<TimetableCoverageGap> coverageGaps = timetableCoverageService.findGaps(termInstanceId);
+        ConflictScanResponse termScan = timetableConflictInspectorService.scanTerm(termInstanceId);
+        return rows.stream()
             .map(row -> new CohortTermStatusSummary(
                 row.cohortId(), row.cohortName(), row.courseName(), row.admissionYearName(),
                 row.status(), row.draftCount(), row.publishedCount(), row.unassignedHours(),
-                computeReadinessStatus(termInstanceId, row)))
+                computeReadinessStatus(termInstanceId, row, assignmentSummaries, coverageGaps, termScan)))
             .toList();
     }
 
-    private String computeReadinessStatus(Long termInstanceId, CohortTermStatusSummary row) {
+    private String computeReadinessStatus(Long termInstanceId, CohortTermStatusSummary row,
+                                           List<CourseOfferingFacultySummaryDto> assignmentSummaries,
+                                           List<TimetableCoverageGap> coverageGaps,
+                                           ConflictScanResponse termScan) {
         if ("PUBLISHED".equals(row.status()) || "PARTIALLY_PUBLISHED".equals(row.status())) {
             return row.status();
         }
@@ -341,18 +354,17 @@ public class TimetableGenerationService {
             return "DRAFT_GENERATED";
         }
         Set<Long> offeringIds = resolveCohortOfferingIds(termInstanceId, List.of(cohortId));
-        boolean offeringGap = courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(termInstanceId).stream()
+        boolean offeringGap = assignmentSummaries.stream()
             .filter(s -> offeringIds.contains(s.offeringId()))
             .anyMatch(s -> s.assignmentStatus() == OfferingAssignmentStatus.NONE || s.assignmentStatus() == OfferingAssignmentStatus.PARTIAL);
         if (offeringGap) {
             return "DRAFT_GENERATED";
         }
-        boolean coverageGap = timetableCoverageService.findGaps(termInstanceId).stream()
-            .anyMatch(gap -> gap.cohortId().equals(cohortId));
+        boolean coverageGap = coverageGaps.stream().anyMatch(gap -> gap.cohortId().equals(cohortId));
         if (coverageGap) {
             return "DRAFT_GENERATED";
         }
-        if (timetableConflictInspectorService.scanCohorts(termInstanceId, List.of(cohortId)).violationCount() > 0) {
+        if (timetableConflictInspectorService.filterScanForCohorts(termScan, termInstanceId, List.of(cohortId)).violationCount() > 0) {
             return "DRAFT_GENERATED";
         }
         if (!timetableConflictInspectorService.isCohortAcknowledgmentValid(termInstanceId, cohortId)) {

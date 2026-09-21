@@ -11,8 +11,8 @@ export interface CoverageOverrideDialogData {
 
 /** Shown when Approve refuses because one or more cohorts still have curriculum-required Theory/
  *  Lab/Clinical hours never placed as real sessions (OC-256) — only ever opened for a reviewer who
- *  already holds TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE (see timetable-draft-review.component.ts's
- *  onApprove), since anyone else has no path to satisfy this dialog anyway. A separate small
+ *  already holds TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE (see skeleton-builder.component.ts's
+ *  publishCohorts), since anyone else has no path to satisfy this dialog anyway. A separate small
  *  dialog rather than extending ConfirmDialogComponent for the same reason
  *  BlockAvailabilityDialogComponent is: its afterClosed() contract is a plain boolean used by many
  *  other callers. Returns the trimmed reason string on confirm, or null on cancel. */

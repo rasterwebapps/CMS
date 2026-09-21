@@ -96,7 +96,18 @@ public class TimetableConflictInspectorService {
      *  right now never blocks this one. A conflict straddling a selected cohort and an unselected
      *  one still surfaces here, because the selected cohort's own cell is one of the flagged rows. */
     public ConflictScanResponse scanCohorts(Long termInstanceId, List<Long> cohortIds) {
-        ConflictScanResponse scan = scanTerm(termInstanceId);
+        return filterScanForCohorts(scanTerm(termInstanceId), termInstanceId, cohortIds);
+    }
+
+    /** Same filtering {@link #scanCohorts} does, but against an already-computed {@link
+     *  #scanTerm} result instead of running a fresh one -- for a caller that needs this for
+     *  several different cohort subsets within one request (e.g. {@code
+     *  TimetableGenerationService#getCohortTermStatusSummaryWithReadiness}, computing every
+     *  cohort's own readiness for a term) so the whole-term scan runs exactly once instead of once
+     *  per cohort. OC-260 originally had the summary endpoint call {@link #scanCohorts} once per
+     *  still-draft cohort, which meant scanning the entire term N times just to render N rows —
+     *  visibly slow with more than a couple of cohorts. */
+    public ConflictScanResponse filterScanForCohorts(ConflictScanResponse scan, Long termInstanceId, List<Long> cohortIds) {
         Set<Long> scheduleIds = resolveCohortScheduleIds(termInstanceId, cohortIds);
         List<TimetableConflictRow> rows = scan.rows().stream()
             .filter(row -> scheduleIds.contains(row.classScheduleId()))
