@@ -107,7 +107,7 @@ Inventory Management is a new, standalone module being built for the platform �
 
 **Todo:**
 - Requisition (request-and-issue) workflow — ✅ done (Stock Indent, renamed 2026-09-21 — see decision log)
-- Auto-Indent when a location's stock runs low — 🟡 reopened 2026-09-21 with real user-supplied deployment policy (see the decision log's 2026-09-21 entry): per-(product, location) reorder level/qty/max stock, an auto-indent flag, a designated default supplying store per requesting location, and a manual store-side fulfillment decision screen (fulfill / transfer-in via main store / raise PO / deny) once a department head approves. Phase A (pure Stock Issue Request → Stock Indent rename) shipped; per-location config, the detection job, and the two-step approval/fulfillment lifecycle are still to build.
+- Auto-Indent when a location's stock runs low — 🟡 reopened 2026-09-21 with real user-supplied deployment policy (see the decision log's 2026-09-21 entry): per-(product, location) reorder level/qty/max stock, an auto-indent flag, a designated default supplying store per requesting location, and a manual store-side fulfillment decision screen (fulfill / transfer-in via main store / raise PO / deny) once a department head approves. Phase A (pure Stock Issue Request → Stock Indent rename) and Phase B (per-location reorder config + default supplying store, with a save-time gate requiring one before auto-indent can be enabled) both shipped; the detection job and the two-step approval/fulfillment lifecycle are still to build.
 - Internal returns — ✅ done (return previously-issued stock back to the issuing location from an approved request line)
 - Generic loan/return tracking for borrowed equipment — ✅ done
 

@@ -2558,4 +2558,29 @@ Decisions 2-6 above (per-location reorder config, auto-detection job, two-step l
 fulfillment screen) are follow-up phases, not yet built — see `MILESTONES.md`'s Phase 4 entry for
 tracking.
 
+## 2026-09-21 — OC-206 reopened, Phase B shipped: per-location reorder config
+
+**Continues the 2026-09-21 "OC-206 reopened" entry above** — Phase B of that entry's decisions is
+now built: `ProductLocationReorderConfig` (per-(product, location) reorder level/qty/max stock/
+auto-indent flag, `REQUESTING_POINT`/`BOTH` locations only, V533) and `InventoryLocation
+.defaultSupplyingLocation` (V534 seeds its permissions). One addition not spelled out in that
+entry: saving a config with auto-indent enabled now hard-requires the location to already have a
+default supplying store set (clear error otherwise) — the same "never blame user data, validate
+heavily" posture as other save-time gates in this codebase, so a config can never be created
+already pointing nowhere. A location's store can still be unset *after* a config already has
+auto-indent on, since there's no DB-level dependency between the two tables; the Reorder
+Configuration list screen surfaces that drift as a distinct warning tag ("On, no store set")
+rather than silently treating it the same as a properly configured one.
+
+**Verified:** booted clean against the migrated local dev DB; full backend test suite green
+(new `ProductLocationReorderConfigServiceTest`, 6 cases); `npx tsc --noEmit` and `ng build
+--configuration=production` both clean. New nav entry "Reorder Configuration" under Stock
+Management, between Supplier Returns and Stock Indents. Manual light/dark/role click-through of
+the new screens and of the edited Inventory Location form (Component Touch Rule) not yet done —
+flagged for the user's own pass per this repo's "no self-run visual verification" posture.
+
+**Still open (Phase C onward, per the entry above):** the auto-detection job itself (nightly +
+on-demand, netting against already-open indents), and the two-step department-head-approval /
+store-fulfillment-decision lifecycle change to `StockIndent`.
+
 *Next entry goes here — do not insert above this line.*
