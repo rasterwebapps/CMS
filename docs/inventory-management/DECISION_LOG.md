@@ -2583,4 +2583,42 @@ flagged for the user's own pass per this repo's "no self-run visual verification
 on-demand, netting against already-open indents), and the two-step department-head-approval /
 store-fulfillment-decision lifecycle change to `StockIndent`.
 
+## 2026-09-21 — OC-206 reopened, Phase C shipped: auto-indent detection job
+
+**Continues the two 2026-09-21 "OC-206 reopened" entries above.** `AutoIndentService` now reads
+Phase B's `ProductLocationReorderConfig` rows and auto-generates `StockIndent`s, nightly (5:30,
+offset from the Wanted List's own 5:00 run so the two never contend for the same tables) or
+on-demand via a new "Run Now" button. Mirrors `WantedListService`'s shape closely — same MRP
+netting formula, same hybrid lot-sizing rule — with two departures worth recording:
+
+1. **Netting excludes `APPROVED` indent lines, unlike the Wanted List's own query which counts
+   `APPROVED` Purchase Requisition lines as "open."** The two document types mean different things
+   by that status: a Purchase Requisition's approval is just sign-off (buying happens later via a
+   separate PO), so it genuinely still needs netting against; a Stock Indent's approval already
+   posts the real `ISSUE` movement today, so the requesting location's on-hand balance already
+   reflects it — counting it again would double-count the same stock. Only `PENDING` lines under a
+   `SUBMITTED` header count as "open."
+2. **Bundles every product shortfall for the same (requesting location, supplying store) pair into
+   one `StockIndent` with multiple lines**, rather than one indent per product — reuses `StockIndentService`'s
+   own `create`/`addLine`/`submit` instead of new persistence logic, the same way `WantedListService.convert`
+   reuses `PurchaseRequisitionService`. Matches how a person would build one request, not a flurry
+   of single-product ones.
+
+**Known, deliberate gaps (not bugs):** a product with active variants is skipped — reorder policy
+stays product-level only, same simplification the Wanted List already established for
+`Product.reorderLevel`/`reorderQty`, and there's no way to guess which variant needs restocking. A
+config whose location has since lost its default supplying store (see the Phase B entry's own
+"can still drift" note) is skipped for that run rather than failing the whole batch.
+
+**Verified:** booted clean against the migrated local dev DB; the new native queries
+(`findShortageCandidates`, `findOpenQtyByProductAndRequestingLocation`) run cleanly against real
+schema/data via direct psql execution, not just mocked unit tests; full backend test suite green
+(new `AutoIndentServiceTest`, 7 cases); `npx tsc --noEmit` and `ng build --configuration=production`
+both clean. Did not attempt a live end-to-end run through the actual scheduled job or a real
+low-stock scenario — no reorder configs exist in the local dev dataset yet to trigger one.
+
+**Still open:** the two-step department-head-approval / store-fulfillment-decision lifecycle
+change to `StockIndent` (Phase D) — currently, approving a line (manual or auto-generated) still
+immediately posts the `ISSUE` movement in one step, unchanged from before this feature.
+
 *Next entry goes here — do not insert above this line.*
