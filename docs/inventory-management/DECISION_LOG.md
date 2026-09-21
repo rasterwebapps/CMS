@@ -2621,4 +2621,40 @@ low-stock scenario — no reorder configs exist in the local dev dataset yet to 
 change to `StockIndent` (Phase D) — currently, approving a line (manual or auto-generated) still
 immediately posts the `ISSUE` movement in one step, unchanged from before this feature.
 
+## 2026-09-21 — OC-206 reopened, Phase D shipped: two-step approval/fulfillment — feature complete
+
+**Continues the three 2026-09-21 "OC-206 reopened" entries above — this closes the feature.**
+`StockIndentItemStatus` gains a real second decision point: department head (`PENDING` ->
+`APPROVED`/`REJECTED`, no stock movement any more) then store (`APPROVED` -> `FULFILLED`/
+`PO_RAISED`/`DENIED`). Applies to manual and auto-generated indents alike, per the user's own
+confirmed decision (see the first "OC-206 reopened" entry, decision #6).
+
+**One consequence caught and fixed in the same change:** `AutoIndentService`'s open-quantity
+netting query (Phase C) only excluded `APPROVED` lines from "already in the pipeline" — correct
+under the *old* meaning of `APPROVED` (issued, so already reflected in on-hand stock), wrong under
+the new one (awaiting the store, stock not yet moved). Left unfixed, Phase C would have re-flagged
+every shortfall sitting in a store's fulfillment queue as a fresh shortage on its next nightly run.
+Fixed to exclude both `PENDING` and `APPROVED` — only genuinely terminal states (`FULFILLED` and
+the other outcomes) reflect a real stock movement now.
+
+**Decisions carried straight from the original policy round, now implemented exactly as
+described:** transfer-in fulfillment posts two movements (surplus location -> store, then store ->
+requester) rather than one direct hop, so the store's own ledger always reflects what it
+dispatched; raising a PO is terminal for the indent line — the eventual restock is a separate,
+disconnected event via that requisition's own PO/GRN cycle, not tracked back to this line.
+
+**One permission, not four:** `INVENTORY_STOCK_INDENT_FULFILL` covers all four store outcomes
+(fulfill / fulfill-via-transfer / raise-po / deny), the same precedent the original
+`INVENTORY_STOCK_INDENT_APPROVE` already set by covering both approve and reject — one permission
+per *decision point*, not per possible outcome of that decision.
+
+**Verified:** booted clean against the migrated local dev DB; full backend test suite green
+(`StockIndentServiceTest` expanded to 17 cases, covering both decision points and all four store
+outcomes); `npx tsc --noEmit` and `ng build --configuration=production` both clean. Did not attempt
+a live end-to-end click-through of the new fulfillment dialog — per this repo's standing "no
+self-run visual verification" posture, that's flagged for the user's own manual pass.
+
+**Feature status: all four phases (A rename, B per-location config, C auto-detection, D two-step
+lifecycle) are now shipped.** See `MILESTONES.md`/`RELEASE_3_MILESTONES.md` for the rollup.
+
 *Next entry goes here — do not insert above this line.*
