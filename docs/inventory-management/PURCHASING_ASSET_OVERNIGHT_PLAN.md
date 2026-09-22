@@ -116,7 +116,7 @@ the phase prompt files for convenience.
 
 ## Phase 2 — Bulk demo data: Purchasing & Suppliers
 
-- [ ] Build (or extend, if a reusable pattern already exists) a bulk demo-data seeder —
+- [x] Build (or extend, if a reusable pattern already exists) a bulk demo-data seeder —
       `PurchasingAssetBulkDemoDataSeeder` or similar, gated behind its own opt-in property
       (e.g. `cms.seed.bulk-purchasing-asset-demo=true`, following `InventoryBulkDemoDataSeeder`'s
       exact convention — never fires on a normal boot), covering:
@@ -139,7 +139,7 @@ the phase prompt files for convenience.
   - Purchase Orders spanning the full status lifecycle: `PENDING`, `ORDERED`, `IN_PROGRESS`,
     `PARTIALLY_COMPLETED`, `COMPLETED`, `FORCE_CLOSED` — enough of each that the list screen and
     both PO reports (Aging, Cycle-Time) show real, varied output, not a placeholder single row.
-- [ ] **Read `DECISION_LOG.md`'s 2026-09-15 "Bulk demo data" entry's three-retries lesson before
+- [x] **Read `DECISION_LOG.md`'s 2026-09-15 "Bulk demo data" entry's three-retries lesson before
       writing this seeder** — specifically: (a) the top-level `CommandLineRunner`'s own
       `@Transactional` does NOT wrap the whole run, each phase method commits independently, so
       make every phase idempotent on its own criterion (not one global count gate); (b) never rely
@@ -147,9 +147,12 @@ the phase prompt files for convenience.
       the table (`repo.findAll()`) instead, since the return value is empty once rows already
       exist; (c) check tracking-mode compliance (`BATCH`/`SERIAL` products) before routing demo
       documents through a product — this module already hit that gap once, it may resurface here
-      with different document types.
-- [ ] Verify with real counts against Postgres (`docker exec cms-postgres psql -U cms -d cmsdb -c
-      "..."`), not just "the seeder ran with no exception."
+      with different document types. **All three lessons applied, and (c) resurfaced exactly as
+      warned** — see the session log's 21:15 entry (a `BATCH`-tracked product broke a Goods Receipt
+      confirm; fixed by picking a `NONE`-tracked product instead of adding batch-number plumbing).
+- [x] Verify with real counts against Postgres (`docker exec cms-postgres psql -U cms -d cmsdb -c
+      "..."`), not just "the seeder ran with no exception." **Done — see session log's 21:25 entry
+      for the full per-table count breakdown.**
 
 ## Phase 3 — Verify completeness + audit + bulk demo data: Equipment & Asset Management
 
@@ -239,3 +242,31 @@ any judgment call made that a future session should sanity-check.)*
   `gradlew compileJava compileTestJava` clean, `com.cms.inventory.*` test suite green. Handing off
   clean to Phase 2 (bulk demo data for this same nav group) — no blockers, no assumptions that
   need morning sanity-checking.
+- **2026-09-22, ~21:26 IST, Phase 2 complete:** `PurchasingAssetBulkDemoDataSeeder` built, run, and
+  verified — see `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md`'s full Phase 2 section for per-table
+  counts. **Full target list met**: 10 Suppliers (7 approved/2 pending/1 inactive), 4 Tax Rules,
+  Currency Settings (INR) + 3 Exchange Rates (USD×2 dated, EUR×1), 3 Rate Contracts (active/
+  expired/upcoming) + 4 lines, 11 Vendor Product Rates (incl. one USD-priced, three
+  contract-linked), 9 Purchase Requisitions (+21 items) across pending/partially-approved/
+  rejected-line/fully-ordered plus RFQ- and PO-lifecycle-sourcing states, 4 Quotation Requests
+  (+5 lines) covering all 4 real shipped lifecycle states (DRAFT/SUBMITTED/COMPLETED/CANCELLED —
+  confirmed real states from the entity/enum, not assumed), 4 Wanted List items (2 pre-existing +
+  2 newly genuinely auto-flagged via an engineered real reorder-level breach), and 7 Purchase
+  Orders (+10 items, +3 Goods Receipts/+3 lines) covering all 6 `PurchaseOrderStatus` values with
+  the receipt-progress-computed states (`IN_PROGRESS`/`PARTIALLY_COMPLETED`/`COMPLETED`) driven by
+  real confirmed Goods Receipts, not hand-set. One real gap hit and fixed mid-run: a `BATCH`-
+  tracked product ("Wound Dressing Kit") broke a Goods Receipt confirm since this seeder's receipt
+  lines never carry a batch number — routed around by picking a `NONE`-tracked product instead,
+  same posture the 2026-09-15 Stock Management seeder already took for the same underlying gap
+  (documented, not silently patched). Deliberately did **not** wire any Tax Rule onto a PO line's
+  `taxRuleId` this run — `InventoryTaxJurisdictionSetting` (home state) is unconfigured in local
+  dev and `JurisdictionService.resolve` hard-blocks tax computation without it; configuring that
+  singleton was out of this phase's scope, so Tax Rules exist as real, correct master data but
+  aren't exercised end-to-end on a PO line yet. Two crashes during development (both the same
+  batch-tracking gap, hit again on a resumed run before the root cause was fully fixed) needed
+  manual `psql` cleanup of the partial Purchase Order/Goods Receipt/Purchase Requisition rows
+  between retries — zero real history in any of them, same "stray partial DRAFT" precedent the
+  2026-09-15 entry already established; final run completed clean end-to-end. Compile/test gates:
+  `gradlew compileJava compileTestJava` clean, `com.cms.inventory.*` test suite green, `tsc
+  --noEmit` clean (no frontend changes this phase — pure backend seeder). Handing off clean to
+  Phase 3 (Equipment & Asset Management verify+audit+seed) — no blockers.

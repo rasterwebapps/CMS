@@ -2814,4 +2814,86 @@ Phase 3 to pick up. Full per-item breakdown in `PURCHASING_ASSET_OVERNIGHT_SESSI
 backend source changes. `MILESTONES.md` left unchanged — no functional gap was found or fixed,
 consistent with this file's own standing rule that pure verification doesn't change module status.
 
+## 2026-09-22 — Overnight Phase 2: Bulk demo data for Purchasing & Suppliers
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+**Prompted by:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phase 2 — the 2026-09-15
+`InventoryBulkDemoDataSeeder` covered only the "Stock Management" nav group; "Purchasing &
+Suppliers" (audited clean in Phase 1, same day) still had thin/placeholder data.
+
+**Built:** `PurchasingAssetBulkDemoDataSeeder` (new, `com.cms.inventory.procurement.config`,
+`cms.seed.bulk-purchasing-asset-demo=true`, `@Profile("local")`, opt-in, never fires on a normal
+boot — same convention as `InventoryBulkDemoDataSeeder`). Reuses the 112 existing products and 9
+existing locations (`productRepo.findAll()`/`locationRepo.findAllByOrderByVirtualNameAsc()`),
+creates no new masters outside this nav group's own tables. Seeds: 10 Suppliers (7 approved/2
+pending/1 inactive), 4 Tax Rules under the pre-existing "GST" `TaxType`, Currency Settings (base
+INR) + 3 dated Exchange Rates (USD×2, EUR×1), 3 Rate Contracts (active/expired/upcoming) with 4
+negotiated lines, 11 Vendor Product Rates (3 contract-linked, 1 USD-priced), 9 Purchase
+Requisitions/21 items across every real state (pending, partially-approved, rejected-line,
+fully-ordered, plus RFQ- and PO-lifecycle-sourcing), 4 Quotation Requests/5 lines across all 4 real
+shipped `QuotationRequestStatus` values (verified from the entity/enum before assuming — DRAFT/
+SUBMITTED/COMPLETED/CANCELLED), 4 Wanted List items (2 genuinely newly auto-flagged via an
+engineered real reorder-level breach, using the actual `WantedListService.generate()` shortage-
+netting method — the same one both the nightly job and the "Run Now" button call, not fabricated
+rows), and 7 Purchase Orders/10 items covering all 6 `PurchaseOrderStatus` values, with the
+receipt-progress-computed states (`IN_PROGRESS`/`PARTIALLY_COMPLETED`/`COMPLETED`) driven by 3
+real confirmed Goods Receipts rather than hand-set on the entity.
+
+**Idempotency:** followed the 2026-09-15 seeder's three lessons exactly — per-phase-table gates
+(never one global count check), every downstream phase re-queries its dependencies from the
+repository rather than reusing another phase's in-memory return value (critical here since
+Requisitions/Direct-POs/Quotation-Requests are three separate phases that each commit
+independently), and tracking-mode compliance was checked — but only after hitting the gap for real
+(see below). Direct-PO scenarios run *before* Quotation Requests specifically so Quotation
+Requests' own `convertAwardedLines`-created PO doesn't trip the Direct-PO phase's `poRepo.count()
+== 0` gate on a resumed run.
+
+**Real gap hit and routed around, not silently patched:** `GoodsReceiptAddLineRequest` never
+carries a batch/serial number, and `InventoryBulkDemoDataSeeder` marks every 8th Nursing Consumable
+`BATCH`-tracked (this run's original pick, "Wound Dressing Kit", was one). `GoodsReceiptService
+.confirm` → `StockMovementService.requireTrackingModeCompliance` rejected the RECEIPT movement
+outright. Fixed by picking a `NONE`-tracked substitute product ("Foley Catheter 14") rather than
+adding batch-number plumbing to this seeder — the exact same class of gap, and the exact same
+routed-around-not-fixed posture, the 2026-09-15 entry already took for Stock Indents/Transfers.
+The underlying capability gap (no document type in this codebase can receive/issue/transfer a
+`BATCH`/`SERIAL` product without a batch/serial number field on its own add-line request) remains
+unfixed and is not this seeder's to close.
+
+**Deliberately not wired:** no Purchase Order line in this run carries a `taxRuleId`.
+`InventoryTaxJurisdictionSetting` (the institution's home state) is unconfigured in local dev, and
+`JurisdictionService.resolve` hard-blocks any tax computation until it is — configuring that
+singleton was out of this phase's scope (a real, if small, business decision: what *is* this
+institution's home state for GST purposes). Tax Rules exist as real, correct, browsable master data
+(4 GST slabs); PO-line tax computation itself was already confirmed working in Phase 1's code
+audit and doesn't need re-proving here.
+
+**Getting this to actually finish — two crashes, one root cause:** the first run crashed inside
+`GoodsReceiptService.confirm` on the batch-tracking gap above, after Suppliers/Tax/Currency/Rate
+Contracts/Vendor Product Rates/Purchase Requisitions/three Purchase Orders had already committed
+(each phase's own `@Transactional` commits independently, same non-atomicity the 2026-09-15 entry
+already documented). The fix was applied to the seeder's *code*, but the already-committed
+Purchase Requisition line still referenced the batch-tracked product — the second run hit the
+identical crash on the same stale data, since `seedRequisitions` is gated on `requisitionRepo
+.count() == 0` and had already succeeded. Resolved by deleting the stray partial rows via `psql`
+in FK-safe order (goods_receipt_lines → goods_receipts → purchase_order_item_tax_components →
+purchase_order_items → purchase_orders, then purchase_requisition_items → purchase_requisitions)
+and resetting the affected requisition items' status back to `APPROVED` before the third,
+successful run — zero real history in any of these rows (same-session fabricated seed data only),
+same "stray partial DRAFT" cleanup precedent the 2026-09-15 entry already established for Stock
+Transfers.
+
+**Verified:** real counts confirmed directly against Postgres (not just "ran with no exception") —
+10 suppliers, 4 tax rules, 1 currency setting + 3 exchange rates, 3 rate contracts + 4 lines, 11
+vendor product mappings, 9 purchase requisitions + 21 items, 4 quotation requests + 5 lines (one of
+each status), 4 wanted list items, 7 purchase orders + 10 items (one of each status) + 3 goods
+receipts + 3 lines. `./gradlew compileJava compileTestJava` clean; `com.cms.inventory.*` test suite
+green (pre-existing suite, unaffected — pure demo-data seeding needs no new test class); `npx tsc
+-p tsconfig.app.json --noEmit` clean (no frontend changes this phase).
+
+**Impact:** `PurchasingAssetBulkDemoDataSeeder.java` (new); `PURCHASING_ASSET_OVERNIGHT_PLAN.md`
+(Phase 2 checkboxes + handoff note), `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 2 section);
+this decision log entry. Local dev Postgres data only — no migration, no schema change, no
+frontend/other backend source changes.
+
 *Next entry goes here — do not insert above this line.*
