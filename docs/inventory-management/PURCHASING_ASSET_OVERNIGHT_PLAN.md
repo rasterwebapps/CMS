@@ -156,23 +156,39 @@ the phase prompt files for convenience.
 
 ## Phase 3 — Verify completeness + audit + bulk demo data: Equipment & Asset Management
 
-- [ ] Re-derive whether Phase 5's shipped feature set matches `MILESTONES.md`: Asset register +
+- [x] Re-derive whether Phase 5's shipped feature set matches `MILESTONES.md`: Asset register +
       lifecycle (`IN_USE`/`UNDER_MAINTENANCE`/`RETIRED`/`DISPOSED`), Maintenance Schedules +
       Service Contracts, Depreciation (straight-line, computed live), Disposal/write-off.
-- [ ] Run the structural/badge/permission checkup on all 4 Equipment & Asset Management screens.
-- [ ] Extend the same seeder (or a second one in the same style) with:
+      **Confirmed genuinely done** (plus an undocumented `AVAILABLE` default status, a deliberate
+      ERP-standard addition — see the entity's own doc-comment) — see session log's entry.
+- [x] Run the structural/badge/permission checkup on all 4 Equipment & Asset Management screens.
+      **One real defect found and fixed**: Maintenance Schedules and Service Contracts shared one
+      permission pair (`INVENTORY_ASSET_MAINTENANCE_VIEW`/`MANAGE`), violating the operation-wise
+      permission mapping hard gate — two distinct screens conflated under one permission. Split
+      via new `INVENTORY_ASSET_SERVICE_CONTRACT_VIEW`/`MANAGE` (migration V551), backfilled onto
+      every role that already held the maintenance permissions. All other gates (list-screen
+      structural, badge/status, `mlp-*` spacing) clean on all 4 screens. See session log.
+- [x] Extend the same seeder (or a second one in the same style) with:
   - 15-25 Assets across every status (`IN_USE` majority, a few `UNDER_MAINTENANCE`, a few
     `RETIRED`, 1-2 `DISPOSED` with disposal reason/value/date), realistic purchase
     values/dates/`usefulLifeMonths`/salvage values so the Depreciation Summary report shows
     genuinely varied book values, not all-identical numbers. Mix of assets linked back to a GRN
     line (where a receipt exists) and standalone "already-owned, being onboarded" entries, per
-    the entity's own dual creation path.
+    the entity's own dual creation path. **Done — 21 assets (14 IN_USE/3 UNDER_MAINTENANCE/
+    2 RETIRED/2 DISPOSED), 2 linked to a real Goods Receipt line via a new onboarding
+    Requisition→PO→GR chain, rest standalone.**
   - Maintenance Schedules against a subset of assets (mix of recurring and one-off, at least one
-    overdue and one upcoming).
+    overdue and one upcoming). **Done — 6 schedules, 4 recurring/2 one-off, 3 overdue/3 upcoming,
+    one exercising `markPerformed` for real history.**
   - Service Contracts against a subset of assets (active, one expiring soon, one expired) so the
-    renewal-reminder concept has something real to show.
-- [ ] Verify the Depreciation Summary report renders meaningfully (varied book values across
-      categories, disposed assets correctly excluded) against the seeded data.
+    renewal-reminder concept has something real to show. **Done — 4 contracts, 2 active/1
+    expiring soon/1 expired.**
+- [x] Verify the Depreciation Summary report renders meaningfully (varied book values across
+      categories, disposed assets correctly excluded) against the seeded data. **Confirmed via a
+      live `curl` against this phase's own `bootRun` (port 8099, SSL disabled) with a real
+      `devadmin` JWT: Computers (7 assets, ₹2.01L) vs. Medical Equipment (12 assets, ₹6.65L) show
+      distinct accumulated depreciation/book values; grand total asset count (19) correctly
+      excludes both DISPOSED assets (21 seeded - 2 disposed).**
 
 ## Phase 4 — Final checkup, cross-report verification, wrap-up
 
@@ -270,3 +286,40 @@ any judgment call made that a future session should sanity-check.)*
   `gradlew compileJava compileTestJava` clean, `com.cms.inventory.*` test suite green, `tsc
   --noEmit` clean (no frontend changes this phase — pure backend seeder). Handing off clean to
   Phase 3 (Equipment & Asset Management verify+audit+seed) — no blockers.
+- **2026-09-22, ~15:33 UTC, Phase 3 complete:** Full verify+audit+seed of Equipment & Asset
+  Management. **Audit result: genuinely done end-to-end**, one real defect found and fixed (not
+  cosmetic) — see `DECISION_LOG.md`'s 2026-09-22 "Phase 3" entry and this file's own Phase 3
+  checkboxes above for the operation-wise permission mapping violation
+  (`AssetServiceContractController` reused `AssetMaintenanceScheduleController`'s permission pair)
+  and its fix (migration V551, controller + `app.routes.ts` + `nav-config.ts` updated). All other
+  gates (structural, badge, `mlp-*` spacing, resizable-column N/A) clean on all 4 screens — no
+  `cms-status-badge` usage in this nav group; local chip classes (`.as-disposed-label`,
+  `.ms-overdue-chip`, `.sc-expired-chip`) all locally defined with `--cms-*`-prefixed variables,
+  no collisions. `PurchasingAssetBulkDemoDataSeeder` extended (not a second seeder — same class,
+  same opt-in flag) with: a new Requisition→PO→Goods Receipt chain for 2 IT-asset products
+  (Laptop + External HDD 1TB, both `NONE`-tracked — avoided Phase 2's batch-tracking gap on
+  purpose) so 2 of the 21 seeded Assets link back to a *real* `GoodsReceiptLine` rather than a
+  fabricated FK; 21 Assets total (14 IN_USE/3 UNDER_MAINTENANCE/2 RETIRED/2 DISPOSED with real
+  disposal reason/value/date), drawn only from the catalog's 20 `isAsset=true` products (10
+  "Computers" + 10 "Medical Equipment") for category realism; 6 Maintenance Schedules (4
+  RECURRING/2 ONE_OFF, 3 overdue/3 upcoming, one exercising `markPerformed` so it carries real
+  `lastPerformedDate`/advanced-`nextDueDate` history); 4 Service Contracts (2 active/1 expiring
+  soon/1 expired). First run completed with zero crashes (no batch-tracking gap this time, since
+  both onboarding products were deliberately chosen `NONE`-tracked up front, learning applied
+  proactively rather than hit-and-routed-around). Verified with real Postgres counts (21/6/4/2-
+  disposed/2-with-gr-line, all matching target) and a live `curl` against this phase's own
+  `bootRun` (port 8099, `--server.ssl.enabled=false`, `cms.seed.bulk-purchasing-asset-demo=true`)
+  using a real `devadmin` JWT from the shared local Keycloak — Depreciation Summary correctly
+  shows 2 distinct category rows with genuinely different accumulated depreciation/book values,
+  disposed assets excluded from the grand total (19 = 21 - 2), overdue maintenance schedules and
+  expired service contracts both correctly flagged. One incidental fix made along the way: the
+  shared local Keycloak's live `devadmin` password credential had drifted from the committed
+  `infrastructure/keycloak/cms-realm.json` export (password-grant login failed with
+  `invalid_grant`) — reset it back to the exported value (`Dev@1cms`) via the Keycloak admin API
+  so it matches the checked-in source of truth again; flagging here in case another concurrent
+  session notices the same symptom before reading this note. Compile/test gates:
+  `gradlew compileJava compileTestJava` clean, `com.cms.inventory.*` test suite green, `tsc -p
+  tsconfig.app.json --noEmit` clean. Handing off clean to Phase 4 (final checkup, cross-report
+  verification, wrap-up) — no blockers. Note for Phase 4: it should double-check the permission
+  split (migration V551) reads cleanly on a fresh top-to-bottom re-read, since it's the one
+  Phase 3 change that touches shipped screens rather than pure demo data.

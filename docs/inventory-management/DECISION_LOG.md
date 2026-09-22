@@ -2896,4 +2896,83 @@ green (pre-existing suite, unaffected — pure demo-data seeding needs no new te
 this decision log entry. Local dev Postgres data only — no migration, no schema change, no
 frontend/other backend source changes.
 
+## 2026-09-22 — Overnight Phase 3: Equipment & Asset Management permission split + bulk demo data
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+**Prompted by:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phase 3 — verify+audit+seed the 4
+Equipment & Asset Management screens (Asset Register, Maintenance Schedules, Service Contracts,
+Depreciation Summary), same as Phase 1 did for Purchasing & Suppliers.
+
+**Audit result:** genuinely complete end to end, re-derived from code (entities, controllers,
+services, repositories, frontend routes) — not from `MILESTONES.md`'s own prose. One real defect
+found, not cosmetic: `AssetServiceContractController` (`/inventory/asset/service-contracts`) reused
+`AssetMaintenanceScheduleController`'s exact permission pair (`INVENTORY_ASSET_MAINTENANCE_VIEW`/
+`MANAGE` on every endpoint), meaning two entirely distinct screens were gated by one permission —
+a direct violation of CLAUDE.md's operation-wise permission mapping hard gate. The original V455
+migration that created these permissions had explicitly documented the conflation as a deliberate
+choice ("one permission pair covers both entities in this slice... no distinct audit-worthy action
+beyond ordinary manage yet") — that reasoning is overridden here, since the mandatory pattern's own
+stated rule is "the answer is always no, create a new one," not a case-by-case judgment call.
+
+**Fixed:** new dedicated `INVENTORY_ASSET_SERVICE_CONTRACT_VIEW`/`INVENTORY_ASSET_SERVICE_CONTRACT_
+MANAGE` permissions via migration V551, ending with the DEV_ADMIN/SUPPORT_ADMIN catch-all sync
+block per the permission migration pattern. Since this is a *split* of an existing shared
+permission rather than a brand-new capability, V551 also backfills the new permissions onto every
+role that already held the old maintenance ones, so no role loses Service Contract access as a
+side effect — a judgment call specific to this "split, don't just add" shape that a plain new-
+permission migration wouldn't need. `AssetServiceContractController`'s three `@PreAuthorize`
+annotations, `app.routes.ts`'s three `service-contracts` routes, and `nav-config.ts`'s Service
+Contracts nav entry all updated to the new permission strings. Verified live: after the migration
+ran and `devadmin`'s role_permissions were backfilled, `GET /inventory/asset/service-contracts/
+page` returned HTTP 200 against a real JWT. Every other CLAUDE.md gate (list-screen structural,
+badge/status, `mlp-*` spacing; resizable-column N/A — no screen in this nav group uses it) was
+checked clean on all 4 screens — no `cms-status-badge` usage at all in this nav group (status/
+overdue/expired render via local chip classes, each locally defined with `--cms-*`-prefixed
+variables only, no collisions).
+
+**Bulk demo data:** extended `PurchasingAssetBulkDemoDataSeeder` (same class and opt-in flag as
+Phase 2 — not a second seeder) with: one new Requisition→PO→Goods Receipt chain for 2 IT-asset
+products (Laptop + External HDD 1TB against supplier "Chennai IT Solutions") so 2 of 21 seeded
+Assets link back to a *real* `GoodsReceiptLine` rather than a fabricated FK — both products were
+deliberately picked `NONE`-tracked up front (confirmed against `InventoryBulkDemoDataSeeder`'s own
+seed data first), proactively avoiding the batch-tracking gap Phase 2 hit and routed around after
+the fact; 21 Assets (14 IN_USE/3 UNDER_MAINTENANCE/2 RETIRED/2 DISPOSED with a real disposal
+reason/value/date via `AssetService.dispose()`), drawn only from the catalog's 20 `isAsset=true`
+products (10 "Computers"/10 "Medical Equipment") so the Depreciation Summary report's category
+grouping stays realistic, with purchase values/dates/useful lives/salvage values varied enough
+(including two assets purchased further back than their own useful life) that the report shows
+genuinely different book values per category, not near-identical numbers; 6 Maintenance Schedules
+(4 recurring/2 one-off, 3 overdue/3 upcoming, one exercising `markPerformed` for real history); 4
+Service Contracts (2 active/1 expiring soon/1 expired).
+
+**Getting this to actually finish — clean on the first run:** unlike Phase 2's two crashes on the
+batch-tracking gap, this phase hit zero runtime failures — the lesson from Phase 2's own decision-
+log entry (check tracking mode before routing a demo document through a product) was applied
+proactively before writing the onboarding chain, not discovered by crashing into it again.
+
+**Verified:** real counts confirmed directly against Postgres — 21 assets (14/3/2/2 by status, 2
+with a non-null `goods_receipt_line_id`), 6 maintenance schedules (4 recurring, 3 overdue), 4
+service contracts (3 active, 1 expired). Beyond counts, a live `curl` against this phase's own
+`bootRun` (port 8099, `--server.ssl.enabled=false`, `cms.seed.bulk-purchasing-asset-demo=true`)
+using a real `devadmin` JWT confirmed the Depreciation Summary report itself renders correctly:
+Computers (7 assets/₹2.01L purchase value/₹87,119 accumulated depreciation/₹1,13,881 book value)
+and Medical Equipment (12 assets/₹6.65L/₹1,73,105/₹4,91,395) show genuinely distinct figures, and
+the grand total asset count (19) correctly excludes both DISPOSED assets. `./gradlew compileJava
+compileTestJava` clean; `com.cms.inventory.*` test suite green; `npx tsc -p tsconfig.app.json
+--noEmit` clean.
+
+**Incidental fix:** the shared local Keycloak's `devadmin` user's live password credential had
+drifted from the committed `infrastructure/keycloak/cms-realm.json` export (password-grant login
+failed with `invalid_grant` despite the user existing/enabled with no required actions). Reset via
+the Keycloak admin API back to the exported value (`Dev@1cms`) — restoring parity with the
+checked-in source of truth, not introducing a new credential. Noted in the session log in case a
+concurrent session hits the same symptom.
+
+**Impact:** `AssetServiceContractController.java`, `app.routes.ts`, `nav-config.ts` (permission
+string fix); `V551__split_asset_service_contract_permissions.sql` (new migration);
+`PurchasingAssetBulkDemoDataSeeder.java` (extended, not new); `PURCHASING_ASSET_OVERNIGHT_PLAN.md`
+(Phase 3 checkboxes + handoff note), `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 3
+section), `MILESTONES.md` (Phase 5 re-audit note, status unchanged); this decision log entry.
+
 *Next entry goes here — do not insert above this line.*
