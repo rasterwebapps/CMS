@@ -518,7 +518,7 @@ public class PurchasingAssetBulkDemoDataSeeder {
 
         // PO3 — IN_PROGRESS (one line partially received, none fully received)
         Long po3 = poService.create(new PurchaseOrderCreateRequest(byCode(suppliers, "SUP-003").id(), poA.getLocation().getId(),
-            today.minusDays(15), today.minusDays(1), null, null, "Bulk demo — IN_PROGRESS lifecycle sample"), ACTOR).id();
+            today.minusDays(70), today.minusDays(1), null, null, "Bulk demo — IN_PROGRESS lifecycle sample"), ACTOR).id();
         PurchaseOrderItemResponse po3Line1 = poService.addLine(po3, new PurchaseOrderAddLineRequest(poALines.get(1).getId(), null, null, null, new BigDecimal("9.00"), null, null));
         poService.addLine(po3, new PurchaseOrderAddLineRequest(poALines.get(2).getId(), null, null, null, new BigDecimal("85.00"), null, null));
         poService.order(po3, ACTOR);
@@ -528,7 +528,7 @@ public class PurchasingAssetBulkDemoDataSeeder {
 
         // PO4 — PARTIALLY_COMPLETED (one line fully received, one line not yet received)
         Long po4 = poService.create(new PurchaseOrderCreateRequest(byCode(suppliers, "SUP-004").id(), poB.getLocation().getId(),
-            today.minusDays(25), today.minusDays(10), null, null, "Bulk demo — PARTIALLY_COMPLETED lifecycle sample"), ACTOR).id();
+            today.minusDays(45), today.minusDays(10), null, null, "Bulk demo — PARTIALLY_COMPLETED lifecycle sample"), ACTOR).id();
         PurchaseOrderItemResponse po4Line1 = poService.addLine(po4, new PurchaseOrderAddLineRequest(poBLines.get(0).getId(), null, null, null, new BigDecimal("120.00"), null, null));
         poService.addLine(po4, new PurchaseOrderAddLineRequest(poBLines.get(1).getId(), null, null, null, new BigDecimal("15.00"), null, null));
         poService.order(po4, ACTOR);
@@ -538,7 +538,7 @@ public class PurchasingAssetBulkDemoDataSeeder {
 
         // PO5 — COMPLETED (every line fully received)
         Long po5 = poService.create(new PurchaseOrderCreateRequest(byCode(suppliers, "SUP-005").id(), poB.getLocation().getId(),
-            today.minusDays(30), today.minusDays(20), null, null, "Bulk demo — COMPLETED lifecycle sample"), ACTOR).id();
+            today.minusDays(55), today.minusDays(20), null, null, "Bulk demo — COMPLETED lifecycle sample"), ACTOR).id();
         PurchaseOrderItemResponse po5Line1 = poService.addLine(po5, new PurchaseOrderAddLineRequest(poBLines.get(2).getId(), null, null, null, new BigDecimal("250.00"), null, null));
         poService.order(po5, ACTOR);
         Long gr5 = grService.create(new GoodsReceiptCreateRequest(po5, today.minusDays(22), "Full delivery received and inspected"), ACTOR).id();
