@@ -268,8 +268,25 @@ export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy,
         next: name => this.selectedLabel.set(name),
         error: () => this.selectedLabel.set(String(val)),
       });
-    } else {
-      this.selectedLabel.set(String(val));
+      return;
+    }
+
+    this.selectedLabel.set(String(val));
+
+    // Dropdown hasn't been opened yet, so `options` is still empty and there's no resolveLabel
+    // to fall back on -- eagerly load the first page so a pre-selected default (e.g. "current
+    // academic year") resolves to its real name instead of sitting on the raw id/value set above.
+    if (this.options().length === 0) {
+      this.fetchPage(this.searchTerm(), 0, this.pageSize).pipe(take(1), takeUntil(this.destroy$)).subscribe({
+        next: page => {
+          if (!page || this.options().length > 0) return;
+          this.options.set(page.content);
+          this.hasMore.set(this.pageSize < page.totalElements);
+          const match = page.content.find(o => this.extractValue(o) === val);
+          if (match) this.selectedLabel.set(match.name);
+        },
+        error: () => {},
+      });
     }
   }
 }
