@@ -22,6 +22,12 @@
       [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
       [disabled]="termsLoading() || termInstances().length === 0"
     />
+    <cms-infinite-select
+      label="Cohort" ariaLabel="Cohort" searchPlaceholder="Search cohorts…"
+      [fetchPage]="cohortFetchPage"
+      [selectedValue]="selectedCohortId" (selectedValueChange)="onCohortChange($event)"
+      [disabled]="cohortsLoading() || cohorts().length === 0"
+    />
 
     <div class="view-mode-toggle">
       <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'week'" (click)="setViewMode('week')">Generic</button>

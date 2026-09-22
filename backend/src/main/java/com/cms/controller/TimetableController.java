@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -118,10 +119,11 @@ public class TimetableController {
             @RequestParam Long termInstanceId,
             @RequestParam LocalDate from,
             @RequestParam LocalDate to,
-            @RequestParam(defaultValue = "browse") String scope) {
+            @RequestParam(defaultValue = "browse") String scope,
+            @RequestParam(required = false) Long cohortId) {
         ProfileIdentity identity = profileService.resolveCurrentUser();
         return ResponseEntity.ok(
-            timetableOccurrenceService.findOccurrences(identity, termInstanceId, from, to, scope));
+            timetableOccurrenceService.findOccurrences(identity, termInstanceId, from, to, scope, cohortId));
     }
 
     @GetMapping("/draft")
@@ -129,7 +131,7 @@ public class TimetableController {
     public ResponseEntity<List<ClassScheduleResponse>> findDraft(@RequestParam Long termInstanceId) {
         return ResponseEntity.ok(withClinicalShiftEntries(
             classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.DRAFT),
-            termInstanceId, ClassScheduleStatus.DRAFT));
+            termInstanceId, ClassScheduleStatus.DRAFT, null));
     }
 
     // Clinical Shift Group duty rosters never produce a real ClassSchedule row, so without this
@@ -137,9 +139,9 @@ public class TimetableController {
     // hinted at via the separate duty-roster banner instead of shown alongside Theory/Lab, leaving
     // an admin unable to see the complete generated timetable before approving/publishing it.
     private List<ClassScheduleResponse> withClinicalShiftEntries(List<ClassScheduleResponse> rows,
-                                                                   Long termInstanceId, ClassScheduleStatus status) {
+                                                                   Long termInstanceId, ClassScheduleStatus status, Long cohortId) {
         List<ClassScheduleResponse> merged = new ArrayList<>(rows);
-        merged.addAll(timetableSkeletonService.findClinicalShiftGridEntries(termInstanceId, status));
+        merged.addAll(timetableSkeletonService.findClinicalShiftGridEntries(termInstanceId, status, cohortId));
         return merged;
     }
 
@@ -175,12 +177,20 @@ public class TimetableController {
             termInstanceId, cohortId, PageRequest.of(page, size)));
     }
 
+    // cohortId is optional -- omitting it keeps the pre-existing whole-term behavior (every
+    // published cohort's sessions merged into one grid); the Timetable browse screen's Cohort
+    // filter passes it to scope the grid down to one cohort at a time, the same way every other
+    // timetable screen (Timetable Builder, Draft Review, Capacity Planner) already works.
     @GetMapping
     @PreAuthorize("@perm.has('TIMETABLE_VIEW')")
-    public ResponseEntity<List<ClassScheduleResponse>> findPublished(@RequestParam Long termInstanceId) {
-        return ResponseEntity.ok(withClinicalShiftEntries(
-            classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED),
-            termInstanceId, ClassScheduleStatus.PUBLISHED));
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<ClassScheduleResponse>> findPublished(@RequestParam Long termInstanceId,
+                                                                      @RequestParam(required = false) Long cohortId) {
+        List<ClassScheduleResponse> rows = cohortId != null
+            ? classScheduleService.toResponseList(
+                timetableSkeletonService.getCohortActiveClassSchedules(termInstanceId, cohortId, ClassScheduleStatus.PUBLISHED))
+            : classScheduleService.findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
+        return ResponseEntity.ok(withClinicalShiftEntries(rows, termInstanceId, ClassScheduleStatus.PUBLISHED, cohortId));
     }
 
     // TIMETABLE_PUBLISH is its own dedicated permission (OC-260 split it out of the generic

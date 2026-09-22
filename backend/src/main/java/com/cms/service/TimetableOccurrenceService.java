@@ -40,24 +40,36 @@ public class TimetableOccurrenceService {
     private final ClassScheduleOccurrenceService occurrenceService;
     private final PersonalTimetableService personalTimetableService;
     private final SessionOccurrenceRepository sessionOccurrenceRepository;
+    private final TimetableSkeletonService timetableSkeletonService;
 
     public TimetableOccurrenceService(ClassScheduleRepository classScheduleRepository,
                                        ClassScheduleService classScheduleService,
                                        ClassScheduleOccurrenceService occurrenceService,
                                        PersonalTimetableService personalTimetableService,
-                                       SessionOccurrenceRepository sessionOccurrenceRepository) {
+                                       SessionOccurrenceRepository sessionOccurrenceRepository,
+                                       TimetableSkeletonService timetableSkeletonService) {
         this.classScheduleRepository = classScheduleRepository;
         this.classScheduleService = classScheduleService;
         this.occurrenceService = occurrenceService;
         this.personalTimetableService = personalTimetableService;
         this.sessionOccurrenceRepository = sessionOccurrenceRepository;
+        this.timetableSkeletonService = timetableSkeletonService;
     }
 
     public List<ClassScheduleOccurrenceResponse> findOccurrences(
             ProfileIdentity identity, Long termInstanceId, LocalDate from, LocalDate to, String scope) {
+        return findOccurrences(identity, termInstanceId, from, to, scope, null);
+    }
+
+    // cohortId only ever narrows scope=browse (the Timetable browse screen's Cohort filter) --
+    // scope=personal is already self-scoped via PersonalTimetableService and ignores it.
+    public List<ClassScheduleOccurrenceResponse> findOccurrences(
+            ProfileIdentity identity, Long termInstanceId, LocalDate from, LocalDate to, String scope, Long cohortId) {
         List<ClassSchedule> schedules = "personal".equalsIgnoreCase(scope)
             ? personalTimetableService.findPublishedSchedules(identity, termInstanceId)
-            : classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.PUBLISHED);
+            : cohortId != null
+                ? timetableSkeletonService.getCohortActiveClassSchedules(termInstanceId, cohortId, ClassScheduleStatus.PUBLISHED)
+                : classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, ClassScheduleStatus.PUBLISHED);
 
         Map<Long, List<LocalDate>> datesBySchedule =
             occurrenceService.occurrenceDatesForSchedules(schedules, from, to);

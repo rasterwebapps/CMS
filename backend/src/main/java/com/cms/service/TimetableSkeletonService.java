@@ -290,6 +290,16 @@ public class TimetableSkeletonService {
         return offeringIds.isEmpty() ? libraryCells : resolveOfferingCells(termInstanceId, offeringIds, libraryCells);
     }
 
+    /** Same resolution as above, narrowed to one DRAFT/PUBLISHED status -- lets a single-cohort
+     *  timetable view (e.g. the published Timetable browse screen's Cohort filter) reuse the exact
+     *  same "which rows belong to this cohort" logic Approve/Revert/Discard already rely on, instead
+     *  of re-deriving cohort membership from scratch. */
+    public List<ClassSchedule> getCohortActiveClassSchedules(Long termInstanceId, Long cohortId, ClassScheduleStatus status) {
+        return getCohortActiveClassSchedules(termInstanceId, cohortId).stream()
+            .filter(cs -> cs.getStatus() == status)
+            .toList();
+    }
+
     // LIBRARY and SPORTS cells have no CourseOffering (see TimetableGlobalAutoScheduleService
     // #fillLibraryGaps/#fillSportsGaps), so the offering-based query below never finds them --
     // resolved separately by this cohort's own active CohortSections, same source
@@ -457,18 +467,31 @@ public class TimetableSkeletonService {
      *  (DRAFT/PUBLISHED) purely for consistent chip styling -- these rows aren't actually gated by
      *  that lifecycle themselves. */
     public List<ClassScheduleResponse> findClinicalShiftGridEntries(Long termInstanceId, ClassScheduleStatus status) {
+        return findClinicalShiftGridEntries(termInstanceId, status, null);
+    }
+
+    /** {@code cohortId} narrows to one cohort's own batches, via the commit-time
+     *  {@code Batch#getCohortRoomAllocation} link (see {@link #matchesCohort}); null keeps every
+     *  cohort's entries, as before. */
+    public List<ClassScheduleResponse> findClinicalShiftGridEntries(Long termInstanceId, ClassScheduleStatus status, Long cohortId) {
         List<ClassScheduleResponse> entries = new ArrayList<>();
         for (ClinicalShiftGroup group : clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId)) {
             if (group.getCourseOffering() == null) continue;
             ClinicalShiftWindow window = ClinicalShiftWindow.from(group);
             if (window.busDepart() == null || window.busReturn() == null) continue;
             for (Batch batch : batchRepository.findByClinicalShiftGroupId(group.getId())) {
-                if (Boolean.TRUE.equals(batch.getIsActive())) {
-                    entries.add(toClinicalShiftGridEntry(group, window, batch, termInstanceId, status));
-                }
+                if (!Boolean.TRUE.equals(batch.getIsActive())) continue;
+                if (cohortId != null && !matchesCohort(batch, cohortId)) continue;
+                entries.add(toClinicalShiftGridEntry(group, window, batch, termInstanceId, status));
             }
         }
         return entries;
+    }
+
+    private boolean matchesCohort(Batch batch, Long cohortId) {
+        return batch.getCohortRoomAllocation() != null
+            && batch.getCohortRoomAllocation().getCohort() != null
+            && cohortId.equals(batch.getCohortRoomAllocation().getCohort().getId());
     }
 
     private ClassScheduleResponse toClinicalShiftGridEntry(ClinicalShiftGroup group, ClinicalShiftWindow window,

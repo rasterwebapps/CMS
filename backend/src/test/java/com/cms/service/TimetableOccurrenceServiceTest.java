@@ -35,6 +35,7 @@ class TimetableOccurrenceServiceTest {
     @Mock private ClassScheduleOccurrenceService occurrenceService;
     @Mock private PersonalTimetableService personalTimetableService;
     @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
+    @Mock private TimetableSkeletonService timetableSkeletonService;
 
     private TimetableOccurrenceService service;
     private ClassSchedule schedule;
@@ -43,7 +44,7 @@ class TimetableOccurrenceServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableOccurrenceService(classScheduleRepository, classScheduleService,
-            occurrenceService, personalTimetableService, sessionOccurrenceRepository);
+            occurrenceService, personalTimetableService, sessionOccurrenceRepository, timetableSkeletonService);
 
         schedule = new ClassSchedule();
         schedule.setId(100L);

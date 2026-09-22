@@ -29,8 +29,11 @@ export class TimetableService {
     return this.http.get<ClassSchedule[]>(`${this.baseUrl}/draft`, { params });
   }
 
-  getPublished(termInstanceId: number): Observable<ClassSchedule[]> {
-    const params = new HttpParams().set('termInstanceId', termInstanceId);
+  /** `cohortId` narrows the grid to one cohort at a time, matching Timetable Builder/Draft Review --
+   *  omitted, every published cohort's sessions merge into one grid (the pre-existing behavior). */
+  getPublished(termInstanceId: number, cohortId?: number | null): Observable<ClassSchedule[]> {
+    let params = new HttpParams().set('termInstanceId', termInstanceId);
+    if (cohortId != null) params = params.set('cohortId', cohortId);
     return this.http.get<ClassSchedule[]>(this.baseUrl, { params });
   }
 
@@ -83,10 +86,11 @@ export class TimetableService {
   }
 
   getOccurrences(
-    termInstanceId: number, from: string, to: string, scope: TimetableOccurrenceScope,
+    termInstanceId: number, from: string, to: string, scope: TimetableOccurrenceScope, cohortId?: number | null,
   ): Observable<ClassScheduleOccurrence[]> {
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('termInstanceId', termInstanceId).set('from', from).set('to', to).set('scope', scope);
+    if (cohortId != null) params = params.set('cohortId', cohortId);
     return this.http.get<ClassScheduleOccurrence[]>(`${this.baseUrl}/occurrences`, { params });
   }
 

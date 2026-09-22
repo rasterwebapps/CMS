@@ -128,7 +128,7 @@ class TimetableControllerTest {
             null, "Shift A", java.time.LocalTime.of(6, 30), java.time.LocalTime.of(13, 30),
             "Batch A", 400L, null, 50L, "City Hospital", 100L,
             com.cms.model.enums.DayOfWeek.MONDAY, 10L, null, true, null, null);
-        when(timetableSkeletonService.findClinicalShiftGridEntries(10L, com.cms.model.enums.ClassScheduleStatus.DRAFT))
+        when(timetableSkeletonService.findClinicalShiftGridEntries(10L, com.cms.model.enums.ClassScheduleStatus.DRAFT, null))
             .thenReturn(List.of(shiftEntry));
 
         mockMvc.perform(get("/timetables/draft").param("termInstanceId", "10"))

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
+import { AcademicYear, CohortSummary, TermInstance } from '../../academic-year/academic-year.model';
 import { TimetableService } from '../timetable.service';
 import { ClassSchedule, ClassScheduleOccurrence } from '../timetable.model';
 import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.component';
@@ -63,6 +63,17 @@ export class TimetableViewComponent implements OnInit {
 
   protected readonly selectedTerm = computed(() =>
     this.termInstances().find((t) => t.id === this.selectedTermInstanceId) ?? null);
+
+  /** The grid has no cohort dimension of its own (`WeekGridSession` carries only a sub-batch
+   *  `batchName`, never a cohort id) — without this filter, every published cohort's sessions for
+   *  the term merge into the same day/period cells with nothing but that small-print batch name to
+   *  tell them apart. Scoped one cohort at a time instead, matching Timetable Builder/Draft Review/
+   *  Capacity Planner. Loaded from every cohort in the college (not just this term's), same source
+   *  and reasoning as Timetable Builder's own cohort list -- a cohort stays valid across every term
+   *  it's enrolled in, so this only needs to load once. */
+  protected readonly cohorts = signal<CohortSummary[]>([]);
+  protected readonly cohortsLoading = signal(false);
+  protected selectedCohortId: number | null = null;
 
   protected readonly viewMode = signal<TimetableViewMode>('week');
   protected readonly weekStart = signal(mondayOf(new Date()));
@@ -125,6 +136,7 @@ export class TimetableViewComponent implements OnInit {
 
     const qpAcademicYearId = Number(this.route.snapshot.queryParamMap.get('academicYearId')) || null;
     const qpTermInstanceId = Number(this.route.snapshot.queryParamMap.get('termInstanceId')) || null;
+    const qpCohortId = Number(this.route.snapshot.queryParamMap.get('cohortId')) || null;
 
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
@@ -140,12 +152,28 @@ export class TimetableViewComponent implements OnInit {
       },
       error: () => { this.toast.error('Failed to load academic years'); },
     });
+
+    this.cohortsLoading.set(true);
+    this.academicYearService.getAllCohorts().subscribe({
+      next: (cohorts) => {
+        this.cohorts.set(cohorts);
+        this.cohortsLoading.set(false);
+        const initialCohortId = qpCohortId && cohorts.some((c) => c.id === qpCohortId)
+          ? qpCohortId
+          : cohorts[0]?.id ?? null;
+        if (this.selectedCohortId == null) this.selectedCohortId = initialCohortId;
+        this.reloadCurrentViewData();
+      },
+      error: () => { this.toast.error('Failed to load cohorts'); this.cohortsLoading.set(false); },
+    });
   }
 
   protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
     this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
   protected readonly termFetchPage = staticOptionsFetchPage(() =>
     this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+  protected readonly cohortFetchPage = staticOptionsFetchPage(() =>
+    this.cohorts().map(c => ({ id: c.id, name: c.displayName })));
   protected readonly facultyFetchPage = staticOptionsFetchPage(() =>
     this.facultyOptions().filter((name): name is string => name != null).map(name => ({ id: name, name })));
   protected readonly roomFetchPage = staticOptionsFetchPage(() =>
@@ -170,6 +198,20 @@ export class TimetableViewComponent implements OnInit {
     this.selectedTermInstanceId = null;
     this.sessions.set([]);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
+  }
+
+  protected onCohortChange(value: InfiniteSelectValue | null): void {
+    this.selectedCohortId = value != null ? Number(value) : null;
+    this.reloadCurrentViewData();
+  }
+
+  /** Re-fetches whichever view mode is currently showing for the already-selected term, without
+   *  resetting the Date-wise/Day navigator back to today -- used on a Cohort change, where the
+   *  term (and so the valid date range) hasn't changed, only which cohort's sessions to show. */
+  private reloadCurrentViewData(): void {
+    if (!this.selectedTermInstanceId) return;
+    this.loadPublished(this.selectedTermInstanceId);
+    this.refreshCurrentViewMode();
   }
 
   protected onTermChange(value: InfiniteSelectValue | null): void {
@@ -239,7 +281,7 @@ export class TimetableViewComponent implements OnInit {
     to.setDate(to.getDate() + 5);
     const toIso = `${to.getFullYear()}-${String(to.getMonth() + 1).padStart(2, '0')}-${String(to.getDate()).padStart(2, '0')}`;
     this.occurrencesLoading.set(true);
-    this.timetableService.getOccurrences(this.selectedTermInstanceId, weekStartIso, toIso, 'browse').subscribe({
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, weekStartIso, toIso, 'browse', this.selectedCohortId).subscribe({
       next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
       error: () => { this.toast.error('Failed to load date-wise view'); this.occurrencesLoading.set(false); },
     });
@@ -248,7 +290,7 @@ export class TimetableViewComponent implements OnInit {
   private loadDayOccurrences(iso: string): void {
     if (!this.selectedTermInstanceId) return;
     this.occurrencesLoading.set(true);
-    this.timetableService.getOccurrences(this.selectedTermInstanceId, iso, iso, 'browse').subscribe({
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, iso, iso, 'browse', this.selectedCohortId).subscribe({
       next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
       error: () => { this.toast.error('Failed to load day view'); this.occurrencesLoading.set(false); },
     });
@@ -288,7 +330,7 @@ export class TimetableViewComponent implements OnInit {
   private loadPublished(termInstanceId: number): void {
     this.loading.set(true);
     this.resetFilters();
-    this.timetableService.getPublished(termInstanceId).subscribe({
+    this.timetableService.getPublished(termInstanceId, this.selectedCohortId).subscribe({
       next: (data) => { this.sessions.set(data); this.loading.set(false); },
       error: () => { this.toast.error('Failed to load timetable'); this.loading.set(false); },
     });
