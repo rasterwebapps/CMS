@@ -4,10 +4,12 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1439,10 +1441,28 @@ public class TimetableGlobalAutoScheduleService {
             rotationGroupsCreated += attemptCrossOfferingPairing(context, term, periods, globalLabClinicalQueue, pairingSkipReasons);
         }
 
+        // Sibling batches (same cohort, same offering, same LAB/CLINICAL session type -- a section
+        // split across parallel batches sharing one scarce venue) are grouped and interleaved one
+        // session-placement at a time via #placeShortfallRowGroupInterleaved instead of each row
+        // being fully drained before the next starts -- see that method's javadoc for why this turns
+        // the old "first batch grabs every early day" clustering into a day-by-day alternation.
+        // Every other row (the ordinary, unsplit case) keeps its original single-row #placeShortfallRow
+        // path, unchanged, so this only affects offerings that actually split into sibling batches.
         globalLabClinicalQueue.sort(Comparator.comparingInt((TaggedShortfallRow t) -> -t.row().shortfall()));
+        Set<TaggedShortfallRow> consumedShortfallRows = Collections.newSetFromMap(new IdentityHashMap<>());
         for (TaggedShortfallRow tagged : globalLabClinicalQueue) {
-            CohortRunContext context = contextsById.get(tagged.cohortId());
-            placeShortfallRow(tagged.cohortId(), tagged.row(), term, periods, context, periodDurationHours, venueGaps, facultySubstitutionEvents, termDemand);
+            if (consumedShortfallRows.contains(tagged)) {
+                continue;
+            }
+            List<TaggedShortfallRow> siblingGroup = siblingBatchGroup(tagged, globalLabClinicalQueue, consumedShortfallRows);
+            consumedShortfallRows.addAll(siblingGroup);
+            if (siblingGroup.size() > 1) {
+                placeShortfallRowGroupInterleaved(siblingGroup, term, periods, contextsById, periodDurationHours,
+                    venueGaps, facultySubstitutionEvents, termDemand);
+            } else {
+                CohortRunContext context = contextsById.get(tagged.cohortId());
+                placeShortfallRow(tagged.cohortId(), tagged.row(), term, periods, context, periodDurationHours, venueGaps, facultySubstitutionEvents, termDemand);
+            }
         }
 
         // Phase 1.5: a cohort section split into batches for LAB/CLINICAL (one lab/venue can't hold
@@ -2558,39 +2578,125 @@ public class TimetableGlobalAutoScheduleService {
                                     Map<String, VenueGapAccumulator> venueGaps,
                                     List<FacultySubstitutionEvent> facultySubstitutionEvents,
                                     TermDemandAggregation termDemand) {
-        Set<DayOfWeek> daysUsed = existingDaysForBudgetRow(context.skeleton().cells(), row.offering().getId(), row.budget());
-        // Second-session-per-day fallback (see #isEveryCandidateDayAlreadyUsed's javadoc): starts
-        // empty and only ever gains a day once the one-session-per-day pass below has genuinely
-        // exhausted every candidate day for this exact row -- a day only ever lands in here after
-        // it's already in daysUsed, so this is additive to, never a replacement for, the normal cap.
-        Set<DayOfWeek> daysUsedTwice = EnumSet.noneOf(DayOfWeek.class);
+        RowPlacementState state = newRowPlacementState(row, context);
+        while (state.remainingRuns > 0) {
+            placeOneSessionAttempt(cohortId, row, term, periods, context, state, periodDurationHours,
+                venueGaps, facultySubstitutionEvents, termDemand);
+        }
+        finalizeRowPlacement(row, state, periodDurationHours, context);
+        return state.unplacedPeriods;
+    }
+
+    /** Same job as {@link #placeShortfallRow}, but for 2+ sibling rows splitting one course offering
+     *  across parallel batches that share a single scarce venue (Lab/Clinical) -- round-robins ONE
+     *  session placement per row per pass, instead of the first row in queue order draining its
+     *  entire week before the next sibling even gets a turn.
+     *
+     * <p>This is what turns the old emergent clustering (whichever batch's row got processed first
+     *  grabbed every lightly-loaded day, e.g. Mon+Tue, pushing the other batch onto whatever was left,
+     *  e.g. Wed+Thu) into a day-by-day alternation instead, with no new day-selection heuristic
+     *  needed: after Batch A claims Monday, {@code context.dayLoad()} for Monday is now higher, so
+     *  Batch B's very next turn (least-loaded day, excluding its own days) naturally prefers Tuesday;
+     *  Batch A's following turn then avoids both Monday (its own) and Tuesday (just bumped by B), so
+     *  it lands on Wednesday; and so on -- alternating by construction, purely from turn order.
+     *  Matches ordinary human scheduling instinct (alternate the days, don't block-cluster them) --
+     *  user preference, 2026-09-22.
+     *
+     * <p>Every other per-row mechanism (sibling-day same-venue alignment attempt, backtrack,
+     *  same-day-twice fallback, shortfall reporting) is untouched -- only the turn order across rows
+     *  changes; a singleton group behaves identically to the original {@link #placeShortfallRow}. */
+    private void placeShortfallRowGroupInterleaved(List<TaggedShortfallRow> group, TermInstance term, List<Period> periods,
+                                                     Map<Long, CohortRunContext> contextsById, double periodDurationHours,
+                                                     Map<String, VenueGapAccumulator> venueGaps,
+                                                     List<FacultySubstitutionEvent> facultySubstitutionEvents,
+                                                     TermDemandAggregation termDemand) {
+        List<RowPlacementState> states = new ArrayList<>();
+        for (TaggedShortfallRow tagged : group) {
+            states.add(newRowPlacementState(tagged.row(), contextsById.get(tagged.cohortId())));
+        }
+        while (states.stream().anyMatch(s -> s.remainingRuns > 0)) {
+            for (int i = 0; i < group.size(); i++) {
+                RowPlacementState state = states.get(i);
+                if (state.remainingRuns <= 0) {
+                    continue;
+                }
+                TaggedShortfallRow tagged = group.get(i);
+                placeOneSessionAttempt(tagged.cohortId(), tagged.row(), term, periods, contextsById.get(tagged.cohortId()),
+                    state, periodDurationHours, venueGaps, facultySubstitutionEvents, termDemand);
+            }
+        }
+        for (int i = 0; i < group.size(); i++) {
+            finalizeRowPlacement(group.get(i).row(), states.get(i), periodDurationHours, contextsById.get(group.get(i).cohortId()));
+        }
+    }
+
+    /** Every not-yet-processed row in {@code queue} sharing {@code anchor}'s (cohort, offering,
+     *  session type) -- the same identity {@link CohortRunContext#siblingDaysByOfferingAndType()}
+     *  keys on -- so a batch-split LAB/CLINICAL offering's rows are handled together. Always includes
+     *  {@code anchor} itself; size 1 for the ordinary unsplit case, which the caller routes to the
+     *  original single-row {@link #placeShortfallRow} path unchanged. */
+    private List<TaggedShortfallRow> siblingBatchGroup(TaggedShortfallRow anchor, List<TaggedShortfallRow> queue,
+                                                          Set<TaggedShortfallRow> consumed) {
+        List<TaggedShortfallRow> group = new ArrayList<>();
+        for (TaggedShortfallRow t : queue) {
+            if (consumed.contains(t)) {
+                continue;
+            }
+            if (!t.cohortId().equals(anchor.cohortId())
+                || !t.row().offering().getId().equals(anchor.row().offering().getId())
+                || t.row().budget().sessionType() != anchor.row().budget().sessionType()) {
+                continue;
+            }
+            group.add(t);
+        }
+        return group;
+    }
+
+    /** Mutable per-row progress carried across {@link #placeOneSessionAttempt} calls -- lets sibling
+     *  rows be interleaved turn-by-turn (see {@link #placeShortfallRowGroupInterleaved}) instead of
+     *  only ever letting one row's {@code while} loop finish before another starts. {@link
+     *  #placeShortfallRow} drains the same state start-to-finish in one call, identically to how this
+     *  logic behaved before it was extracted out of that method's body. */
+    private static final class RowPlacementState {
+        final Set<DayOfWeek> daysUsed;
+        // Second-session-per-day fallback (see #daysOtherThanUsedOnce's javadoc): starts empty and
+        // only ever gains a day once the one-session-per-day pass has genuinely exhausted every
+        // candidate day for this exact row -- a day only ever lands in here after it's already in
+        // daysUsed, so this is additive to, never a replacement for, the normal cap.
+        final Set<DayOfWeek> daysUsedTwice = EnumSet.noneOf(DayOfWeek.class);
+        // Sibling-batch alignment (LAB/CLINICAL only) -- see CohortRunContext#siblingDaysByOfferingAndType.
+        // Null for THEORY, which has no per-batch splitting.
+        final String siblingKey;
+        // Real-world sequencing preference for a THEORY row whose subject also has LAB/CLINICAL --
+        // see #newRowPlacementState's javadoc.
+        final Set<DayOfWeek> preferredDays;
         // shortfall() is a count of SESSIONS still owed this week, NOT periods -- see
-        // CurriculumHoursCalculator#sessionsPerWeek, which divides total hours by one whole
-        // session's clock duration (slotDuration * blockSize). Each iteration below therefore places
-        // exactly ONE session of the row's full blockSize, and decrements `remaining` by one
-        // session. Spending `remaining` in PERIODS instead (the old `Math.min(blockSize, remaining)`
-        // chunking, which then subtracted blockSize) silently under-delivered every LAB/CLINICAL row
-        // by a factor of its own block size: a Clinical row owing 6 sessions of 4 periods (24
-        // periods) placed a 4-period block plus a 2-period stub and called itself done -- 6 periods
-        // instead of 24 -- while a Lab row owing 1 session of 2 periods placed a single lone period.
-        // Real seed data confirmed both shapes exactly (one 4-cell Clinical group per batch, and
-        // 1-cell Labs with no sessionGroupId at all). THEORY has blockSize 1, so sessions and
-        // periods coincide there and its behavior is unchanged.
-        // Sibling-batch alignment (LAB/CLINICAL only): a batch splitting the same offering across
-        // parallel venues (see CohortRunContext#siblingDaysByOfferingAndType) delivers the SAME
-        // curriculum hours at the same time as its sibling(s), just in a different room/venue -- it
-        // should land on whatever day(s) a sibling already claimed, not spread onto a fresh day of
-        // its own. Left null for THEORY, which has no such per-batch splitting.
+        // CurriculumHoursCalculator#sessionsPerWeek. Planned against the term's total hours
+        // (2026-09-15): each placed session takes off the runs its day really has.
+        int remainingRuns;
+        int unplacedPeriods = 0;
+        String lastFailureReason;
+
+        RowPlacementState(Set<DayOfWeek> daysUsed, String siblingKey, Set<DayOfWeek> preferredDays, int remainingRuns) {
+            this.daysUsed = daysUsed;
+            this.siblingKey = siblingKey;
+            this.preferredDays = preferredDays;
+            this.remainingRuns = remainingRuns;
+        }
+    }
+
+    /** Builds a fresh {@link RowPlacementState} for {@code row} -- the same one-time setup {@link
+     *  #placeShortfallRow}'s body always ran inline before its {@code while} loop, now shared with
+     *  {@link #placeShortfallRowGroupInterleaved}. The THEORY {@code preferredDays} computation
+     *  prefers landing on the same day as, or before, that subject's own LAB/CLINICAL day(s) --
+     *  students shouldn't walk into a practical before the lecture behind it has even been taught
+     *  that week. Phase 1 (LAB/CLINICAL, every cohort) has always fully finished by the time Phase 2
+     *  (THEORY) reaches this row, so siblingDaysByOfferingAndType's LAB/CLINICAL entries for this
+     *  offering are already final -- safe to read once here rather than per candidate slot. */
+    private RowPlacementState newRowPlacementState(ShortfallRow row, CohortRunContext context) {
+        Set<DayOfWeek> daysUsed = existingDaysForBudgetRow(context.skeleton().cells(), row.offering().getId(), row.budget());
         String siblingKey = row.budget().sessionType() == ClassSessionType.THEORY ? null
             : offeringSessionTypeKey(row.offering().getId(), row.budget().sessionType());
-        // Real-world sequencing: a THEORY row for a subject that also has LAB/CLINICAL should prefer
-        // landing on the same day as, or before, that subject's own LAB/CLINICAL day(s) -- students
-        // shouldn't walk into a practical before the lecture behind it has even been taught that
-        // week. Phase 1 (LAB/CLINICAL, every cohort) has always fully finished by the time Phase 2
-        // (THEORY) reaches this row, so siblingDaysByOfferingAndType's LAB/CLINICAL entries for this
-        // offering are already final -- safe to read once here rather than per candidate slot. Empty
-        // (no preference, today's exact behavior) for a LAB/CLINICAL row itself or a THEORY subject
-        // with no LAB/CLINICAL component at all.
         Set<DayOfWeek> preferredDays = EnumSet.noneOf(DayOfWeek.class);
         if (row.budget().sessionType() == ClassSessionType.THEORY) {
             Set<DayOfWeek> labClinicalDays = new HashSet<>();
@@ -2607,92 +2713,102 @@ public class TimetableGlobalAutoScheduleService {
                 }
             }
         }
-        // Planned against the term's total hours (2026-09-15): each placed session takes off the runs
-        // its day really has -- every week on Monday-Friday, only the chosen working Saturdays on
-        // Saturday -- so a session on a first-Saturday-only Saturday (6 runs of 26) leaves the rest
-        // of the subject's hours to be placed on another day instead of counting as a whole weekly
-        // session and leaving the subject short.
-        int remainingRuns = row.remainingRuns();
-        int unplacedPeriods = 0;
-        String lastFailureReason = null;
-        while (remainingRuns > 0) {
-            int thisBlockSize = row.blockSize();
-            PlacementAttempt attempt = null;
-            if (siblingKey != null) {
-                for (DayOfWeek siblingDay : context.siblingDaysByOfferingAndType().getOrDefault(siblingKey, Set.of())) {
-                    if (daysUsed.contains(siblingDay)) {
-                        continue;
-                    }
-                    PlacementAttempt siblingAttempt = tryPlaceAndStaff(cohortId, row.offering(), row.budget(), row.candidateFacultyIds(),
-                        term, periods, allDaysExcept(siblingDay), thisBlockSize, context.dayLoad(), preferredDays);
-                    if (siblingAttempt.dayPlaced() != null) {
-                        attempt = siblingAttempt;
-                        break;
-                    }
+        return new RowPlacementState(daysUsed, siblingKey, preferredDays, row.remainingRuns());
+    }
+
+    /** Performs exactly ONE placement attempt (one session-occurrence) for {@code row}, mutating
+     *  {@code state} in place -- the same per-iteration logic {@link #placeShortfallRow} always ran
+     *  inline inside its {@code while} loop, lifted out so {@link #placeShortfallRowGroupInterleaved}
+     *  can call it turn-by-turn across sibling rows. */
+    private void placeOneSessionAttempt(Long cohortId, ShortfallRow row, TermInstance term, List<Period> periods,
+                                          CohortRunContext context, RowPlacementState state, double periodDurationHours,
+                                          Map<String, VenueGapAccumulator> venueGaps,
+                                          List<FacultySubstitutionEvent> facultySubstitutionEvents,
+                                          TermDemandAggregation termDemand) {
+        int thisBlockSize = row.blockSize();
+        PlacementAttempt attempt = null;
+        if (state.siblingKey != null) {
+            for (DayOfWeek siblingDay : context.siblingDaysByOfferingAndType().getOrDefault(state.siblingKey, Set.of())) {
+                if (state.daysUsed.contains(siblingDay)) {
+                    continue;
                 }
-            }
-            if (attempt == null) {
-                attempt = tryPlaceAndStaff(cohortId, row.offering(), row.budget(), row.candidateFacultyIds(), term,
-                    periods, daysUsed, thisBlockSize, context.dayLoad(), preferredDays);
-            }
-            if (attempt.dayPlaced() != null) {
-                daysUsed.add(attempt.dayPlaced());
-                context.dayLoad().merge(attempt.dayPlaced(), thisBlockSize, Integer::sum);
-                context.placedThisCohortRun().add(new Placement(attempt.cellId(), row.offering().getId(), row.budget().sessionType(),
-                    row.budget().batchId(), row.budget().cohortSectionId(), attempt.facultyId(), row.subjectName(),
-                    occupantLabel(row.budget()), attempt.dayPlaced(), attempt.periodIds()));
-                recordFacultySubstitutionIfAny(row, cohortId, attempt.facultyId(), facultySubstitutionEvents);
-                if (siblingKey != null) {
-                    context.siblingDaysByOfferingAndType().computeIfAbsent(siblingKey, k -> new HashSet<>()).add(attempt.dayPlaced());
+                PlacementAttempt siblingAttempt = tryPlaceAndStaff(cohortId, row.offering(), row.budget(), row.candidateFacultyIds(),
+                    term, periods, allDaysExcept(siblingDay), thisBlockSize, context.dayLoad(), state.preferredDays);
+                if (siblingAttempt.dayPlaced() != null) {
+                    attempt = siblingAttempt;
+                    break;
                 }
-                remainingRuns -= runsFor(attempt.dayPlaced(), term, row.budget()); // one SESSION, whatever its blockSize
-                continue;
-            }
-            DayOfWeek backtrackDay = attemptBacktrack(cohortId, row, term, periods, daysUsed, context.placedThisCohortRun(),
-                context.unplacedForCohort(), thisBlockSize, context.dayLoad(), termDemand, facultySubstitutionEvents,
-                context.theoryStillOwedRuns());
-            if (backtrackDay != null) {
-                remainingRuns -= runsFor(backtrackDay, term, row.budget());
-                continue;
-            }
-            // Every working day this row hasn't used has now failed, and so has a backtrack: a second
-            // session on a day this row already uses once, back-to-back allowed, fully
-            // conflict-checked. Saturday is one of those days whenever the term has chosen working
-            // Saturdays (#saturdayIsWorkingDay) -- a regular day, not a fallback tried after the rest.
-            PlacementAttempt doubleAttempt = tryPlaceAndStaff(cohortId, row.offering(), row.budget(), row.candidateFacultyIds(), term,
-                periods, daysOtherThanUsedOnce(daysUsed, daysUsedTwice), thisBlockSize, context.dayLoad(), preferredDays);
-            if (doubleAttempt.dayPlaced() != null) {
-                daysUsedTwice.add(doubleAttempt.dayPlaced());
-                context.dayLoad().merge(doubleAttempt.dayPlaced(), thisBlockSize, Integer::sum);
-                context.placedThisCohortRun().add(new Placement(doubleAttempt.cellId(), row.offering().getId(), row.budget().sessionType(),
-                    row.budget().batchId(), row.budget().cohortSectionId(), doubleAttempt.facultyId(), row.subjectName(),
-                    occupantLabel(row.budget()), doubleAttempt.dayPlaced(), doubleAttempt.periodIds()));
-                recordFacultySubstitutionIfAny(row, cohortId, doubleAttempt.facultyId(), facultySubstitutionEvents);
-                remainingRuns -= runsFor(doubleAttempt.dayPlaced(), term, row.budget());
-            } else {
-                // Nothing fits: the row's whole remaining weekly cadence is given up at once below
-                // (remainingRuns -= weekRuns(...), not just this one attempt), so the reported
-                // shortfall must cover every run-occurrence being abandoned here -- not just the one
-                // block just tried. Reporting only `thisBlockSize` (one occurrence, ~1 period) understated
-                // a full remaining-term shortfall (e.g. 16 runs) as under 1 -- "0.8h still unplaced"
-                // when the real gap was 13.3h. capped at what's actually left so a final partial week
-                // isn't over-reported past the row's true remaining requirement.
-                int abandonedRuns = Math.min(remainingRuns, weekRuns(row.budget()));
-                unplacedPeriods += abandonedRuns * thisBlockSize;
-                // The fresh-day attempt names the real blocker (faculty/room/duty) unless every
-                // working day was already used, in which case only the double attempt tried anything.
-                lastFailureReason = everyWorkingDayUsed(daysUsed, term) ? doubleAttempt.failureReason() : attempt.failureReason();
-                tallyVenueGap(row, thisBlockSize, periodDurationHours, venueGaps);
-                remainingRuns -= weekRuns(row.budget());
             }
         }
-        if (unplacedPeriods > 0) {
-            double unplacedHours = unplacedPeriods * periodDurationHours;
+        if (attempt == null) {
+            attempt = tryPlaceAndStaff(cohortId, row.offering(), row.budget(), row.candidateFacultyIds(), term,
+                periods, state.daysUsed, thisBlockSize, context.dayLoad(), state.preferredDays);
+        }
+        if (attempt.dayPlaced() != null) {
+            state.daysUsed.add(attempt.dayPlaced());
+            context.dayLoad().merge(attempt.dayPlaced(), thisBlockSize, Integer::sum);
+            context.placedThisCohortRun().add(new Placement(attempt.cellId(), row.offering().getId(), row.budget().sessionType(),
+                row.budget().batchId(), row.budget().cohortSectionId(), attempt.facultyId(), row.subjectName(),
+                occupantLabel(row.budget()), attempt.dayPlaced(), attempt.periodIds()));
+            recordFacultySubstitutionIfAny(row, cohortId, attempt.facultyId(), facultySubstitutionEvents);
+            if (state.siblingKey != null) {
+                context.siblingDaysByOfferingAndType().computeIfAbsent(state.siblingKey, k -> new HashSet<>()).add(attempt.dayPlaced());
+            }
+            state.remainingRuns -= runsFor(attempt.dayPlaced(), term, row.budget()); // one SESSION, whatever its blockSize
+            return;
+        }
+        DayOfWeek backtrackDay = attemptBacktrack(cohortId, row, term, periods, state.daysUsed, context.placedThisCohortRun(),
+            context.unplacedForCohort(), thisBlockSize, context.dayLoad(), termDemand, facultySubstitutionEvents,
+            context.theoryStillOwedRuns());
+        if (backtrackDay != null) {
+            state.remainingRuns -= runsFor(backtrackDay, term, row.budget());
+            return;
+        }
+        // Every working day this row hasn't used has now failed, and so has a backtrack: a second
+        // session on a day this row already uses once, back-to-back allowed, fully conflict-checked.
+        // Saturday is one of those days whenever the term has chosen working Saturdays
+        // (#saturdayIsWorkingDay) -- a regular day, not a fallback tried after the rest.
+        PlacementAttempt doubleAttempt = tryPlaceAndStaff(cohortId, row.offering(), row.budget(), row.candidateFacultyIds(), term,
+            periods, daysOtherThanUsedOnce(state.daysUsed, state.daysUsedTwice), thisBlockSize, context.dayLoad(), state.preferredDays);
+        if (doubleAttempt.dayPlaced() != null) {
+            state.daysUsedTwice.add(doubleAttempt.dayPlaced());
+            context.dayLoad().merge(doubleAttempt.dayPlaced(), thisBlockSize, Integer::sum);
+            context.placedThisCohortRun().add(new Placement(doubleAttempt.cellId(), row.offering().getId(), row.budget().sessionType(),
+                row.budget().batchId(), row.budget().cohortSectionId(), doubleAttempt.facultyId(), row.subjectName(),
+                occupantLabel(row.budget()), doubleAttempt.dayPlaced(), doubleAttempt.periodIds()));
+            recordFacultySubstitutionIfAny(row, cohortId, doubleAttempt.facultyId(), facultySubstitutionEvents);
+            state.remainingRuns -= runsFor(doubleAttempt.dayPlaced(), term, row.budget());
+        } else {
+            // Nothing fits: the row's whole remaining weekly cadence is given up at once below
+            // (remainingRuns -= weekRuns(...), not just this one attempt), so the reported shortfall
+            // must cover every run-occurrence being abandoned here -- not just the one block just
+            // tried. Reporting only `thisBlockSize` (one occurrence, ~1 period) understated a full
+            // remaining-term shortfall (e.g. 16 runs) as under 1 -- "0.8h still unplaced" when the
+            // real gap was 13.3h. Capped at what's actually left so a final partial week isn't
+            // over-reported past the row's true remaining requirement.
+            int abandonedRuns = Math.min(state.remainingRuns, weekRuns(row.budget()));
+            state.unplacedPeriods += abandonedRuns * thisBlockSize;
+            // The fresh-day attempt names the real blocker (faculty/room/duty) unless every working
+            // day was already used, in which case only the double attempt tried anything.
+            state.lastFailureReason = everyWorkingDayUsed(state.daysUsed, term) ? doubleAttempt.failureReason() : attempt.failureReason();
+            tallyVenueGap(row, thisBlockSize, periodDurationHours, venueGaps);
+            state.remainingRuns -= weekRuns(row.budget());
+        }
+    }
+
+    /** Reports at most ONE {@link AutoPlaceUnplacedItem} for this row, not one per failed chunk -- a
+     *  row needing 6 more blocks that fails on all 6 used to add 6 near-identical lines (same
+     *  subject/reason, differing only in the trailing "N of M combinations tried" count), which read
+     *  as noise rather than a signal an admin could act on. The single line now says how much is
+     *  still short and the LAST attempt's reason (the most-exhausted, most-informative one, since
+     *  earlier attempts in the same row are strictly less constrained as daysUsed/dayLoad fill up). */
+    private void finalizeRowPlacement(ShortfallRow row, RowPlacementState state, double periodDurationHours, CohortRunContext context) {
+        if (state.unplacedPeriods > 0) {
+            double unplacedHours = state.unplacedPeriods * periodDurationHours;
             context.unplacedForCohort().add(new AutoPlaceUnplacedItem(row.subjectName(), row.budget().sessionType(),
-                occupantLabel(row.budget()), formatHours(unplacedHours) + " still unplaced — " + lastFailureReason,
+                occupantLabel(row.budget()), formatHours(unplacedHours) + " still unplaced — " + state.lastFailureReason,
                 row.offering().getId(), true, false));
         }
-        return unplacedPeriods;
     }
 
     /** Exclusion set for the same-day-double attempt: every day EXCEPT the days this row already
