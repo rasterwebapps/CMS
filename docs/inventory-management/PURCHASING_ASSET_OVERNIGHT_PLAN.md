@@ -70,19 +70,19 @@ OC-261/OC-263, use real tickets. Follow current practice: real JIRA ticket per c
 
 **Purchasing & Suppliers** (`frontend/src/app/core/nav/nav-config.ts`, search
 `label: 'Purchasing & Suppliers'`):
-- [ ] Suppliers (`/inventory/procurement/suppliers`)
-- [ ] Rate Contracts (`/inventory/procurement/rate-contracts`)
-- [ ] Vendor Product Rates (`/inventory/procurement/vendor-product-mappings`)
-- [ ] Price Comparison (`/inventory/reporting/price-comparison`)
-- [ ] Purchase Requisitions (`/inventory/procurement/purchase-requisitions`)
-- [ ] Quotation Requests (`/inventory/procurement/quotation-requests`)
-- [ ] Wanted List (`/inventory/procurement/wanted-list`)
-- [ ] Purchase Orders (`/inventory/procurement/purchase-orders`)
-- [ ] PO Aging Report (`/inventory/reporting/purchase-order-aging`)
-- [ ] PO Cycle-Time Report (`/inventory/reporting/purchase-order-cycle-time`)
-- [ ] Tax Rules (`/inventory/procurement/tax-rules`)
-- [ ] Currency Settings (`/inventory/procurement/currency-settings`)
-- [ ] Currency Exchange Rates (`/inventory/procurement/currency-exchange-rates`)
+- [x] Suppliers (`/inventory/procurement/suppliers`)
+- [x] Rate Contracts (`/inventory/procurement/rate-contracts`)
+- [x] Vendor Product Rates (`/inventory/procurement/vendor-product-mappings`)
+- [x] Price Comparison (`/inventory/reporting/price-comparison`)
+- [x] Purchase Requisitions (`/inventory/procurement/purchase-requisitions`)
+- [x] Quotation Requests (`/inventory/procurement/quotation-requests`)
+- [x] Wanted List (`/inventory/procurement/wanted-list`)
+- [x] Purchase Orders (`/inventory/procurement/purchase-orders`)
+- [x] PO Aging Report (`/inventory/reporting/purchase-order-aging`)
+- [x] PO Cycle-Time Report (`/inventory/reporting/purchase-order-cycle-time`)
+- [x] Tax Rules (`/inventory/procurement/tax-rules`)
+- [x] Currency Settings (`/inventory/procurement/currency-settings`)
+- [x] Currency Exchange Rates (`/inventory/procurement/currency-exchange-rates`)
 
 **Equipment & Asset Management** (search `label: 'Equipment & Asset Management'`):
 - [ ] Asset Register (`/inventory/asset/assets`)
@@ -99,17 +99,20 @@ the phase prompt files for convenience.
 
 ## Phase 1 — Verify completeness + audit Purchasing & Suppliers
 
-- [ ] Re-derive (don't trust) whether Phase 2's shipped feature set genuinely matches
+- [x] Re-derive (don't trust) whether Phase 2's shipped feature set genuinely matches
       `MILESTONES.md`'s claims: Suppliers (register/approve/manage), Rate Contracts, Tax Rules,
       Vendor Product Rates, Purchase Requisitions, Quotation Requests (RFQ), Wanted List
       (auto-reorder), Purchase Orders (full lifecycle incl. Force Close), Currency
       Settings/Exchange Rates, Price Comparison / PO Aging / PO Cycle-Time reports. Grep the
-      actual controllers/entities/routes — don't infer from doc prose alone.
-- [ ] Run the structural/badge/permission checkup (see "Scope" above) on all 13 Purchasing &
+      actual controllers/entities/routes — don't infer from doc prose alone. **Confirmed
+      genuinely done** — see session log's 19:19-19:20 entries.
+- [x] Run the structural/badge/permission checkup (see "Scope" above) on all 13 Purchasing &
       Suppliers screens. Fix what's broken following the established fix patterns in
-      `DECISION_LOG.md`'s 2026-09-15/16 entries.
-- [ ] Note any genuine functional gap found (not a UI defect — an actually missing capability)
-      for Phase 3 to consider, or log as `BLOCKED` if it needs real product input.
+      `DECISION_LOG.md`'s 2026-09-15/16 entries. **Zero defects found — nothing to fix.** See
+      session log's 19:20-19:22 entries for the full per-gate breakdown.
+- [x] Note any genuine functional gap found (not a UI defect — an actually missing capability)
+      for Phase 3 to consider, or log as `BLOCKED` if it needs real product input. **None found**
+      for this nav group's scope.
 
 ## Phase 2 — Bulk demo data: Purchasing & Suppliers
 
@@ -221,3 +224,18 @@ any judgment call made that a future session should sanity-check.)*
   which also created the worktree, JIRA ticket (OC-264), and the driver/prompt scripts, then
   launched the 4-phase chain as a detached background process. No phase work attempted yet under
   this file — Phase 1 starts immediately.
+- **2026-09-22, ~19:23 IST, Phase 1 complete:** Full verify+audit of all 13 Purchasing &
+  Suppliers screens done — see `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` for the detailed
+  breakdown. **Result: zero defects, zero functional gaps.** `MILESTONES.md`'s "✅ Done" claim for
+  this nav group genuinely holds up under a from-code re-derivation (controllers/routes/entities
+  grepped directly, not inferred from doc prose). Every structural/badge/`mlp-*`/permission gate
+  from CLAUDE.md checked clean; `uniqueFieldValidator` wired on all 4 master screens with a real
+  uniqueness constraint; operation-wise permission mapping already correct (Approve/Award/
+  Force-Close/Run/Convert all distinct dedicated permissions, not reused). No code changes were
+  needed this phase, so nothing was committed to the working tree beyond this plan file and the
+  new session log (both doc-only). `node_modules` symlinked into this worktree's `frontend/` from
+  the main checkout (lockfiles identical) so `tsc --noEmit` could run — that symlink is untracked/
+  gitignored, safe to leave for Phase 2-4 to reuse. Compile/test gates: `tsc --noEmit` clean,
+  `gradlew compileJava compileTestJava` clean, `com.cms.inventory.*` test suite green. Handing off
+  clean to Phase 2 (bulk demo data for this same nav group) — no blockers, no assumptions that
+  need morning sanity-checking.

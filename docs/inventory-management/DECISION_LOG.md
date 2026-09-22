@@ -2768,4 +2768,50 @@ held to the four the user named. If any of these get the same treatment later, t
 `ApplicationNumberSequenceService.regenerateNumbers` + `DocumentNumberChange`/
 `DocumentNumberRegenerationResult` primitives built here are already reusable as-is.
 
+## 2026-09-22 — Overnight Phase 1: Purchasing & Suppliers re-verified, zero defects found
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+First of four chained unattended sessions (OC-264, `PURCHASING_ASSET_OVERNIGHT_PLAN.md`,
+`.worktrees/purchasing-equipment-overnight`). Re-derived, rather than trusted, whether
+`MILESTONES.md`'s "✅ Done" claim (last updated 2026-09-15) for the Purchasing & Suppliers nav
+group's 13 screens still holds — grepped the actual backend controllers, frontend routes, and
+entity enums directly rather than inferring from doc prose. It holds: every screen is genuinely
+wired route → component → service → controller → repository, `PurchaseOrderStatus` has its full
+6-state lifecycle including a properly-gated `FORCE_CLOSED`/`force-close` endpoint, and Price
+Comparison's apparent "missing" backend endpoint is a documented deliberate design choice (it
+reuses `VendorProductMappingController`'s existing `/page?productId=` rather than duplicating
+logic — see that screen's own component doc-comment).
+
+Ran the full CLAUDE.md structural/badge/`mlp-*`-spacing/permission checkup (same checklist as the
+2026-09-16 "finished the 13-screen checkup floor" entry, applied to this different nav group) —
+**found zero defects**, unlike that prior sweep which found one (`GoodsReceiptStatus.CONFIRMED`
+missing from the badge switch). All 9 `mat-paginator` list screens have correct
+paginator-inside-`.table-wrapper`-inside-`.content-card.mlp-table-card` nesting; the one screen
+using `mat-sort-header` (Currency Exchange Rates) has all three `matSort` bindings present; every
+enum value the module's data models can actually produce
+(`PurchaseRequisitionStatus`/`Item`, `QuotationRequestStatus`/`LineStatus`, `WantedListItemStatus`,
+`PurchaseOrderStatus`, plus boolean-derived `ACTIVE`/`INACTIVE`/`APPROVED`/`PENDING`) is present in
+`CmsStatusBadgeComponent.resolveClass()`'s switch — no silent `default: return ''` case; no
+`cms-badge--soft-*` or non-`--cms-*` CSS-variable usage; all `mlp-hdr-*` classes confirmed defined
+in global `styles.scss`; the four master screens with a real uniqueness constraint (Suppliers,
+Tax Rules, Vendor Product Rates, Currency Exchange Rates) all have `uniqueFieldValidator` wired
+against a matching backend `-exists` endpoint; operation-wise permission mapping was already
+correct — `INVENTORY_SUPPLIER_APPROVE`, `INVENTORY_QUOTATION_AWARD`,
+`INVENTORY_PURCHASE_ORDER_FORCE_CLOSE`, `INVENTORY_WANTED_LIST_RUN`/`CONVERT` are all their own
+dedicated permissions rather than reused `MANAGE` grants, and every relevant permission migration
+(V431, V433, V435, V437, V439, V493, V519) ends with the DEV_ADMIN/SUPPORT_ADMIN catch-all block.
+
+**No code changes made this session** — audit-only phase, nothing needed fixing. Verified via
+`npx tsc -p tsconfig.app.json --noEmit` (clean; `frontend/node_modules` symlinked into this
+worktree from the main checkout since `package-lock.json` is byte-identical, same precedent as an
+earlier sibling overnight run), `./gradlew compileJava compileTestJava` (clean), and
+`./gradlew test --tests "com.cms.inventory.*"` (green, no failures). No functional gap found for
+Phase 3 to pick up. Full per-item breakdown in `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md`.
+
+**Impact:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md` (Phase 1 checkboxes + handoff note),
+`PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (new file), this decision log entry. No frontend/
+backend source changes. `MILESTONES.md` left unchanged — no functional gap was found or fixed,
+consistent with this file's own standing rule that pure verification doesn't change module status.
+
 *Next entry goes here — do not insert above this line.*
