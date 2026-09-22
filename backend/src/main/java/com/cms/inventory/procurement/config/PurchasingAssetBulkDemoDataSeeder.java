@@ -14,6 +14,20 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.inventory.asset.dto.AssetDisposalRequest;
+import com.cms.inventory.asset.dto.AssetMaintenanceMarkPerformedRequest;
+import com.cms.inventory.asset.dto.AssetMaintenanceScheduleRequest;
+import com.cms.inventory.asset.dto.AssetRequest;
+import com.cms.inventory.asset.dto.AssetResponse;
+import com.cms.inventory.asset.dto.AssetServiceContractRequest;
+import com.cms.inventory.asset.dto.AssetStatusUpdateRequest;
+import com.cms.inventory.asset.model.Asset;
+import com.cms.inventory.asset.repository.AssetMaintenanceScheduleRepository;
+import com.cms.inventory.asset.repository.AssetRepository;
+import com.cms.inventory.asset.repository.AssetServiceContractRepository;
+import com.cms.inventory.asset.service.AssetMaintenanceScheduleService;
+import com.cms.inventory.asset.service.AssetServiceContractService;
+import com.cms.inventory.asset.service.AssetService;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.catalog.repository.ProductVariantRepository;
@@ -71,6 +85,8 @@ import com.cms.inventory.procurement.service.VendorProductMappingService;
 import com.cms.inventory.procurement.service.WantedListService;
 import com.cms.inventory.receiving.dto.GoodsReceiptAddLineRequest;
 import com.cms.inventory.receiving.dto.GoodsReceiptCreateRequest;
+import com.cms.inventory.receiving.dto.GoodsReceiptLineResponse;
+import com.cms.inventory.receiving.repository.GoodsReceiptLineRepository;
 import com.cms.inventory.receiving.repository.GoodsReceiptRepository;
 import com.cms.inventory.receiving.service.GoodsReceiptService;
 import com.cms.inventory.stock.dto.StockMovementRequest;
@@ -80,18 +96,18 @@ import com.cms.inventory.stock.repository.StockBalanceRepository;
 import com.cms.inventory.stock.service.StockMovementService;
 
 /**
- * One-off bulk demo-data generator for the "Purchasing & Suppliers" nav group — Suppliers (mixed
- * approval states), Tax Rules, Currency Settings/Exchange Rates, Rate Contracts, Vendor Product
- * Rates (against the 112 products {@code InventoryBulkDemoDataSeeder} already created — reused via
- * {@code productRepo.findAll()}, never recreated), Purchase Requisitions across states, Quotation
- * Requests (RFQ) across every real shipped lifecycle state, Wanted List entries, and Purchase
- * Orders spanning the full status lifecycle including Goods Receipts to drive the
- * receipt-progress-computed states. Deliberately its own opt-in flag ({@code
- * cms.seed.bulk-purchasing-asset-demo=true}), separate from the always-on {@code cms.seed.enabled}
- * seeders and from {@code InventoryBulkDemoDataSeeder}'s own flag — never fires on a normal local
- * boot. See docs/inventory-management/PURCHASING_ASSET_OVERNIGHT_PLAN.md (Phase 2) and
- * docs/inventory-management/DECISION_LOG.md's 2026-09-22 "Bulk demo data — Purchasing & Suppliers"
- * entry.
+ * One-off bulk demo-data generator for the "Purchasing & Suppliers" and "Equipment & Asset
+ * Management" nav groups — Suppliers (mixed approval states), Tax Rules, Currency Settings/
+ * Exchange Rates, Rate Contracts, Vendor Product Rates (against the 112 products {@code
+ * InventoryBulkDemoDataSeeder} already created — reused via {@code productRepo.findAll()}, never
+ * recreated), Purchase Requisitions across states, Quotation Requests (RFQ) across every real
+ * shipped lifecycle state, Wanted List entries, Purchase Orders spanning the full status lifecycle
+ * including Goods Receipts to drive the receipt-progress-computed states, and (Phase 3) Assets
+ * across every {@code AssetStatus}, Maintenance Schedules, and Service Contracts. Deliberately its
+ * own opt-in flag ({@code cms.seed.bulk-purchasing-asset-demo=true}), separate from the always-on
+ * {@code cms.seed.enabled} seeders and from {@code InventoryBulkDemoDataSeeder}'s own flag — never
+ * fires on a normal local boot. See docs/inventory-management/PURCHASING_ASSET_OVERNIGHT_PLAN.md
+ * (Phases 2-3) and docs/inventory-management/DECISION_LOG.md's 2026-09-22 "Bulk demo data" entries.
  *
  * <p>Idempotency follows the same per-phase-table discipline as {@code
  * InventoryBulkDemoDataSeeder} (each phase method commits independently — the top-level {@code
@@ -142,7 +158,14 @@ public class PurchasingAssetBulkDemoDataSeeder {
             PurchaseOrderRepository poRepo,
             PurchaseOrderService poService,
             GoodsReceiptRepository grRepo,
-            GoodsReceiptService grService) {
+            GoodsReceiptLineRepository grLineRepo,
+            GoodsReceiptService grService,
+            AssetRepository assetRepo,
+            AssetService assetService,
+            AssetMaintenanceScheduleRepository maintenanceScheduleRepo,
+            AssetMaintenanceScheduleService maintenanceScheduleService,
+            AssetServiceContractRepository serviceContractRepo,
+            AssetServiceContractService serviceContractService) {
         return args -> {
             log.info("🌱 Seeding BULK Purchasing & Suppliers demo data...");
 
@@ -176,6 +199,20 @@ public class PurchasingAssetBulkDemoDataSeeder {
             seedWantedList(stockBalanceRepo, stockMovementService, wantedListService, productRepo, locationRepo);
 
             log.info("✓ Bulk Purchasing & Suppliers demo data seeding complete.");
+
+            log.info("🌱 Seeding BULK Equipment & Asset Management demo data...");
+
+            List<Long> onboardingGrLineIds = seedAssetOnboardingReceipt(
+                requisitionService, poRepo, poService, grRepo, grLineRepo, grService,
+                locationRepo, usable, suppliers);
+
+            seedAssets(assetRepo, assetService, productRepo, locationRepo, onboardingGrLineIds);
+            List<Asset> assets = assetRepo.findAll();
+
+            seedMaintenanceSchedules(maintenanceScheduleRepo, maintenanceScheduleService, assets);
+            seedServiceContracts(serviceContractRepo, serviceContractService, assets, suppliers);
+
+            log.info("✓ Bulk Equipment & Asset Management demo data seeding complete.");
         };
     }
 
@@ -614,6 +651,190 @@ public class PurchasingAssetBulkDemoDataSeeder {
         // against real stock balances/reorder levels, not fabricated rows.
         int created = wantedListService.generate();
         log.info("✓ Wanted List shortage-netting run created {} new line(s) (existing unresolved lines were left as-is)", created);
+    }
+
+    // ── Equipment & Asset Management (Phase 3) ───────────────────────────
+
+    private static final String M_ASSET_ONBOARDING_REQ = "Bulk demo — Asset onboarding sourcing (IT hardware)";
+    private static final String M_ASSET_ONBOARDING_PO = "Bulk demo — Asset onboarding PO (IT hardware)";
+
+    /**
+     * Builds one real Requisition → PO → Goods Receipt chain for two IT-asset products (Laptop,
+     * External HDD 1TB — both {@code NONE}-tracked, avoiding the batch-tracking gap Phase 2 hit),
+     * so {@code seedAssets} has genuine {@code GoodsReceiptLine} ids to link a couple of assets
+     * back to, exercising the entity's "onboarded through procure→receive" path for real rather
+     * than fabricating the FK. Returns the two line ids in creation order (Laptop, External HDD).
+     * Resumable: if the marker PO already exists, re-derives the line ids from its own Goods
+     * Receipt instead of re-creating anything.
+     */
+    private List<Long> seedAssetOnboardingReceipt(
+            PurchaseRequisitionService requisitionService,
+            PurchaseOrderRepository poRepo, PurchaseOrderService poService,
+            GoodsReceiptRepository grRepo, GoodsReceiptLineRepository grLineRepo, GoodsReceiptService grService,
+            InventoryLocationRepository locationRepo, List<Product> products, List<Supplier1> suppliers) {
+
+        var existingPo = poRepo.findAll().stream().filter(po -> M_ASSET_ONBOARDING_PO.equals(po.getNotes())).findFirst();
+        if (existingPo.isPresent()) {
+            var gr = grRepo.findAll().stream()
+                .filter(g -> g.getPurchaseOrder().getId().equals(existingPo.get().getId())).findFirst()
+                .orElseThrow(() -> new IllegalStateException("Asset-onboarding PO exists but its Goods Receipt is missing — investigate before re-running"));
+            List<Long> lineIds = grLineRepo.findByGoodsReceiptIdOrderByIdAsc(gr.getId()).stream().map(l -> l.getId()).toList();
+            log.info("Asset-onboarding Requisition/PO/Goods Receipt already exist — reusing {} line id(s)", lineIds.size());
+            return lineIds;
+        }
+
+        InventoryLocation office = byLocationName(locationRepo, "Office Store Point");
+        LocalDate today = LocalDate.now();
+
+        Long reqId = requisitionService.create(new PurchaseRequisitionCreateRequest(office.getId(), today.minusDays(35), M_ASSET_ONBOARDING_REQ), ACTOR).id();
+        var l1 = addLine(requisitionService, reqId, byName(products, "Laptop").getId(), "1");
+        var l2 = addLine(requisitionService, reqId, byName(products, "External HDD 1TB").getId(), "1");
+        requisitionService.submit(reqId, "office-clerk");
+        requisitionService.approveLine(reqId, l1.id(), new PurchaseRequisitionResolutionRequest("Route to PO — asset onboarding"), "store-keeper");
+        requisitionService.approveLine(reqId, l2.id(), new PurchaseRequisitionResolutionRequest("Route to PO — asset onboarding"), "store-keeper");
+
+        Long poId = poService.create(new PurchaseOrderCreateRequest(byCode(suppliers, "SUP-006").id(), office.getId(),
+            today.minusDays(30), today.minusDays(20), null, null, M_ASSET_ONBOARDING_PO), ACTOR).id();
+        PurchaseOrderItemResponse poLine1 = poService.addLine(poId, new PurchaseOrderAddLineRequest(l1.id(), null, null, null, new BigDecimal("45000.00"), null, null));
+        PurchaseOrderItemResponse poLine2 = poService.addLine(poId, new PurchaseOrderAddLineRequest(l2.id(), null, null, null, new BigDecimal("4200.00"), null, null));
+        poService.order(poId, ACTOR);
+
+        Long grId = grService.create(new GoodsReceiptCreateRequest(poId, today.minusDays(18), "Received in full — IT hardware for asset onboarding"), ACTOR).id();
+        GoodsReceiptLineResponse grLine1 = grService.addLine(grId, new GoodsReceiptAddLineRequest(poLine1.id(), BigDecimal.ONE, null, null, null, null, null, null));
+        GoodsReceiptLineResponse grLine2 = grService.addLine(grId, new GoodsReceiptAddLineRequest(poLine2.id(), BigDecimal.ONE, null, null, null, null, null, null));
+        grService.confirm(grId, ACTOR);
+
+        log.info("✓ Seeded asset-onboarding Requisition→PO→Goods Receipt chain (Laptop + External HDD 1TB)");
+        return List.of(grLine1.id(), grLine2.id());
+    }
+
+    /**
+     * 21 assets across every {@link com.cms.inventory.asset.model.enums.AssetStatus} except
+     * {@code AVAILABLE} (14 IN_USE / 3 UNDER_MAINTENANCE / 2 RETIRED / 2 DISPOSED), drawn only
+     * from the catalog's 20 {@code isAsset=true} products (10 "Computers" + 10 "Medical
+     * Equipment") so categories stay realistic, with varied purchase value/date/useful
+     * life/salvage so the Depreciation Summary report shows genuinely different book values per
+     * category (some assets are even purchased further back than their useful life, to exercise
+     * the calculator's salvage-value floor). Two assets (one Laptop, the disposed External HDD)
+     * link back to {@code seedAssetOnboardingReceipt}'s real Goods Receipt lines; every other
+     * asset is standalone ("already-owned, being onboarded"), matching the entity's dual creation
+     * path 15-25 assets deep, per the plan.
+     */
+    private void seedAssets(AssetRepository assetRepo, AssetService assetService, ProductRepository productRepo,
+                             InventoryLocationRepository locationRepo, List<Long> onboardingGrLineIds) {
+        if (assetRepo.count() > 0) {
+            log.info("Assets already exist — skipping this run.");
+            return;
+        }
+        List<Product> products = productRepo.findAll();
+        LocalDate today = LocalDate.now();
+
+        record Seed(String tag, String serial, String productName, String locationName,
+                    String purchaseValue, int monthsAgo, int usefulLifeMonths, String salvageValue,
+                    String status, Long grLineId, String disposalReason, String disposalValue, Integer disposalMonthsAgo) {}
+
+        List<Seed> seeds = List.of(
+            // IT Assets — "Computers" category
+            new Seed("AST-IT-001", "LT2024-001", "Laptop", "Office Store Point", "55000.00", 24, 36, "5000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-IT-002", "LT2025-014", "Laptop", "Office Store Point", "58000.00", 11, 36, "5000.00", "IN_USE", onboardingGrLineIds.get(0), null, null, null),
+            new Seed("AST-IT-003", null, "Desktop Monitor", "Office Store Point", "12000.00", 18, 60, "1000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-IT-004", "LP-778812", "Laser Printer", "Office Store Point", "18000.00", 36, 48, "1500.00", "UNDER_MAINTENANCE", null, null, null, null),
+            new Seed("AST-IT-005", "PJ-991200", "Projector", "Lab Requesting Point", "45000.00", 22, 60, "4000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-IT-006", null, "UPS 1kVA", "Office Store Point", "8000.00", 10, 36, "500.00", "IN_USE", null, null, null, null),
+            new Seed("AST-IT-007", "WR-330045", "Wi-Fi Router", "Office Store Point", "5000.00", 48, 36, "200.00", "RETIRED", null, null, null, null),
+            new Seed("AST-IT-008", "EH-556677", "External HDD 1TB", "Office Store Point", "4500.00", 36, 24, "200.00", "DISPOSED", onboardingGrLineIds.get(1), "Drive failure — beyond economical repair", "150.00", 2),
+            // Medical Equipment
+            new Seed("AST-MED-001", "ECG-ND-2201", "ECG Machine", "ICU Requesting Point", "250000.00", 24, 84, "20000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-002", null, "Nebulizer", "Ward A Requesting Point", "15000.00", 12, 60, "1000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-003", "IP-778001", "Infusion Pump", "ICU Requesting Point", "60000.00", 18, 72, "5000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-004", null, "Wheelchair", "Ward B Requesting Point", "12000.00", 24, 60, "1000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-005", null, "Wheelchair", "Ward A Requesting Point", "12500.00", 36, 60, "1000.00", "UNDER_MAINTENANCE", null, null, null, null),
+            new Seed("AST-MED-006", "HB-100234", "Hospital Bed", "Ward A Requesting Point", "45000.00", 24, 96, "3000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-007", "HB-100235", "Hospital Bed", "Ward B Requesting Point", "46000.00", 12, 96, "3000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-008", "OXC-556", "Oxygen Concentrator", "ICU Requesting Point", "55000.00", 11, 60, "4000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-009", null, "Pulse Oximeter", "OT Requesting Point", "8000.00", 6, 48, "500.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-010", "AUTO-8871", "Autoclave", "Lab Requesting Point", "120000.00", 24, 84, "10000.00", "IN_USE", null, null, null, null),
+            new Seed("AST-MED-011", "SUC-4432", "Suction Machine", "OT Requesting Point", "35000.00", 30, 60, "2500.00", "UNDER_MAINTENANCE", null, null, null, null),
+            new Seed("AST-MED-012", null, "Digital Weighing Scale", "Ward B Requesting Point", "6000.00", 60, 48, "300.00", "RETIRED", null, null, null, null),
+            new Seed("AST-MED-013", "ECG-OLD-115", "ECG Machine", "OT Requesting Point", "240000.00", 72, 84, "20000.00", "DISPOSED", null, "Obsolete model, replaced by AST-MED-001 — parts no longer available", "15000.00", 3)
+        );
+
+        for (Seed s : seeds) {
+            Long locationId = byLocationName(locationRepo, s.locationName()).getId();
+            Long productId = byName(products, s.productName()).getId();
+            AssetResponse created = assetService.create(new AssetRequest(
+                productId, locationId, s.tag(), s.serial(), s.grLineId(),
+                new BigDecimal(s.purchaseValue()), today.minusMonths(s.monthsAgo()), s.usefulLifeMonths(), new BigDecimal(s.salvageValue()),
+                "Bulk demo asset"));
+            if ("DISPOSED".equals(s.status())) {
+                assetService.dispose(created.id(), new AssetDisposalRequest(
+                    today.minusMonths(s.disposalMonthsAgo()), new BigDecimal(s.disposalValue()), s.disposalReason()), ACTOR);
+            } else if (!"AVAILABLE".equals(s.status())) {
+                assetService.updateStatus(created.id(), new AssetStatusUpdateRequest(s.status(), null));
+            }
+        }
+        log.info("✓ Seeded {} assets (14 IN_USE / 3 UNDER_MAINTENANCE / 2 RETIRED / 2 DISPOSED)", assetRepo.count());
+    }
+
+    /** 6 schedules against a subset of assets — 4 RECURRING/2 ONE_OFF, 3 overdue/3 upcoming, one
+     *  ({@code AST-MED-008}) exercising {@code markPerformed} so it carries real history
+     *  ({@code lastPerformedDate} set, {@code nextDueDate} genuinely advanced by the recurrence
+     *  interval) rather than every row being freshly created and untouched. */
+    private void seedMaintenanceSchedules(AssetMaintenanceScheduleRepository scheduleRepo,
+                                           AssetMaintenanceScheduleService scheduleService, List<Asset> assets) {
+        if (scheduleRepo.count() > 0) {
+            log.info("Maintenance schedules already exist — skipping this run.");
+            return;
+        }
+        LocalDate today = LocalDate.now();
+
+        scheduleService.create(new AssetMaintenanceScheduleRequest(
+            assetByTag(assets, "AST-MED-001").getId(), "RECURRING", 90, today.minusDays(10), "Quarterly ECG calibration"));
+        scheduleService.create(new AssetMaintenanceScheduleRequest(
+            assetByTag(assets, "AST-MED-003").getId(), "RECURRING", 180, today.plusDays(20), "Half-yearly infusion pump service"));
+        scheduleService.create(new AssetMaintenanceScheduleRequest(
+            assetByTag(assets, "AST-MED-006").getId(), "ONE_OFF", null, today.plusDays(45), "One-time bed frame inspection"));
+        scheduleService.create(new AssetMaintenanceScheduleRequest(
+            assetByTag(assets, "AST-MED-010").getId(), "RECURRING", 30, today.minusDays(3), "Monthly autoclave pressure-valve check"));
+        scheduleService.create(new AssetMaintenanceScheduleRequest(
+            assetByTag(assets, "AST-IT-004").getId(), "ONE_OFF", null, today.minusDays(1), "Printer fuser unit replacement"));
+
+        var oxygenSchedule = scheduleService.create(new AssetMaintenanceScheduleRequest(
+            assetByTag(assets, "AST-MED-008").getId(), "RECURRING", 120, today.minusDays(60), "Quarterly oxygen concentrator filter service"));
+        scheduleService.markPerformed(oxygenSchedule.id(), new AssetMaintenanceMarkPerformedRequest(today.minusDays(58), "Filter replaced, unit tested"));
+
+        log.info("✓ Seeded {} maintenance schedules (recurring+one-off, overdue+upcoming)", scheduleRepo.count());
+    }
+
+    /** 4 contracts against a subset of assets — one long-active, one IT-asset active, one
+     *  expiring soon, one already expired, so the renewal-reminder concept has real varied data. */
+    private void seedServiceContracts(AssetServiceContractRepository contractRepo,
+                                       AssetServiceContractService contractService, List<Asset> assets, List<Supplier1> suppliers) {
+        if (contractRepo.count() > 0) {
+            log.info("Service contracts already exist — skipping this run.");
+            return;
+        }
+        LocalDate today = LocalDate.now();
+
+        contractService.create(new AssetServiceContractRequest(
+            assetByTag(assets, "AST-MED-001").getId(), byCode(suppliers, "SUP-003").id(), "SC-ECG-2026",
+            today.minusMonths(6), today.plusMonths(6), today.plusMonths(6).minusDays(30), "Annual comprehensive maintenance — parts and labour", true));
+        contractService.create(new AssetServiceContractRequest(
+            assetByTag(assets, "AST-MED-010").getId(), byCode(suppliers, "SUP-004").id(), "SC-AUTO-2025",
+            today.minusMonths(11), today.plusDays(20), today.plusDays(5), "Annual autoclave service contract — expiring soon", true));
+        contractService.create(new AssetServiceContractRequest(
+            assetByTag(assets, "AST-MED-006").getId(), byCode(suppliers, "SUP-002").id(), "SC-BED-2024",
+            today.minusMonths(24), today.minusMonths(2), null, "Bed frame AMC — lapsed, not yet renewed", false));
+        contractService.create(new AssetServiceContractRequest(
+            assetByTag(assets, "AST-IT-001").getId(), byCode(suppliers, "SUP-006").id(), "SC-LT-2026",
+            today.minusMonths(3), today.plusMonths(9), today.plusMonths(9).minusDays(15), "On-site laptop warranty extension", true));
+
+        log.info("✓ Seeded {} service contracts (active×2/expiring-soon/expired)", contractRepo.count());
+    }
+
+    private Asset assetByTag(List<Asset> assets, String tag) {
+        return assets.stream().filter(a -> tag.equals(a.getAssetTag())).findFirst()
+            .orElseThrow(() -> new IllegalStateException("Asset '" + tag + "' not found — seedAssets must run first"));
     }
 
     // ── Small lookup helpers ─────────────────────────────────────────────
