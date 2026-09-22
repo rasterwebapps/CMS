@@ -50,6 +50,7 @@ class GoodsReceiptServiceTest {
     @Mock private StockMovementService stockMovementService;
     @Mock private ProductUomChainService uomChainService;
     @Mock private InventoryBinRepository binRepository;
+    @Mock private com.cms.service.ApplicationNumberSequenceService numberSequenceService;
     private GoodsReceiptService service;
 
     private final InventoryLocation location = location(1L, "Main Store");
@@ -59,7 +60,7 @@ class GoodsReceiptServiceTest {
     @BeforeEach
     void setUp() {
         service = new GoodsReceiptService(receiptRepository, lineRepository, purchaseOrderItemRepository,
-            purchaseOrderService, stockMovementService, uomChainService, binRepository);
+            purchaseOrderService, stockMovementService, uomChainService, binRepository, numberSequenceService);
     }
 
     // ── addLine — base flow ──────────────────────────────────────────────────

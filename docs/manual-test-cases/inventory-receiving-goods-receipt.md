@@ -92,3 +92,38 @@ Covers the first Phase 3 ("Receiving & Stock Movement") slice of the Inventory M
 - After step 2: the order's status is "Completed" (every line fully received).
 
 **Status:** NOT TESTED
+
+## TC-INV-RECV-006: Receipt number is auto-generated and immutable
+
+**Preconditions:**
+- A `GOODS_RECEIPT_NUMBER` series is configured under Settings → Number Sequences (seeded by
+  default: prefix "GRN", scope Financial Month, e.g. `GRN-202609-00001`).
+
+**Steps:**
+1. Raise a new receipt and note its number in the list/detail header.
+2. Raise a second receipt in the same month.
+
+**Expected Result:**
+- Step 1: the number matches the configured series format and is shown as the receipt's primary
+  identifier (list column "Number", detail page header) — never `#{id}` unless the row predates
+  this feature.
+- Step 2: its number is the next sequence value, never a repeat.
+
+**Status:** NOT TESTED
+
+## TC-INV-RECV-007: Regenerate Goods Receipt Numbers (admin action)
+
+**Preconditions:**
+- Logged in as a user holding `INVENTORY_GRN_REGENERATE_NUMBERS`.
+- At least one receipt predates this feature (no number).
+- **This mutates production data — take a database backup first** outside a local/throwaway
+  environment, per the project's production-data-safety policy.
+
+**Steps:**
+1. From the Goods Receipts list, click "Regenerate Numbers", review the confirmation summary, confirm.
+
+**Expected Result:**
+- Every affected receipt's number updates to a fresh, gap-free per-scope-period sequence (oldest
+  `receipt_date` first); a user without the permission never sees the button.
+
+**Status:** NOT TESTED

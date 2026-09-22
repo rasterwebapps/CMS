@@ -2690,4 +2690,82 @@ dialog — per this repo's standing "no self-run visual verification" posture, t
 the user's own manual pass (see the updated `inventory-catalog-product.md` / `inventory-catalog-
 category-uom.md` test cases).
 
+## 2026-09-22 — Sequential document numbers for Quotation Request, Purchase Order, Goods Receipt, Return to Supplier
+
+**Reverses a standing decision** — the ServiceTicket slice entry above explicitly named Purchase
+Order as precedent for *not* maintaining a second generated document number ("every other
+business document in this app... displays `#{id}`"), specifically to avoid a second-save problem.
+This entry is a deliberate, explicit user-requested reversal for these four documents only; the
+`#{id}` convention stands unchanged for every other document (Gate Pass, Consignment Agreement,
+Service Ticket, Purchase Requisition, Stock Indent, Stock Transfer, Cycle Count, Rate Contract,
+Loanable Item Issue, Commission Payout) unless a future entry says otherwise.
+
+**Engine: `ApplicationNumberSequenceService`, not `NumberSeriesDefinitionService`.** The two are
+easy to conflate — `NumberSeriesDefinitionService` (+ its `/number-series` controller, + the
+`Settings → Number Sequences` "new/edit series" form) is CRUD-only for series *definitions*
+(prefix/scope/padding); it has no method that actually consumes a number. `ApplicationNumber
+SequenceService` is the real, already-wired generation engine (`number_series_definitions` +
+`number_sequence_counters`, pessimistic-locked per (series, scope period)) already powering
+Admission/Receipt/Refund/Commission/Disbursement numbers. It gained one new method,
+`nextNumberForDate(seriesCode, date)`, which resolves the scope key from an arbitrary business
+date rather than always "today" — used both for normal creation (date = the document's own date
+field, e.g. `poDate`) and for the backfill described below. `ScopeKeyResolver.resolveCurrentPeriod`
+was refactored to delegate to a new `resolvePeriod(scopeType, date)`, purely additive.
+
+**The "second-save problem" solved architecturally, not worked around.** Each of the four
+document's `create()` methods calls `numberSequenceService.nextNumberForDate(...)` and sets the
+number field in the *same* transaction as the initial entity save — exactly one save, no
+after-the-fact PATCH — the same pattern `ProductCodeGeneratorService` already established for
+Product codes (2026-09-22, same day). `id` stays the authoritative backend/FK/route key
+everywhere unchanged; the new number column is purely a display/search-facing field (frontend
+list columns + detail-page headers + a `search` query param each service's `findPage` now
+accepts), per explicit user instruction — this is a deliberate difference from the Product Code
+feature, where the generated code *did* become primary going forward.
+
+**Existing rows are retroactively renumbered, by explicit user choice** (backfill was the
+non-default option offered; the user chose it anyway, same as they did for Product codes the same
+day). A new shared primitive, `ApplicationNumberSequenceService.regenerateNumbers(seriesCode,
+datesInOrder, dryRun)`, resets each touched scope period's counter to zero and reassigns
+gap-free numbers in caller-supplied chronological order — not just filling blanks, so an
+already-numbered row is safely reflowed too rather than risking a collision with it. Each of the
+four documents exposes this as its own on-demand "Regenerate Numbers" admin action, gated by its
+own permission (`INVENTORY_{QUOTATION,PURCHASE_ORDER,GRN,SUPPLIER_RETURN}_REGENERATE_NUMBERS` —
+never bundled into `_MANAGE`, per the operation-wise permission mapping gate), each with a
+preview endpoint for the confirm-dialog flow. New `DocumentNumberChange`/
+`DocumentNumberRegenerationResult` DTOs are shared across all four (and available to future
+document types) rather than duplicated per module.
+
+**Reset cadence deliberately varies per series to demonstrate the config surface**, per explicit
+user ask ("some resets annually, some monthly, some stays forever, need a config for such
+options") — satisfied entirely by seeding three different `scope_type` defaults on otherwise
+identical series rows, since `NumberSeriesDefinitionService`'s existing scope/prefix/padding
+config (and its `Settings → Number Sequences` UI, already built, already routed, just not yet
+linked from the nav — confirmed it *was* already in `nav-config.ts`, a stale assumption from
+earlier in this same session was wrong) is fully sufficient: Quotation Request and Purchase Order
+default to `FINANCIAL_YEAR` (e.g. `PO-2526-00001`), Goods Receipt (highest volume) to
+`FINANCIAL_MONTH` (e.g. `GRN-202609-00001`), Return to Supplier (lowest volume) to `NONE`/never
+(e.g. `SR-00001`). All three are admin-editable afterward with zero code changes, same as any
+other series.
+
+**Verified:** booted clean against the migrated local dev DB (V546-V549 applied; Hibernate
+`ddl-auto: validate` passed for all four new columns); `npx tsc --noEmit` and `ng build
+--configuration=development` both clean; `./gradlew test` green for the procurement/receiving/
+catalog/ApplicationNumberSequenceService test suites, including four pre-existing test files
+whose direct-constructor calls needed updating for the new `ApplicationNumberSequenceService`
+(and, for `ApplicationNumberSequenceServiceTest` itself, new `ScopeKeyResolver`) constructor
+parameters. Did not attempt a live click-through of any of the four forms or their Regenerate
+Numbers dialogs — per this repo's standing "no self-run visual verification" posture, flagged for
+the user's own manual pass (new/updated test cases: `inventory-procurement-purchase-order.md`,
+`inventory-procurement-quotation-request.md` [new file — see it for why the rest of that module
+still needs a full backfill], `inventory-receiving-goods-receipt.md`,
+`inventory-receiving-supplier-return.md`).
+
+**A broader sweep this session found several more `#{id}`-only documents that were explicitly
+NOT touched here** (Purchase Requisition, Stock Indent, Stock Transfer, Cycle Count, Rate
+Contract, Loanable Item Issue — the last two currently un-referenceable even by `#{id}` in their
+own screens; Commission Payout has no identifier shown anywhere at all). Scope was deliberately
+held to the four the user named. If any of these get the same treatment later, the
+`ApplicationNumberSequenceService.regenerateNumbers` + `DocumentNumberChange`/
+`DocumentNumberRegenerationResult` primitives built here are already reusable as-is.
+
 *Next entry goes here — do not insert above this line.*

@@ -7,6 +7,7 @@ import java.util.List;
 
 public record PurchaseOrderResponse(
     Long id,
+    String poNumber,
     Long supplierId,
     String supplierName,
     Long locationId,

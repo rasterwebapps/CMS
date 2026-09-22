@@ -6,6 +6,7 @@ import java.util.List;
 
 public record SupplierReturnResponse(
     Long id,
+    String returnNumber,
     Long goodsReceiptId,
     String supplierName,
     Long locationId,

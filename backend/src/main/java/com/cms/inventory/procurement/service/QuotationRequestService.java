@@ -14,6 +14,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.DocumentNumberChange;
+import com.cms.dto.DocumentNumberRegenerationResult;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.procurement.dto.PurchaseOrderAddLineRequest;
@@ -46,6 +48,7 @@ import com.cms.inventory.procurement.repository.QuotationResponseLineRepository;
 import com.cms.inventory.procurement.repository.SupplierRepository;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.repository.InventoryLocationRepository;
+import com.cms.service.ApplicationNumberSequenceService;
 
 /**
  * Owns the Quotation Request (RFQ) workflow — an OPTIONAL step between Purchase Requisition and
@@ -65,6 +68,8 @@ import com.cms.inventory.stock.repository.InventoryLocationRepository;
 @Transactional(readOnly = true)
 public class QuotationRequestService {
 
+    private static final String QUOTATION_NUMBER_SERIES = "QUOTATION_REQUEST_NUMBER";
+
     private final QuotationRequestRepository requestRepository;
     private final QuotationRequestLineRepository lineRepository;
     private final QuotationRequestSupplierRepository supplierLinkRepository;
@@ -73,6 +78,7 @@ public class QuotationRequestService {
     private final SupplierRepository supplierRepository;
     private final InventoryLocationRepository locationRepository;
     private final PurchaseOrderService purchaseOrderService;
+    private final ApplicationNumberSequenceService numberSequenceService;
 
     public QuotationRequestService(QuotationRequestRepository requestRepository,
                                     QuotationRequestLineRepository lineRepository,
@@ -81,7 +87,8 @@ public class QuotationRequestService {
                                     PurchaseRequisitionItemRepository requisitionItemRepository,
                                     SupplierRepository supplierRepository,
                                     InventoryLocationRepository locationRepository,
-                                    PurchaseOrderService purchaseOrderService) {
+                                    PurchaseOrderService purchaseOrderService,
+                                    ApplicationNumberSequenceService numberSequenceService) {
         this.requestRepository = requestRepository;
         this.lineRepository = lineRepository;
         this.supplierLinkRepository = supplierLinkRepository;
@@ -90,6 +97,7 @@ public class QuotationRequestService {
         this.supplierRepository = supplierRepository;
         this.locationRepository = locationRepository;
         this.purchaseOrderService = purchaseOrderService;
+        this.numberSequenceService = numberSequenceService;
     }
 
     @Transactional
@@ -105,17 +113,46 @@ public class QuotationRequestService {
         quotationRequest.setCreatedBy(createdBy);
         quotationRequest.setCreatedAt(Instant.now());
         quotationRequest.setUpdatedAt(Instant.now());
+        quotationRequest.setQuotationNumber(numberSequenceService.nextNumberForDate(QUOTATION_NUMBER_SERIES, quotationRequest.getRequestDate()));
         return toResponse(requestRepository.save(quotationRequest));
     }
 
-    public Page<QuotationRequestResponse> findPage(Long locationId, String status, Pageable pageable) {
+    public Page<QuotationRequestResponse> findPage(Long locationId, String status, String search, Pageable pageable) {
         Specification<QuotationRequest> spec = (root, query, cb) -> {
             var predicate = cb.conjunction();
             if (locationId != null) predicate = cb.and(predicate, cb.equal(root.get("location").get("id"), locationId));
             if (status != null && !status.isBlank()) predicate = cb.and(predicate, cb.equal(root.get("status"), parseStatus(status)));
+            if (search != null && !search.isBlank()) {
+                predicate = cb.and(predicate, cb.like(cb.lower(root.get("quotationNumber")), "%" + search.trim().toLowerCase(Locale.ROOT) + "%"));
+            }
             return predicate;
         };
         return requestRepository.findAll(spec, pageable).map(r -> toResponse(r, false));
+    }
+
+    /** Bulk-reassigns every quotation request's number to a fresh, gap-free sequence within each
+     *  scope period, oldest request_date first — see ApplicationNumberSequenceService.
+     *  regenerateNumbers for the transactional-safety design. */
+    @Transactional
+    public DocumentNumberRegenerationResult regenerateQuotationNumbers(boolean dryRun) {
+        List<QuotationRequest> requests = requestRepository.findAllByOrderByRequestDateAscIdAsc();
+        List<Map.Entry<Long, LocalDate>> dates = requests.stream()
+            .map(r -> Map.entry(r.getId(), r.getRequestDate()))
+            .toList();
+        Map<Long, String> newNumbers = numberSequenceService.regenerateNumbers(QUOTATION_NUMBER_SERIES, dates, dryRun);
+
+        List<DocumentNumberChange> changes = new ArrayList<>();
+        for (QuotationRequest quotationRequest : requests) {
+            String newNumber = newNumbers.get(quotationRequest.getId());
+            if (!newNumber.equals(quotationRequest.getQuotationNumber())) {
+                changes.add(new DocumentNumberChange(quotationRequest.getId(),
+                    "Quotation for " + quotationRequest.getLocation().getVirtualName(),
+                    quotationRequest.getQuotationNumber(), newNumber));
+                if (!dryRun) quotationRequest.setQuotationNumber(newNumber);
+            }
+        }
+        if (!dryRun) requestRepository.saveAll(requests);
+        return new DocumentNumberRegenerationResult(changes.size(), changes);
     }
 
     public QuotationRequestResponse findById(Long id) {
@@ -384,7 +421,7 @@ public class QuotationRequestService {
         long pending = lines.stream().filter(l -> l.getStatus() == QuotationRequestLineStatus.PENDING).count();
         InventoryLocation location = quotationRequest.getLocation();
         return new QuotationRequestResponse(
-            quotationRequest.getId(), location.getId(), location.getVirtualName(),
+            quotationRequest.getId(), quotationRequest.getQuotationNumber(), location.getId(), location.getVirtualName(),
             quotationRequest.getStatus().name(), quotationRequest.getRequestDate(), quotationRequest.getNotes(),
             quotationRequest.getCreatedBy(), quotationRequest.getCreatedAt(),
             quotationRequest.getSubmittedBy(), quotationRequest.getSubmittedAt(), quotationRequest.getCompletedAt(),

@@ -32,6 +32,7 @@ class ApplicationNumberSequenceServiceTest {
 
     @Mock private NumberSeriesDefinitionRepository definitionRepository;
     @Mock private NumberSequenceCounterRepository  counterRepository;
+    @Mock private ScopeKeyResolver scopeKeyResolver;
 
     private ApplicationNumberSequenceService service;
 
@@ -40,7 +41,7 @@ class ApplicationNumberSequenceServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ApplicationNumberSequenceService(definitionRepository, counterRepository);
+        service = new ApplicationNumberSequenceService(definitionRepository, counterRepository, scopeKeyResolver);
 
         admissionDef = new NumberSeriesDefinition();
         admissionDef.setSeriesCode("ADMISSION_NUMBER");

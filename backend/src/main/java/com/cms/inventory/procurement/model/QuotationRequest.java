@@ -33,6 +33,11 @@ public class QuotationRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Sequential, e.g. "QR-2526-00001" — assigned via ApplicationNumberSequenceService.
+     *  Nullable only for rows that predate this feature; every create() assigns one. */
+    @Column(name = "quotation_number", length = 50)
+    private String quotationNumber;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "location_id", nullable = false)
     private InventoryLocation location;
@@ -67,6 +72,9 @@ public class QuotationRequest {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getQuotationNumber() { return quotationNumber; }
+    public void setQuotationNumber(String quotationNumber) { this.quotationNumber = quotationNumber; }
 
     public InventoryLocation getLocation() { return location; }
     public void setLocation(InventoryLocation location) { this.location = location; }

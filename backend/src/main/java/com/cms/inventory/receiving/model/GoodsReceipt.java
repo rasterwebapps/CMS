@@ -37,6 +37,11 @@ public class GoodsReceipt {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Sequential, e.g. "GRN-202609-00001" — assigned via ApplicationNumberSequenceService.
+     *  Nullable only for rows that predate this feature; every create() assigns one. */
+    @Column(name = "receipt_number", length = 50)
+    private String receiptNumber;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "purchase_order_id", nullable = false)
     private PurchaseOrder purchaseOrder;
@@ -68,6 +73,9 @@ public class GoodsReceipt {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getReceiptNumber() { return receiptNumber; }
+    public void setReceiptNumber(String receiptNumber) { this.receiptNumber = receiptNumber; }
 
     public PurchaseOrder getPurchaseOrder() { return purchaseOrder; }
     public void setPurchaseOrder(PurchaseOrder purchaseOrder) { this.purchaseOrder = purchaseOrder; }

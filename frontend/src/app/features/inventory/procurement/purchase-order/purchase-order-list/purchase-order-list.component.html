@@ -9,6 +9,12 @@
       <p class="po-pg-sub">Orders raised against a supplier from approved requisition lines.</p>
     </div>
     <div class="mlp-hdr-actions">
+      @if (canRegenerateNumbers()) {
+        <button class="btn-secondary" [disabled]="regeneratingNumbers()" (click)="regenerateNumbers()"
+          aria-label="Regenerate purchase order numbers" title="Reassign every purchase order's number to a fresh, gap-free sequence">
+          {{ regeneratingNumbers() ? 'Regenerating…' : 'Regenerate Numbers' }}
+        </button>
+      }
       <button class="btn-primary" (click)="goToNew()" aria-label="Start a new purchase order">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         New Order
@@ -18,6 +24,22 @@
 
   <!-- ── Toolbar ───────────────────────────────────────────────── -->
   <div class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="applyFilter($event)"
+        placeholder="Search by PO number…"
+        type="text"
+        aria-label="Search purchase orders"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
     <select class="field-select po-filter" [(ngModel)]="supplierFilter" (ngModelChange)="onFilterChange()" aria-label="Filter by supplier">
       <option [ngValue]="null">All Suppliers</option>
       @for (s of suppliers(); track s.id) {
@@ -38,6 +60,10 @@
   <div class="content-card mlp-table-card">
     <div class="table-wrapper">
     <table mat-table [dataSource]="dataSource" class="po-table">
+      <ng-container matColumnDef="poNumber">
+        <th mat-header-cell *matHeaderCellDef>PO Number</th>
+        <td mat-cell *matCellDef="let row">{{ row.poNumber || '—' }}</td>
+      </ng-container>
       <ng-container matColumnDef="poDate">
         <th mat-header-cell *matHeaderCellDef>Date</th>
         <td mat-cell *matCellDef="let row">{{ row.poDate | date: 'mediumDate' }}</td>

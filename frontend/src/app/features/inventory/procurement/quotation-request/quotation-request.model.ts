@@ -74,6 +74,9 @@ export interface QuotationRequestSupplier {
 
 export interface QuotationRequest {
   id: number;
+  /** Sequential, e.g. "QR-2526-00001" — null only for rows that predate this feature and
+   *  haven't been through the "Regenerate Numbers" admin action yet. */
+  quotationNumber: string | null;
   locationId: number;
   locationVirtualName: string;
   status: QuotationRequestStatus;

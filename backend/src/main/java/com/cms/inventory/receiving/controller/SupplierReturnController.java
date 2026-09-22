@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.DocumentNumberRegenerationResult;
 import com.cms.inventory.receiving.dto.ReturnableGoodsReceiptLineResponse;
 import com.cms.inventory.receiving.dto.SupplierReturnAddLineRequest;
 import com.cms.inventory.receiving.dto.SupplierReturnCreateRequest;
@@ -52,8 +53,21 @@ public class SupplierReturnController {
     public ResponseEntity<Page<SupplierReturnResponse>> findPage(
             @RequestParam(required = false) Long goodsReceiptId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
             @PageableDefault(size = 25, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(returnService.findPage(goodsReceiptId, status, pageable));
+        return ResponseEntity.ok(returnService.findPage(goodsReceiptId, status, search, pageable));
+    }
+
+    @GetMapping("/regenerate-numbers/preview")
+    @PreAuthorize("@perm.has('INVENTORY_SUPPLIER_RETURN_REGENERATE_NUMBERS')")
+    public ResponseEntity<DocumentNumberRegenerationResult> previewRegenerateNumbers() {
+        return ResponseEntity.ok(returnService.regenerateReturnNumbers(true));
+    }
+
+    @PostMapping("/regenerate-numbers")
+    @PreAuthorize("@perm.has('INVENTORY_SUPPLIER_RETURN_REGENERATE_NUMBERS')")
+    public ResponseEntity<DocumentNumberRegenerationResult> regenerateNumbers() {
+        return ResponseEntity.ok(returnService.regenerateReturnNumbers(false));
     }
 
     @GetMapping("/{id}")

@@ -6,6 +6,7 @@ import java.util.List;
 
 public record QuotationRequestResponse(
     Long id,
+    String quotationNumber,
     Long locationId,
     String locationVirtualName,
     String status,

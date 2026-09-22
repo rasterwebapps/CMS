@@ -30,4 +30,7 @@ public interface GoodsReceiptRepository extends JpaRepository<GoodsReceipt, Long
         """)
     List<PurchaseOrderCycleTimeProjection> findCompletedOrdersForCycleTime(
         @Param("completedStatus") PurchaseOrderStatus completedStatus, @Param("confirmedStatus") GoodsReceiptStatus confirmedStatus);
+
+    /** Oldest-first — the order GoodsReceiptService.regenerateReceiptNumbers renumbers by. */
+    List<GoodsReceipt> findAllByOrderByReceiptDateAscIdAsc();
 }

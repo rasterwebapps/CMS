@@ -62,6 +62,9 @@ export interface PurchaseOrderItem {
 
 export interface PurchaseOrder {
   id: number;
+  /** Sequential, e.g. "PO-2526-00001" — null only for rows that predate this feature and
+   *  haven't been through the "Regenerate Numbers" admin action yet. */
+  poNumber: string | null;
   supplierId: number;
   supplierName: string;
   locationId: number;

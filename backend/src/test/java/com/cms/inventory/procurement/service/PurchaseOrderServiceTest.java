@@ -63,6 +63,7 @@ class PurchaseOrderServiceTest {
     @Mock private ProductUomChainService uomChainService;
     @Mock private ProductVariantRepository variantRepository;
     @Mock private QuotationRequestLineRepository quotationRequestLineRepository;
+    @Mock private com.cms.service.ApplicationNumberSequenceService numberSequenceService;
     private PurchaseOrderService service;
 
     private final InventoryLocation location = location(1L, "Main Store");
@@ -73,7 +74,7 @@ class PurchaseOrderServiceTest {
     void setUp() {
         service = new PurchaseOrderService(orderRepository, itemRepository, requisitionItemRepository, supplierRepository,
             locationRepository, taxRuleRepository, vendorProductMappingService, jurisdictionService, taxSubTypeService,
-            taxComponentRepository, uomChainService, variantRepository, quotationRequestLineRepository);
+            taxComponentRepository, uomChainService, variantRepository, quotationRequestLineRepository, numberSequenceService);
     }
 
     // ── addLine — base flow ──────────────────────────────────────────────────

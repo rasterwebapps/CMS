@@ -10,7 +10,7 @@
     </a>
     <div class="entry-form-hdr-text">
       <div class="page-title-row">
-        <h1 class="page-title">Quotation Request <em>#{{ r.id }}</em></h1>
+        <h1 class="page-title">Quotation Request <em>{{ r.quotationNumber || ('#' + r.id) }}</em></h1>
         <cms-status-badge [status]="r.status" />
       </div>
       <p class="page-subtitle">{{ r.locationVirtualName }} — {{ r.requestDate | date: 'mediumDate' }}</p>

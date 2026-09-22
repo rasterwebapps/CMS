@@ -29,14 +29,26 @@ public class ScopeKeyResolver {
      * (COURSE, ACADEMIC_YEAR_COURSE).
      */
     public String resolveCurrentPeriod(String scopeType) {
-        LocalDate today = LocalDate.now(timezoneService.getZone());
+        return resolvePeriod(scopeType, LocalDate.now(timezoneService.getZone()));
+    }
+
+    /**
+     * Returns the scope_key for the period containing an arbitrary date — used both for
+     * generating a number for a document dated today and for retroactively backfilling numbers
+     * onto existing documents using each one's own business date (e.g. {@code poDate}), so a
+     * historical document lands in the scope period it actually happened in rather than today's.
+     * Throws IllegalArgumentException for scope types that require caller-provided context
+     * (ACADEMIC_YEAR, COURSE, ACADEMIC_YEAR_COURSE) — none of NumberSeriesDefinitionService's
+     * document-numbering callers use those scope types today.
+     */
+    public String resolvePeriod(String scopeType, LocalDate date) {
         return switch (scopeType) {
             case "NONE"             -> "GLOBAL";
-            case "CALENDAR_DAY"     -> today.format(DAY_FMT);
-            case "CALENDAR_MONTH"   -> today.format(MONTH_FMT);
-            case "CALENDAR_YEAR"    -> String.valueOf(today.getYear());
-            case "FINANCIAL_MONTH"  -> today.format(MONTH_FMT);
-            case "FINANCIAL_YEAR"   -> resolveFinancialYear(today);
+            case "CALENDAR_DAY"     -> date.format(DAY_FMT);
+            case "CALENDAR_MONTH"   -> date.format(MONTH_FMT);
+            case "CALENDAR_YEAR"    -> String.valueOf(date.getYear());
+            case "FINANCIAL_MONTH"  -> date.format(MONTH_FMT);
+            case "FINANCIAL_YEAR"   -> resolveFinancialYear(date);
             case "ACADEMIC_YEAR"    -> throw new UnsupportedOperationException(
                     "ACADEMIC_YEAR scope_key requires the active academic year record — "
                     + "use AcademicYearRepository to find it and pass the scope_key explicitly.");

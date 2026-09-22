@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,7 +15,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.DocumentNumberChange;
+import com.cms.dto.DocumentNumberRegenerationResult;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.service.ApplicationNumberSequenceService;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomLevel;
 import com.cms.inventory.catalog.model.ProductVariant;
@@ -64,6 +69,8 @@ import com.cms.inventory.stock.repository.InventoryLocationRepository;
 @Transactional(readOnly = true)
 public class PurchaseOrderService {
 
+    private static final String PO_NUMBER_SERIES = "PURCHASE_ORDER_NUMBER";
+
     private final PurchaseOrderRepository orderRepository;
     private final PurchaseOrderItemRepository itemRepository;
     private final PurchaseRequisitionItemRepository requisitionItemRepository;
@@ -77,6 +84,7 @@ public class PurchaseOrderService {
     private final ProductUomChainService uomChainService;
     private final ProductVariantRepository variantRepository;
     private final QuotationRequestLineRepository quotationRequestLineRepository;
+    private final ApplicationNumberSequenceService numberSequenceService;
 
     public PurchaseOrderService(PurchaseOrderRepository orderRepository,
                                  PurchaseOrderItemRepository itemRepository,
@@ -90,7 +98,8 @@ public class PurchaseOrderService {
                                  PurchaseOrderItemTaxComponentRepository taxComponentRepository,
                                  ProductUomChainService uomChainService,
                                  ProductVariantRepository variantRepository,
-                                 QuotationRequestLineRepository quotationRequestLineRepository) {
+                                 QuotationRequestLineRepository quotationRequestLineRepository,
+                                 ApplicationNumberSequenceService numberSequenceService) {
         this.orderRepository = orderRepository;
         this.itemRepository = itemRepository;
         this.requisitionItemRepository = requisitionItemRepository;
@@ -104,6 +113,7 @@ public class PurchaseOrderService {
         this.uomChainService = uomChainService;
         this.variantRepository = variantRepository;
         this.quotationRequestLineRepository = quotationRequestLineRepository;
+        this.numberSequenceService = numberSequenceService;
     }
 
     @Transactional
@@ -126,18 +136,46 @@ public class PurchaseOrderService {
         order.setCreatedBy(createdBy);
         order.setCreatedAt(Instant.now());
         order.setUpdatedAt(Instant.now());
+        order.setPoNumber(numberSequenceService.nextNumberForDate(PO_NUMBER_SERIES, order.getPoDate()));
         return toResponse(orderRepository.save(order));
     }
 
-    public Page<PurchaseOrderResponse> findPage(Long supplierId, Long locationId, String status, Pageable pageable) {
+    public Page<PurchaseOrderResponse> findPage(Long supplierId, Long locationId, String status, String search, Pageable pageable) {
         Specification<PurchaseOrder> spec = (root, query, cb) -> {
             var predicate = cb.conjunction();
             if (supplierId != null) predicate = cb.and(predicate, cb.equal(root.get("supplier").get("id"), supplierId));
             if (locationId != null) predicate = cb.and(predicate, cb.equal(root.get("location").get("id"), locationId));
             if (status != null && !status.isBlank()) predicate = cb.and(predicate, cb.equal(root.get("status"), parseStatus(status)));
+            if (search != null && !search.isBlank()) {
+                predicate = cb.and(predicate, cb.like(cb.lower(root.get("poNumber")), "%" + search.trim().toLowerCase(Locale.ROOT) + "%"));
+            }
             return predicate;
         };
         return orderRepository.findAll(spec, pageable).map(o -> toResponse(o, false));
+    }
+
+    /** Bulk-reassigns every purchase order's number to a fresh, gap-free sequence within each
+     *  scope period (e.g. financial year), oldest po_date first — see ApplicationNumberSequence
+     *  Service.regenerateNumbers for the transactional-safety design (relies on
+     *  uq_purchase_orders_po_number being DEFERRABLE, V546). */
+    @Transactional
+    public DocumentNumberRegenerationResult regeneratePoNumbers(boolean dryRun) {
+        List<PurchaseOrder> orders = orderRepository.findAllByOrderByPoDateAscIdAsc();
+        List<Map.Entry<Long, LocalDate>> dates = orders.stream()
+            .map(o -> Map.entry(o.getId(), o.getPoDate()))
+            .toList();
+        Map<Long, String> newNumbers = numberSequenceService.regenerateNumbers(PO_NUMBER_SERIES, dates, dryRun);
+
+        List<DocumentNumberChange> changes = new ArrayList<>();
+        for (PurchaseOrder order : orders) {
+            String newNumber = newNumbers.get(order.getId());
+            if (!newNumber.equals(order.getPoNumber())) {
+                changes.add(new DocumentNumberChange(order.getId(), "PO for " + order.getSupplier().getSupplierName(), order.getPoNumber(), newNumber));
+                if (!dryRun) order.setPoNumber(newNumber);
+            }
+        }
+        if (!dryRun) orderRepository.saveAll(orders);
+        return new DocumentNumberRegenerationResult(changes.size(), changes);
     }
 
     public PurchaseOrderResponse findById(Long id) {
@@ -477,7 +515,7 @@ public class PurchaseOrderService {
         Supplier supplier = order.getSupplier();
         InventoryLocation location = order.getLocation();
         return new PurchaseOrderResponse(
-            order.getId(), supplier.getId(), supplier.getSupplierName(),
+            order.getId(), order.getPoNumber(), supplier.getId(), supplier.getSupplierName(),
             location.getId(), location.getVirtualName(),
             order.getStatus().name(), order.getPoDate(), order.getExpectedDeliveryDate(),
             order.getCurrencyCode(), order.getExchangeRate(), order.getNotes(),

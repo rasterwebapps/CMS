@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments';
+import { DocumentNumberRegenerationResult } from '../../../../shared/models/document-number.model';
 import {
   GoodsReceipt,
   GoodsReceiptAddLineRequest,
@@ -16,11 +17,20 @@ export class GoodsReceiptService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/inventory/receiving/goods-receipts`;
 
-  getPage(p: { purchaseOrderId?: number | null; status?: string | null; page?: number; size?: number }): Observable<Page<GoodsReceipt>> {
+  getPage(p: { purchaseOrderId?: number | null; status?: string | null; search?: string; page?: number; size?: number }): Observable<Page<GoodsReceipt>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.purchaseOrderId != null) params = params.set('purchaseOrderId', p.purchaseOrderId);
     if (p.status) params = params.set('status', p.status);
+    if (p.search) params = params.set('search', p.search);
     return this.http.get<Page<GoodsReceipt>>(`${this.baseUrl}/page`, { params });
+  }
+
+  previewRegenerateNumbers(): Observable<DocumentNumberRegenerationResult> {
+    return this.http.get<DocumentNumberRegenerationResult>(`${this.baseUrl}/regenerate-numbers/preview`);
+  }
+
+  regenerateNumbers(): Observable<DocumentNumberRegenerationResult> {
+    return this.http.post<DocumentNumberRegenerationResult>(`${this.baseUrl}/regenerate-numbers`, {});
   }
 
   getById(id: number): Observable<GoodsReceipt> {

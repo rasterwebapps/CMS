@@ -37,6 +37,12 @@ public class PurchaseOrder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Sequential, e.g. "PO-2526-00001" — assigned via ApplicationNumberSequenceService.
+     *  Nullable only for rows that predate this feature; every create() assigns one. Never
+     *  changes after assignment except via the explicit "Regenerate Numbers" admin action. */
+    @Column(name = "po_number", length = 50)
+    private String poNumber;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
@@ -90,6 +96,9 @@ public class PurchaseOrder {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getPoNumber() { return poNumber; }
+    public void setPoNumber(String poNumber) { this.poNumber = poNumber; }
 
     public Supplier getSupplier() { return supplier; }
     public void setSupplier(Supplier supplier) { this.supplier = supplier; }
