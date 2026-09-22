@@ -26,7 +26,7 @@ import jakarta.validation.Valid;
 @RequestMapping("/inventory/asset/service-contracts")
 public class AssetServiceContractController {
 
-    private static final String VIEW_ANY = "@perm.hasAny('INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE')";
+    private static final String VIEW_ANY = "@perm.hasAny('INVENTORY_ASSET_SERVICE_CONTRACT_VIEW', 'INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE')";
 
     private final AssetServiceContractService contractService;
 
@@ -35,7 +35,7 @@ public class AssetServiceContractController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('INVENTORY_ASSET_MAINTENANCE_MANAGE')")
+    @PreAuthorize("@perm.has('INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE')")
     public ResponseEntity<AssetServiceContractResponse> create(@Valid @RequestBody AssetServiceContractRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(contractService.create(request));
     }
@@ -56,7 +56,7 @@ public class AssetServiceContractController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@perm.has('INVENTORY_ASSET_MAINTENANCE_MANAGE')")
+    @PreAuthorize("@perm.has('INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE')")
     public ResponseEntity<AssetServiceContractResponse> update(@PathVariable Long id, @Valid @RequestBody AssetServiceContractRequest request) {
         return ResponseEntity.ok(contractService.update(id, request));
     }
