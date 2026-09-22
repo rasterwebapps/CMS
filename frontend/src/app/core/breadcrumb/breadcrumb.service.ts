@@ -87,7 +87,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   'capacity-planner': 'Capacity Planner',
   'capacity-auto-plan': 'Capacity Auto-Plan',
   'timetable-builder': 'Timetable Builder',
-  'conflict-inspector': 'Conflict Inspector',
   'resource-grid': 'Resource Timetable',
   'workload-rules': 'Faculty Workload Rules',
   'staff-swap': 'Staff Session Swap',

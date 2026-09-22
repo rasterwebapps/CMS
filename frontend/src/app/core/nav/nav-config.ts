@@ -139,7 +139,6 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Timetable Builder',    icon: 'grid_on',            route: '/timetable/timetable-builder', permissions: ['TIMETABLE_VIEW'] },
       // No standalone Staffing nav entry -- Approve now auto-staffs the draft itself (OC-230), and
       // any leftover unstaffed cell is fixed in-grid via Timetable Builder's Reassign Faculty dialog.
-      { label: 'Conflict Inspector',  icon: 'fact_check',         route: '/timetable/conflict-inspector', permissions: ['TIMETABLE_CONFLICT_INSPECTOR_VIEW'] },
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
       { label: 'Resource Timetable',  icon: 'grid_view',          route: '/timetable/resource-grid', permissions: ['TIMETABLE_FACULTY_GRID_VIEW', 'TIMETABLE_CLASSROOM_GRID_VIEW'] },
       // Lab Schedules is a manual CRUD screen over the same ClassSchedule rows the timetable

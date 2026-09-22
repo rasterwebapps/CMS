@@ -1,5 +1,5 @@
 import { SubstitutionAffectedSection } from '../../academic-year/academic-year.model';
-import { TimetableConflictRow } from '../conflict-inspector/conflict-inspector.model';
+import { TimetableConflictRow } from '../timetable.model';
 
 export type TimetableSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
 export type TimetableCellStatus = 'DRAFT' | 'PUBLISHED';

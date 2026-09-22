@@ -12,6 +12,37 @@ export interface TimetableActionResponse {
   affectedCount: number;
 }
 
+/** Per-cohort conflict-acknowledgment status (Timetable Builder's "Check & Resolve Conflicts"
+ *  row action) -- OC-260's replacement for the retired term-wide Conflict Inspector screen. */
+export interface ConflictAcknowledgmentStatus {
+  termInstanceId: number;
+  acknowledged: boolean;
+  acknowledgedAt: string | null;
+}
+
+export interface TimetableConstraintViolation {
+  code: string;
+  message: string;
+}
+
+/** One scanned session's structural-violation result, as returned by the backend's whole-term
+ *  conflict scan (still used internally by Global Auto-Schedule's post-run report). */
+export interface TimetableConflictRow {
+  classScheduleId: number;
+  subjectName: string;
+  subjectCode: string;
+  sessionType: 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
+  dayOfWeek: string;
+  periodLabel: string | null;
+  startTime: string;
+  endTime: string;
+  facultyName: string | null;
+  venueName: string | null;
+  cohortLabel: string | null;
+  status: 'DRAFT' | 'PUBLISHED';
+  violations: TimetableConstraintViolation[];
+}
+
 /** One cohort/session-type combination Approve found with curriculum-required hours never placed
  *  as real sessions for the term (OC-256) -- the same figure Timetable Builder's own "Total
  *  Unassigned" stat cards already show that cohort, surfaced here from
