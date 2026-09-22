@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -149,18 +151,28 @@ public class TimetableController {
         return ResponseEntity.ok(timetableSkeletonService.findClinicalShiftSummaryForTerm(termInstanceId));
     }
 
-    // Skeleton Builder's "All cohorts" landing summary table (OC-260 folded the former Draft Review
-    // screen's own identical table in here) -- one row per cohort enrolled in this term instance
-    // with its aggregate DRAFT/PUBLISHED/PARTIALLY_PUBLISHED status plus the cohort's
+    // Timetable Builder's "All cohorts" landing summary table (OC-260 folded the former Draft
+    // Review screen's own identical table in here) -- one row per cohort enrolled in this term
+    // instance with its aggregate DRAFT/PUBLISHED/PARTIALLY_PUBLISHED status plus the cohort's
     // Draft/Generated -> Conflicts Resolved -> Published readiness (see CohortTermStatusSummary).
-    // TIMETABLE_VIEW, not TIMETABLE_MANAGE -- this is now Skeleton Builder's own landing list and
+    // TIMETABLE_VIEW, not TIMETABLE_MANAGE -- this is now Timetable Builder's own landing list and
     // must be visible to the same broader audience as the rest of that screen; the higher-stakes
     // actions each row's status drives (Publish/Revert/Discard) are separately permission-gated on
     // their own endpoints.
+    //
+    // Paginated (OC-262) the same way every other OneCMS list screen is -- page/size query params,
+    // Spring's own Page<> serialized directly (no custom wrapper, matching UnifiedReceiptService's
+    // pattern). cohortId optionally narrows to one cohort so the screen's single-cohort filter goes
+    // through this same paginated path rather than a separate unpaginated fetch.
     @GetMapping("/draft/cohort-status-summary")
     @PreAuthorize("@perm.has('TIMETABLE_VIEW')")
-    public ResponseEntity<List<CohortTermStatusSummary>> findCohortStatusSummary(@RequestParam Long termInstanceId) {
-        return ResponseEntity.ok(timetableGenerationService.getCohortTermStatusSummaryWithReadiness(termInstanceId));
+    public ResponseEntity<Page<CohortTermStatusSummary>> findCohortStatusSummary(
+            @RequestParam Long termInstanceId,
+            @RequestParam(required = false) Long cohortId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size) {
+        return ResponseEntity.ok(timetableGenerationService.getCohortTermStatusSummaryWithReadiness(
+            termInstanceId, cohortId, PageRequest.of(page, size)));
     }
 
     @GetMapping

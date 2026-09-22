@@ -38,6 +38,13 @@ public final class TimetableCoverageCalculator {
         List.of(ClassSessionType.THEORY, ClassSessionType.LAB, ClassSessionType.CLINICAL);
 
     public static Map<ClassSessionType, HoursBreakdown> computeCoverage(SkeletonBuilderResponse skeleton) {
+        // A cohort with zero placed cells (PENDING) reads as fully empty, Clinical included, even
+        // though its Clinical Shift Group duty roster is configured independently of Run Automation
+        // and would otherwise already count as "covered" here -- mirrors the same gate on the
+        // frontend's hoursSummary() (OC-263).
+        List<SkeletonClinicalShiftHours> clinicalShiftHours =
+            skeleton.cells().isEmpty() ? List.of() : skeleton.clinicalShiftHours();
+
         Map<ClassSessionType, Double> total = new EnumMap<>(ClassSessionType.class);
         Map<ClassSessionType, Double> assigned = new EnumMap<>(ClassSessionType.class);
         Map<ClassSessionType, Double> extra = new EnumMap<>(ClassSessionType.class);
@@ -116,7 +123,7 @@ public final class TimetableCoverageCalculator {
 
                     double shiftAssigned = 0;
                     if (type == ClassSessionType.CLINICAL && sectionId != null) {
-                        for (SkeletonClinicalShiftHours h : skeleton.clinicalShiftHours()) {
+                        for (SkeletonClinicalShiftHours h : clinicalShiftHours) {
                             if (offeringIds.contains(h.courseOfferingId()) && sectionId.equals(h.cohortSectionId())) {
                                 shiftAssigned += h.assignedHours();
                             }
@@ -129,7 +136,7 @@ public final class TimetableCoverageCalculator {
                 }
 
                 if (type == ClassSessionType.CLINICAL) {
-                    for (SkeletonClinicalShiftHours h : skeleton.clinicalShiftHours()) {
+                    for (SkeletonClinicalShiftHours h : clinicalShiftHours) {
                         if (offeringIds.contains(h.courseOfferingId()) && h.cohortSectionId() == null) {
                             subjectAssigned += h.assignedHours();
                         }

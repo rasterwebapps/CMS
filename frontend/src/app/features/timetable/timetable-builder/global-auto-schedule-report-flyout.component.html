@@ -1,0 +1,700 @@
+<cms-flyout-panel width="640px" ariaLabel="Global auto-schedule" (closed)="onClose()">
+  <div flyoutHeader>{{ headerLabel() }}</div>
+
+  <div flyoutBody>
+    @switch (step()) {
+      @case ('checking-prerequisites') {
+        <p class="field-hint">Checking faculty assignments, capacity, and committed rooms…</p>
+      }
+
+      @case ('checklist') {
+        <p class="field-hint gas-warning">
+          This rebuilds the draft from scratch, replacing any manual moves. Approved (published)
+          timetables are never touched.
+        </p>
+
+        @if (attentionItems().length === 0) {
+          <p class="gas-checklist-allclear-banner">✓ Nothing needs your attention — every check passed.</p>
+        }
+
+        <ul class="gas-checklist">
+          @for (item of attentionItems(); track item.key) {
+            <li class="gas-checklist__item gas-checklist__item--warn">
+              <div class="gas-checklist__row">
+                <mat-checkbox [checked]="item.checked" [disabled]="!item.viewed || item.hardBlock"
+                  (change)="toggleChecklistItem(item.key)">
+                  <span class="gas-checklist__icon">⚠</span>
+                  {{ item.label }}
+                </mat-checkbox>
+                <button type="button" class="btn-secondary gas-checklist__view" [class.gas-checklist__view--expanded]="item.expanded"
+                  (click)="toggleChecklistDetail(item.key)">
+                  {{ item.expanded ? 'Hide ▾' : 'View & fix ▸' }}
+                </button>
+              </div>
+              @if (item.hardBlock && item.viewed) {
+                <p class="field-hint gas-checklist__blocked-hint">
+                  This blocks Run until it's resolved — fix it above, then Re-check.
+                </p>
+              }
+
+              @if (item.expanded) {
+                <div class="gas-checklist__detail">
+                  @switch (item.key) {
+                    @case ('faculty') {
+                      @if ((prerequisites()?.offeringsWithoutFaculty ?? []).length > 0) {
+                        <ul class="gas-contributors">
+                          @for (o of prerequisites()!.offeringsWithoutFaculty; track o.courseOfferingId) {
+                            <li class="gas-contributors__assign-row">
+                              <span class="gas-contributors__label">{{ o.subjectName }}{{ o.cohortName ? ' (' + o.cohortName + ')' : '' }}</span>
+                              <button type="button" class="btn-secondary gas-contributors__action" (click)="onAssignFaculty(o.courseOfferingId)">Assign faculty</button>
+                            </li>
+                          }
+                        </ul>
+                      } @else {
+                        <p class="field-hint">Every offering in this run already has faculty assigned — nothing to fix here.</p>
+                      }
+                    }
+
+                    @case ('room') {
+                      @if (cohortsNeedingRoom().length > 0) {
+                        <ul class="gas-contributors">
+                          @for (c of cohortsNeedingRoom(); track c.cohortId) {
+                            <li>{{ c.cohortName }}</li>
+                          }
+                        </ul>
+                        <a class="btn-secondary" routerLink="/timetable/capacity-auto-plan"
+                          [queryParams]="{ academicYearId: academicYearId(), termInstanceId: termInstanceId() }"
+                          target="_blank" rel="noopener">Open Capacity Auto-Plan</a>
+                      } @else {
+                        <p class="field-hint">Every cohort in this run already has a committed room allocation.</p>
+                      }
+                    }
+
+                    @case ('over-capacity') {
+                      @if (overCapacityFaculty().length > 0) {
+                        @for (f of overCapacityFaculty(); track f.facultyId) {
+                          <div class="gas-faculty-card">
+                            <div class="gas-faculty-card__name">{{ f.facultyName }}</div>
+                            <div class="gas-faculty-card__stat">
+                              Needs {{ f.totalTermDemandHours | number: '1.0-1' }}h across the term's {{ f.workingDaysInTerm }} working
+                              days — capacity is {{ f.termCapacityHours | number: '1.0-1' }}h ({{ f.effectiveDailyCapacityHours | number: '1.0-1' }}h/day
+                              from {{ tierLabel(f.dailyCapacityTier) }}), short by {{ f.shortfallHours | number: '1.0-1' }}h.
+                            </div>
+                            @if (f.topContributors.length > 0) {
+                              <ul class="gas-contributors">
+                                @for (c of f.topContributors; track c.courseOfferingId + '-' + c.cohortId + '-' + (c.cohortSectionId ? 's' + c.cohortSectionId : c.batchId ? 'b' + c.batchId : 'p')) {
+                                  <li>
+                                    {{ c.subjectName }} ({{ c.cohortName }}{{ c.cohortSectionLabel ? ' · ' + c.cohortSectionLabel : (c.batchName ? ' · ' + c.batchName : '') }}) — {{ sessionTypeLabel(c.sessionType) }}, {{ c.termHoursContributed | number: '1.0-1' }}h
+                                  </li>
+                                }
+                              </ul>
+                            }
+                            <a class="btn-primary" [routerLink]="['/faculty', f.facultyId]"
+                              [queryParams]="{ termInstanceId: termInstanceId(), academicYearId: academicYearId() }" fragment="courses"
+                              target="_blank" rel="noopener">
+                              View full workload →
+                            </a>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No faculty in this run exceeds their term capacity.</p>
+                      }
+                    }
+
+                    @case ('venue-over-capacity') {
+                      @if (overCapacityVenues().length > 0) {
+                        @for (v of overCapacityVenues(); track v.venueType + '-' + v.venueId) {
+                          <div class="gas-faculty-card">
+                            <div class="gas-faculty-card__name">{{ v.venueName }} <span class="text-muted">({{ v.venueType === 'LAB' ? 'Lab' : 'Clinical' }})</span></div>
+                            <div class="gas-faculty-card__stat">
+                              Needs {{ v.weeklyDemandPeriods }} periods/week across {{ v.affectedSubjectNames.join(', ') }} —
+                              this venue's real weekly window is only {{ v.weeklyAvailablePeriods }} periods, short by {{ v.shortfallPeriods }}.
+                              This is a weekly-time shortfall, not a seating one — raising the venue's own capacity won't
+                              change it. Adding a second venue below auto-links it as eligible for
+                              {{ v.affectedSubjectNames.join(', ') }}, but today's scheduler still places each subject's
+                              sessions in a single venue rather than splitting them across two — enabling a working
+                              Saturday (if not already) more reliably closes a shortfall like this one.
+                            </div>
+                            <div class="gas-shortfall__actions">
+                              @if (canManageWorkingSaturdays()) {
+                                <button type="button" class="btn-primary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                              }
+                              @if (canManageVenue(v)) {
+                                <a class="btn-secondary" [routerLink]="venueNewRoute(v)" [queryParams]="venueNewQueryParams(v)" target="_blank" rel="noopener">Add a second venue →</a>
+                              }
+                            </div>
+                            <cms-venue-rebalance-panel [termInstanceId]="termInstanceId()" [sessionType]="v.venueType" [venueId]="v.venueId"
+                              (rebalanced)="runCheckPrerequisites()" />
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No shared Lab/Clinical venue exceeds its real weekly window.</p>
+                      }
+                    }
+
+                    @case ('venue-tight-capacity') {
+                      @if (tightCapacityVenues().length > 0) {
+                        @for (v of tightCapacityVenues(); track v.venueType + '-' + v.venueId) {
+                          <div class="gas-faculty-card gas-faculty-card--tight">
+                            <div class="gas-faculty-card__name">{{ v.venueName }} <span class="text-muted">({{ v.venueType === 'LAB' ? 'Lab' : 'Clinical' }})</span> — {{ v.utilizationPercent | number: '1.0-1' }}% of its weekly window</div>
+                            <div class="gas-faculty-card__stat">
+                              Needs {{ v.weeklyDemandPeriods }} of {{ v.weeklyAvailablePeriods }} weekly periods across {{ v.affectedSubjectNames.join(', ') }} —
+                              the raw totals fit, but there's little to no room for real day/period packing to also succeed perfectly.
+                              Raising the venue's own capacity won't change this weekly-time figure; adding a second
+                              venue below auto-links it as eligible for {{ v.affectedSubjectNames.join(', ') }}, though
+                              today's scheduler still prefers a single venue per subject over splitting across two.
+                            </div>
+                            <div class="gas-shortfall__actions">
+                              @if (canManageWorkingSaturdays()) {
+                                <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                              }
+                              @if (canManageVenue(v)) {
+                                <a class="btn-secondary" [routerLink]="venueNewRoute(v)" [queryParams]="venueNewQueryParams(v)" target="_blank" rel="noopener">Add a second venue →</a>
+                              }
+                            </div>
+                            <cms-venue-rebalance-panel [termInstanceId]="termInstanceId()" [sessionType]="v.venueType" [venueId]="v.venueId"
+                              (rebalanced)="runCheckPrerequisites()" />
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No Lab/Clinical venue is at zero-slack weekly capacity.</p>
+                      }
+                    }
+
+                    @case ('clinical-shift-zero-periods') {
+                      @if (zeroPeriodDays().length > 0) {
+                        @for (d of zeroPeriodDays(); track d.cohortId + '-' + d.dayOfWeek) {
+                          <div class="gas-faculty-card">
+                            <div class="gas-faculty-card__name">{{ d.cohortDisplayName }} — {{ dayLabel(d.dayOfWeek) }} has no free period at all</div>
+                            <div class="gas-faculty-card__stat">
+                              {{ d.affectedShiftLabels.join(', ') }} blocks all {{ d.periodsBlockedByShift }} of the day's
+                              {{ d.totalActivePeriods }} periods once bus travel buffer is counted, so no Theory or Lab can be
+                              placed on this day. Shorten the shift's duration or travel buffer, or move its start time so the
+                              window clears at least one whole period — the buffer counts, so a start time only just outside a
+                              period still blocks it.
+                            </div>
+                            <div class="gas-shortfall__actions">
+                              @if (canManageWorkingSaturdays()) {
+                                <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                              }
+                            </div>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">Every Clinical-Shift cohort has at least one free period on every day.</p>
+                      }
+                    }
+
+                    @case ('clinical-shift-tight-periods') {
+                      @if (tightPeriodDays().length > 0) {
+                        @for (d of tightPeriodDays(); track d.cohortId + '-' + d.dayOfWeek) {
+                          <div class="gas-faculty-card gas-faculty-card--tight">
+                            <div class="gas-faculty-card__name">{{ d.cohortDisplayName }} — {{ dayLabel(d.dayOfWeek) }} is down to 1 free period</div>
+                            <div class="gas-faculty-card__stat">
+                              {{ d.affectedShiftLabels.join(', ') }} blocks {{ d.periodsBlockedByShift }} of the day's
+                              {{ d.totalActivePeriods }} periods once bus travel buffer is counted, leaving
+                              {{ d.periodsFreeForTheoryLab }} for Theory/Lab. The run will still place what fits, but this day
+                              contributes almost nothing to the week's teaching capacity — an afternoon shift start typically
+                              costs more periods than a morning one, because the pre-duty buffer eats into the morning as well.
+                            </div>
+                            <div class="gas-shortfall__actions">
+                              @if (canManageWorkingSaturdays()) {
+                                <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                              }
+                            </div>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No Clinical-Shift cohort/day is down to one period.</p>
+                      }
+                    }
+
+                    @case ('capacity-gap') {
+                      @if (capacityOverview(); as o) {
+                        <div class="gas-faculty-card" [class.gas-faculty-card--tight]="hasCapacityGap()">
+                          <div class="gas-faculty-card__stat">
+                            Across every cohort in this term, the curriculum needs {{ o.totalCurriculumRequiredHours | number: '1.0-0' }}h total —
+                            the faculty pool's combined term capacity is {{ o.totalFacultyCapacityHours | number: '1.0-0' }}h. Faculty are shared
+                            across cohorts, so this check is always term-wide, not limited to the cohort you're viewing.
+                            @if (hasCapacityGap()) {
+                              That's short by {{ capacityGapHours() | number: '1.0-0' }}h, structurally — no amount of
+                              rescheduling closes this on its own.
+                              @if (o.recommendedAdditionalFacultyCount > 0) {
+                                <strong> Roughly {{ o.recommendedAdditionalFacultyCount }} more faculty</strong> at the
+                                standard daily cap would close this gap.
+                              }
+                            } @else {
+                              Capacity covers the term's full demand; any remaining unplaced sessions come down to
+                              scheduling conflicts, not a raw hours shortfall.
+                            }
+                          </div>
+
+                          <div class="gas-shortfall__actions">
+                            @if (canManageWorkloadRules()) {
+                              <button type="button" class="btn-secondary" (click)="openWorkloadRulesEditor()">Raise workload caps</button>
+                            }
+                            @if (canManageWorkingSaturdays()) {
+                              <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                            }
+                            @if (canManageFaculty()) {
+                              <a class="btn-secondary" routerLink="/faculty/new" target="_blank" rel="noopener">Add Faculty →</a>
+                            }
+                            <a class="btn-secondary" routerLink="/timetable/capacity-planner"
+                              [queryParams]="{ termInstanceId: termInstanceId(), academicYearId: academicYearId() }"
+                              target="_blank" rel="noopener">View full Capacity Planner →</a>
+                          </div>
+
+                          @if (editingWorkloadRules()) {
+                            <div class="gas-workload-edit">
+                              <label>
+                                Max daily hours (institution-wide)
+                                <input type="number" min="0" step="0.5" name="draftMaxDailyHours"
+                                  [ngModel]="draftMaxDailyHours()" (ngModelChange)="draftMaxDailyHours.set($event)" />
+                              </label>
+                              <label>
+                                Max weekly hours (institution-wide)
+                                <input type="number" min="0" step="0.5" name="draftMaxWeeklyHours"
+                                  [ngModel]="draftMaxWeeklyHours()" (ngModelChange)="draftMaxWeeklyHours.set($event)" />
+                              </label>
+                              @if (overriddenFacultyCount() > 0) {
+                                <label class="gas-workload-edit__checkbox">
+                                  <input type="checkbox" name="bulkRaiseOverrides"
+                                    [ngModel]="bulkRaiseOverrides()" (ngModelChange)="bulkRaiseOverrides.set($event)" />
+                                  Also raise {{ overriddenFacultyCount() }} faculty member(s)' own personal override to this daily value
+                                </label>
+                                <p class="field-hint">
+                                  {{ overriddenFacultyCount() }} of {{ (capacityOverview()?.rows ?? []).length }} faculty already have
+                                  their own personal daily cap — a personal override always wins over this institution-wide default, so
+                                  without ticking this, saving here won't change their actual capacity at all.
+                                </p>
+                              } @else {
+                                <p class="field-hint">
+                                  No faculty currently has a personal override, so this institution-wide default is what everyone
+                                  actually uses today.
+                                </p>
+                              }
+                              <div class="gas-shortfall__actions">
+                                <button type="button" class="btn-cancel" (click)="cancelWorkloadRulesEdit()">Cancel</button>
+                                <button type="button" class="btn-primary" (click)="saveWorkloadRules()">Save</button>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    }
+
+                    @case ('tight-capacity') {
+                      @if (tightCapacityFaculty().length > 0) {
+                        @for (f of tightCapacityFaculty(); track f.facultyId) {
+                          <div class="gas-faculty-card gas-faculty-card--tight">
+                            <div class="gas-faculty-card__name">{{ f.facultyName }} — {{ f.utilizationPercent | number: '1.0-1' }}% utilized</div>
+                            <div class="gas-faculty-card__stat">
+                              Needs {{ f.totalTermDemandHours | number: '1.0-1' }}h against a {{ f.termCapacityHours | number: '1.0-1' }}h capacity
+                              ({{ f.effectiveDailyCapacityHours | number: '1.0-1' }}h/day from {{ tierLabel(f.dailyCapacityTier) }}) — the aggregate
+                              hours fit, but there's little to no room for real day/period packing to also succeed perfectly.
+                            </div>
+                            @if (f.topContributors.length > 0) {
+                              <ul class="gas-contributors">
+                                @for (c of f.topContributors; track c.courseOfferingId + '-' + c.cohortId + '-' + (c.cohortSectionId ? 's' + c.cohortSectionId : c.batchId ? 'b' + c.batchId : 'p')) {
+                                  <li>
+                                    {{ c.subjectName }} ({{ c.cohortName }}{{ c.cohortSectionLabel ? ' · ' + c.cohortSectionLabel : (c.batchName ? ' · ' + c.batchName : '') }}) — {{ sessionTypeLabel(c.sessionType) }}, {{ c.termHoursContributed | number: '1.0-1' }}h
+                                  </li>
+                                }
+                              </ul>
+                            }
+                            <a class="btn-secondary" [routerLink]="['/faculty', f.facultyId]"
+                              [queryParams]="{ termInstanceId: termInstanceId(), academicYearId: academicYearId() }" fragment="courses"
+                              target="_blank" rel="noopener">
+                              View full workload →
+                            </a>
+                          </div>
+                        }
+                      } @else {
+                        <p class="field-hint">No faculty in this run is at zero-slack capacity.</p>
+                      }
+                    }
+                  }
+                </div>
+              }
+            </li>
+          }
+        </ul>
+
+        @if (clearItems().length > 0) {
+          <div class="gas-checklist-group gas-checklist-group--clear">
+            <button type="button" class="gas-checklist-group__toggle" (click)="toggleClearGroup()">
+              {{ showAllClear() ? '▾' : '▸' }} All clear ({{ clearItems().length }})
+            </button>
+            @if (showAllClear()) {
+              <ul class="gas-checklist gas-checklist--clear">
+                @for (item of clearItems(); track item.key) {
+                  <li class="gas-checklist__clear-item">✓ {{ item.label }}</li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        <div class="gas-ack">
+          <mat-checkbox [checked]="acknowledged()" (change)="toggleAcknowledged()">
+            I've reviewed every milestone above and understand what running now will (and won't) place.
+          </mat-checkbox>
+        </div>
+      }
+
+      @case ('running') {
+        <div class="gas-running">
+          <mat-spinner diameter="28" />
+          <div>
+            <p class="field-hint">Rebuilding the draft and staffing every session… this can take several minutes for "All cohorts" — please wait, this panel can't be closed until it finishes.</p>
+            <p class="field-hint gas-elapsed">{{ elapsedSeconds() }}s elapsed — still working, each session is committed as soon as it's placed.</p>
+          </div>
+        </div>
+      }
+
+      @case ('success') {
+        @if (result(); as r) {
+          <div class="gas-outcome" [class.gas-outcome--clear]="!hasAnyRealGap()">
+            <div class="gas-outcome__headline">
+              @if (hasAnyRealGap()) {
+                <span class="gas-outcome__icon">⚠</span> {{ nextStepSummaries().length }} thing(s) need your attention
+              } @else {
+                <span class="gas-outcome__icon">✓</span> Fully scheduled
+              }
+            </div>
+            <p class="field-hint">{{ r.totalPlaced }} session(s) placed and staffed across {{ r.cohortSummaries.length }} cohort(s).</p>
+            @if (nextStepSummaries().length > 0) {
+              <ul class="gas-outcome__actions">
+                @for (line of nextStepSummaries(); track line) {
+                  <li>{{ line }}</li>
+                }
+              </ul>
+            }
+          </div>
+
+          <button type="button" class="gas-checklist-group__toggle gas-details-toggle" (click)="toggleFullDetails()">
+            {{ showFullDetails() ? '▾ Hide full run details' : '▸ Show full run details' }}
+          </button>
+
+          @if (showFullDetails()) {
+          <div class="gas-prereq-group">
+            <div class="gas-prereq-group__title">What this run did</div>
+            @if (r.staleDraftsCleared > 0) {
+              <p class="field-hint">
+                Full rebuild, not just the gaps: cleared {{ r.staleDraftsCleared }} previous draft session(s), then
+                placed and staffed {{ r.totalPlaced }} new one(s) across {{ r.cohortSummaries.length }} cohort(s) —
+                Lab/Clinical blocks packed first, Theory and filler after. Any unpinned manual move was replaced.
+              </p>
+            } @else {
+              <p class="field-hint">Placed and staffed {{ r.totalPlaced }} session(s) across {{ r.cohortSummaries.length }} cohort(s).</p>
+            }
+            @if (r.pinnedCellsPreserved > 0) {
+              <p class="field-hint">{{ r.pinnedCellsPreserved }} pinned session(s) were kept exactly where you put them — the rest was packed around them.</p>
+            }
+            @if (r.rotationGroupsCreated > 0) {
+              <p class="field-hint">Created {{ r.rotationGroupsCreated }} cross-offering Lab rotation(s) — two offerings sharing a cohort section, each split into 2 batches, now alternate Labs week-to-week instead of one batch sitting idle during the other's turn.</p>
+            }
+          </div>
+          @if (r.clinicalResiduals.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Clinical hours still owed — lengthen the duty or add duty days</div>
+              <p class="field-hint">
+                A Clinical Shift group runs one duty day a week, so a roster delivers duty length × weeks. Where
+                that lands just short of a subject's curriculum hours, the weekly grid can't close it — its smallest
+                Clinical row would overshoot several times over and take a slot another subject needs, so this run
+                left those rows off the grid on purpose. Close each one either way: lengthen every duty by a few
+                minutes, or add a Clinical Shift group with Effective From/To set to the extra duty days shown.
+              </p>
+              <ul class="gas-contributors">
+                @for (residual of r.clinicalResiduals; track residual.courseOfferingId) {
+                  <li class="gas-warning">
+                    <strong>{{ residual.subjectName }}</strong>
+                    @if (residual.cohortName) { <span> — {{ residual.cohortName }}</span> }
+                    <span> — {{ residual.residualHours }}h still owed
+                      = {{ residual.extraDutyDays }} more duty day(s) of {{ residual.hoursPerDutyDay }}h.</span>
+                    <span class="gas-residual-remedy">{{ residual.remedy }}</span>
+                    @if (residual.suggestedDurationMinutes) {
+                      <span class="gas-residual-remedy">
+                        Or lengthen each duty from {{ residual.currentDurationMinutes }} to {{ residual.suggestedDurationMinutes }} minutes —
+                        @if (residual.suggestedDurationCostsNoPeriods) {
+                          students are still back before the next free period, so it costs no timetable periods.
+                        } @else {
+                          note: students return later, so this also blocks at least one more period on duty days.
+                        }
+                      </span>
+                      @if (canApplyDutyFit()) {
+                        <div class="gas-shortfall__actions">
+                          @if (isDutyFitApplied(residual.courseOfferingId)) {
+                            <span class="field-hint">✓ Duty set to {{ residual.suggestedDurationMinutes }} minutes — run automation again to see these hours close.</span>
+                          } @else {
+                            <button type="button" class="btn-secondary" [disabled]="dutyFitApplyingId() !== null" (click)="applyDutyFit(residual)">
+                              @if (dutyFitApplyingId() === residual.courseOfferingId) { Applying… } @else { Apply duty length }
+                            </button>
+                          }
+                        </div>
+                      }
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+          @if (r.postRunConflicts.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Conflicts found after this run — not auto-resolved</div>
+              <p class="field-hint">
+                A term-wide conflict scan (the same check Conflict Inspector runs) found these after placing
+                everything above. A pinned session is deliberately left standing rather than re-placed, so a
+                conflict it has with something this run just placed — or with another cohort's own existing
+                session — isn't something a rebuild fixes on its own. Nothing below was changed; review each
+                in Conflict Inspector and resolve it there.
+              </p>
+              <ul class="gas-contributors">
+                @for (row of r.postRunConflicts; track row.classScheduleId) {
+                  <li class="gas-warning">
+                    <strong>{{ row.subjectName }}</strong>
+                    @if (row.cohortLabel) { <span> — {{ row.cohortLabel }}</span> }
+                    <span> — {{ row.dayOfWeek }} {{ row.periodLabel }}</span>
+                    @for (v of row.violations; track v.code) {
+                      <span class="gas-residual-remedy">{{ v.message }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+          @if (r.pairingSkipReasons.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Lab pairing considered but not placed</div>
+              <ul class="gas-contributors">
+                @for (reason of r.pairingSkipReasons; track reason) {
+                  <li class="gas-warning">{{ reason }}</li>
+                }
+              </ul>
+            </div>
+          }
+          @if (r.facultySubstitutionTips.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">A substitute covered some sessions</div>
+              <p class="field-hint">
+                Already placed — no action needed unless you want to change who teaches these going forward.
+              </p>
+              <p class="gas-warning">
+                <strong>Confirming a tip does more than log it:</strong> it makes the substitute the section's
+                official teacher for <strong>the rest of the term</strong>, checked against their full-term
+                capacity. Leave a tip unticked to skip it — you can still reassign faculty manually anytime via
+                Assign Faculty.
+              </p>
+              @for (tip of r.facultySubstitutionTips; track tipKey(tip)) {
+                <div class="gas-faculty-card">
+                  <div class="gas-faculty-card__row">
+                    <mat-checkbox class="gas-faculty-card__checkbox" [checked]="isTipConfirmed(tip)" [disabled]="isTipSubmitted(tip)" (change)="toggleTipConfirmed(tip)">
+                      <span class="gas-faculty-card__name" [title]="tip.subjectName">{{ tip.subjectName }}</span>
+                    </mat-checkbox>
+                    @if (!isTipSubmitted(tip)) {
+                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View details" ariaLabel="View details"
+                        class="gas-faculty-card__view" (clicked)="viewTipDetail(tip)">
+                        <mat-icon>visibility</mat-icon>
+                      </cms-row-action-btn>
+                    }
+                  </div>
+                  <div class="gas-faculty-card__stat">
+                    <strong>{{ tip.substituteFacultyName }}</strong> filled in for {{ tip.sessionCount }} session(s) —
+                    <strong>{{ tip.originalFacultyName }}</strong> had no free slot left this run.
+                  </div>
+                  @if (isTipSubmitted(tip)) {
+                    <div class="gas-shortfall__actions">
+                      <span class="field-hint">✓ Confirmed — {{ tip.substituteFacultyName }} is now the official {{ tipRoleLabel(tip) }} for the rest of the term.</span>
+                    </div>
+                  }
+                </div>
+              }
+              <div class="gas-shortfall__actions">
+                <button type="button" class="btn-primary" [disabled]="!canSubmitSubstitutions()" (click)="submitSubstitutions()">
+                  @if (submittingSubstitutions()) { Confirming… } @else { Confirm ticked substitution(s) }
+                </button>
+              </div>
+            </div>
+          }
+          @if (r.skippedPublishedCohorts.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Skipped — this term's timetable is already approved</div>
+              <ul class="gas-contributors">
+                @for (s of r.skippedPublishedCohorts; track s.cohortId) {
+                  <li>{{ s.cohortName }} — untouched; only manual period/staff edits are allowed for it now</li>
+                }
+              </ul>
+            </div>
+          }
+          <ul class="gas-contributors">
+            @for (c of r.cohortSummaries; track c.cohortId) {
+              <li>
+                {{ c.cohortName }} — {{ c.placedCount }} session(s)
+                @if (c.unplaced.length > 0) {
+                  <ul class="gas-contributors">
+                    @for (u of c.unplaced; track u.subjectName + '-' + u.sessionType + '-' + u.reason) {
+                      <li [class]="u.advisoryOnly ? 'field-hint' : 'gas-warning'">{{ u.subjectName }} ({{ u.sessionType }}{{ u.occupantLabel ? ' · ' + u.occupantLabel : '' }}) — {{ u.reason }}</li>
+                    }
+                  </ul>
+                }
+                @if (c.infoNotes.length > 0) {
+                  <ul class="gas-contributors">
+                    @for (note of c.infoNotes; track note) {
+                      <li class="field-hint">{{ note }}</li>
+                    }
+                  </ul>
+                }
+              </li>
+            }
+          </ul>
+          @if (r.electiveUnplaced.length > 0) {
+            <div class="gas-prereq-group">
+              <div class="gas-prereq-group__title">Elective groups not placed</div>
+              <ul class="gas-contributors">
+                @for (u of r.electiveUnplaced; track u.subjectName + '-' + u.reason) {
+                  <li class="gas-warning">{{ u.subjectName }} — {{ u.reason }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (hasShortfall()) {
+            <div class="gas-prereq-group gas-shortfall">
+              @if (everySaturdayWorking()) {
+                <div class="gas-prereq-group__title">Still short with every Saturday already a working day</div>
+                <p class="field-hint">
+                  Every Saturday in this term is already opted in, so there is genuinely no further day to
+                  open — the week is six working days and all six are in use. Request a one-off Special Class
+                  for whatever's still short instead.
+                </p>
+              } @else if (workingSaturdaysConfigured()) {
+                <div class="gas-prereq-group__title">Only some Saturdays are working days — the rest are still closed</div>
+                <p class="field-hint">
+                  This term opts into {{ workingSaturdayWeeks().length }} of the 5 possible Saturday patterns,
+                  so most Saturdays in the term are still non-working days and automation cannot place anything
+                  on them. Opting into the remaining weeks adds real capacity — a session on a pattern that
+                  only matches once a month runs about 6 times across the term, against 26 for a full weekly
+                  one. Open the rest, or request a one-off Special Class for whatever's still short.
+                </p>
+              } @else {
+                <div class="gas-prereq-group__title">Monday–Friday didn't have room for everything above</div>
+                <p class="field-hint">
+                  Two ways to close the gap: open up specific Saturdays for automation to use next run,
+                  or request a one-off Special Class for whatever's still short.
+                </p>
+              }
+              <div class="gas-shortfall__actions">
+                @if (!everySaturdayWorking()) {
+                  <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+                }
+                @if (singleShortfallSubject(); as subject) {
+                  <button type="button" class="btn-primary" [title]="'For ' + subject.subjectName" (click)="openSpecialClass(subject)">
+                    Schedule Special Class
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (hasCapacityCausedGap()) {
+            <div class="gas-prereq-group gas-shortfall">
+              <div class="gas-prereq-group__title">Some of that is a real staffing ceiling, not a scheduling conflict</div>
+              <p class="field-hint">
+                {{ result()!.capacityCausedGapHours | number: '1.0-0' }}h of gap-fill this run tried every eligible
+                faculty for and still couldn't staff — Saturday or a Special Class won't close this specific part;
+                it needs more faculty capacity.
+                @if (result()!.recommendedAdditionalFacultyCount > 0) {
+                  <strong> Roughly {{ result()!.recommendedAdditionalFacultyCount }} more faculty</strong> at the
+                  standard daily cap would close it.
+                }
+              </p>
+              <div class="gas-shortfall__actions">
+                @if (canManageWorkloadRules()) {
+                  <button type="button" class="btn-secondary" (click)="openWorkloadRulesEditor()">Raise workload caps</button>
+                }
+                @if (canManageFaculty()) {
+                  <a class="btn-secondary" routerLink="/faculty/new" target="_blank" rel="noopener">Add Faculty →</a>
+                }
+              </div>
+            </div>
+          }
+
+          @if (hasVenueCapacityGap()) {
+            <div class="gas-prereq-group gas-shortfall">
+              <div class="gas-prereq-group__title">Some of that is a real venue ceiling, not a scheduling conflict</div>
+              <p class="field-hint">
+                Reordering cohorts can't fix this part — these venues' own weekly window capacity is the limit.
+                Raise the venue's capacity if that reflects its real capability, or add a second venue for the
+                subject; only the admin who knows the site can say which is right.
+              </p>
+              @for (gap of result()!.venueCapacityGaps; track gap.venueType + '-' + gap.venueId) {
+                <div class="gas-faculty-card gas-faculty-card--tight">
+                  <div class="gas-faculty-card__name">{{ gap.venueName }} <span class="text-muted">({{ gap.venueType === 'LAB' ? 'Lab' : 'Clinical' }})</span></div>
+                  <div class="gas-faculty-card__stat">
+                    {{ gap.unplacedHours | number: '1.0-0' }}h across {{ gap.affectedSubjectNames.join(', ') }} still
+                    couldn't be placed this run. This venue seats {{ gap.currentCapacity ?? '—' }} student(s) at a
+                    time — a cohort bigger than that gets split into extra turns, each needing its own full weekly
+                    quota, which is what's driving the unplaced hours above. Raising the seat count (or adding a
+                    second venue) reduces the number of turns needed.
+                  </div>
+                  @if (canManageVenue(gap)) {
+                    <div class="gas-shortfall__actions">
+                      <a class="btn-secondary" [routerLink]="venueEditRoute(gap)" target="_blank" rel="noopener">Raise capacity →</a>
+                      <a class="btn-secondary" [routerLink]="venueNewRoute(gap)" [queryParams]="venueNewQueryParams(gap)" target="_blank" rel="noopener">Add a second venue →</a>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+          }
+
+          <!-- OC-260: Draft Review is retired into this same screen -- closing the flyout already
+               shows the cohort list with each row's own Check-Conflicts/Publish action below, UNLESS
+               this run was launched from inside a single cohort's own grid (OC-265), where closing
+               lands back on that already-populated grid instead -- "review cohorts below" would be
+               wrong there, so the label is scoped to whichever is actually true. -->
+          <button type="button" class="btn-primary" (click)="onClose()">
+            {{ fromGridView() ? 'Done' : 'Close and review cohorts below' }}
+          </button>
+        }
+      }
+
+      @case ('run-failed') {
+        <p class="field-hint gas-warning" style="white-space: pre-line;">{{ runError() }}</p>
+      }
+    }
+  </div>
+
+  <div flyoutFooter>
+    <button type="button" class="btn-cancel" [disabled]="step() === 'running'" (click)="onClose()">Close</button>
+    @if (step() === 'checklist' || step() === 'run-failed') {
+      <button type="button" class="btn-secondary" (click)="runCheckPrerequisites()">Re-check</button>
+    }
+    @if (step() === 'checklist') {
+      <button type="button" class="btn-primary" [disabled]="!canRun()" (click)="runGlobalSchedule()">Run Global Auto-Schedule</button>
+    }
+  </div>
+</cms-flyout-panel>
+
+@if (showWorkingSaturdaysFlyout()) {
+  <app-working-saturdays-flyout
+    [termInstanceId]="termInstanceId()"
+    [termStartDate]="termStartDate()"
+    [termEndDate]="termEndDate()"
+    (closed)="onWorkingSaturdaysClosed()"
+    (saved)="onWorkingSaturdaysSaved()">
+  </app-working-saturdays-flyout>
+}
+
+@if (specialClassPrefill(); as subject) {
+  <app-special-class-request-flyout
+    [prefillAcademicYearId]="academicYearId()"
+    [prefillTermInstanceId]="termInstanceId()"
+    [prefillCohortId]="subject.cohortId"
+    [prefillCourseOfferingId]="subject.courseOfferingId"
+    [prefillSessionType]="subject.sessionType"
+    (closed)="onSpecialClassClosed()"
+    (saved)="onSpecialClassSaved()">
+  </app-special-class-request-flyout>
+}

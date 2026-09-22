@@ -9,6 +9,7 @@ import {
   ClinicalShiftSummaryItem,
   CohortTermStatusSummary,
   MyTimetableResponse,
+  Page,
   ResourceGridRow,
   ResourceGridType,
   StaffSwapCandidate,
@@ -38,9 +39,15 @@ export class TimetableService {
     return this.http.get<ClinicalShiftSummaryItem[]>(`${this.baseUrl}/draft/clinical-shift-summary`, { params });
   }
 
-  getCohortStatusSummary(termInstanceId: number): Observable<CohortTermStatusSummary[]> {
-    const params = new HttpParams().set('termInstanceId', termInstanceId);
-    return this.http.get<CohortTermStatusSummary[]>(`${this.baseUrl}/draft/cohort-status-summary`, { params });
+  /** OC-262: paginated, matching the OneCMS server-side list-screen standard -- `cohortId` narrows
+   *  to one cohort through this same paginated path rather than a separate unpaginated fetch, so
+   *  Timetable Builder's single-cohort filter and its "All cohorts" table share one data path. */
+  getCohortStatusSummary(termInstanceId: number, cohortId: number | null, page: number, size: number): Observable<Page<CohortTermStatusSummary>> {
+    let params = new HttpParams().set('termInstanceId', termInstanceId).set('page', page).set('size', size);
+    if (cohortId != null) {
+      params = params.set('cohortId', cohortId);
+    }
+    return this.http.get<Page<CohortTermStatusSummary>>(`${this.baseUrl}/draft/cohort-status-summary`, { params });
   }
 
   /** OC-260: `cohortIds` is required -- Approve is cohort-scoped now, publishing the chosen subset

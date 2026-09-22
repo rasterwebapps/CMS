@@ -1,0 +1,712 @@
+// ─────────────────────────────────────────────────────────────
+// Timetable Builder
+// ─────────────────────────────────────────────────────────────
+
+// Pushes the Run Automation / Configure Working Saturdays buttons to the
+// right of the toolbar row, filters staying left — same local pattern as
+// receipts-list.component.scss's .toolbar-right (ViewEncapsulation means
+// that rule doesn't reach this component, so it's redefined here).
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.skeleton-empty-hint {
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-base);
+  padding: 8px 0;
+  margin: 0;
+}
+
+// ── "All cohorts" summary table (2026-09-21, folded in from the former Timetable Draft Review
+// screen per OC-260) ─────────────────────────────────────────────────────────────────────────────
+// No longer a whole-row `cursor: pointer` (2026-09-22) -- the row itself has no click handler now,
+// only the explicit per-cell action icons (using the shared .row-actions/cms-row-action-btn
+// pattern from styles.scss, same as enquiry-list) are interactive.
+
+.cell-name {
+  display: block;
+  font-weight: 600;
+  color: var(--cms-text-primary);
+}
+
+.cell-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--cms-text-secondary);
+  margin-top: 1px;
+}
+
+// ── Hours summary (reuses global .stat-grid/.stat-card — see styles.scss) ─────────
+// No margin-bottom here: this is a direct child of .mlp-page, whose own flex
+// `gap: 16px` already spaces it from whatever comes next -- a margin-bottom
+// here would stack on top of that gap and double it (see CLAUDE.md's
+// "Shared mlp-* list-page spacing system" hard gate).
+.skeleton-hours-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Term load / Theory / Lab / Clinical hour-progress cards (2026-09-21 redesign) — four equal
+// columns down to tablet width, then wraps to fit narrower screens rather than squeezing. 16px
+// throughout, matching .mlp-page's own gap (see the comment above) rather than a one-off value.
+.skeleton-hours-summary--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+// ── Section filter tabs (mirrors Capacity Planner's .cap-tab-toggle pattern) ──────
+.skeleton-section-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--cms-radius-md, 10px);
+  background: var(--cms-bg-muted);
+  width: fit-content;
+}
+
+.skeleton-section-tab {
+  padding: 6px 16px;
+  border: none;
+  border-radius: var(--cms-radius-sm, 6px);
+  background: transparent;
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+
+  &--active {
+    background: var(--cms-bg-card);
+    color: var(--cms-primary);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+}
+
+// ── Grid ─────────────────────────────────────────────────────────
+.skeleton-grid-card {
+  padding: 0;
+}
+
+.skeleton-grid {
+  border-collapse: collapse;
+  width: 100%;
+  // Fixed, not auto (the default): without this, each column's width is driven by whatever
+  // content happens to render widest across the WHOLE table, so the Clinical Shift banner's
+  // 3-period colspan (Mon-Wed) could distort width distribution unevenly across just the columns
+  // it spans, most visibly at the first/last period's own edges — exactly the "first and last
+  // period never matched the uniform gap" symptom this fixes structurally, not just cosmetically.
+  table-layout: fixed;
+}
+
+// Sets the first column's width for the WHOLE table (table-layout: fixed takes a first-row cell's
+// width as authoritative for every row below it, including every .skeleton-grid__day-hdr cell) --
+// was 90px, generous enough for a full word, but the day column only ever holds a 3-letter
+// abbreviation ("Mon", "Tue"...), so that reserved almost 40px of dead space nothing ever used,
+// reading as a gap before Period 1 even starts.
+.skeleton-grid__corner {
+  width: 56px;
+}
+
+.skeleton-grid__period-hdr {
+  padding: 10px 8px;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--cms-border-default);
+
+  // Mirrors .skeleton-grid__day-hdr's own outer-edge boost (12px) on the table's other true outer
+  // edge -- Period 8's right side is a boundary with the card, not with another column, the same
+  // reasoning that gives the day-hdr's LEFT side its extra 4px over the standard 8px. Without this,
+  // every internal column-to-column gap reads as 8px while the whole table's right edge reads as
+  // only 8px too instead of matching the left edge's 12px, so the grid never quite reads as having
+  // equal gaps "on all sides" it should.
+  &:last-child {
+    padding-right: 12px;
+  }
+}
+
+.skeleton-grid__period-time {
+  font-weight: 400;
+  color: var(--cms-text-muted);
+}
+
+.skeleton-grid__day-hdr {
+  // Right padding matches .skeleton-grid__cell/.skeleton-grid__period-hdr's own 8px exactly, so
+  // the gap at the day-label/Period-1 boundary reads the same as every other column-to-column
+  // gap — only the left side (the table's true outer edge, not a boundary with anything) keeps
+  // extra room for the day name's own legibility.
+  padding: 8px 8px 8px 12px;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+  border-right: 1px solid var(--cms-border-default);
+}
+
+.skeleton-grid__cell {
+  // Horizontal padding matches .skeleton-grid__period-hdr's 8px (was 4px) so a period column's
+  // header and body line up on the same edges instead of the body content sitting closer to the
+  // column boundary than its own header does.
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--cms-border-default);
+  vertical-align: middle;
+
+  // Matches .skeleton-grid__period-hdr's own :last-child boost -- see that rule's comment.
+  &:last-child {
+    padding-right: 12px;
+  }
+}
+
+// The merged, non-placeable cell for a run of consecutive Periods a Clinical Shift blocks —
+// spans exactly the columns it covers (see TimetableBuilderComponent#rowSegments), so the shift
+// visibly occupies the real grid space it blocks (e.g. through Period 5) instead of each period
+// rendering individually. Never a placement target (no cdkDropList here at all).
+.skeleton-grid__cell--shift {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--cms-border-default);
+  vertical-align: middle;
+  min-width: 90px;
+  background: var(--cms-bg-muted);
+
+  // Matches .skeleton-grid__period-hdr's own :last-child boost -- see that rule's comment. A shift
+  // banner reaching all the way through Period 8 is unlikely (duty blocks tend to sit at the start
+  // of the day), but its colspan still collapses to one real `:last-child` <td> if it ever does.
+  &:last-child {
+    padding-right: 12px;
+  }
+}
+
+.skeleton-shift-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  // Same primary tint as .skeleton-cell--clinical (2026-09-21) — this banner IS the Clinical duty
+  // window, just rendered as one wide block instead of per-period cells, so it reads as the same
+  // category rather than a separate warning/amber tone.
+  background: rgba(var(--cms-primary-rgb), 0.22);
+  box-shadow: inset 0 0 0 1px rgba(var(--cms-primary-rgb), 0.35);
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.3;
+  cursor: default;
+}
+
+.skeleton-shift-block--wide {
+  gap: 2px;
+  padding: 6px 8px;
+}
+
+// Only there so the banner joins the grid's drop-list group; it must not change the cell's layout.
+.skeleton-shift-drop {
+  height: 100%;
+}
+
+.skeleton-shift-block--draggable {
+  cursor: grab;
+
+  &.cdk-drag-preview {
+    box-shadow: var(--cms-shadow-xl);
+    cursor: grabbing;
+  }
+}
+
+.skeleton-shift-block__label {
+  font-weight: 700;
+}
+
+.skeleton-shift-block__duty {
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.skeleton-shift-block__duration {
+  font-weight: 600;
+}
+
+.skeleton-shift-block__bus {
+  font-weight: 400;
+  color: var(--cms-text-muted);
+}
+
+.skeleton-cell-stack {
+  position: relative; // anchors .skeleton-cell-stack__advisory's absolute positioning
+  display: flex;
+  flex-direction: column;
+  // Centers the stack vertically within its <td> -- a table row's height is set by its tallest
+  // column (e.g. a period with two stacked cells), so a column with fewer cells than that has real
+  // leftover space in its own <td>. Left-aligned (the flex default), that whole leftover amount
+  // sits below the content since nothing pins it to the bottom too, reading as a much bigger gap
+  // below than above. Centering splits it evenly instead, so the gap above and below matches
+  // regardless of how tall the row ends up being because of a DIFFERENT column.
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 100%;
+
+  // A slot currently being dragged over (by a cell from anywhere else in the grid, via the
+  // table-level cdkDropListGroup) gets a soft highlight so the drop target is obvious.
+  &.cdk-drop-list-dragging {
+    background: rgba(var(--cms-primary-rgb), 0.06);
+    border-radius: 8px;
+  }
+
+  // Live drag-preview highlight — set for every slot for the whole drag gesture (not just the one
+  // under the pointer), so an admin can see every legal target at a glance before releasing.
+  &.skeleton-cell-stack--drop-valid {
+    background: var(--cms-success-light);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--cms-success);
+  }
+
+  // A swap target: the sessions there trade places with the dragged one.
+  &.skeleton-cell-stack--drop-swap {
+    background: var(--cms-info-light);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--cms-info);
+  }
+
+  &.skeleton-cell-stack--drop-invalid {
+    background: var(--cms-danger-light);
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px var(--cms-danger);
+    opacity: 0.6;
+  }
+}
+
+// Absolutely positioned (OC-266) rather than a normal flex child of .skeleton-cell-stack -- as a
+// normal child it sat above the actual session cell(s), and since the stack centers its content as
+// one group (see .skeleton-cell-stack's own justify-content: center comment), that pushed the
+// cell(s) below true-center: there was real space above them (this text + the stack's own gap) but
+// nothing symmetric below, reading as an uneven gap even though the stack itself was centered
+// correctly. A first attempt floated it as a full-width text bar over the stack's top edge, which
+// fixed the centering but put it directly over the horizontally-centered subject-code text below
+// it. Shrunk to an icon-only badge tucked in the top-right corner instead (the full explanation
+// stays available via its own `title` tooltip) -- .skeleton-cell's content is centered, so a small
+// corner badge clears it both vertically and horizontally in the normal case, the same trade-off
+// the existing top-left pin toggle already makes.
+.skeleton-cell-stack__advisory {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(var(--cms-primary-rgb), 0.16);
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--cms-primary);
+  cursor: help;
+  // `auto` (not `none`) -- this badge carries its own `title` tooltip, and `pointer-events: none`
+  // blocks hover along with click/drag, which silently killed that tooltip entirely. It's only
+  // 14x14px in the cell's corner, so the click/drag area it shadows is minimal.
+  pointer-events: auto;
+}
+
+.skeleton-cell {
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 8px;
+  border: 1px dashed var(--cms-border-default);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  // Subject-color accent bar, layered via box-shadow rather than a border side so it never
+  // fights the border shorthand used for the theory/lab/clinical/selected states below.
+  box-shadow: inset 3px 0 0 0 var(--subject-color, transparent);
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: rgba(var(--cms-primary-rgb), 0.35);
+  }
+
+  // Draggable placed cells get a grab cursor; .cdk-drag-disabled is the class CDK itself applies
+  // when [cdkDragDisabled] is true, so a user without TIMETABLE_SKELETON_MOVE still sees the
+  // plain pointer cursor.
+  &[cdkDrag]:not(.cdk-drag-disabled):not(:disabled) {
+    cursor: grab;
+  }
+
+  &.cdk-drag-preview {
+    box-shadow: var(--cms-shadow-xl);
+    opacity: 0.96;
+    cursor: grabbing;
+  }
+  &.cdk-drag-placeholder {
+    opacity: 0.3;
+  }
+  &.cdk-drag-animating {
+    transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  // Four primary tints (2026-09-21), replacing the old fixed blue/green badge fills — mandatory
+  // Theory reads strongest, advisory Co-curricular faintest, matching its lower scheduling
+  // priority (see TimetableGlobalAutoScheduleService#isAdvisoryRow). All four stay in the same
+  // "light tint" range Lab's original 8% already proved safe, so every cell keeps using the normal
+  // page-surface text tokens — no fixed on-fill text colour needed anymore.
+  //
+  // The rule this replaced used a SOLID saturated fill for Theory/Clinical (with forced light text
+  // to match) specifically because a light tint at THAT fill's darkness read as invisible dark-grey
+  // text on mid-blue in dark mode. That risk doesn't apply here: every tint below stays well inside
+  // the light range Lab's 8% already shipped and proved safe, so re-check contrast in both themes
+  // when you look at this live, but this isn't the same fill depth the old comment was warning about.
+  &--theory {
+    border-style: solid;
+    background: rgba(var(--cms-primary-rgb), 0.08);
+  }
+  &--lab {
+    border-style: solid;
+    background: rgba(var(--cms-primary-rgb), 0.16);
+  }
+  &--clinical {
+    border-style: solid;
+    background: rgba(var(--cms-primary-rgb), 0.22);
+  }
+  // Deliberately keeps the base rule's dashed border (no border-style override here, unlike the
+  // three mandatory variants above) instead of relying on alpha alone to read as different — a
+  // real incident (2026-09-21) showed 5% vs Theory's 16% tint was numerically distinct but not
+  // visually distinguishable at a glance, especially stacked under --staffed's own 0.75 opacity.
+  // A dashed border is a genuinely different visual cue, not just a fainter one, matching this
+  // subject's actual advisory/uncertain status.
+  &--co-curricular {
+    background: rgba(var(--cms-primary-rgb), 0.05);
+  }
+  // A light tint of SPORTS_CELL_COLOR (#65a30d), like Lab's tint rather than a solid fill, so the
+  // page-surface text tokens keep reading in both themes.
+  &--sports {
+    border-style: solid;
+    background: rgba(101, 163, 13, 0.14);
+  }
+
+  &--staffed {
+    opacity: 0.75;
+  }
+
+  // Purely visual: a run of same-subject/type/occupant cells across consecutive periods (built by
+  // dragging .skeleton-cell__resize-handle) flattens its touching border/corner so the run reads
+  // as one continuous block — each period underneath stays its own independent, individually
+  // movable/removable/staffable cell; nothing here implies a shared sessionGroupId.
+  //
+  // Flattening the border alone isn't enough to look joined: each period's own <td> (see
+  // .skeleton-grid__cell) carries its own 8px horizontal padding, so two adjacent cells still sit
+  // 16px apart regardless of their own border/radius. `width: auto` + a matching negative margin
+  // is the standard "bleed past the parent's padding" technique — it lets this block-level flex
+  // box widen into that padding on the joined side(s) so the run actually reads as one unbroken
+  // strip instead of still showing a gap with just the corner points shaved off. A standalone
+  // (non-joined) single-period cell is untouched by either rule, so it keeps its normal curved,
+  // colored border on both sides.
+  &--joined-next {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right-style: none;
+    width: auto;
+    margin-right: -8px;
+  }
+  &--joined-prev {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left-style: none;
+    width: auto;
+    margin-left: -8px;
+    // The subject-color accent bar (box-shadow above) is always drawn on the left, marking where a
+    // session visually begins — only the run's actual first cell (no --joined-prev) should show it;
+    // otherwise a stray colored line would sit in the middle of what's supposed to read as one
+    // unbroken block.
+    box-shadow: none;
+  }
+}
+
+.skeleton-cell__resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 6px;
+  bottom: 6px;
+  width: 6px;
+  border-radius: 3px;
+  cursor: ew-resize;
+  background: transparent;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: rgba(var(--cms-primary-rgb), 0.35);
+  }
+}
+
+// Pin toggle. Sits top-left so it never collides with .skeleton-cell__resize-handle on the right
+// edge. Drawn as a filled dot rather than an icon glyph: the cell is only ~90px wide at the
+// grid's smallest column, where a glyph either overflows or renders too small to hit reliably.
+// Colours come from --cms-* tokens so both themes resolve from one definition.
+.skeleton-cell__pin {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1.5px solid var(--cms-text-muted);
+  background: transparent;
+  opacity: 0.45;
+  transition: opacity 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    border-color: var(--cms-warning);
+  }
+
+  // Keyboard focus must stay visible — the control has no text to fall back on.
+  &:focus-visible {
+    outline: 2px solid var(--cms-primary);
+    outline-offset: 2px;
+  }
+
+  // Pinned: solid, full-opacity, and always visible rather than hover-revealed, so "this cell
+  // survives the next run" reads at a glance across the whole grid.
+  &--on {
+    opacity: 1;
+    background: var(--cms-warning);
+    border-color: var(--cms-warning);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-cell__pin {
+    transition: none;
+  }
+}
+
+// Default colours here suit a transparent or lightly-tinted cell (Library, Lab). Cells with a
+// SOLID badge fill override them — see the `--theory`/`--clinical` on-fill block above.
+.skeleton-cell__subject {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--cms-text-muted);
+  text-transform: uppercase;
+}
+
+.skeleton-cell__type {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--cms-text-primary);
+}
+
+.skeleton-cell__batch {
+  font-size: 0.65rem;
+  color: var(--cms-text-muted);
+}
+
+.skeleton-cell__rotation-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--cms-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Small marker keeping an elective recognizable once a management-selected one renders as a
+   regular cohort cell (OC-227). */
+.skeleton-cell__elective-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cms-text-muted);
+}
+
+
+// ─── Displaced-subject banner (raised by Replace) ──────────────────────────
+// Sits between the section tabs and the grid card. Deliberately NOT a `.content-card`: it is a
+// transient advisory, not a section of the page, and giving it the same card treatment as the
+// grid would read as a permanent part of the screen.
+.skeleton-displaced {
+  padding: 12px 14px;
+  border: 1px solid var(--cms-warning);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: var(--cms-warning-light);
+  // warning-light is a near-white amber in light mode and a translucent amber in dark, so text
+  // colour is set explicitly from the primary token rather than inherited.
+  color: var(--cms-text-primary);
+}
+
+.skeleton-displaced__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.skeleton-displaced__title {
+  font-size: var(--cms-text-base);
+  font-weight: 600;
+}
+
+.skeleton-displaced__dismiss-all,
+.skeleton-displaced__dismiss {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 4px;
+  background: transparent;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--cms-border-hover);
+    color: var(--cms-text-primary);
+  }
+}
+
+.skeleton-displaced__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.skeleton-displaced__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+// `min-width: 0` so a long subject name truncates instead of refusing to shrink and pushing the
+// Dismiss button out of the row -- flex items default to `min-width: auto`.
+.skeleton-displaced__subject {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--cms-text-base);
+  font-weight: 600;
+}
+
+.skeleton-displaced__stat {
+  flex: 0 0 auto;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.skeleton-displaced__hint {
+  margin: 10px 0 0;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+}
+
+// ─── Cell action menu ──────────────────────────────────────────────────────
+// The menu panel itself renders in an overlay outside this component's DOM, so these rules are
+// applied via ::ng-deep on the panel class -- Angular's emulated ViewEncapsulation would
+// otherwise scope them to elements that never exist inside this component's template.
+::ng-deep .skeleton-cell-menu .skeleton-cell-menu__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 16px 6px;
+  border-bottom: 1px solid var(--cms-border-light);
+}
+
+::ng-deep .skeleton-cell-menu .skeleton-cell-menu__subject {
+  font-size: var(--cms-text-sm);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+::ng-deep .skeleton-cell-menu .skeleton-cell-menu__slot {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+}
+
+::ng-deep .skeleton-cell-menu .skeleton-cell-menu__danger {
+  color: var(--cms-danger);
+}
+
+// ─── Sessions trapped inside a Clinical Shift duty window ──────────────────
+// The periods these sit in are collapsed into the duty banner, so they have nowhere else to
+// render. Shown here rather than left invisible: they stay active in the draft, and an admin can
+// only act on what they can see.
+.skeleton-shift-block__conflicts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--cms-danger);
+}
+
+.skeleton-shift-block__conflicts-title {
+  flex: 0 0 100%;
+  text-align: center;
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-danger);
+}
+
+.skeleton-shift-block__conflict {
+  padding: 2px 8px;
+  border: 1px solid var(--cms-danger);
+  border-radius: 999px;
+  // danger-light is a pale red in light mode and a translucent red over the dark surface in dark,
+  // so the text colour is set from the primary token rather than inherited from the banner.
+  background: var(--cms-danger-light);
+  color: var(--cms-text-primary);
+  font-size: var(--cms-text-xs);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--cms-danger);
+    filter: brightness(0.97);
+  }
+}

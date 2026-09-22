@@ -6,8 +6,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,7 +24,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import com.cms.dto.CohortTermStatusSummary;
 import com.cms.dto.ConflictScanResponse;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.TimetableActionResponse;
@@ -485,5 +492,105 @@ class TimetableGenerationServiceTest {
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).save(any());
+    }
+
+    // ── getCohortTermStatusSummaryWithReadiness (Timetable Builder's Pending/Drafted/Conflicts
+    // Resolved lifecycle + attendanceRecorded, 2026-09-22) ──────────────────────────────────────
+
+    private static final Pageable ANY_PAGE = PageRequest.of(0, 25);
+
+    private CohortTermStatusSummary baseRow(String status, int draftCount, int publishedCount) {
+        return new CohortTermStatusSummary(COHORT_ID, "BSc Nursing 2024", "BSc Nursing", "2024-2025",
+            status, draftCount, publishedCount, 0.0, false);
+    }
+
+    /** OC-262: {@link TimetableSkeletonService#getCohortTermStatusSummary} is now paginated, so
+     *  every test here stubs it to return a one-page {@link PageImpl} of the given base row(s). */
+    private void stubSkeletonSummaryPage(CohortTermStatusSummary... rows) {
+        when(timetableSkeletonService.getCohortTermStatusSummary(eq(10L), isNull(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of(rows), ANY_PAGE, rows.length));
+    }
+
+    @Test
+    void shouldReportPendingWhenCohortHasNoSessionsPlacedYet() {
+        stubSkeletonSummaryPage(baseRow("DRAFT", 0, 0));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).status()).isEqualTo("PENDING");
+        // The zero-cells short circuit must fire before the gate checks that computing
+        // DRAFTED/CONFLICTS_RESOLVED would otherwise require -- the one call that does happen is
+        // attendanceRecorded's own (separate) lookup, not a second one from the gate-check path.
+        verify(timetableSkeletonService, times(1)).getCohortActiveClassSchedules(anyLong(), anyLong());
+    }
+
+    @Test
+    void shouldReportDraftedWhenACellExistsButIsUnstaffed() {
+        ClassSchedule unstaffed = new ClassSchedule();
+        unstaffed.setId(1L);
+        unstaffed.setStatus(ClassScheduleStatus.DRAFT);
+        stubCohortSchedules(List.of(unstaffed));
+
+        stubSkeletonSummaryPage(baseRow("DRAFT", 1, 0));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).status()).isEqualTo("DRAFTED");
+    }
+
+    @Test
+    void shouldReportConflictsResolvedWhenEveryApproveGatePasses() {
+        ClassSchedule staffed = new ClassSchedule();
+        staffed.setId(1L);
+        staffed.setStatus(ClassScheduleStatus.DRAFT);
+        staffed.setFaculty(faculty);
+        stubCohortSchedules(List.of(staffed));
+
+        stubSkeletonSummaryPage(baseRow("DRAFT", 1, 0));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(timetableConflictInspectorService.filterScanForCohorts(any(), eq(10L), eq(COHORT_IDS))).thenReturn(cleanScan());
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, COHORT_ID)).thenReturn(List.of());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).status()).isEqualTo("CONFLICTS_RESOLVED");
+    }
+
+    @Test
+    void shouldPassPublishedStatusThroughUnchanged() {
+        stubSkeletonSummaryPage(baseRow("PUBLISHED", 0, 3));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).status()).isEqualTo("PUBLISHED");
+    }
+
+    @Test
+    void shouldSurfaceAttendanceRecordedFlagRegardlessOfStatus() {
+        ClassSchedule published = new ClassSchedule();
+        published.setId(1L);
+        published.setStatus(ClassScheduleStatus.PUBLISHED);
+        stubCohortSchedules(List.of(published));
+
+        stubSkeletonSummaryPage(baseRow("PUBLISHED", 0, 1));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(true);
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).attendanceRecorded()).isTrue();
+    }
+
+    @Test
+    void shouldReportAttendanceNotRecordedWhenNoAttendanceExists() {
+        stubSkeletonSummaryPage(baseRow("DRAFT", 0, 0));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).attendanceRecorded()).isFalse();
     }
 }

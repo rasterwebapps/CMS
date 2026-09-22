@@ -19,6 +19,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -87,25 +91,32 @@ class TimetableControllerTest {
 
     @Test
     void shouldFindCohortStatusSummary() throws Exception {
-        // OC-260: Skeleton Builder's "All cohorts" list now calls this via
+        // OC-260: Timetable Builder's "All cohorts" list now calls this via
         // TimetableGenerationService#getCohortTermStatusSummaryWithReadiness, not
-        // TimetableSkeletonService directly, since only that service can compute readinessStatus.
-        when(timetableGenerationService.getCohortTermStatusSummaryWithReadiness(10L))
-            .thenReturn(List.of(new CohortTermStatusSummary(5L, "BSc Nursing 2024", "BSc Nursing", "2024-2025",
-                "PARTIALLY_PUBLISHED", 1, 2, 12.5, "PARTIALLY_PUBLISHED")));
+        // TimetableSkeletonService directly, since only that service can compute the readiness
+        // (Pending -> Drafted -> Conflicts Resolved -> Published) status and attendanceRecorded.
+        // OC-262: paginated -- Spring's own Page<> is serialized directly, so content sits under
+        // "content" alongside paging metadata (totalElements etc.), not a bare top-level array.
+        Page<CohortTermStatusSummary> page = new PageImpl<>(
+            List.of(new CohortTermStatusSummary(5L, "BSc Nursing 2024", "BSc Nursing", "2024-2025",
+                "PARTIALLY_PUBLISHED", 1, 2, 12.5, true)),
+            PageRequest.of(0, 25), 1);
+        when(timetableGenerationService.getCohortTermStatusSummaryWithReadiness(eq(10L), isNull(), any(Pageable.class)))
+            .thenReturn(page);
 
         mockMvc.perform(get("/timetables/draft/cohort-status-summary").param("termInstanceId", "10"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].cohortId").value(5))
-            .andExpect(jsonPath("$[0].status").value("PARTIALLY_PUBLISHED"))
-            .andExpect(jsonPath("$[0].draftCount").value(1))
-            .andExpect(jsonPath("$[0].publishedCount").value(2))
-            .andExpect(jsonPath("$[0].courseName").value("BSc Nursing"))
-            .andExpect(jsonPath("$[0].admissionYearName").value("2024-2025"))
-            .andExpect(jsonPath("$[0].unassignedHours").value(12.5))
-            .andExpect(jsonPath("$[0].readinessStatus").value("PARTIALLY_PUBLISHED"));
+            .andExpect(jsonPath("$.content[0].cohortId").value(5))
+            .andExpect(jsonPath("$.content[0].status").value("PARTIALLY_PUBLISHED"))
+            .andExpect(jsonPath("$.content[0].draftCount").value(1))
+            .andExpect(jsonPath("$.content[0].publishedCount").value(2))
+            .andExpect(jsonPath("$.content[0].courseName").value("BSc Nursing"))
+            .andExpect(jsonPath("$.content[0].admissionYearName").value("2024-2025"))
+            .andExpect(jsonPath("$.content[0].unassignedHours").value(12.5))
+            .andExpect(jsonPath("$.content[0].attendanceRecorded").value(true))
+            .andExpect(jsonPath("$.totalElements").value(1));
 
-        verify(timetableGenerationService).getCohortTermStatusSummaryWithReadiness(10L);
+        verify(timetableGenerationService).getCohortTermStatusSummaryWithReadiness(eq(10L), isNull(), any(Pageable.class));
     }
 
     @Test

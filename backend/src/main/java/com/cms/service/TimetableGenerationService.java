@@ -4,6 +4,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -308,7 +311,8 @@ public class TimetableGenerationService {
     }
 
     /** OC-260: decorates {@link TimetableSkeletonService#getCohortTermStatusSummary}'s rows with
-     *  each cohort's Draft/Generated -&gt; Conflicts Resolved -&gt; Published readiness. Lives here
+     *  each cohort's Pending -&gt; Draft/Generated -&gt; Conflicts Resolved -&gt; Published readiness.
+     *  Lives here
      *  rather than on {@code TimetableSkeletonService} itself because computing it needs {@link
      *  TimetableConflictInspectorService} (cohort conflict scan/acknowledgment), which in turn
      *  depends on {@code TimetableSkeletonService} for row resolution -- putting the computation on
@@ -316,8 +320,12 @@ public class TimetableGenerationService {
      *  depends on all four gate-owning services {@link #approve} itself uses, so it's the natural
      *  place both live without a cycle. */
     @Transactional(readOnly = true)
-    public List<CohortTermStatusSummary> getCohortTermStatusSummaryWithReadiness(Long termInstanceId) {
-        List<CohortTermStatusSummary> rows = timetableSkeletonService.getCohortTermStatusSummary(termInstanceId);
+    public Page<CohortTermStatusSummary> getCohortTermStatusSummaryWithReadiness(
+            Long termInstanceId, Long cohortId, Pageable pageable) {
+        Page<CohortTermStatusSummary> page = timetableSkeletonService.getCohortTermStatusSummary(termInstanceId, cohortId, pageable);
+        if (page.isEmpty()) {
+            return page;
+        }
         // Hoisted out of the per-cohort loop below: each of these is already whole-term, so
         // computing it once and reusing it per row avoids the term getting re-scanned/re-queried
         // once per still-draft cohort. The original version called scanCohorts (a full
@@ -327,12 +335,22 @@ public class TimetableGenerationService {
             courseOfferingSectionFacultyService.getAssignmentSummaryForTermInstance(termInstanceId);
         List<TimetableCoverageGap> coverageGaps = timetableCoverageService.findGaps(termInstanceId);
         ConflictScanResponse termScan = timetableConflictInspectorService.scanTerm(termInstanceId);
-        return rows.stream()
+        List<CohortTermStatusSummary> decorated = page.getContent().stream()
             .map(row -> new CohortTermStatusSummary(
                 row.cohortId(), row.cohortName(), row.courseName(), row.admissionYearName(),
-                row.status(), row.draftCount(), row.publishedCount(), row.unassignedHours(),
-                computeReadinessStatus(termInstanceId, row, assignmentSummaries, coverageGaps, termScan)))
+                computeReadinessStatus(termInstanceId, row, assignmentSummaries, coverageGaps, termScan),
+                row.draftCount(), row.publishedCount(), row.unassignedHours(),
+                isAttendanceRecorded(termInstanceId, row.cohortId())))
             .toList();
+        return new PageImpl<>(decorated, pageable, page.getTotalElements());
+    }
+
+    /** Both Discard and Revert-to-Draft permanently refuse once this is true (see their own guards
+     *  above) -- computed here, per row, so the row table can hide those actions upfront rather
+     *  than offering a button that can only ever fail. */
+    private boolean isAttendanceRecorded(Long termInstanceId, Long cohortId) {
+        Set<Long> scheduleIds = resolveCohortScheduleIds(termInstanceId, List.of(cohortId));
+        return !scheduleIds.isEmpty() && labAttendanceRepository.existsByLabScheduleIdIn(List.copyOf(scheduleIds));
     }
 
     private String computeReadinessStatus(Long termInstanceId, CohortTermStatusSummary row,
@@ -342,33 +360,36 @@ public class TimetableGenerationService {
         if ("PUBLISHED".equals(row.status()) || "PARTIALLY_PUBLISHED".equals(row.status())) {
             return row.status();
         }
-        // status == "DRAFT": ready ("CONFLICTS_RESOLVED") only once every one of approve()'s own
-        // preflight gates would currently pass for this cohort -- checked in the same cheapest-first
-        // order as approve() itself, short-circuiting on the first failure.
+        if (row.draftCount() == 0 && row.publishedCount() == 0) {
+            return "PENDING";
+        }
+        // Otherwise ready ("CONFLICTS_RESOLVED") only once every one of approve()'s own preflight
+        // gates would currently pass for this cohort -- checked in the same cheapest-first order as
+        // approve() itself, short-circuiting on the first failure.
         Long cohortId = row.cohortId();
         List<ClassSchedule> cells = timetableSkeletonService.getCohortActiveClassSchedules(termInstanceId, cohortId);
         boolean unstaffed = cells.stream()
             .filter(cs -> cs.getStatus() == ClassScheduleStatus.DRAFT)
             .anyMatch(cs -> cs.getFaculty() == null && cs.getSessionType() != ClassSessionType.LIBRARY);
         if (unstaffed) {
-            return "DRAFT_GENERATED";
+            return "DRAFTED";
         }
         Set<Long> offeringIds = resolveCohortOfferingIds(termInstanceId, List.of(cohortId));
         boolean offeringGap = assignmentSummaries.stream()
             .filter(s -> offeringIds.contains(s.offeringId()))
             .anyMatch(s -> s.assignmentStatus() == OfferingAssignmentStatus.NONE || s.assignmentStatus() == OfferingAssignmentStatus.PARTIAL);
         if (offeringGap) {
-            return "DRAFT_GENERATED";
+            return "DRAFTED";
         }
         boolean coverageGap = coverageGaps.stream().anyMatch(gap -> gap.cohortId().equals(cohortId));
         if (coverageGap) {
-            return "DRAFT_GENERATED";
+            return "DRAFTED";
         }
         if (timetableConflictInspectorService.filterScanForCohorts(termScan, termInstanceId, List.of(cohortId)).violationCount() > 0) {
-            return "DRAFT_GENERATED";
+            return "DRAFTED";
         }
         if (!timetableConflictInspectorService.isCohortAcknowledgmentValid(termInstanceId, cohortId)) {
-            return "DRAFT_GENERATED";
+            return "DRAFTED";
         }
         return "CONFLICTS_RESOLVED";
     }

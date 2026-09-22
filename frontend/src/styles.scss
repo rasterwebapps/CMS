@@ -1694,6 +1694,15 @@ td.mat-mdc-cell.cell-expanded {
   // ── Header ───────────────────────────────────────────────────────────────
   th.mat-header-cell,
   th.mat-mdc-header-cell {
+    // `<th>` is centered by the browser's own default UA stylesheet -- a real
+    // `<mat-table>` never shows this because Angular Material's own theme sets
+    // `text-align: left` on its header cells, but `.modern-table` is a plain
+    // `<table>` borrowing Material-shaped class NAMES for visual styling only,
+    // so nothing here overrode the browser default until now. Per
+    // docs/DATA_TABLE_ALIGNMENT_STANDARDS.md, left is the correct default for
+    // text columns; `.cell-align-center`/`.cell-align-right` (`!important`)
+    // still win for the columns that opt into them.
+    text-align:     left;
     font-size:      0.75rem;
     font-weight:    700;
     text-transform: uppercase;
@@ -4929,16 +4938,23 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   flex-wrap: wrap;
   // No z-index here: toolbar does not form a stacking context, so the fixed
   // cp-dropdown (z-index:2000) escapes to mat-sidenav-content and beats the
-  // sticky table header (z-index:2) by 2000 vs 2.
+  // sticky table header by a wide margin.
   position: relative;
 
   // When anim-rise is applied, the cms-rise-up animation temporarily sets
   // transform:translateY(Xpx), which creates a stacking context with z-index:auto
-  // (layer 6). That puts the toolbar group BELOW the sticky table header (z-index:2,
-  // layer 7), hiding the dropdown. The explicit z-index here promotes the toolbar
-  // group to layer 7 at z-index:100, which beats the table header.
+  // (layer 6). That puts the toolbar group BELOW the sticky table header, hiding
+  // any filter dropdown opened from the toolbar. The explicit z-index here promotes
+  // the toolbar group to layer 7, above the table header.
+  //
+  // CDK's StickyStyler (@angular/cdk/table) assigns sticky cells z-index by summing
+  // per-direction increments — top:100, bottom:10, left:1, right:1 — so a header cell
+  // that is ALSO a sticky column (the common case: the leading column pinned + a
+  // sticky header row) lands at z-index:101, not the z-index:2 once assumed here.
+  // 100 used to just barely lose that tie-break; 300 gives real headroom above every
+  // realistic sticky combination (max possible: 100+10+1+1 = 112).
   &.anim-rise {
-    z-index: 100;
+    z-index: 300;
   }
 }
 
@@ -5652,7 +5668,7 @@ main.app-content > :not(router-outlet) {
 // which otherwise hard-locks the WHOLE PAGE to `height:100%; overflow:hidden`
 // on the (structural, class-name-only) assumption that anything carrying
 // `.mlp-table-card` is a `mat-paginator` list screen whose own internal
-// `.table-wrapper` substitutes for page scroll. Skeleton Builder hit exactly
+// `.table-wrapper` substitutes for page scroll. Timetable Builder hit exactly
 // this: it has no paginator, and its `.detail-split__sidebar`'s own
 // `overflow-y: auto` never got a chance to run out of content to scroll
 // because the page itself was already clipped first — found 2026-08-19.

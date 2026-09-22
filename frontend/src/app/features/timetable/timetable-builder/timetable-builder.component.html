@@ -1,0 +1,517 @@
+<div class="mlp-page mlp-page--free-scroll">
+
+  @if (viewMode() === 'table') {
+    <div class="mlp-hdr anim-rise">
+      <div class="mlp-hdr-left">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h1 class="mlp-title">Timetable <em>Builder</em></h1>
+          <cms-tour-button tourKey="timetable-builder" [iconOnly]="true" iconVariant="info-circle" />
+        </div>
+        <p class="page-subtitle">Automate Theory/Lab/Clinical placement for a cohort's term, then drag to fine-tune. Need to size rooms/batches first? Open the <a routerLink="/timetable/capacity-planner">Capacity Planner</a>.</p>
+      </div>
+    </div>
+  } @else {
+    <!-- Grid view is a child of the "All cohorts" table (opened via a row's Open Grid action) --
+         same rich back-button + title header card every other child/detail screen in the app uses
+         (e.g. Create Admission), replacing the generic "Timetable Builder" title for this mode
+         rather than stacking a second header below it. -->
+    <div class="entry-form-header anim-rise">
+      <button type="button" class="entry-form-back-btn" (click)="backToTable()" aria-label="Back to all cohorts">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
+      <div class="entry-form-hdr-text">
+        <div class="page-title-row">
+          <h1 class="mlp-title">{{ gridHeaderCohortName() }}</h1>
+          <cms-tour-button tourKey="timetable-builder" [iconOnly]="true" iconVariant="info-circle" />
+        </div>
+        <p class="page-subtitle">{{ skeleton()?.termInstanceLabel }}</p>
+      </div>
+    </div>
+  }
+
+  @if (showWorkingSaturdays() && selectedTermInstanceId) {
+    <app-working-saturdays-flyout
+      [termInstanceId]="selectedTermInstanceId"
+      [termStartDate]="selectedTerm()?.startDate ?? null"
+      [termEndDate]="selectedTerm()?.endDate ?? null"
+      [canRunAutomation]="canGlobalAutoPlace() && !!selectedCohortId && !allCohortsSelected() && viewMode() === 'grid'"
+      (closed)="onWorkingSaturdaysClosed()"
+      (saved)="onWorkingSaturdaysSaved()"
+      (runAutomation)="onWorkingSaturdaysRunAutomation()">
+    </app-working-saturdays-flyout>
+  }
+
+  @if (showGlobalAutoSchedule() && selectedTermInstanceId && selectedAcademicYearId) {
+    <app-global-auto-schedule-report-flyout
+      [termInstanceId]="selectedTermInstanceId"
+      [academicYearId]="selectedAcademicYearId"
+      [cohortId]="allCohortsSelected() ? null : selectedCohortId"
+      [cohortName]="skeleton()?.cohortName ?? rowRunCohortName()"
+      [termStartDate]="selectedTerm()?.startDate ?? null"
+      [termEndDate]="selectedTerm()?.endDate ?? null"
+      [fromGridView]="viewMode() === 'grid'"
+      (closed)="onGlobalAutoScheduleClosed()"
+      (scheduled)="onGlobalScheduleCompleted()">
+    </app-global-auto-schedule-report-flyout>
+  }
+
+  <div id="tour-skel-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
+    @if (viewMode() === 'table') {
+      <cms-infinite-select
+        label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
+        [fetchPage]="academicYearFetchPage"
+        [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+      />
+      <cms-infinite-select
+        label="Term" ariaLabel="Term" searchPlaceholder="Search terms…"
+        [fetchPage]="termFetchPage"
+        [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
+        [disabled]="termsLoading() || termInstances().length === 0"
+      />
+      <cms-infinite-select
+        label="Cohort" ariaLabel="Cohort" searchPlaceholder="Search cohorts…"
+        [fetchPage]="cohortSelectionFetchPage"
+        [selectedValue]="cohortSelection" (selectedValueChange)="onCohortSelectionChange($event)"
+        [disabled]="cohortsLoading() || cohorts().length === 0"
+      />
+    }
+    <!-- Grid view's term/cohort are already fixed by the Open Grid navigation that got here, and
+         its own back button now lives in the header card above -- the filter selects simply don't
+         render in this mode, leaving only the Run Automation button (toolbar-right below). -->
+    @if (selectedTermInstanceId && ((canGlobalAutoPlace() && (allCohortsSelected() || selectedCohortId)) || (canManageWorkingSaturdays() && viewMode() === 'table'))) {
+      <div class="toolbar-right">
+        @if (canManageWorkingSaturdays() && viewMode() === 'table') {
+          <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+        }
+        @if (canGlobalAutoPlace() && (allCohortsSelected() || (selectedCohortId && viewMode() === 'grid'))) {
+          <button type="button" class="btn-primary" [disabled]="!allCohortsSelected() && termTimetablePublished()"
+            [title]="!allCohortsSelected() && termTimetablePublished() ? 'This term\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
+            (click)="confirmAndOpenGlobalAutoSchedule()">{{ allCohortsSelected() ? 'Run Global Auto-Schedule' : 'Run Automation' }}</button>
+        }
+      </div>
+    }
+  </div>
+
+  @if (viewMode() === 'table') {
+    <div class="content-card anim-rise anim-rise--d2">
+      @if (cohortStatusSummaryLoading()) {
+        <div class="loading-container">
+          <mat-spinner diameter="36" aria-label="Loading cohort status summary"></mat-spinner>
+        </div>
+      } @else if (cohortStatusSummary().length === 0) {
+        <cms-empty-state
+          icon="auto_awesome"
+          title="Global Auto-Schedule"
+          subtitle="Rebuilds every cohort's whole draft for this term at once, using each offering's assigned faculty — pinned sessions stay put, everything else is cleared and re-placed. Checks prerequisites and every faculty's real capacity first — nothing is placed for any cohort unless everyone fits. Use Run Global Auto-Schedule above to start.">
+        </cms-empty-state>
+      } @else {
+        <div class="table-wrapper">
+          <table class="modern-table">
+            <thead>
+              <tr>
+                <th class="mat-header-cell">Cohort</th>
+                <th class="mat-header-cell cell-align-center">Status</th>
+                <th class="mat-header-cell cell-align-right">Draft / Published</th>
+                <th class="mat-header-cell cell-align-right">Unassigned Hrs</th>
+                <th class="mat-header-cell actions-header cell-align-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of cohortStatusSummary(); track row.cohortId) {
+                <tr class="table-row cohort-summary-row">
+                  <td class="mat-cell">
+                    <span class="cell-name">{{ row.cohortName }}</span>
+                    @if (row.courseName || row.admissionYearName) {
+                      <span class="cell-sub">{{ row.courseName }}{{ row.courseName && row.admissionYearName ? ' · ' : '' }}{{ row.admissionYearName }}</span>
+                    }
+                  </td>
+                  <td class="mat-cell cell-align-center"><cms-status-badge [status]="row.status" /></td>
+                  <td class="mat-cell cell-align-right cell-muted">{{ row.draftCount }} / {{ row.publishedCount }}</td>
+                  <td class="mat-cell cell-align-right">
+                    @if (row.unassignedHours > 0) {
+                      <span class="cms-badge cms-badge--amber">{{ row.unassignedHours | number:'1.0-1' }} h</span>
+                    } @else {
+                      <span class="cell-muted">All covered</span>
+                    }
+                  </td>
+                  <td class="mat-cell" (click)="$event.stopPropagation()">
+                    <div class="row-actions">
+                      @switch (row.status) {
+                        @case ('PENDING') {
+                          @if (canGlobalAutoPlace()) {
+                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Run Automation" ariaLabel="Run automation" [disabled]="bulkActionPending()" (clicked)="runRowAutomation(row, $event)">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            </cms-row-action-btn>
+                          }
+                        }
+                        @case ('DRAFTED') {
+                          <cms-row-action-btn variant="neutral" [iconOnly]="true"
+                            [tooltip]="rowActionPendingCohortId() === row.cohortId ? 'Checking…' : 'Check & Resolve Conflicts'"
+                            ariaLabel="Check and resolve conflicts" [disabled]="rowActionPendingCohortId() === row.cohortId"
+                            (clicked)="checkAndResolveConflicts(row, $event)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                          </cms-row-action-btn>
+                        }
+                        @case ('CONFLICTS_RESOLVED') {
+                          @if (canPublish()) {
+                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Publish" ariaLabel="Publish" [disabled]="bulkActionPending()" (clicked)="publishRow(row, $event)">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            </cms-row-action-btn>
+                          }
+                        }
+                        @case ('PUBLISHED') {
+                          @if (canRevertToDraft() && !row.attendanceRecorded) {
+                            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Revert to Draft" ariaLabel="Revert to draft" [disabled]="bulkActionPending()" (clicked)="revertRow(row, $event)">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                            </cms-row-action-btn>
+                          }
+                        }
+                        @case ('PARTIALLY_PUBLISHED') {
+                          @if (canPublish()) {
+                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Publish Remaining" ariaLabel="Publish remaining" [disabled]="bulkActionPending()" (clicked)="publishRow(row, $event)">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            </cms-row-action-btn>
+                          }
+                          @if (canRevertToDraft() && !row.attendanceRecorded) {
+                            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Revert to Draft" ariaLabel="Revert to draft" [disabled]="bulkActionPending()" (clicked)="revertRow(row, $event)">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                            </cms-row-action-btn>
+                          }
+                        }
+                      }
+                      <!-- Any status short of fully PUBLISHED (and past PENDING, which has nothing
+                           to discard yet) still has a draft to discard — same eligibility the old
+                           bulk "Discard Draft" bar used, now per-row only. Hidden once attendance is
+                           recorded for the same reason Revert-to-Draft is: the backend permanently
+                           refuses either action past that point, so offering the button would only
+                           ever fail. -->
+                      @if (canDiscardDraft() && row.status !== 'PUBLISHED' && row.status !== 'PENDING' && !row.attendanceRecorded) {
+                        <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Discard Draft" ariaLabel="Discard draft" [disabled]="bulkActionPending()" (clicked)="discardDraftRow(row, $event)">
+                          <cms-icon-delete [size]="14" />
+                        </cms-row-action-btn>
+                      }
+                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="Open Grid" [ariaLabel]="'Open ' + row.cohortName + ' grid'" (clicked)="openCohortGrid(row, $event)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                      </cms-row-action-btn>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <mat-paginator
+          [length]="cohortStatusSummaryTotal()"
+          [pageIndex]="cohortStatusSummaryPageIndex()"
+          [pageSize]="cohortStatusSummaryPageSize()"
+          [pageSizeOptions]="[10, 25, 50, 100]"
+          showFirstLastButtons
+          (page)="onCohortStatusPageChange($event)">
+        </mat-paginator>
+      }
+    </div>
+  } @else if (skeletonLoading()) {
+    <div class="content-card">
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading skeleton"></mat-spinner>
+      </div>
+    </div>
+  } @else if (skeleton()) {
+
+    @if (hoursSummary(); as hours) {
+      <div class="skeleton-hours-summary skeleton-hours-summary--cards anim-rise anim-rise--d2"
+        title="Term load is every working day's clock time for one section across the term: all periods, plus Clinical duty time outside them. Monday–Friday every week; Saturday only on working Saturdays. It's a workload total, not free scheduling capacity — a Clinical duty day's periods are already spent by that duty and can't also host Theory/Lab, so this figure can look far higher than what's actually placeable.">
+        <app-hours-progress-card label="Term load" icon="schedule" variant="term"
+          [value]="hours.overall.assigned" [total]="hours.availableHours" totalSuffix="available"
+          [unassigned]="hours.overall.unassigned" [extra]="hours.overall.extra"
+          [requiredCaption]="termLoadStatusCaption()" />
+        @if (hours.theory.total > 0) {
+          <app-hours-progress-card label="Theory" icon="menu_book" variant="theory"
+            [value]="hours.theory.assigned" [total]="hours.theory.total"
+            [unassigned]="hours.theory.unassigned" [extra]="hours.theory.extra" />
+        }
+        @if (hours.lab.total > 0) {
+          <app-hours-progress-card label="Lab" icon="science" variant="lab"
+            [value]="hours.lab.assigned" [total]="hours.lab.total"
+            [unassigned]="hours.lab.unassigned" [extra]="hours.lab.extra" />
+        }
+        @if (hours.clinical.total > 0) {
+          <app-hours-progress-card label="Clinical" icon="favorite" variant="clinical"
+            [value]="hours.clinical.assigned" [total]="hours.clinical.total"
+            [unassigned]="hours.clinical.unassigned" [extra]="hours.clinical.extra" />
+        }
+      </div>
+    }
+
+    @if (skeleton()!.sections.length > 1) {
+      <div class="skeleton-section-tabs anim-rise anim-rise--d2" role="tablist" aria-label="Filter by section">
+        <button type="button" class="skeleton-section-tab" role="tab" [class.skeleton-section-tab--active]="selectedSectionId() === 'ALL'"
+          [attr.aria-selected]="selectedSectionId() === 'ALL'" (click)="selectSection('ALL')">All Sections</button>
+        @for (section of skeleton()!.sections; track section.id) {
+          <button type="button" class="skeleton-section-tab" role="tab" [class.skeleton-section-tab--active]="selectedSectionId() === section.id"
+            [attr.aria-selected]="selectedSectionId() === section.id" (click)="selectSection(section.id)">{{ section.sectionLabel }}</button>
+        }
+      </div>
+    }
+
+    <!-- Raised by Replace: the subject that lost the slot is now below its weekly curriculum
+         requirement somewhere else in the week, and nothing else on this screen would say so.
+         Persists until dismissed or until a rebuild makes the figures stale. -->
+    @if (displacedShortfalls().length > 0) {
+      <div class="skeleton-displaced anim-rise anim-rise--d2" role="status">
+        <div class="skeleton-displaced__head">
+          <span class="skeleton-displaced__title">Needs re-placing after your replacement{{ displacedShortfalls().length > 1 ? 's' : '' }}</span>
+          @if (displacedShortfalls().length > 1) {
+            <button type="button" class="skeleton-displaced__dismiss-all" (click)="dismissAllShortfalls()">Dismiss all</button>
+          }
+        </div>
+        <ul class="skeleton-displaced__list">
+          @for (d of displacedShortfalls(); track d.courseOfferingId + '|' + d.cohortSectionId) {
+            <li class="skeleton-displaced__item">
+              <span class="skeleton-displaced__subject">
+                {{ d.subjectName }} ({{ d.subjectCode }})
+                @if (d.cohortSectionLabel) { — {{ d.cohortSectionLabel }} }
+              </span>
+              <span class="skeleton-displaced__stat">
+                {{ d.placedHours }} of {{ d.requiredHours }} h placed ·
+                {{ d.shortfallHours }} h short
+              </span>
+              <button type="button" class="skeleton-displaced__dismiss"
+                [attr.aria-label]="'Dismiss shortfall notice for ' + d.subjectName"
+                (click)="dismissShortfall(d)">Dismiss</button>
+            </li>
+          }
+        </ul>
+        <p class="skeleton-displaced__hint">
+          Place these back into a free slot, or run automation again to let it re-pack the week
+          around your pinned replacements.
+        </p>
+      </div>
+    }
+
+    <div id="tour-skel-grid" class="content-card mlp-table-card skeleton-grid-card anim-rise anim-rise--d3">
+      @if (hasNoCells()) {
+        @if (termTimetablePublished()) {
+          <cms-empty-state
+            icon="lock"
+            [title]="'Timetable already approved for ' + skeleton()!.cohortName"
+            subtitle="This term's timetable is already approved on Draft Review, so automation can no longer run for it — place or edit sessions manually instead (swap staff, swap sessions).">
+          </cms-empty-state>
+        } @else if (canGlobalAutoPlace()) {
+          <cms-empty-state
+            icon="auto_awesome"
+            [title]="'No schedule yet for ' + skeleton()!.cohortName"
+            subtitle="Run automation (button above) to place and staff this cohort's whole term at once, checking prerequisites and faculty capacity first. Edit the result afterward by dragging a session to move it, or clicking it to remove.">
+          </cms-empty-state>
+        } @else {
+          <cms-empty-state
+            icon="auto_awesome"
+            [title]="'No schedule yet for ' + skeleton()!.cohortName"
+            subtitle="Nothing has been placed for this cohort's term yet.">
+          </cms-empty-state>
+        }
+      } @else {
+      <div class="table-wrapper">
+        <table class="skeleton-grid" cdkDropListGroup>
+          <thead>
+            <tr>
+              <th class="skeleton-grid__corner"></th>
+              @for (period of periods(); track period.id) {
+                <th class="skeleton-grid__period-hdr">{{ period.name }}<br><span class="skeleton-grid__period-time">{{ period.startTime }}–{{ period.endTime }}</span></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (day of days(); track day) {
+              <tr>
+                <td class="skeleton-grid__day-hdr">{{ dayLabels[day] }}</td>
+                @for (seg of rowSegments(day); track seg.key) {
+                  @if (seg.kind === 'shift') {
+                    <td class="skeleton-grid__cell skeleton-grid__cell--shift" [attr.colspan]="seg.span">
+                      <!-- Its own drop list only so the banner joins the grid's cdkDropListGroup and can
+                           be dragged onto another day's periods; nothing is dropped onto it. -->
+                      <div class="skeleton-shift-drop" cdkDropList [cdkDropListSortingDisabled]="true">
+                      <div class="skeleton-shift-block skeleton-shift-block--wide"
+                        [class.skeleton-shift-block--draggable]="canMoveDutyDay()"
+                        cdkDrag [cdkDragData]="{ dutyWindow: seg.window }" [cdkDragDisabled]="!canMoveDutyDay()"
+                        (cdkDragStarted)="onDutyDragStarted(seg.window)" (cdkDragEnded)="onDragEnded()"
+                        [title]="(canMoveDutyDay() ? 'Drag to another day to move this duty. ' : '') + seg.window.label + (seg.window.busDepart && seg.window.busReturn ? ' — ' + seg.window.busDepart + '–' + seg.window.busReturn + ' incl. buffer' : '')">
+                        <span class="skeleton-shift-block__label">{{ seg.window.label }}</span>
+                        <span class="skeleton-shift-block__duty">{{ seg.window.clinicalStart }}{{ seg.window.clinicalEnd ? '–' + seg.window.clinicalEnd : '' }}</span>
+                        @if (shiftDurationLabel(seg.window); as dur) {
+                          <span class="skeleton-shift-block__duration">{{ dur }} duty</span>
+                        }
+                        @if (seg.window.busDepart && seg.window.busReturn) {
+                          <span class="skeleton-shift-block__bus">Buffer {{ seg.window.busDepart }}–{{ seg.window.busReturn }}</span>
+                        }
+
+                        <!-- Sessions still scheduled inside this duty window. The periods they sit
+                             in are collapsed into this banner, so without this they render nowhere
+                             at all while staying active in the draft. Each opens the same cell menu
+                             as a normal cell, so Remove is reachable. -->
+                        @if (cellsInsideShift(day, seg.window); as trapped) {
+                          @if (trapped.length > 0) {
+                            <div class="skeleton-shift-block__conflicts">
+                              <span class="skeleton-shift-block__conflicts-title">
+                                ⚠ {{ trapped.length }} session{{ trapped.length > 1 ? 's are' : ' is' }} scheduled inside this duty window
+                              </span>
+                              @for (c of trapped; track c.id) {
+                                <button type="button" class="skeleton-shift-block__conflict"
+                                  [disabled]="!canManage()"
+                                  [matMenuTriggerFor]="cellMenu"
+                                  [matMenuTriggerData]="{ cell: c }"
+                                  [title]="'Students are on clinical duty then — open to remove or move this session'">
+                                  {{ c.slotName }} · {{ c.subjectCode }} ({{ c.sessionType }})
+                                </button>
+                              }
+                            </div>
+                          }
+                        }
+                      </div>
+                      </div>
+                    </td>
+                  } @else {
+                    <td class="skeleton-grid__cell"
+                      [attr.data-period-id]="seg.period.id" [attr.data-day]="day">
+                      <div class="skeleton-cell-stack" cdkDropList (cdkDropListDropped)="onCellDrop($event, day, seg.period.id)"
+                        [class.skeleton-cell-stack--drop-valid]="slotPreviewState(day, seg.period.id) === 'move'"
+                        [class.skeleton-cell-stack--drop-swap]="slotPreviewState(day, seg.period.id) === 'swap'"
+                        [class.skeleton-cell-stack--drop-invalid]="slotPreviewState(day, seg.period.id) === 'invalid'"
+                        [title]="slotPreviewReason(day, seg.period.id) ?? ''">
+                        @if (hasAdvisory(day, seg.period.id)) {
+                          <span class="skeleton-cell-stack__advisory"
+                            title="Shared slot — multiple subjects' Lab/Clinical sessions share this slot; batch rosters aren't tracked across subjects, confirm there's no student overlap.">
+                            ⚠
+                          </span>
+                        }
+                        @for (cell of cellsFor(day, seg.period.id); track cell.id) {
+                          <button type="button" class="skeleton-cell"
+                            [style.--subject-color]="cellColor(cell)"
+                            [class.skeleton-cell--co-curricular]="cell.coCurricular"
+                            [class.skeleton-cell--theory]="cell.sessionType === 'THEORY' && !cell.coCurricular"
+                            [class.skeleton-cell--lab]="cell.sessionType === 'LAB' && !cell.coCurricular"
+                            [class.skeleton-cell--clinical]="cell.sessionType === 'CLINICAL' && !cell.coCurricular"
+                            [class.skeleton-cell--sports]="cell.sessionType === 'SPORTS'"
+                            [class.skeleton-cell--staffed]="cell.isStaffed"
+                            [class.skeleton-cell--joined-next]="hasMatchingAdjacent(cell, 1)"
+                            [class.skeleton-cell--joined-prev]="hasMatchingAdjacent(cell, -1)"
+                            [disabled]="!canManage()"
+                            cdkDrag
+                            [cdkDragData]="cell"
+                            [cdkDragDisabled]="!canManage() || !canMove()"
+                            (cdkDragStarted)="onDragStarted(cell)"
+                            (cdkDragEnded)="onDragEnded()"
+                            [matMenuTriggerFor]="cellMenu"
+                            [matMenuTriggerData]="{ cell: cell }">
+                            <span class="skeleton-cell__subject">{{ cell.subjectCode }}</span>
+                            <span class="skeleton-cell__type">{{ cell.sessionType }}</span>
+                            @if (cell.rotationGroupLabel) {
+                              <span class="skeleton-cell__rotation-badge"
+                                [title]="'Rotates: ' + cell.rotatingBatchNames.join(' / ')">
+                                ⟳ {{ cell.rotationGroupLabel }}
+                              </span>
+                            } @else if (cell.cohortSectionLabel) {
+                              <span class="skeleton-cell__batch">{{ cell.cohortSectionLabel }}</span>
+                            } @else if (cell.batchName) {
+                              <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
+                            }
+                            @if (cell.electiveGroupId != null) { <span class="skeleton-cell__elective-tag">Elective</span> }
+                            @if (cell.coCurricular) { <span class="skeleton-cell__elective-tag">Advisory</span> }
+                            @if (!cell.isStaffed && cell.sessionType !== 'LIBRARY') {
+                              <span class="cms-badge cms-badge--red" title="No faculty assigned yet — this blocks approving the term timetable until it's staffed">⚠ not staffed</span>
+                            }
+                            @if (cell.pinned) { <span class="cms-badge cms-badge--amber">pinned</span> }
+                            @if (canPin() && cell.status === 'DRAFT') {
+                              <span class="skeleton-cell__pin"
+                                [class.skeleton-cell__pin--on]="cell.pinned"
+                                role="button"
+                                tabindex="0"
+                                [attr.aria-pressed]="cell.pinned"
+                                [attr.aria-label]="cell.pinned
+                                  ? 'Unpin this session — Run Automation may then move or replace it'
+                                  : 'Pin this session — Run Automation will keep it and schedule around it'"
+                                [title]="cell.pinned
+                                  ? 'Pinned. Run Automation keeps this session and schedules around it. Click to unpin.'
+                                  : 'Pin this session so Run Automation keeps it instead of replacing it.'"
+                                (click)="onTogglePin($event, cell)"
+                                (keydown.enter)="onTogglePin($event, cell)"
+                                (keydown.space)="onTogglePin($event, cell)"></span>
+                            }
+                            @if (!cell.isStaffed && canManage() && !cell.sessionGroupId && cell.sessionType !== 'LIBRARY' && cell.sessionType !== 'SPORTS') {
+                              <span class="skeleton-cell__resize-handle" title="Drag to extend into the next period(s)"
+                                (mousedown)="onResizeHandleMouseDown($event, cell)" (click)="$event.stopPropagation()"></span>
+                            }
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  }
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </div>
+
+  } @else {
+    <div class="content-card">
+      <p class="skeleton-empty-hint">Select a term and cohort to build its skeleton.</p>
+    </div>
+  }
+
+</div>
+
+<!-- One shared menu for every cell in the grid: `matMenuContent` instantiates it per-open with the
+     clicked cell, so this is a single template rather than one menu node per session. The trigger
+     button is already `[disabled]="!canManage()"`, so a user without manage rights never opens
+     it at all — the per-item guards below are about which actions suit THIS cell. -->
+<mat-menu #cellMenu="matMenu" class="skeleton-cell-menu">
+  <ng-template matMenuContent let-cell="cell">
+    <div class="skeleton-cell-menu__header">
+      <span class="skeleton-cell-menu__subject">{{ cell.subjectCode }} · {{ cell.sessionType }}</span>
+      <span class="skeleton-cell-menu__slot">
+        {{ dayLabels[cell.dayOfWeek] }}, {{ cell.slotName }}
+        @if (cell.cohortSectionLabel) { · {{ cell.cohortSectionLabel }} }
+        @else if (cell.batchName) { · {{ cell.batchName }} }
+      </span>
+    </div>
+
+    @if (canReplaceCell(cell)) {
+      <button mat-menu-item type="button" (click)="openReplaceDialog(cell)">Replace subject…</button>
+    } @else if (replaceBlockedReason(cell); as reason) {
+      <button mat-menu-item type="button" disabled [title]="reason">Replace subject…</button>
+    }
+
+    @if (canReassignFacultyCell(cell)) {
+      <button mat-menu-item type="button" (click)="openReassignFacultyDialog(cell)">Reassign faculty…</button>
+    } @else if (reassignBlockedReason(cell); as reason) {
+      <button mat-menu-item type="button" disabled [title]="reason">Reassign faculty…</button>
+    }
+
+    @if (canSwapCell(cell)) {
+      <button mat-menu-item type="button" (click)="openSwapDialog(cell)">Move or swap…</button>
+    } @else if (swapBlockedReason(cell); as reason) {
+      <button mat-menu-item type="button" disabled [title]="reason">Move or swap…</button>
+    }
+
+    @if (canPin() && cell.status === 'DRAFT') {
+      <button mat-menu-item type="button" (click)="onTogglePin($event, cell)">
+        {{ cell.pinned ? 'Unpin — let automation move it' : 'Pin — keep it where it is' }}
+      </button>
+    }
+
+    @if (canManage()) {
+      @if (cell.isStaffed) {
+        <button mat-menu-item type="button" disabled
+          title="This session is already staffed — remove or reassign its faculty on the Class Schedule screen first.">
+          Remove session
+        </button>
+      } @else {
+        <button mat-menu-item type="button" class="skeleton-cell-menu__danger"
+          (click)="onCellChipClick(cell)">Remove session</button>
+      }
+    }
+  </ng-template>
+</mat-menu>

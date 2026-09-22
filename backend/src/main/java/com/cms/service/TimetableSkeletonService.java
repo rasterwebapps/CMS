@@ -25,6 +25,9 @@ import com.cms.model.ClinicalVenue;
 import com.cms.model.Faculty;
 import com.cms.model.RotationSlot;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -316,41 +319,51 @@ public class TimetableSkeletonService {
      *  TimetableCoverageService#findGaps} uses -- a cohort with zero placed sessions still shows up,
      *  bucketed as {@code DRAFT}, rather than being invisible in a ClassSchedule-only query),
      *  reducing each cohort's active ClassSchedule rows to a single DRAFT/PUBLISHED/
-     *  PARTIALLY_PUBLISHED status for Draft Review's landing summary table -- see {@link
-     *  CohortTermStatusSummary}'s own javadoc for why this status is synthesized, never persisted. */
+     *  PARTIALLY_PUBLISHED status for Timetable Builder's landing summary table -- see {@link
+     *  CohortTermStatusSummary}'s own javadoc for why this status is synthesized, never persisted.
+     *
+     *  <p>Paginated at the cohort-id level (OC-262) rather than computing every cohort's row and
+     *  slicing after the fact -- each row costs a full {@link #getCohortSkeleton} call, so paging
+     *  the id query first means a term with many cohorts only pays that cost for the cohorts
+     *  actually shown on the current page. {@code cohortId} narrows to one cohort (still through
+     *  this same paginated path) for the screen's single-cohort filter. */
     @Transactional(readOnly = true)
-    public List<CohortTermStatusSummary> getCohortTermStatusSummary(Long termInstanceId) {
-        Set<Long> cohortIds = studentTermEnrollmentRepository
-            .findDistinctCohortIdsByTermInstanceId(termInstanceId, EnrollmentStatus.ENROLLED);
-        List<CohortTermStatusSummary> rows = new ArrayList<>();
-        for (Long cohortId : cohortIds) {
-            Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
-            if (cohort == null) continue;
+    public Page<CohortTermStatusSummary> getCohortTermStatusSummary(Long termInstanceId, Long cohortId, Pageable pageable) {
+        Page<Long> cohortIdsPage = studentTermEnrollmentRepository
+            .findDistinctCohortIdsByTermInstanceIdPaged(termInstanceId, EnrollmentStatus.ENROLLED, cohortId, pageable);
+        List<CohortTermStatusSummary> rows = cohortIdsPage.getContent().stream()
+            .map(id -> buildCohortTermStatusSummaryRow(termInstanceId, id))
+            .filter(Objects::nonNull)
+            .toList();
+        return new PageImpl<>(rows, pageable, cohortIdsPage.getTotalElements());
+    }
 
-            // Reuses getCohortSkeleton (not the lighter resolveCohortCells alone) so the same call
-            // also yields TimetableCoverageCalculator's coverage breakdown below -- the identical
-            // per-cohort cost TimetableCoverageService#findGaps already pays for the Publish gate.
-            SkeletonBuilderResponse skeleton = getCohortSkeleton(termInstanceId, cohortId);
-            long draft = skeleton.cells().stream().filter(c -> c.status() == ClassScheduleStatus.DRAFT).count();
-            long published = skeleton.cells().stream().filter(c -> c.status() == ClassScheduleStatus.PUBLISHED).count();
-            String status = published == 0 ? "DRAFT" : draft == 0 ? "PUBLISHED" : "PARTIALLY_PUBLISHED";
+    private CohortTermStatusSummary buildCohortTermStatusSummaryRow(Long termInstanceId, Long cohortId) {
+        Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
+        if (cohort == null) return null;
 
-            double unassignedHours = TimetableCoverageCalculator.computeCoverage(skeleton).values().stream()
-                .mapToDouble(TimetableCoverageCalculator.HoursBreakdown::unassigned)
-                .sum();
+        // Reuses getCohortSkeleton (not the lighter resolveCohortCells alone) so the same call
+        // also yields TimetableCoverageCalculator's coverage breakdown below -- the identical
+        // per-cohort cost TimetableCoverageService#findGaps already pays for the Publish gate.
+        SkeletonBuilderResponse skeleton = getCohortSkeleton(termInstanceId, cohortId);
+        long draft = skeleton.cells().stream().filter(c -> c.status() == ClassScheduleStatus.DRAFT).count();
+        long published = skeleton.cells().stream().filter(c -> c.status() == ClassScheduleStatus.PUBLISHED).count();
+        String status = published == 0 ? "DRAFT" : draft == 0 ? "PUBLISHED" : "PARTIALLY_PUBLISHED";
 
-            rows.add(new CohortTermStatusSummary(
-                cohortId, cohort.getDisplayName(),
-                cohort.getCourse() != null ? cohort.getCourse().getName() : null,
-                cohort.getAdmissionAcademicYear() != null ? cohort.getAdmissionAcademicYear().getName() : null,
-                // readinessStatus is left null here -- this class has no visibility into the
-                // Conflict Inspector/coverage/staffing gates needed to compute it (see
-                // TimetableGenerationService#getCohortTermStatusSummaryWithReadiness, the only
-                // caller that should ever surface this DTO to a client).
-                status, (int) draft, (int) published, unassignedHours, null));
-        }
-        rows.sort(Comparator.comparing(CohortTermStatusSummary::cohortName));
-        return rows;
+        double unassignedHours = TimetableCoverageCalculator.computeCoverage(skeleton).values().stream()
+            .mapToDouble(TimetableCoverageCalculator.HoursBreakdown::unassigned)
+            .sum();
+
+        return new CohortTermStatusSummary(
+            cohortId, cohort.getDisplayName(),
+            cohort.getCourse() != null ? cohort.getCourse().getName() : null,
+            cohort.getAdmissionAcademicYear() != null ? cohort.getAdmissionAcademicYear().getName() : null,
+            // This interim status (never PENDING yet) and attendanceRecorded=false are both
+            // placeholders -- this class has no visibility into the Conflict Inspector/coverage/
+            // staffing gates or the attendance repository needed to compute the real values (see
+            // TimetableGenerationService#getCohortTermStatusSummaryWithReadiness, the only
+            // caller that should ever surface this DTO to a client).
+            status, (int) draft, (int) published, unassignedHours, false);
     }
 
     /** Term-wide Clinical Shift Group summary for Timetable Draft Review's duty-roster banner --

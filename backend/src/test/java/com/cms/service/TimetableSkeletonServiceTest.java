@@ -26,6 +26,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
@@ -682,27 +686,36 @@ class TimetableSkeletonServiceTest {
             .containsExactlyInAnyOrder("Batch A", "Batch B");
     }
 
-    // ── getCohortTermStatusSummary ────────────────────────────────────
+    // ── getCohortTermStatusSummary (paginated, OC-262) ──────────────────
+
+    private static final Pageable ANY_PAGE = PageRequest.of(0, 25);
+
+    /** Stubs the paginated cohort-id query for a page whose content is exactly {@code ids}, in the
+     *  order given -- ordering is the DB query's job now ({@code order by e.cohort.displayName}),
+     *  not the service's, so callers here must pass ids pre-sorted the way the real query would. */
+    private void stubCohortIdsPage(List<Long> ids) {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceIdPaged(
+            eq(10L), eq(EnrollmentStatus.ENROLLED), isNull(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(ids, ANY_PAGE, ids.size()));
+    }
 
     @Test
     void shouldReturnEmptySummaryWhenNoCohortsEnrolledForTerm() {
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Set.of());
+        stubCohortIdsPage(List.of());
 
-        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L);
+        Page<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE);
 
-        assertThat(rows).isEmpty();
+        assertThat(rows.getContent()).isEmpty();
     }
 
     @Test
     void shouldReportDraftStatusForCohortWithNoPlacedSessionsYet() {
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Set.of(5L));
+        stubCohortIdsPage(List.of(5L));
         when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of());
 
-        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L);
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
 
         assertThat(rows).hasSize(1);
         CohortTermStatusSummary row = rows.get(0);
@@ -716,8 +729,7 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldReportDraftStatusWhenAllCellsAreDraft() {
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Set.of(5L));
+        stubCohortIdsPage(List.of(5L));
         when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
@@ -728,7 +740,7 @@ class TimetableSkeletonServiceTest {
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L);
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
 
         assertThat(rows.get(0).status()).isEqualTo("DRAFT");
         assertThat(rows.get(0).draftCount()).isEqualTo(2);
@@ -738,8 +750,7 @@ class TimetableSkeletonServiceTest {
 
     @Test
     void shouldReportPublishedStatusWhenAllCellsArePublished() {
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Set.of(5L));
+        stubCohortIdsPage(List.of(5L));
         when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
@@ -750,7 +761,7 @@ class TimetableSkeletonServiceTest {
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L);
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
 
         assertThat(rows.get(0).status()).isEqualTo("PUBLISHED");
         assertThat(rows.get(0).publishedCount()).isEqualTo(1);
@@ -762,8 +773,7 @@ class TimetableSkeletonServiceTest {
      *  cohort/term -- Draft Review's summary must surface this distinctly from a clean draft. */
     @Test
     void shouldReportPartiallyPublishedStatusWhenCellsAreMixed() {
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Set.of(5L));
+        stubCohortIdsPage(List.of(5L));
         when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
@@ -774,7 +784,7 @@ class TimetableSkeletonServiceTest {
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L);
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
 
         assertThat(rows.get(0).status()).isEqualTo("PARTIALLY_PUBLISHED");
         assertThat(rows.get(0).draftCount()).isEqualTo(1);
@@ -789,8 +799,7 @@ class TimetableSkeletonServiceTest {
     void shouldResolveLabAndClinicalOnlyCohortCellsCorrectly() {
         Batch batch = new Batch();
         batch.setId(400L);
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Set.of(5L));
+        stubCohortIdsPage(List.of(5L));
         when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
@@ -801,27 +810,29 @@ class TimetableSkeletonServiceTest {
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L);
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
 
         assertThat(rows.get(0).status()).isEqualTo("PUBLISHED");
         assertThat(rows.get(0).publishedCount()).isEqualTo(1);
     }
 
+    /** Sorting itself now happens in the repository's {@code order by e.cohort.displayName} (not
+     *  covered by this mock-based unit test); this guards that the service preserves whatever order
+     *  the page's content already arrives in, rather than re-sorting or reordering it. */
     @Test
-    void shouldReturnOneRowPerCohortSortedByName() {
+    void shouldPreserveCohortOrderFromPagedQuery() {
         Cohort otherCohort = new Cohort();
         otherCohort.setId(6L);
         otherCohort.setDisplayName("Ayurveda 2024");
 
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Set.of(5L, 6L));
+        stubCohortIdsPage(List.of(6L, 5L)); // pre-sorted by name, as the real query would return
         when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
         when(cohortRepository.findById(6L)).thenReturn(Optional.of(otherCohort));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of());
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 6L)).thenReturn(List.of());
 
-        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L);
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
 
         assertThat(rows).hasSize(2);
         assertThat(rows).extracting(CohortTermStatusSummary::cohortName)
@@ -832,8 +843,7 @@ class TimetableSkeletonServiceTest {
      *  TimetableCoverageCalculator the Publish gate itself relies on -- not re-derived math. */
     @Test
     void shouldReportUnassignedHoursFromCoverageCalculator() {
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Set.of(5L));
+        stubCohortIdsPage(List.of(5L));
         when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
@@ -845,7 +855,7 @@ class TimetableSkeletonServiceTest {
         when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
         when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
 
-        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L);
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
 
         assertThat(rows.get(0).unassignedHours()).isGreaterThan(0);
     }
