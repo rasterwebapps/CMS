@@ -36,6 +36,12 @@ public class Category {
     @Column(nullable = false, length = 150)
     private String name;
 
+    /** The prefix half of an auto-generated Product code (e.g. "STA" -&gt; "STA-000001") — nullable
+     *  because categories created before this feature have none until an admin sets one; every
+     *  create/update through the API requires it going forward (see CategoryRequest). */
+    @Column(name = "short_code", length = 10)
+    private String shortCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_category_id")
     private Category parentCategory;
@@ -59,6 +65,9 @@ public class Category {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getShortCode() { return shortCode; }
+    public void setShortCode(String shortCode) { this.shortCode = shortCode; }
 
     public Category getParentCategory() { return parentCategory; }
     public void setParentCategory(Category parentCategory) { this.parentCategory = parentCategory; }

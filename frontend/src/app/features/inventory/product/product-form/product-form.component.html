@@ -37,16 +37,16 @@
 
             <div class="prod-form-grid">
               <div class="field-group">
-                <label for="prod-code" class="field-label">Product Code <span class="required-star">*</span></label>
-                <input id="prod-code" class="field-input" formControlName="productCode" placeholder="e.g., CHM-0012"
-                  autocomplete="off" (input)="onCodeInput($event)"
-                  [class.field-input--error]="form.get('productCode')?.invalid && form.get('productCode')?.touched" />
-                @if (form.get('productCode')?.pending) {
-                  <p class="field-hint">Checking…</p>
-                } @else if (form.get('productCode')?.invalid && form.get('productCode')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('productCode') }}</p>
+                <label for="prod-code" class="field-label">Product Code</label>
+                <input id="prod-code" class="field-input" readonly disabled
+                  [value]="generatedCode() ?? (generatedCodeLoading() ? 'Generating…' : '')"
+                  placeholder="Select a category to generate a code" />
+                @if (codeUnavailableReason()) {
+                  <p class="field-error">{{ codeUnavailableReason() }}</p>
+                } @else if (isEditMode()) {
+                  <p class="field-hint">Assigned automatically when the product was created — never changes</p>
                 } @else {
-                  <p class="field-hint">Uppercase, no spaces · must be unique</p>
+                  <p class="field-hint">Auto-generated from the selected category's short code — assigned on save</p>
                 }
               </div>
 
@@ -449,7 +449,7 @@
           <div class="prev-name" [class.prev-name--empty]="!previewName()">
             {{ previewName() || 'Product will appear here' }}
           </div>
-          @if (previewCode()) { <div class="prev-sub">Code: {{ previewCode() }}</div> }
+          @if (generatedCode()) { <div class="prev-sub">Code: {{ generatedCode() }}</div> }
           <div class="prev-meta-row">
             @if (previewCategoryName()) {
               <span class="prev-pill prev-pill--primary">{{ previewCategoryName() }}</span>

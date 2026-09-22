@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy, ViewChild, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ViewChild, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
@@ -15,6 +15,7 @@ import { Category } from '../../category/category.model';
 import { ConfirmDialogComponent } from '../../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../../shared/empty-state/empty-state.component';
 import { ToastService } from '../../../../core/toast/toast.service';
+import { PermissionService } from '../../../../core/permissions/permission.service';
 import { CmsViewToggleComponent } from '../../../../shared/view-toggle/view-toggle.component';
 import { CmsStatusBadgeComponent } from '../../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../../shared/row-action-button/row-action-button.component';
@@ -44,12 +45,13 @@ import { ProductBarcodePreviewDialogComponent, ProductBarcodePreviewDialogData }
   styleUrl: './product-list.component.scss',
 })
 export class ProductListComponent implements OnInit, OnDestroy {
-  private readonly productService  = inject(ProductService);
-  private readonly categoryService = inject(CategoryService);
-  private readonly router          = inject(Router);
-  private readonly route           = inject(ActivatedRoute);
-  private readonly toast           = inject(ToastService);
-  private readonly dialog          = inject(MatDialog);
+  private readonly productService     = inject(ProductService);
+  private readonly categoryService    = inject(CategoryService);
+  private readonly router             = inject(Router);
+  private readonly route              = inject(ActivatedRoute);
+  private readonly toast              = inject(ToastService);
+  private readonly dialog             = inject(MatDialog);
+  private readonly permissionService  = inject(PermissionService);
 
   private readonly VIEW_MODE_KEY = 'product-view-mode';
   private readonly destroy$ = new Subject<void>();
@@ -78,6 +80,8 @@ export class ProductListComponent implements OnInit, OnDestroy {
   protected readonly categories = signal<Category[]>([]);
 
   protected readonly barcodeTarget = signal<ProductBarcodePreviewDialogData | null>(null);
+  protected readonly canRegenerateCodes = computed(() => this.permissionService.has('INVENTORY_PRODUCT_REGENERATE_CODES'));
+  protected readonly regeneratingCodes = signal(false);
 
   protected categoryFilter: number | null = null;
   protected totalElements = 0;
@@ -163,6 +167,50 @@ export class ProductListComponent implements OnInit, OnDestroy {
       },
     }).afterClosed().subscribe(confirmed => {
       if (confirmed) this.performToggle(item);
+    });
+  }
+
+  /** Bulk-reassigns every product's code to the <CategoryShortCode>-<sequence> pattern. Previews
+   *  the full before/after mapping first, then asks for confirmation before writing anything —
+   *  this rewrites production data, so it's deliberately never automatic. */
+  protected regenerateCodes(): void {
+    this.regeneratingCodes.set(true);
+    this.productService.previewRegenerateCodes().subscribe({
+      next: (preview) => {
+        this.regeneratingCodes.set(false);
+        if (preview.totalChanged === 0) {
+          this.toast.success('Every product code already matches the current pattern — nothing to change');
+          return;
+        }
+        const categoryCount = new Set(preview.changes.map((c) => c.categoryName)).size;
+        this.dialog.open(ConfirmDialogComponent, {
+          data: {
+            title: 'Regenerate Product Codes?',
+            message: `This will reassign codes for ${preview.totalChanged} product(s) across ${categoryCount} categor${categoryCount === 1 ? 'y' : 'ies'} `
+              + 'to the CategoryCode-Sequence pattern (e.g. STA-000001). Old codes stop working immediately — make sure a backup was taken first. This cannot be undone.',
+            confirmText: 'Regenerate',
+            cancelText: 'Cancel',
+          },
+        }).afterClosed().subscribe((confirmed) => {
+          if (!confirmed) return;
+          this.regeneratingCodes.set(true);
+          this.productService.regenerateCodes().subscribe({
+            next: (result) => {
+              this.toast.success(`Regenerated ${result.totalChanged} product code(s)`);
+              this.regeneratingCodes.set(false);
+              this.loadPage();
+            },
+            error: (err) => {
+              this.regeneratingCodes.set(false);
+              this.toast.error(err?.error?.message ?? 'Failed to regenerate product codes');
+            },
+          });
+        });
+      },
+      error: (err) => {
+        this.regeneratingCodes.set(false);
+        this.toast.error(err?.error?.message ?? 'Failed to preview product code regeneration');
+      },
     });
   }
 

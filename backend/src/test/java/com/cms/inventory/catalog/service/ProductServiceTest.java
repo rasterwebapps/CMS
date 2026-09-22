@@ -39,6 +39,7 @@ class ProductServiceTest {
     @Mock private CategoryService categoryService;
     @Mock private UomService uomService;
     @Mock private BrandService brandService;
+    @Mock private ProductCodeGeneratorService codeGeneratorService;
 
     private ProductService service;
 
@@ -47,7 +48,7 @@ class ProductServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProductService(productRepository, attributeRepository, categoryService, uomService, brandService);
+        service = new ProductService(productRepository, attributeRepository, categoryService, uomService, brandService, codeGeneratorService);
 
         category = new Category();
         category.setId(1L);
@@ -60,6 +61,7 @@ class ProductServiceTest {
 
         lenient().when(categoryService.findOrThrow(1L)).thenReturn(category);
         lenient().when(uomService.findOrThrow(1L)).thenReturn(uom);
+        lenient().when(codeGeneratorService.generateNextCode(category)).thenReturn("CHM-000001");
         lenient().when(productRepository.save(any(Product.class))).thenAnswer(inv -> {
             Product p = inv.getArgument(0);
             p.setId(100L);
@@ -84,7 +86,7 @@ class ProductServiceTest {
     }
 
     private ProductRequest requestWithBarcode(String barcode, List<ProductAttributeValueRequest> attributeValues) {
-        return new ProductRequest("CHM-0001", "Sodium Chloride", barcode, 1L, 1L, null,
+        return new ProductRequest("Sodium Chloride", barcode, 1L, 1L, null,
             null, null, null, null, null, null,
             null, null, null, null, null, null, null,
             null, null, null, null, null, true,

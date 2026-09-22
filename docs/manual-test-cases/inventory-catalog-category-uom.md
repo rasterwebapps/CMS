@@ -11,7 +11,7 @@ the Item Categories and Units of Measure masters under the "Stock Management" na
 **Steps:**
 1. Navigate to Stock Management → Categories.
 2. Click "Add Category".
-3. Enter a unique name (e.g. "Lab Consumables"), leave Parent Category as "— Top level —".
+3. Enter a unique name (e.g. "Lab Consumables") and a unique Short Code (e.g. "LAB"), leave Parent Category as "— Top level —".
 4. Save.
 
 **Expected Result:**
@@ -88,6 +88,25 @@ the Item Categories and Units of Measure masters under the "Stock Management" na
 
 **Expected Result:**
 - Status badge updates accordingly in both card and table views after each toggle, with a success toast.
+
+**Status:** NOT TESTED
+
+## TC-INV-CAT-007: Short code is required and globally unique
+
+**Preconditions:**
+- A category "Lab Consumables" exists with Short Code "LAB" (TC-INV-CAT-001).
+
+**Steps:**
+1. Add a category and try to save without entering a Short Code.
+2. Enter "lab" (lowercase) as the Short Code and confirm it auto-uppercases to "LAB" as you type.
+3. Save — should be blocked by the async uniqueness check since "LAB" is already taken.
+4. Change it to a unique code (e.g. "PHM") and save.
+
+**Expected Result:**
+- Step 1 is blocked by the required-field validator.
+- Step 2: the input shows "LAB" uppercased, no lowercase letters.
+- Step 3 is blocked with a duplicate-short-code error.
+- Step 4 succeeds; the new category shows its short code as a blue pill in the live preview panel while typing.
 
 **Status:** NOT TESTED
 

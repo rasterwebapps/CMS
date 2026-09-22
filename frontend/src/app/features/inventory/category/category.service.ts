@@ -54,4 +54,10 @@ export class CategoryService {
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
     return this.http.get<boolean>(`${this.baseUrl}/name-exists`, { params });
   }
+
+  checkShortCodeExists(value: string, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${this.baseUrl}/short-code-exists`, { params });
+  }
 }

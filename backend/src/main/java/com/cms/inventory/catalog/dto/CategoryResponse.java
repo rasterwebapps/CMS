@@ -5,6 +5,7 @@ import java.time.Instant;
 public record CategoryResponse(
     Long id,
     String name,
+    String shortCode,
     Long parentCategoryId,
     String parentCategoryName,
     String description,

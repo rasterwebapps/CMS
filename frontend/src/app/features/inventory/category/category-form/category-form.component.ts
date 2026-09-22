@@ -17,7 +17,7 @@ import { ConfirmDialogComponent } from '../../../../shared/confirm-dialog/confir
 import { CmsRowActionButtonComponent } from '../../../../shared/row-action-button/row-action-button.component';
 import { CmsIconEditComponent } from '../../../../shared/icons';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
-import { noConsecutiveSpaces, trimmedMinLength, cmsFieldError } from '../../../../shared/validators/cms-validators';
+import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../../shared/validators/cms-validators';
 import { environment } from '../../../../../environments';
 import { uniqueFieldValidator } from '../../../../shared/validators/unique-field.validator';
 
@@ -95,15 +95,19 @@ export class CategoryFormComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.group({
     name:              ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(150), noConsecutiveSpaces()]],
+    shortCode:         ['', [Validators.required, Validators.minLength(2), Validators.maxLength(10), noInternalSpaces()]],
     parentCategoryId:  [null as number | null],
     description:       ['', [Validators.maxLength(500)]],
   });
+
+  protected readonly previewShortCode = signal('');
 
   constructor() {
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
+        this.previewShortCode.set((v.shortCode ?? '').toUpperCase().trim());
         const parent = this.allCategories().find(c => c.id === v.parentCategoryId);
         this.previewParentName.set(parent?.name ?? '');
       });
@@ -146,6 +150,23 @@ export class CategoryFormComponent implements OnInit {
     this.form.get('parentCategoryId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       nameCtrl.updateValueAndValidity({ emitEvent: false });
     });
+
+    const shortCodeCtrl = this.form.get('shortCode');
+    shortCodeCtrl?.setAsyncValidators(
+      uniqueFieldValidator(this.http, `${environment.apiUrl}/inventory/categories/short-code-exists`, () => this.categoryId),
+    );
+    shortCodeCtrl?.updateValueAndValidity({ emitEvent: false });
+  }
+
+  protected onShortCodeInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const start = input.selectionStart ?? 0;
+    const end   = input.selectionEnd ?? 0;
+    const cleaned = stripSpaces(input.value).toUpperCase();
+    if (cleaned !== input.value) {
+      this.form.get('shortCode')?.setValue(cleaned, { emitEvent: true });
+      setTimeout(() => input.setSelectionRange(start, end), 0);
+    }
   }
 
   protected onSubmit(): void {
@@ -156,6 +177,7 @@ export class CategoryFormComponent implements OnInit {
 
     const request: CategoryRequest = {
       name:              (this.form.value.name ?? '').trim(),
+      shortCode:         (this.form.value.shortCode ?? '').trim().toUpperCase(),
       parentCategoryId:  this.form.value.parentCategoryId,
       description:       this.form.value.description?.trim() || undefined,
     };
@@ -179,7 +201,7 @@ export class CategoryFormComponent implements OnInit {
   }
 
   private static readonly FIELD_LABELS: Record<string, string> = {
-    name: 'Name', parentCategoryId: 'Parent category', description: 'Description',
+    name: 'Name', shortCode: 'Short code', parentCategoryId: 'Parent category', description: 'Description',
   };
 
   protected getErrorMessage(fieldName: string): string {
@@ -272,6 +294,7 @@ export class CategoryFormComponent implements OnInit {
       next: (c) => {
         this.form.patchValue({
           name: c.name,
+          shortCode: c.shortCode || '',
           parentCategoryId: c.parentCategoryId,
           description: c.description || '',
         });

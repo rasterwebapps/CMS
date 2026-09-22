@@ -98,4 +98,12 @@ public class CategoryController {
             @RequestParam(required = false) Long excludeId) {
         return ResponseEntity.ok(categoryService.nameExists(value, parentCategoryId, excludeId));
     }
+
+    @GetMapping("/short-code-exists")
+    @PreAuthorize("@perm.has('INVENTORY_CATEGORY_MANAGE')")
+    public ResponseEntity<Boolean> shortCodeExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(categoryService.shortCodeExists(value, excludeId));
+    }
 }

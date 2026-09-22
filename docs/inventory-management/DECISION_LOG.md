@@ -2657,4 +2657,37 @@ self-run visual verification" posture, that's flagged for the user's own manual 
 **Feature status: all four phases (A rename, B per-location config, C auto-detection, D two-step
 lifecycle) are now shipped.** See `MILESTONES.md`/`RELEASE_3_MILESTONES.md` for the rollup.
 
+## 2026-09-22 — Auto-generated Product codes (`<Category.shortCode>-<sequence>`, e.g. STA-000001)
+
+`Category` gains a `shortCode` field (2-10 uppercase letters/digits, unique, required on every
+create/update going forward — nullable at the DB level only because categories that predate this
+feature have none yet). `Product.productCode` is no longer typed by the user: `ProductService.
+create()` now calls the new `ProductCodeGeneratorService.generateNextCode(category)`, which
+increments a per-category counter (`category_product_sequences`, mirroring `RollNumberSequence`'s
+pessimistic-lock pattern) and formats `<shortCode>-<6-digit zero-padded sequence>`. The Product
+form's Code field is now read-only — a live preview (`GET /inventory/products/next-code`) while
+creating, the persisted value while editing. A product's code never changes after creation, even
+if its category is later reassigned.
+
+**Existing products were retroactively renumbered, by explicit user choice** (the alternative —
+leaving pre-existing codes untouched — was the recommended default; the user chose the riskier
+retroactive option instead). This is exposed as a standalone, on-demand admin action —
+`ProductCodeGeneratorService.regenerateAllCodes`, gated by its own
+`INVENTORY_PRODUCT_REGENERATE_CODES` permission (never bundled into `_MANAGE`, per the
+operation-wise permission mapping gate) — rather than baked into a migration, because it has a
+data-dependent precondition
+(every category referenced by an existing product must already have a short code) that a
+deploy-time migration can't guarantee. It hard-stops with the list of under-configured categories
+if that precondition isn't met. Renumbers oldest-product-first per category, in one transaction;
+relies on `uq_products_code` becoming `DEFERRABLE INITIALLY DEFERRED` (V544) so Postgres checks the
+uniqueness constraint once at commit instead of after each row, since a bulk swap of already-unique
+final values can otherwise trip a transient collision against a not-yet-updated row's old code.
+
+**Verified:** booted clean against the migrated local dev DB (V542-V545 applied, Hibernate
+`ddl-auto: validate` passed); `npx tsc --noEmit` and `ng build --configuration=development` both
+clean. Did not attempt a live click-through of the Product/Category forms or the Regenerate Codes
+dialog — per this repo's standing "no self-run visual verification" posture, that's flagged for
+the user's own manual pass (see the updated `inventory-catalog-product.md` / `inventory-catalog-
+category-uom.md` test cases).
+
 *Next entry goes here — do not insert above this line.*
