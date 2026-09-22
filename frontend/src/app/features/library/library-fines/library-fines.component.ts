@@ -22,6 +22,9 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { LIBRARY_FINES_TOUR, LIBRARY_FINES_FLOW_MAP } from '../../../shared/tour/tours/library-circulation.tours';
@@ -35,6 +38,7 @@ import { LIBRARY_FINES_TOUR, LIBRARY_FINES_FLOW_MAP } from '../../../shared/tour
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsEmptyStateComponent, ExportButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './library-fines.component.html',
   styleUrl: './library-fines.component.scss',
@@ -86,6 +90,22 @@ export class LibraryFinesComponent implements OnInit, OnDestroy {
   protected readonly statusFilter  = signal<FineStatus | null>(null);
   protected readonly memberFilter  = signal<LibraryMemberType | null>(null);
   protected readonly statusOptions = FINE_STATUS_OPTIONS;
+  protected readonly statusFetchPage = staticOptionsFetchPage(() =>
+    this.statusOptions.map(o => ({ id: o.value, name: o.label })));
+  protected readonly memberFetchPage = staticOptionsFetchPage(() => [
+    { id: 'STUDENT', name: 'Students only' },
+    { id: 'FACULTY', name: 'Faculty only' },
+  ]);
+
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.statusFilter.set(value != null ? (String(value) as FineStatus) : null);
+    this.onFilterChange();
+  }
+
+  protected onMemberFilterChange(value: InfiniteSelectValue | null): void {
+    this.memberFilter.set(value != null ? (String(value) as LibraryMemberType) : null);
+    this.onFilterChange();
+  }
   protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_FINE_EXPORT'));
   protected readonly hasActiveFilters = computed(() =>
     this.statusFilter() !== null || this.memberFilter() !== null || this.searchValue().length > 0);

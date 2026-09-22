@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
+import { Subject, Subscription, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -124,6 +124,20 @@ export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
   protected readonly courseResolveLabel = (id: InfiniteSelectValue) =>
     this.courseService.getById(Number(id)).pipe(map(c => c.name));
 
+  // Fixed 2-value enum — no backend paging needed, but cms-infinite-select is still the right
+  // fit here over a native <select>: it keeps this filter visually/behaviourally uniform with
+  // Program/Course (same pill, same panel, same outside-click-closes-siblings handling) instead
+  // of mixing in browser-native <select> chrome that can't be restyled and doesn't participate
+  // in that same-panel-family auto-close.
+  protected readonly studentTypeFetchPage = () =>
+    of({
+      content: [
+        { id: 'DAY_SCHOLAR', name: 'Day Scholar' },
+        { id: 'HOSTELER', name: 'Hosteler' },
+      ],
+      totalElements: 2,
+    });
+
   protected readonly colState = new ColumnPickerState({
     storageKey: 'document-submission-list-cols-v2',
     columns: [
@@ -229,7 +243,8 @@ export class DocumentSubmissionListComponent implements OnInit, OnDestroy {
     this.navigate({ courseId: cid, page: 0 });
   }
 
-  protected onStudentTypeChange(val: string): void {
+  protected onStudentTypeChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : '';
     this.filterStudentType.set(val);
     this.navigate({ studentType: val || null, page: 0 });
   }

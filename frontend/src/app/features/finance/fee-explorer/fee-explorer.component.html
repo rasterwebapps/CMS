@@ -79,33 +79,29 @@
       }
     </div>
 
-    <select class="mlp-filter-select" [value]="filterProgram()" (change)="onProgramChange($any($event.target).value)" aria-label="Filter by program">
-      <option value="ALL">All Programs</option>
-      @for (p of programs(); track p) {
-        <option [value]="p">{{ p }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+      [fetchPage]="programFetchPage"
+      [selectedValue]="filterProgram() === 'ALL' ? null : filterProgram()" (selectedValueChange)="onProgramChange($event)"
+    />
 
-    <select class="mlp-filter-select" [value]="filterAcademicYear()" (change)="onAcademicYearChange($any($event.target).value)" aria-label="Filter by academic year">
-      <option value="ALL">All Batches</option>
-      @for (ay of academicYears(); track ay) {
-        <option [value]="ay">{{ ay }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Batches" ariaLabel="Filter by academic year" searchPlaceholder="Search batches…"
+      [fetchPage]="academicYearFetchPage"
+      [selectedValue]="filterAcademicYear() === 'ALL' ? null : filterAcademicYear()" (selectedValueChange)="onAcademicYearChange($event)"
+    />
 
-    <select class="mlp-filter-select" [value]="filterYearOfStudy()" (change)="onYearOfStudyChange($any($event.target).value)" aria-label="Filter by year of study">
-      <option value="ALL">All Years</option>
-      @for (y of yearsOfStudy(); track y) {
-        <option [value]="y">Year {{ y }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Years" ariaLabel="Filter by year of study" searchPlaceholder="Search years…"
+      [fetchPage]="yearOfStudyFetchPage"
+      [selectedValue]="filterYearOfStudy() === 'ALL' ? null : filterYearOfStudy()" (selectedValueChange)="onYearOfStudyChange($event)"
+    />
 
-    <select class="mlp-filter-select" [value]="filterAllocStatus()" (change)="onAllocStatusChange($any($event.target).value)" aria-label="Filter by allocation status">
-      <option value="ALL">All Statuses</option>
-      @for (s of ALLOC_STATUSES; track s.value) {
-        <option [value]="s.value">{{ s.label }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Statuses" ariaLabel="Filter by allocation status" searchPlaceholder="Search statuses…"
+      [fetchPage]="allocStatusFetchPage"
+      [selectedValue]="filterAllocStatus() === 'ALL' ? null : filterAllocStatus()" (selectedValueChange)="onAllocStatusChange($event)"
+    />
 
     @if (hasActiveFilters()) {
       <button class="btn-clear-filters btn-toolbar--icon-only" (click)="clearAllFilters()" aria-label="Clear all filters" title="Clear all filters">

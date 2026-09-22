@@ -36,29 +36,17 @@
         }
       </div>
 
-      <select
-        class="mlp-filter-select"
-        [value]="selectedCurriculumVersionId() ?? ''"
-        (change)="onCurriculumVersionChange(+$any($event.target).value || null)"
-        aria-label="Filter by curriculum version"
-      >
-        <option value="">All Curricula</option>
-        @for (cv of curriculumVersionOptions(); track cv.id) {
-          <option [value]="cv.id">{{ cv.name }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Curricula" ariaLabel="Filter by curriculum version" searchPlaceholder="Search curricula…"
+        [fetchPage]="curriculumVersionFetchPage"
+        [selectedValue]="selectedCurriculumVersionId()" (selectedValueChange)="onCurriculumVersionChange($event)"
+      />
 
-      <select
-        class="mlp-filter-select"
-        [value]="selectedTermNumber() ?? ''"
-        (change)="onTermNumberChange(+$any($event.target).value || null)"
-        aria-label="Filter by term"
-      >
-        <option value="">All Terms</option>
-        @for (term of termNumberOptions(); track term) {
-          <option [value]="term">Term {{ term }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Terms" ariaLabel="Filter by term" searchPlaceholder="Search terms…"
+        [fetchPage]="termNumberFetchPage"
+        [selectedValue]="selectedTermNumber()" (selectedValueChange)="onTermNumberChange($event)"
+      />
 
       @if (hasActiveFilters()) {
         <button class="btn-clear-filters btn-toolbar--icon-only" (click)="clearFilters()" aria-label="Clear filters" title="Clear filters">

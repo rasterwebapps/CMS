@@ -23,7 +23,7 @@ import { violationText } from '../../../shared/util/violation-text';
 
 export interface TeachingAssignmentDialogData {
   offering: CourseOffering;
-  /** Set when opened via a "reassign this offering" deep link (e.g. Skeleton Builder's Global
+  /** Set when opened via a "reassign this offering" deep link (e.g. Timetable Builder's Global
    *  Auto-Schedule capacity report) — shown as an informational hint once the suggested faculty's
    *  name resolves; the admin still has to pick them from the right row themselves and save.
    *  Deep links only ever target Theory contributions, so this only affects Theory rows. */

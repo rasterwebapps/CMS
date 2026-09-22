@@ -11,20 +11,17 @@
   </div>
 
   <div id="tour-tt-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
-    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
-      @for (ay of academicYears(); track ay.id) {
-        <option [ngValue]="ay.id">{{ ay.name }}</option>
-      }
-    </select>
-    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
-      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
-      @if (termInstances().length === 0) {
-        <option [ngValue]="null">No terms yet</option>
-      }
-      @for (term of termInstances(); track term.id) {
-        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
+      [fetchPage]="academicYearFetchPage"
+      [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+    />
+    <cms-infinite-select
+      label="Term" ariaLabel="Term" searchPlaceholder="Search terms…"
+      [fetchPage]="termFetchPage"
+      [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
+      [disabled]="termsLoading() || termInstances().length === 0"
+    />
 
     <div class="view-mode-toggle">
       <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'week'" (click)="setViewMode('week')">Generic</button>
@@ -44,26 +41,23 @@
       </label>
     }
 
-    <select class="mlp-filter-select" [ngModel]="selectedFaculty()" (ngModelChange)="selectedFaculty.set($event)" aria-label="Faculty">
-      <option [ngValue]="null">All Faculty</option>
-      @for (name of facultyOptions(); track name) {
-        <option [ngValue]="name">{{ name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Faculty" ariaLabel="Faculty" searchPlaceholder="Search faculty…"
+      [fetchPage]="facultyFetchPage"
+      [selectedValue]="selectedFaculty()" (selectedValueChange)="onFacultyFilterChange($event)"
+    />
 
-    <select class="mlp-filter-select" [ngModel]="selectedRoom()" (ngModelChange)="selectedRoom.set($event)" aria-label="Room">
-      <option [ngValue]="null">All Rooms</option>
-      @for (name of roomOptions(); track name) {
-        <option [ngValue]="name">{{ name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Rooms" ariaLabel="Room" searchPlaceholder="Search rooms…"
+      [fetchPage]="roomFetchPage"
+      [selectedValue]="selectedRoom()" (selectedValueChange)="onRoomFilterChange($event)"
+    />
 
-    <select class="mlp-filter-select" [ngModel]="selectedBatch()" (ngModelChange)="selectedBatch.set($event)" aria-label="Batch">
-      <option [ngValue]="null">All Batches</option>
-      @for (name of batchOptions(); track name) {
-        <option [ngValue]="name">{{ name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Batches" ariaLabel="Batch" searchPlaceholder="Search batches…"
+      [fetchPage]="batchFetchPage"
+      [selectedValue]="selectedBatch()" (selectedValueChange)="onBatchFilterChange($event)"
+    />
   </div>
 
   <div id="tour-tt-view" class="content-card">

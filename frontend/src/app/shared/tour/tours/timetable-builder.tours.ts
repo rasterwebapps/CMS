@@ -1,13 +1,13 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Skeleton Builder
+// Timetable Builder
 // ─────────────────────────────────────────────────────────────────────────────
-export const SKELETON_BUILDER_TOUR: TourDefinition = {
+export const TIMETABLE_BUILDER_TOUR: TourDefinition = {
   steps: [
     {
       popover: {
-        title: '🗓️ Skeleton Builder',
+        title: '🗓️ Timetable Builder',
         description:
           'Run Automation places every Theory, Lab, and Clinical session for a cohort\'s whole term into the weekly grid at once — faculty and rooms are assigned afterward in Staffing. You edit the result, not build it cell by cell.',
         side: 'over',
@@ -45,11 +45,11 @@ export const SKELETON_BUILDER_TOUR: TourDefinition = {
   ],
 };
 
-export const SKELETON_BUILDER_FLOW_MAP: TourFlowMap = {
+export const TIMETABLE_BUILDER_FLOW_MAP: TourFlowMap = {
   funnel: [
     { label: 'Recurring Unavailability', description: 'Record which faculty have standing weekly commitments before building the timetable.' },
     { label: 'Faculty Workload Rules', description: 'Set weekly/daily/continuous teaching-load caps used to validate staffing.' },
-    { label: 'Skeleton Builder', description: 'Automate Theory/Lab/Clinical session placement into periods across a cohort\'s term.' },
+    { label: 'Timetable Builder', description: 'Automate Theory/Lab/Clinical session placement into periods across a cohort\'s term.' },
     { label: 'Staffing', description: 'Assign faculty to each placed session and pick theory rooms.' },
     { label: 'Capacity Planner', description: 'Work out how many classrooms and lab/clinical batches a cohort needs, and commit the physical rooms.' },
     { label: 'Conflict Inspector', description: 'Scan the whole term for room, faculty, and workload conflicts before publishing.' },

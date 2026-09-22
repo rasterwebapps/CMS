@@ -151,14 +151,11 @@
   <!-- ── More Filters row (collapsible) ──────────────────────────────────── -->
   @if (moreFiltersOpen) {
     <div class="more-filters-bar">
-      <select class="enq-filter-select" [value]="selectedStudentType() ?? ''"
-              (change)="onStudentTypeChange($any($event.target).value)"
-              [class.enq-filter-select--active]="selectedStudentType() !== null"
-              aria-label="Filter by student type">
-        <option value="">All Types</option>
-        <option value="DAY_SCHOLAR">Day Scholar</option>
-        <option value="HOSTELER">Hosteler</option>
-      </select>
+      <cms-infinite-select
+        label="All Types" ariaLabel="Filter by student type" searchPlaceholder="Search types…"
+        [fetchPage]="studentTypeFetchPage"
+        [selectedValue]="selectedStudentType()" (selectedValueChange)="onStudentTypeChange($event)"
+      />
 
       <cms-infinite-select
         label="All Referrals" ariaLabel="Filter by referral type" searchPlaceholder="Search referral types…"
@@ -166,14 +163,11 @@
         [selectedValue]="selectedReferralType()" (selectedValueChange)="onReferralTypeChange($event)"
       />
 
-      <select class="enq-filter-select" [value]="selectedAdmissionQuota() ?? ''"
-              (change)="onAdmissionQuotaChange($any($event.target).value)"
-              [class.enq-filter-select--active]="selectedAdmissionQuota() !== null"
-              aria-label="Filter by admission quota">
-        <option value="">All Quotas</option>
-        <option value="MANAGEMENT">Management</option>
-        <option value="COUNSELLING">Counselling</option>
-      </select>
+      <cms-infinite-select
+        label="All Quotas" ariaLabel="Filter by admission quota" searchPlaceholder="Search quotas…"
+        [fetchPage]="admissionQuotaFetchPage"
+        [selectedValue]="selectedAdmissionQuota()" (selectedValueChange)="onAdmissionQuotaChange($event)"
+      />
 
       <cms-infinite-select
         label="All Agents" ariaLabel="Filter by agent" searchPlaceholder="Search agents…"
@@ -181,14 +175,11 @@
         [selectedValue]="selectedAgent()" (selectedValueChange)="onAgentChange($event)"
       />
 
-      <select class="enq-filter-select" [value]="selectedAdmissionSource() ?? ''"
-              (change)="onAdmissionSourceChange($any($event.target).value)"
-              [class.enq-filter-select--active]="selectedAdmissionSource() !== null"
-              aria-label="Filter by admission source">
-        <option value="">All Sources</option>
-        <option value="ENQUIRY_FLOW">Enquiry Flow</option>
-        <option value="DIRECT_ADMIT">Direct Admit</option>
-      </select>
+      <cms-infinite-select
+        label="All Sources" ariaLabel="Filter by admission source" searchPlaceholder="Search sources…"
+        [fetchPage]="admissionSourceFetchPage"
+        [selectedValue]="selectedAdmissionSource()" (selectedValueChange)="onAdmissionSourceChange($event)"
+      />
     </div>
   }
 

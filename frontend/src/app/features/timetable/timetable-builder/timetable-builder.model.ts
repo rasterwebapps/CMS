@@ -1,11 +1,11 @@
 import { SubstitutionAffectedSection } from '../../academic-year/academic-year.model';
 import { TimetableConflictRow } from '../conflict-inspector/conflict-inspector.model';
 
-export type SkeletonSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
-export type SkeletonCellStatus = 'DRAFT' | 'PUBLISHED';
+export type TimetableSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
+export type TimetableCellStatus = 'DRAFT' | 'PUBLISHED';
 
-export interface SkeletonSubjectBudget {
-  sessionType: SkeletonSessionType;
+export interface TimetableSubjectBudget {
+  sessionType: TimetableSessionType;
   batchId: number | null;
   batchName: string | null;
   /** Non-null for a THEORY row once the cohort has a committed Cohort Room Allocation with one or
@@ -26,20 +26,20 @@ export interface SkeletonSubjectBudget {
   deliveredHours: number;
 }
 
-export interface SkeletonSubject {
+export interface TimetableSubject {
   courseOfferingId: number;
   subjectName: string;
   subjectCode: string;
-  budgets: SkeletonSubjectBudget[];
+  budgets: TimetableSubjectBudget[];
   /** Non-null only for a grouped elective subject — every subject sharing the same group id must
    *  be placed in the same day/period this term (enforced server-side on placement). */
   electiveGroupId: number | null;
   electiveGroupName: string | null;
 }
 
-export interface SkeletonCell {
+export interface TimetableCell {
   id: number;
-  sessionType: SkeletonSessionType;
+  sessionType: TimetableSessionType;
   dayOfWeek: string;
   periodId: number;
   slotName: string;
@@ -53,7 +53,7 @@ export interface SkeletonCell {
   cohortSectionId: number | null;
   cohortSectionLabel: string | null;
   isStaffed: boolean;
-  status: SkeletonCellStatus;
+  status: TimetableCellStatus;
   /** Non-null only for a cell that's part of a Rotation Group — batchId/batchName are null on
    *  those (there's no single fixed occupant); rotatingBatchNames lists who alternates through it. */
   rotationGroupLabel: string | null;
@@ -84,7 +84,7 @@ export interface SkeletonCell {
   coCurricular: boolean;
 }
 
-export interface SkeletonBatchOption {
+export interface TimetableBatchOption {
   id: number;
   courseOfferingId: number;
   name: string;
@@ -94,7 +94,7 @@ export interface SkeletonBatchOption {
 
 /** One committed Theory room/section a THEORY placement can target — mirrors the backend's
  *  CohortSectionResponse (reused directly there rather than a duplicated shape). */
-export interface SkeletonSectionOption {
+export interface TimetableSectionOption {
   id: number;
   sectionLabel: string;
   classroomId: number;
@@ -109,7 +109,7 @@ export interface SkeletonSectionOption {
  *  sessions bypass the period grid entirely (real clock times, no ClassSchedule row), so they
  *  never appear in `cells` — this is how the hours-assigned card learns about them instead of
  *  silently under-counting Clinical for any cohort using Clinical Shift Groups. */
-export interface SkeletonClinicalShiftHours {
+export interface TimetableClinicalShiftHours {
   courseOfferingId: number;
   cohortSectionId: number | null;
   assignedHours: number;
@@ -137,17 +137,17 @@ export interface ClinicalShiftWindow {
  *  an honest scheduled-hours total from `cells`: a Mon-Fri cell recurs `weeksInTerm` times, a
  *  Saturday-placed one only recurs `workingSaturdayCount` times (0 if no working-Saturday pattern
  *  is configured for the term — Saturday is opt-in, off by default). */
-export interface SkeletonBuilderResponse {
+export interface TimetableBuilderResponse {
   cohortId: number;
   cohortName: string;
   termInstanceLabel: string;
-  subjects: SkeletonSubject[];
-  cells: SkeletonCell[];
-  batches: SkeletonBatchOption[];
-  sections: SkeletonSectionOption[];
+  subjects: TimetableSubject[];
+  cells: TimetableCell[];
+  batches: TimetableBatchOption[];
+  sections: TimetableSectionOption[];
   weeksInTerm: number;
   workingSaturdayCount: number;
-  clinicalShiftHours: SkeletonClinicalShiftHours[];
+  clinicalShiftHours: TimetableClinicalShiftHours[];
   /** True once this term's timetable has been approved/PUBLISHED on Draft Review — a term-wide
    *  fact (same for every cohort in the term), not a per-cohort one, and distinct from whether
    *  this cohort's own Cohort Room Allocation is committed (`sections` non-empty). Past this point
@@ -157,9 +157,9 @@ export interface SkeletonBuilderResponse {
   clinicalShiftWindows: ClinicalShiftWindow[];
 }
 
-export interface SkeletonCellPlacementRequest {
+export interface TimetableCellPlacementRequest {
   courseOfferingId: number;
-  sessionType: SkeletonSessionType;
+  sessionType: TimetableSessionType;
   dayOfWeek: string;
   periodId: number;
   batchId: number | null;
@@ -173,7 +173,7 @@ export interface SkeletonCellPlacementRequest {
   spanPeriodIds: number[] | null;
 }
 
-export interface SkeletonPlacementCandidate {
+export interface TimetablePlacementCandidate {
   dayOfWeek: string;
   periodId: number;
 }
@@ -181,14 +181,14 @@ export interface SkeletonPlacementCandidate {
 /** One grid slot's live legality for dragging a specific already-placed cell there — powers the
  *  drag-highlight preview. `reason` is a human-readable violation message when `valid` is false
  *  (matching the backend's first-violation-wins order), null when valid. */
-export interface SkeletonSlotPreview {
+export interface TimetableSlotPreview {
   dayOfWeek: string;
   periodId: number;
   valid: boolean;
   reason: string | null;
 }
 
-export interface SkeletonCellMoveRequest {
+export interface TimetableCellMoveRequest {
   dayOfWeek: string;
   periodId: number;
   cohortId: number;
@@ -196,16 +196,16 @@ export interface SkeletonCellMoveRequest {
 
 /** Atomically exchanges two already-placed DRAFT cells' day/period — fired instead of a plain
  *  move when a drag lands on a slot that's already occupied by exactly one other cell. */
-export interface SkeletonCellSwapRequest {
+export interface TimetableCellSwapRequest {
   targetCellId: number;
   cohortId: number;
 }
 
 /** One session (a single period or a whole block, with every parallel batch that moves alongside
  *  it) that a relocation or Clinical duty-day change would move — a before → after preview row. */
-export interface SkeletonPlannedMove {
+export interface TimetablePlannedMove {
   subjectCode: string;
-  sessionType: SkeletonSessionType;
+  sessionType: TimetableSessionType;
   /** Section or batch names, e.g. "Section 1" or "Batch A, Batch B". */
   occupantLabel: string | null;
   fromDay: string;
@@ -217,17 +217,17 @@ export interface SkeletonPlannedMove {
 /** Whether a session could go, whole block included, to the same-length window starting at
  *  dayOfWeek/startPeriodId: MOVE into empty periods, SWAP with the sessions there (they take its
  *  periods), or invalid with the reason. `moves` lists the dragged session first. */
-export interface SkeletonRelocationPlan {
+export interface TimetableRelocationPlan {
   dayOfWeek: string;
   startPeriodId: number;
   periodIds: number[];
   kind: 'MOVE' | 'SWAP' | null;
   valid: boolean;
   reason: string | null;
-  moves: SkeletonPlannedMove[];
+  moves: TimetablePlannedMove[];
 }
 
-export interface SkeletonRelocateRequest {
+export interface TimetableRelocateRequest {
   dayOfWeek: string;
   startPeriodId: number;
   cohortId: number;
@@ -238,7 +238,7 @@ export interface DutyDayMovePreview {
   dayOfWeek: string;
   valid: boolean;
   reason: string | null;
-  moves: SkeletonPlannedMove[];
+  moves: TimetablePlannedMove[];
 }
 
 export interface DutyDayMoveRequest {
@@ -249,7 +249,7 @@ export interface DutyDayMoveRequest {
 /** Hands a placed Theory cell's slot to a different subject, keeping its day/period/audience.
  *  THEORY only, DRAFT only, and never an elective on either side — an elective group shares one
  *  slot across all its members, so it's re-placed via Place Elective Block instead. */
-export interface SkeletonCellReplaceRequest {
+export interface TimetableCellReplaceRequest {
   courseOfferingId: number;
   facultyId: number;
 }
@@ -257,7 +257,7 @@ export interface SkeletonCellReplaceRequest {
 /** How far below its curriculum Theory hours the subject we just displaced now sits across the
  *  term, for this exact section. `shortfallHours` is always above 0 when present — it's what still
  *  needs re-placing elsewhere in the week. Mirrors the backend's
- *  `SkeletonCellReplaceResponse.DisplacedSubjectShortfall` exactly. */
+ *  `TimetableCellReplaceResponse.DisplacedSubjectShortfall` exactly. */
 export interface DisplacedSubjectShortfall {
   courseOfferingId: number;
   subjectName: string;
@@ -272,14 +272,14 @@ export interface DisplacedSubjectShortfall {
 /** `displaced` is null when the replacement cost nothing that matters: the cell had no previous
  *  offering (a Library cell), the previous subject has no curriculum hours to measure against, or
  *  it still meets its requirement without this slot (it was over quota, or covered elsewhere). */
-export interface SkeletonCellReplaceResponse {
-  cell: SkeletonCell;
+export interface TimetableCellReplaceResponse {
+  cell: TimetableCell;
   displaced: DisplacedSubjectShortfall | null;
 }
 
 export interface AutoPlaceUnplacedItem {
   subjectName: string;
-  sessionType: SkeletonSessionType;
+  sessionType: TimetableSessionType;
   occupantLabel: string | null;
   reason: string;
   /** Null only for a whole-elective-group failure (no single offering to point at) — used to
@@ -299,7 +299,7 @@ export interface AutoPlaceUnplacedItem {
 
 export interface ElectiveGroupMemberPlacement {
   courseOfferingId: number;
-  sessionType: SkeletonSessionType;
+  sessionType: TimetableSessionType;
   batchId: number | null;
   cohortSectionId: number | null;
 }
@@ -443,7 +443,7 @@ export interface GlobalAutoScheduleResult {
    *  (swap staff, swap sessions) are allowed, never a full automated re-run. Publish is atomic
    *  term-wide, so this is either every enrolled cohort or none — never a partial list. Always empty
    *  for a single-cohort run (that case is a hard block at the API boundary instead — see
-   *  `canRunAutoSchedule` in skeleton-builder.component.ts). */
+   *  `canRunAutoSchedule` in timetable-builder.component.ts). */
   skippedPublishedCohorts: SkippedPublishedCohort[];
   /** How many cross-offering LAB pairings this run turned into a real RotationGroup (two offerings
    *  sharing one cohort section, each split into exactly 2 batches on its own Lab, alternated

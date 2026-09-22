@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
+import { Subject, Subscription, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
@@ -160,6 +160,37 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   protected readonly referralTypeFetchPage = (search: string, page: number, size: number) =>
     this.referralTypeService.getPage({ search, page, size });
 
+  // Fixed small enums — no backend paging needed, but cms-infinite-select is still the right fit
+  // over a native <select>: keeps these filters visually/behaviourally uniform with the other
+  // pickers in this row (same pill, same panel, same outside-click-closes-siblings handling)
+  // instead of mixing in browser-native <select> chrome that can't be restyled.
+  protected readonly studentTypeFetchPage = () =>
+    of({
+      content: [
+        { id: 'DAY_SCHOLAR', name: 'Day Scholar' },
+        { id: 'HOSTELER', name: 'Hosteler' },
+      ],
+      totalElements: 2,
+    });
+
+  protected readonly admissionQuotaFetchPage = () =>
+    of({
+      content: [
+        { id: 'MANAGEMENT', name: 'Management' },
+        { id: 'COUNSELLING', name: 'Counselling' },
+      ],
+      totalElements: 2,
+    });
+
+  protected readonly admissionSourceFetchPage = () =>
+    of({
+      content: [
+        { id: 'ENQUIRY_FLOW', name: 'Enquiry Flow' },
+        { id: 'DIRECT_ADMIT', name: 'Direct Admit' },
+      ],
+      totalElements: 2,
+    });
+
   protected readonly agentFetchPage = (search: string, page: number, size: number) =>
     this.agentService.getPage({ search, page, size });
 
@@ -251,6 +282,17 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     this.dateTo   = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   }
 
+  // Capture phase so this still fires even though the status-drop-panel itself stops bubble
+  // propagation on its own clicks (to protect its checkboxes) — matches cms-infinite-select's
+  // same capture-phase approach, which this status dropdown doesn't use since it predates it.
+  // Scoped to .status-drop-wrap specifically (not the whole component root), otherwise every
+  // click anywhere on the page would count as "inside" and never close it.
+  private readonly documentClickListener = (event: MouseEvent): void => {
+    if (this.statusMenuOpen && !(event.target as HTMLElement).closest?.('.status-drop-wrap')) {
+      this.statusMenuOpen = false;
+    }
+  };
+
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
@@ -307,11 +349,14 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
       },
       error: () => this.loadPage(),
     });
+
+    document.addEventListener('click', this.documentClickListener, true);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    document.removeEventListener('click', this.documentClickListener, true);
   }
 
   // ── URL filter sync (for back-navigation state restoration) ───────────────
@@ -443,8 +488,8 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     this.loadPage();
   }
 
-  protected onStudentTypeChange(value: string): void {
-    this.selectedStudentType.set(value || null);
+  protected onStudentTypeChange(value: InfiniteSelectValue | null): void {
+    this.selectedStudentType.set(value != null ? String(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
@@ -457,8 +502,8 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     this.loadPage();
   }
 
-  protected onAdmissionQuotaChange(value: string): void {
-    this.selectedAdmissionQuota.set(value || null);
+  protected onAdmissionQuotaChange(value: InfiniteSelectValue | null): void {
+    this.selectedAdmissionQuota.set(value != null ? String(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
@@ -471,8 +516,8 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     this.loadPage();
   }
 
-  protected onAdmissionSourceChange(value: string): void {
-    this.selectedAdmissionSource.set(value || null);
+  protected onAdmissionSourceChange(value: InfiniteSelectValue | null): void {
+    this.selectedAdmissionSource.set(value != null ? String(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();

@@ -5,21 +5,21 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { EligibleFacultyCandidate } from '../../../academic-year/academic-year.model';
 import { AcademicYearService } from '../../../academic-year/academic-year.service';
-import { SkeletonCell, SkeletonSubject } from '../skeleton-builder.model';
+import { TimetableCell, TimetableSubject } from '../timetable-builder.model';
 
-export interface SkeletonCellReplaceDialogData {
-  cell: SkeletonCell;
+export interface TimetableCellReplaceDialogData {
+  cell: TimetableCell;
   /** The whole cohort's subject list, straight off the loaded skeleton — the dialog filters it
    *  down to legal replacement targets itself rather than the caller pre-filtering, so the
    *  "why isn't X offered?" rules live in one place next to the copy that explains them. */
-  subjects: SkeletonSubject[];
+  subjects: TimetableSubject[];
   /** Needed for the cohort-scoped eligible-faculty fallback when the cell has no section. */
   cohortId: number;
 }
 
 /** What the user picked, handed back to the grid to actually call the API — the dialog itself
  *  never writes, so a failed replace re-opens with the same choices rather than losing them. */
-export interface SkeletonCellReplaceDialogResult {
+export interface TimetableCellReplaceDialogResult {
   courseOfferingId: number;
   facultyId: number;
 }
@@ -52,15 +52,15 @@ interface ReplacementOption {
  *  section-scoped eligible-faculty endpoint already ranks candidates most-free-first and annotates
  *  real remaining capacity, so this reuses it verbatim rather than re-deriving eligibility here. */
 @Component({
-  selector: 'app-skeleton-cell-replace-dialog',
+  selector: 'app-timetable-cell-replace-dialog',
   standalone: true,
   imports: [FormsModule, DecimalPipe, TitleCasePipe, MatDialogModule, MatProgressSpinnerModule],
-  templateUrl: './skeleton-cell-replace-dialog.component.html',
-  styleUrl: './skeleton-cell-replace-dialog.component.scss',
+  templateUrl: './timetable-cell-replace-dialog.component.html',
+  styleUrl: './timetable-cell-replace-dialog.component.scss',
 })
-export class SkeletonCellReplaceDialogComponent {
-  private readonly dialogRef = inject(MatDialogRef<SkeletonCellReplaceDialogComponent>);
-  protected readonly data: SkeletonCellReplaceDialogData = inject(MAT_DIALOG_DATA);
+export class TimetableCellReplaceDialogComponent {
+  private readonly dialogRef = inject(MatDialogRef<TimetableCellReplaceDialogComponent>);
+  protected readonly data: TimetableCellReplaceDialogData = inject(MAT_DIALOG_DATA);
   private readonly academicYearService = inject(AcademicYearService);
 
   protected readonly selectedOfferingId = signal<number | null>(null);
@@ -180,7 +180,7 @@ export class SkeletonCellReplaceDialogComponent {
     const courseOfferingId = this.selectedOfferingId();
     const facultyId = this.selectedFacultyId();
     if (courseOfferingId == null || facultyId == null) return;
-    this.dialogRef.close({ courseOfferingId, facultyId } satisfies SkeletonCellReplaceDialogResult);
+    this.dialogRef.close({ courseOfferingId, facultyId } satisfies TimetableCellReplaceDialogResult);
   }
 
   protected onCancel(): void {

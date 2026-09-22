@@ -32,11 +32,11 @@
   <!-- ── Toolbar ────────────────────────────────────────────────────────── -->
   <div id="tour-cal-view-toggle" class="mlp-toolbar anim-rise anim-rise--d1">
     @if (allAcademicYears().length > 1) {
-      <select class="mlp-filter-select" [value]="selectedAcademicYear()?.id" (change)="selectYearFromEvent($event)" aria-label="Academic year">
-        @for (year of allAcademicYears(); track year.id) {
-          <option [value]="year.id">{{ year.name }}{{ year.isCurrent ? ' (Current)' : '' }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
+        [fetchPage]="academicYearFetchPage"
+        [selectedValue]="selectedAcademicYear()?.id ?? null" (selectedValueChange)="selectYearFromValue($event)"
+      />
     }
     <div class="view-toggle" role="group" aria-label="Toggle calendar view">
       <button type="button" class="view-toggle__btn" [class.view-toggle__btn--active]="viewMode() === 'timeline'" (click)="viewMode.set('timeline')">
@@ -353,7 +353,7 @@
             </button>
           }
         </div>
-        <p class="page-subtitle">One-off dates only reduce Capacity Planner buffer hours; recurring blocks also stop Skeleton Builder from placing a session at that day+period, for their whole date range.</p>
+        <p class="page-subtitle">One-off dates only reduce Capacity Planner buffer hours; recurring blocks also stop Timetable Builder from placing a session at that day+period, for their whole date range.</p>
         @if (blockedPeriods().length === 0) {
           <cms-empty-state icon="block" title="No blocked periods yet" subtitle="Add a one-off or recurring block to reserve a period." />
         } @else {

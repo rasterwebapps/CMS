@@ -46,12 +46,11 @@
     />
 
     <!-- Student Type filter -->
-    <select class="mlp-filter-select" [value]="filterStudentType()"
-            (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">
-      <option value="">All Types</option>
-      <option value="DAY_SCHOLAR">Day Scholar</option>
-      <option value="HOSTELER">Hosteler</option>
-    </select>
+    <cms-infinite-select
+      label="All Types" ariaLabel="Filter by student type" searchPlaceholder="Search types…"
+      [fetchPage]="studentTypeFetchPage"
+      [selectedValue]="filterStudentType() || null" (selectedValueChange)="onStudentTypeChange($event)"
+    />
 
     <!-- Clear Filters -->
     @if (hasActiveFilters()) {

@@ -1855,11 +1855,11 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'timetable/skeleton-builder',
+    path: 'timetable/timetable-builder',
     canActivate: withPermission('TIMETABLE_VIEW'),
     loadComponent: () =>
-      import('./features/timetable/skeleton-builder/skeleton-builder.component').then(
-        (m) => m.SkeletonBuilderComponent
+      import('./features/timetable/timetable-builder/timetable-builder.component').then(
+        (m) => m.TimetableBuilderComponent
       ),
   },
   {

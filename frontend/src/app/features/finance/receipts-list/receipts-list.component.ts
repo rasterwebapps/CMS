@@ -31,6 +31,10 @@ import { PAYMENT_MODES } from '../../../shared/utils/payment-mode.utils';
 import { printFeeReceipt, downloadFeeReceipt } from '../../../shared/utils/print-receipt.utils';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
+import { getPaymentModeShortLabel } from '../../../shared/utils/payment-mode.utils';
 
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_SORT_FIELD = 'paymentDate';
@@ -58,6 +62,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     MatTooltipModule, MatProgressSpinnerModule,
     CmsColumnPickerComponent,
     ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './receipts-list.component.html',
   styleUrl: './receipts-list.component.scss',
@@ -107,6 +112,12 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
 
   protected readonly dataSource    = new MatTableDataSource<UnifiedReceiptSummary>([]);
   protected readonly paymentModes  = PAYMENT_MODES;
+  protected readonly paymentModeFetchPage = staticOptionsFetchPage(() =>
+    this.paymentModes.map(m => ({ id: m, name: getPaymentModeShortLabel(m) })));
+  protected readonly payerTypeFetchPage = staticOptionsFetchPage(() => [
+    { id: 'STUDENT', name: 'Student' },
+    { id: 'ENQUIRY', name: 'Pre-enrollment' },
+  ]);
   protected readonly loading       = signal(false);
   protected readonly exporting     = signal(false);
   protected readonly canExport     = computed(() => this.permissionService.has('RECEIPT_EXPORT'));
@@ -343,6 +354,14 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
   private apiError(err: unknown, fallback: string): string {
     if (err instanceof HttpErrorResponse && err.error?.message) return err.error.message;
     return fallback;
+  }
+
+  protected onPaymentModeFilterChange(value: InfiniteSelectValue | null): void {
+    this.navigate({ paymentMode: value != null ? String(value) : null, page: 0 });
+  }
+
+  protected onPayerTypeFilterChange(value: InfiniteSelectValue | null): void {
+    this.navigate({ payerType: value != null ? String(value) : null, page: 0 });
   }
 
   protected navigate(patch: Partial<{

@@ -20,6 +20,9 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { COURSE_OFFERING_LIST_TOUR, COURSE_OFFERING_LIST_FLOW_MAP } from '../../../shared/tour/tours/course-offering.tours';
 import { violationText } from '../../../shared/util/violation-text';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-course-offering-list',
@@ -30,6 +33,7 @@ import { violationText } from '../../../shared/util/violation-text';
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsStatusBadgeComponent,
     CmsIconToggleStatusComponent,
     CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './course-offering-list.component.html',
   styleUrl: './course-offering-list.component.scss',
@@ -134,7 +138,17 @@ export class CourseOfferingListComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+  protected readonly semesterFetchPage = staticOptionsFetchPage(() =>
+    this.semesterOptions().map(s => ({ id: s, name: `Semester ${s}` })));
+  protected readonly cohortFetchPage = staticOptionsFetchPage(() =>
+    this.cohortOptions().map(c => ({ id: c, name: c })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.selectedSemester.set('ALL');
     this.selectedCohort.set('ALL');
@@ -142,18 +156,21 @@ export class CourseOfferingListComponent implements OnInit {
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     this.selectedSemester.set('ALL');
     this.selectedCohort.set('ALL');
     if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
     else this.dataSource.data = [];
   }
 
-  protected onSemesterChange(): void {
+  protected onSemesterChange(value: InfiniteSelectValue | null): void {
+    this.selectedSemester.set(value != null ? Number(value) : 'ALL');
     this.applyRowFilters();
   }
 
-  protected onCohortChange(): void {
+  protected onCohortChange(value: InfiniteSelectValue | null): void {
+    this.selectedCohort.set(value != null ? String(value) : 'ALL');
     this.applyRowFilters();
   }
 
@@ -285,7 +302,7 @@ export class CourseOfferingListComponent implements OnInit {
   }
 
   /** Bidirectional — deactivating is blocked server-side (surfaced as an error toast, not a
-   *  client-side guess) when the offering already has sessions placed in Skeleton Builder or
+   *  client-side guess) when the offering already has sessions placed in Timetable Builder or
    *  batches with students rostered. Reactivating has no such restriction. */
   protected toggleStatus(row: CourseOffering): void {
     const nextAction = row.isActive ? 'Deactivate' : 'Activate';

@@ -11,9 +11,9 @@ import { ConflictScanResponse } from './conflict-inspector.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
-// OC-258: Conflict Inspector is now the middle step of Skeleton Builder -> Conflict Inspector ->
+// OC-258: Conflict Inspector is now the middle step of Timetable Builder -> Conflict Inspector ->
 // Draft Review. These tests cover the two things added for that: honoring a deep-linked
-// termInstanceId/academicYearId (from Skeleton Builder's "Check Conflicts" link) instead of always
+// termInstanceId/academicYearId (from Timetable Builder's "Check Conflicts" link) instead of always
 // defaulting to the first term, and "Proceed to Review" acknowledging the term then navigating on.
 describe('ConflictInspectorComponent', () => {
   let fixture: ComponentFixture<ConflictInspectorComponent>;
@@ -75,7 +75,7 @@ describe('ConflictInspectorComponent', () => {
     expect(internal().selectedTermInstanceId).toBe(10);
   });
 
-  it('honors a deep-linked termInstanceId (e.g. from Skeleton Builder\'s "Check Conflicts" link)', () => {
+  it('honors a deep-linked termInstanceId (e.g. from Timetable Builder\'s "Check Conflicts" link)', () => {
     configure({ academicYearId: '1', termInstanceId: '20' });
     fixture.detectChanges();
 
@@ -90,7 +90,7 @@ describe('ConflictInspectorComponent', () => {
     internal().onProceedToReview();
 
     expect(conflictInspectorService.acknowledge).toHaveBeenCalledWith(20);
-    expect(router.navigate).toHaveBeenCalledWith(['/timetable/skeleton-builder']);
+    expect(router.navigate).toHaveBeenCalledWith(['/timetable/timetable-builder']);
   });
 
   it('rescans instead of navigating when acknowledgment is rejected as no longer clean', () => {

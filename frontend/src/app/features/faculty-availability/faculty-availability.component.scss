@@ -8,7 +8,7 @@
 // `gap: 16px` already spaces them from whatever comes next -- a margin here
 // would stack on top of that gap and double it (see CLAUDE.md's "Shared
 // mlp-* list-page spacing system" hard gate; same mistake independently
-// fixed the same day in skeleton-builder.component.scss's
+// fixed the same day in timetable-builder.component.scss's
 // .skeleton-hours-summary).
 .availability-info-banner,
 .availability-readonly-banner {

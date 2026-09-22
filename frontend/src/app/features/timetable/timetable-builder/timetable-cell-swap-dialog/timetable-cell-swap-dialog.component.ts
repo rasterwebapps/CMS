@@ -1,28 +1,28 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { TitleCasePipe } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { SkeletonPlannedMove, SkeletonRelocationPlan } from '../skeleton-builder.model';
+import { TimetablePlannedMove, TimetableRelocationPlan } from '../timetable-builder.model';
 import { WEEK_GRID_DAY_LABELS } from '../../../../shared/week-grid/week-grid.model';
 
-export interface SkeletonCellSwapDialogData {
+export interface TimetableCellSwapDialogData {
   title: string;
   subtitle: string;
   /** Every window from the relocation preview (the Swap menu) — the dialog lists the legal ones. */
-  options: SkeletonRelocationPlan[];
+  options: TimetableRelocationPlan[];
   /** A window already picked (a drag, or a Clinical duty day): the dialog only confirms it. */
-  chosen: SkeletonRelocationPlan | null;
+  chosen: TimetableRelocationPlan | null;
   periodNames: Record<number, string>;
   confirmText: string;
 }
 
-export interface SkeletonCellSwapDialogResult {
-  plan: SkeletonRelocationPlan;
+export interface TimetableCellSwapDialogResult {
+  plan: TimetableRelocationPlan;
 }
 
 /** One selectable window, pre-formatted so the template stays declarative. */
 interface WindowOption {
   key: string;
-  plan: SkeletonRelocationPlan;
+  plan: TimetableRelocationPlan;
   dayLabel: string;
   slotLabel: string;
   kind: 'MOVE' | 'SWAP';
@@ -38,15 +38,15 @@ interface WindowOption {
  *  far-apart slots and is keyboard-reachable. After a drop, or a dragged Clinical duty banner, it
  *  only shows the preview for the one choice already made. */
 @Component({
-  selector: 'app-skeleton-cell-swap-dialog',
+  selector: 'app-timetable-cell-swap-dialog',
   standalone: true,
   imports: [TitleCasePipe, MatDialogModule],
-  templateUrl: './skeleton-cell-swap-dialog.component.html',
-  styleUrl: './skeleton-cell-swap-dialog.component.scss',
+  templateUrl: './timetable-cell-swap-dialog.component.html',
+  styleUrl: './timetable-cell-swap-dialog.component.scss',
 })
-export class SkeletonCellSwapDialogComponent {
-  private readonly dialogRef = inject(MatDialogRef<SkeletonCellSwapDialogComponent>);
-  protected readonly data: SkeletonCellSwapDialogData = inject(MAT_DIALOG_DATA);
+export class TimetableCellSwapDialogComponent {
+  private readonly dialogRef = inject(MatDialogRef<TimetableCellSwapDialogComponent>);
+  protected readonly data: TimetableCellSwapDialogData = inject(MAT_DIALOG_DATA);
 
   protected readonly selectedKey = signal<string | null>(null);
 
@@ -77,7 +77,7 @@ export class SkeletonCellSwapDialogComponent {
     return [...groups.entries()].map(([dayLabel, items]) => ({ dayLabel, items }));
   });
 
-  protected readonly selectedPlan = computed<SkeletonRelocationPlan | null>(() =>
+  protected readonly selectedPlan = computed<TimetableRelocationPlan | null>(() =>
     this.data.chosen ?? this.options().find((o) => o.key === this.selectedKey())?.plan ?? null);
 
   protected dayLabel(day: string): string {
@@ -90,18 +90,18 @@ export class SkeletonCellSwapDialogComponent {
     return names.length <= 1 ? (names[0] ?? '') : `${names[0]}–${names[names.length - 1]}`;
   }
 
-  protected moveFrom(move: SkeletonPlannedMove): string {
+  protected moveFrom(move: TimetablePlannedMove): string {
     return `${this.dayLabel(move.fromDay)} ${this.runLabel(move.fromPeriodIds)}`;
   }
 
-  protected moveTo(move: SkeletonPlannedMove): string {
+  protected moveTo(move: TimetablePlannedMove): string {
     return `${this.dayLabel(move.toDay)} ${this.runLabel(move.toPeriodIds)}`;
   }
 
   protected onSave(): void {
     const plan = this.selectedPlan();
     if (!plan) return;
-    this.dialogRef.close({ plan } satisfies SkeletonCellSwapDialogResult);
+    this.dialogRef.close({ plan } satisfies TimetableCellSwapDialogResult);
   }
 
   protected onCancel(): void {

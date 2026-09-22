@@ -14,11 +14,14 @@ import { violationText } from '../../../shared/util/violation-text';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CONFLICT_INSPECTOR_TOUR, CONFLICT_INSPECTOR_FLOW_MAP } from '../../../shared/tour/tours/conflict-inspector.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-conflict-inspector',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './conflict-inspector.component.html',
   styleUrl: './conflict-inspector.component.scss',
 })
@@ -68,13 +71,20 @@ export class ConflictInspectorComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.scan.set(null);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     if (this.selectedTermInstanceId) this.runScan();
     else this.scan.set(null);
   }
@@ -92,10 +102,10 @@ export class ConflictInspectorComponent implements OnInit {
     this.conflictInspectorService.acknowledge(this.selectedTermInstanceId).subscribe({
       next: () => {
         this.proceeding.set(false);
-        // OC-260 retired the separate Timetable Draft Review screen into Skeleton Builder -- Publish
+        // OC-260 retired the separate Timetable Draft Review screen into Timetable Builder -- Publish
         // now lives there, gated per-cohort via that screen's own "Check & Resolve Conflicts" row
         // action rather than this term-wide acknowledgment (kept only as a term-wide diagnostic).
-        this.router.navigate(['/timetable/skeleton-builder']);
+        this.router.navigate(['/timetable/timetable-builder']);
       },
       error: (err) => {
         this.proceeding.set(false);

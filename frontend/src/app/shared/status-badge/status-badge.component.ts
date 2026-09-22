@@ -68,6 +68,7 @@ export class CmsStatusBadgeComponent {
       // ── In-progress / warning states ────────────────────────────────────
       case 'PARTIALLY_PAID':
       case 'PARTIALLY_PUBLISHED':
+      case 'DRAFTED':
       case 'PARTIAL':
       case 'IN_USE':
       case 'UNDER_REPAIR':
@@ -151,6 +152,7 @@ export class CmsStatusBadgeComponent {
       case 'ONGOING':
       case 'OPEN':
       case 'ISSUED':
+      case 'CONFLICTS_RESOLVED':
         return 'status-current';
 
       // ── Past / closed-cycle states ────────────────────────────────────────

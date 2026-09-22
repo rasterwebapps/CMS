@@ -84,7 +84,8 @@ export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy,
   @Input() clearLabel = 'Clear selection';
   @Output() cleared = new EventEmitter<void>();
 
-  protected disabled = false;
+  /** Also settable via ControlValueAccessor's setDisabledState when used with a form control. */
+  @Input() disabled = false;
   private onChange: (value: InfiniteSelectValue | null) => void = () => {};
   private onTouched: () => void = () => {};
 
@@ -140,6 +141,12 @@ export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy,
     });
 
     if (!this.multiple) this.updateSelectedLabel();
+
+    // Capture phase (not bubble, which @HostListener('document:click') would use) so this still
+    // fires even when some ancestor toolbar calls $event.stopPropagation() on the bubble phase —
+    // several screens do that on their filter-bar wrapper, which silently broke sibling pickers'
+    // outside-click-close (each stayed open when another was opened in the same toolbar).
+    document.addEventListener('click', this.documentClickListener, true);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -160,14 +167,14 @@ export class CmsInfiniteSelectComponent implements OnInit, OnChanges, OnDestroy,
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    document.removeEventListener('click', this.documentClickListener, true);
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
+  private readonly documentClickListener = (event: MouseEvent): void => {
     if (this.open() && !this.elementRef.nativeElement.contains(event.target as Node)) {
       this.open.set(false);
     }
-  }
+  };
 
   @HostListener('document:keydown.escape')
   onEscape(): void {

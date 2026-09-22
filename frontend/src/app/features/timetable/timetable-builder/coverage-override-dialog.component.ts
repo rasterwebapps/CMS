@@ -11,7 +11,7 @@ export interface CoverageOverrideDialogData {
 
 /** Shown when Approve refuses because one or more cohorts still have curriculum-required Theory/
  *  Lab/Clinical hours never placed as real sessions (OC-256) — only ever opened for a reviewer who
- *  already holds TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE (see skeleton-builder.component.ts's
+ *  already holds TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE (see timetable-builder.component.ts's
  *  publishCohorts), since anyone else has no path to satisfy this dialog anyway. A separate small
  *  dialog rather than extending ConfirmDialogComponent for the same reason
  *  BlockAvailabilityDialogComponent is: its afterClosed() contract is a plain boolean used by many
@@ -25,7 +25,7 @@ export interface CoverageOverrideDialogData {
     <mat-dialog-content>
       <p class="coverage-override-dialog__summary">
         This term still has curriculum-required hours that were never scheduled. Approving now publishes it as-is —
-        the gaps below stay unscheduled until someone places them in Skeleton Builder.
+        the gaps below stay unscheduled until someone places them in Timetable Builder.
       </p>
       <ul class="coverage-override-dialog__gap-list">
         @for (gap of data.gaps; track gap.cohortId + gap.sessionType) {

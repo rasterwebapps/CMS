@@ -11,17 +11,11 @@
 
   <div id="tour-er-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
     <div class="command-bar__left">
-      <select
-        class="mlp-filter-select"
-        [value]="selectedExamId() ?? ''"
-        (change)="onExaminationChange($any($event.target).value ? +$any($event.target).value : null)"
-        aria-label="Filter by examination"
-      >
-        <option value="" disabled>Select an examination</option>
-        @for (exam of examinations(); track exam.id) {
-          <option [value]="exam.id">{{ exam.name }} ({{ exam.courseName }})</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="Select an examination" ariaLabel="Filter by examination" searchPlaceholder="Search examinations…"
+        [fetchPage]="examinationFetchPage"
+        [selectedValue]="selectedExamId()" (selectedValueChange)="onExaminationChange($event)"
+      />
       @if (!loading()) {
         <span class="count-badge" aria-live="polite">{{ dataSource.data.length }} results</span>
       }

@@ -356,7 +356,7 @@ export interface CourseOffering {
 }
 
 /** Deactivating (isActive: false) is blocked server-side when the offering already has sessions
- *  placed in Skeleton Builder or batches with students rostered — reactivating has no such guard. */
+ *  placed in Timetable Builder or batches with students rostered — reactivating has no such guard. */
 export interface CourseOfferingStatusUpdateRequest {
   isActive: boolean;
   reason?: string;

@@ -23,6 +23,9 @@ import { CmsIconDeleteComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { ATTENDANCE_TOUR, ATTENDANCE_FLOW_MAP } from '../../../shared/tour/tours/attendance.tours';
@@ -47,6 +50,7 @@ import { ATTENDANCE_TOUR, ATTENDANCE_FLOW_MAP } from '../../../shared/tour/tours
     CmsStatusBadgeComponent,
     CmsIconDeleteComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
 ],
   templateUrl: './attendance-list.component.html',
   styleUrl: './attendance-list.component.scss',
@@ -88,6 +92,10 @@ export class AttendanceListComponent implements OnInit {
   protected readonly rawRecords = signal<Attendance[]>([]);
 
   protected readonly statusOptions = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
+  protected readonly subjectFetchPage = staticOptionsFetchPage(() =>
+    this.subjects().map(s => ({ id: s.id, name: s.name })));
+  protected readonly statusFetchPage = staticOptionsFetchPage(() =>
+    this.statusOptions.map(s => ({ id: s, name: s })));
 
   /** The backend requires at least one filter on GET /attendance (subjectId, studentId, or
    *  both) -- there is no unfiltered "list everything" endpoint, matching this page's own
@@ -103,8 +111,8 @@ export class AttendanceListComponent implements OnInit {
     this.loadSubjects();
   }
 
-  protected onSubjectChange(value: string): void {
-    const subjectId = value ? Number(value) : null;
+  protected onSubjectChange(value: InfiniteSelectValue | null): void {
+    const subjectId = value != null ? Number(value) : null;
     this.selectedSubjectId.set(subjectId);
     if (subjectId) {
       this.loadAttendance(subjectId);
@@ -122,8 +130,8 @@ export class AttendanceListComponent implements OnInit {
     }
   }
 
-  protected onStatusFilterChange(value: string): void {
-    this.filterStatus.set(value);
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.filterStatus.set(value != null ? String(value) : '');
     this.applyStatusFilter();
   }
 

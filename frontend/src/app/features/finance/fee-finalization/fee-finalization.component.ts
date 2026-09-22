@@ -25,6 +25,9 @@ import { CmsIconEditComponent } from '../../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 interface YearFeeRow {
   yearNumber: number;
   yearLabel: string;
@@ -46,6 +49,7 @@ interface Program { id: number; name: string; durationYears: number; }
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent,
       CmsIconEditComponent, CmsTourButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './fee-finalization.component.html',
   styleUrl: './fee-finalization.component.scss',
@@ -303,23 +307,33 @@ export class FeeFinalizationComponent implements OnInit {
     this.searchValue.set((event.target as HTMLInputElement).value);
   }
 
-  protected onProgramFilter(id: number | null): void {
-    this.selectedProgramId.set(id);
+  protected readonly programFetchPage = staticOptionsFetchPage(() =>
+    this.programs().map(p => ({ id: p.id, name: p.name })));
+  protected readonly quotaFetchPage = staticOptionsFetchPage(() => [
+    { id: 'MANAGEMENT', name: 'Management' },
+    { id: 'COUNSELLING', name: 'Counselling' },
+  ]);
+  protected readonly academicYearFilterFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(y => ({ id: y.id, name: y.name })));
+  protected readonly courseFetchPage = staticOptionsFetchPage(() =>
+    this.courses().map(c => ({ id: c.id, name: c.name })));
+
+  protected onProgramFilter(value: InfiniteSelectValue | null): void {
+    this.selectedProgramId.set(value != null ? Number(value) : null);
   }
 
-  protected onQuotaFilter(value: string): void {
-    const v = value as 'MANAGEMENT' | 'COUNSELLING' | '';
-    this.selectedQuota.set(v || null);
+  protected onQuotaFilter(value: InfiniteSelectValue | null): void {
+    this.selectedQuota.set(value != null ? (String(value) as 'MANAGEMENT' | 'COUNSELLING') : null);
   }
 
-  protected onAcademicYearFilter(id: number | null): void {
-    this.selectedAcademicYearId.set(id);
+  protected onAcademicYearFilter(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId.set(value != null ? Number(value) : null);
     // Re-hydrate proposed fees for the newly selected year
     this.hydrateAuthoritativeProposedFees(this.allEnquiries());
   }
 
-  protected onCourseFilter(id: number | null): void {
-    this.selectedCourseId.set(id);
+  protected onCourseFilter(value: InfiniteSelectValue | null): void {
+    this.selectedCourseId.set(value != null ? Number(value) : null);
   }
 
   protected clearFilters(): void {

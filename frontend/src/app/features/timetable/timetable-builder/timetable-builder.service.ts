@@ -6,60 +6,60 @@ import {
   DutyDayMovePreview,
   DutyDayMoveRequest,
   ElectiveGroupScheduleResponse,
-  SkeletonRelocateRequest,
-  SkeletonRelocationPlan,
+  TimetableRelocateRequest,
+  TimetableRelocationPlan,
   GlobalAutoSchedulePrerequisites,
   GlobalAutoScheduleResult,
   GlobalCapacityPrecheckResult,
-  SkeletonBuilderResponse,
-  SkeletonCell,
-  SkeletonCellMoveRequest,
-  SkeletonCellPlacementRequest,
-  SkeletonCellReplaceRequest,
-  SkeletonCellReplaceResponse,
-  SkeletonCellSwapRequest,
-  SkeletonPlacementCandidate,
-  SkeletonSessionType,
-  SkeletonSlotPreview,
-} from './skeleton-builder.model';
+  TimetableBuilderResponse,
+  TimetableCell,
+  TimetableCellMoveRequest,
+  TimetableCellPlacementRequest,
+  TimetableCellReplaceRequest,
+  TimetableCellReplaceResponse,
+  TimetableCellSwapRequest,
+  TimetablePlacementCandidate,
+  TimetableSessionType,
+  TimetableSlotPreview,
+} from './timetable-builder.model';
 
 @Injectable({ providedIn: 'root' })
-export class SkeletonBuilderService {
+export class TimetableBuilderService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/timetables/skeleton`;
 
-  getCohortSkeleton(termInstanceId: number, cohortId: number): Observable<SkeletonBuilderResponse> {
-    return this.http.get<SkeletonBuilderResponse>(this.baseUrl, {
+  getCohortSkeleton(termInstanceId: number, cohortId: number): Observable<TimetableBuilderResponse> {
+    return this.http.get<TimetableBuilderResponse>(this.baseUrl, {
       params: { termInstanceId: termInstanceId.toString(), cohortId: cohortId.toString() },
     });
   }
 
-  suggestCandidates(courseOfferingId: number, sessionType: SkeletonSessionType, batchId: number | null, cohortSectionId: number | null): Observable<SkeletonPlacementCandidate[]> {
+  suggestCandidates(courseOfferingId: number, sessionType: TimetableSessionType, batchId: number | null, cohortSectionId: number | null): Observable<TimetablePlacementCandidate[]> {
     const params: Record<string, string> = {
       courseOfferingId: courseOfferingId.toString(),
       sessionType,
     };
     if (batchId != null) params['batchId'] = batchId.toString();
     if (cohortSectionId != null) params['cohortSectionId'] = cohortSectionId.toString();
-    return this.http.get<SkeletonPlacementCandidate[]>(`${this.baseUrl}/suggest`, { params });
+    return this.http.get<TimetablePlacementCandidate[]>(`${this.baseUrl}/suggest`, { params });
   }
 
-  placeCell(request: SkeletonCellPlacementRequest): Observable<SkeletonCell> {
-    return this.http.post<SkeletonCell>(`${this.baseUrl}/cells`, request);
+  placeCell(request: TimetableCellPlacementRequest): Observable<TimetableCell> {
+    return this.http.post<TimetableCell>(`${this.baseUrl}/cells`, request);
   }
 
   removeCell(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/cells/${id}`);
   }
 
-  moveCell(id: number, request: SkeletonCellMoveRequest): Observable<SkeletonCell> {
-    return this.http.put<SkeletonCell>(`${this.baseUrl}/cells/${id}/move`, request);
+  moveCell(id: number, request: TimetableCellMoveRequest): Observable<TimetableCell> {
+    return this.http.put<TimetableCell>(`${this.baseUrl}/cells/${id}/move`, request);
   }
 
   /** Pin a cell so the next Run Automation packs the week around it, or unpin it to hand it back
    *  to automation. Applies to every period of a multi-period session server-side. */
-  setCellPinned(id: number, pinned: boolean): Observable<SkeletonCell> {
-    return this.http.put<SkeletonCell>(`${this.baseUrl}/cells/${id}/pin`, null, {
+  setCellPinned(id: number, pinned: boolean): Observable<TimetableCell> {
+    return this.http.put<TimetableCell>(`${this.baseUrl}/cells/${id}/pin`, null, {
       params: { pinned },
     });
   }
@@ -68,30 +68,30 @@ export class SkeletonBuilderService {
    *  Applies to every period of a multi-period session server-side, and pins the result (a
    *  deliberate human decision, same as a drag-move). The response carries the displaced subject's
    *  resulting weekly shortfall so the caller can surface what now needs re-placing. */
-  replaceCell(id: number, request: SkeletonCellReplaceRequest): Observable<SkeletonCellReplaceResponse> {
-    return this.http.put<SkeletonCellReplaceResponse>(`${this.baseUrl}/cells/${id}/replace`, request);
+  replaceCell(id: number, request: TimetableCellReplaceRequest): Observable<TimetableCellReplaceResponse> {
+    return this.http.put<TimetableCellReplaceResponse>(`${this.baseUrl}/cells/${id}/replace`, request);
   }
 
-  swapCells(id: number, request: SkeletonCellSwapRequest): Observable<SkeletonCell[]> {
-    return this.http.put<SkeletonCell[]>(`${this.baseUrl}/cells/${id}/swap`, request);
+  swapCells(id: number, request: TimetableCellSwapRequest): Observable<TimetableCell[]> {
+    return this.http.put<TimetableCell[]>(`${this.baseUrl}/cells/${id}/swap`, request);
   }
 
-  previewMoveTargets(id: number, cohortId: number): Observable<SkeletonSlotPreview[]> {
-    return this.http.get<SkeletonSlotPreview[]>(`${this.baseUrl}/cells/${id}/move-preview`, {
+  previewMoveTargets(id: number, cohortId: number): Observable<TimetableSlotPreview[]> {
+    return this.http.get<TimetableSlotPreview[]>(`${this.baseUrl}/cells/${id}/move-preview`, {
       params: { cohortId: cohortId.toString() },
     });
   }
 
   /** Every same-length window this session could go to with its whole block — MOVE, SWAP, or why not. */
-  previewRelocation(id: number, cohortId: number): Observable<SkeletonRelocationPlan[]> {
-    return this.http.get<SkeletonRelocationPlan[]>(`${this.baseUrl}/cells/${id}/relocate-preview`, {
+  previewRelocation(id: number, cohortId: number): Observable<TimetableRelocationPlan[]> {
+    return this.http.get<TimetableRelocationPlan[]>(`${this.baseUrl}/cells/${id}/relocate-preview`, {
       params: { cohortId: cohortId.toString() },
     });
   }
 
   /** Move or swap a session with its whole block, all-or-nothing; everything moved is pinned. */
-  relocate(id: number, request: SkeletonRelocateRequest): Observable<SkeletonCell[]> {
-    return this.http.put<SkeletonCell[]>(`${this.baseUrl}/cells/${id}/relocate`, request);
+  relocate(id: number, request: TimetableRelocateRequest): Observable<TimetableCell[]> {
+    return this.http.put<TimetableCell[]>(`${this.baseUrl}/cells/${id}/relocate`, request);
   }
 
   previewDutyDayMove(shiftGroupId: number, cohortId: number): Observable<DutyDayMovePreview[]> {
@@ -100,8 +100,8 @@ export class SkeletonBuilderService {
     });
   }
 
-  moveDutyDay(shiftGroupId: number, request: DutyDayMoveRequest): Observable<SkeletonCell[]> {
-    return this.http.put<SkeletonCell[]>(`${this.baseUrl}/clinical-shift-groups/${shiftGroupId}/day`, request);
+  moveDutyDay(shiftGroupId: number, request: DutyDayMoveRequest): Observable<TimetableCell[]> {
+    return this.http.put<TimetableCell[]>(`${this.baseUrl}/clinical-shift-groups/${shiftGroupId}/day`, request);
   }
 
   getElectiveGroupSchedule(electiveGroupId: number, termInstanceId: number): Observable<ElectiveGroupScheduleResponse> {

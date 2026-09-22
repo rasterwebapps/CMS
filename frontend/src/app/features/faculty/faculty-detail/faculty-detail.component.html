@@ -16,6 +16,9 @@
     <div class="detail-card">
     <!-- ── Hero ────────────────────────────────────────── -->
     <header id="tour-fac-detail-hero" class="profile-hero">
+      <a class="entry-form-back-btn" routerLink="/faculty" aria-label="Back to faculty">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </a>
       <div class="profile-hero__avatar" aria-hidden="true">{{ initials() }}</div>
       <div class="profile-hero__body">
         <div class="page-title-row">
@@ -145,20 +148,17 @@
             </div>
           } @else {
             <div class="content-card workload-toolbar">
-              <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
-                @for (ay of academicYears(); track ay.id) {
-                  <option [ngValue]="ay.id">{{ ay.name }}</option>
-                }
-              </select>
-              <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
-                [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
-                @if (termInstances().length === 0) {
-                  <option [ngValue]="null">No terms yet</option>
-                }
-                @for (term of termInstances(); track term.id) {
-                  <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
-                }
-              </select>
+              <cms-infinite-select
+                label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
+                [fetchPage]="workloadAcademicYearFetchPage"
+                [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+              />
+              <cms-infinite-select
+                label="Term" ariaLabel="Term" searchPlaceholder="Search terms…"
+                [fetchPage]="workloadTermFetchPage"
+                [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
+                [disabled]="termsLoading() || termInstances().length === 0"
+              />
             </div>
 
             @if (workloadLoading()) {

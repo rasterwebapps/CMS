@@ -34,29 +34,18 @@
 
   <div id="tour-af-toolbar" class="command-bar mlp-toolbar">
     <div class="command-bar__left">
-      <select
-        class="mlp-filter-select"
-        [(ngModel)]="selectedAcademicYearId"
-        (ngModelChange)="onAcademicYearChange()"
-        aria-label="Filter by academic year">
-        @for (ay of academicYears(); track ay.id) {
-          <option [ngValue]="ay.id">{{ ay.name }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="Academic year" ariaLabel="Filter by academic year" searchPlaceholder="Search years…"
+        [fetchPage]="academicYearFetchPage"
+        [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+      />
 
-      <select
-        class="mlp-filter-select"
-        [(ngModel)]="selectedTermInstanceId"
-        (ngModelChange)="onTermChange()"
+      <cms-infinite-select
+        label="Term" ariaLabel="Filter by term" searchPlaceholder="Search terms…"
+        [fetchPage]="termFetchPage"
+        [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
         [disabled]="termsLoading() || termInstances().length === 0"
-        aria-label="Filter by term">
-        @if (termInstances().length === 0) {
-          <option [ngValue]="null">No terms yet</option>
-        }
-        @for (term of termInstances(); track term.id) {
-          <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
-        }
-      </select>
+      />
 
       <div class="search-bar" role="search">
         <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -75,29 +64,19 @@
         }
       </div>
 
-      <select
-        class="mlp-filter-select"
-        [ngModel]="selectedSemester()"
-        (ngModelChange)="selectedSemester.set($event); onSemesterChange()"
+      <cms-infinite-select
+        label="All Semesters" ariaLabel="Filter by semester" searchPlaceholder="Search semesters…"
+        [fetchPage]="semesterFetchPage"
+        [selectedValue]="selectedSemester() === 'ALL' ? null : selectedSemester()" (selectedValueChange)="onSemesterChange($event)"
         [disabled]="semesterOptions().length === 0"
-        aria-label="Filter by semester">
-        <option [ngValue]="'ALL'">All Semesters</option>
-        @for (sem of semesterOptions(); track sem) {
-          <option [ngValue]="sem">Semester {{ sem }}</option>
-        }
-      </select>
+      />
 
-      <select
-        class="mlp-filter-select"
-        [ngModel]="selectedCohort()"
-        (ngModelChange)="selectedCohort.set($event); onCohortChange()"
+      <cms-infinite-select
+        label="All Cohorts" ariaLabel="Filter by cohort" searchPlaceholder="Search cohorts…"
+        [fetchPage]="cohortFetchPage"
+        [selectedValue]="selectedCohort() === 'ALL' ? null : selectedCohort()" (selectedValueChange)="onCohortChange($event)"
         [disabled]="cohortOptions().length === 0"
-        aria-label="Filter by cohort">
-        <option [ngValue]="'ALL'">All Cohorts</option>
-        @for (cohort of cohortOptions(); track cohort) {
-          <option [ngValue]="cohort">{{ cohort }}</option>
-        }
-      </select>
+      />
 
       @if (!loading()) {
         <span class="count-badge" aria-live="polite">

@@ -6,7 +6,7 @@
         <h1 class="mlp-title">Recurring <em>Unavailability</em></h1>
         <cms-tour-button tourKey="faculty-availability" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="page-subtitle">Block a faculty member's standing weekly commitments (e.g. external duty every Tuesday) so Skeleton Builder, Staffing, and Swap steer around them</p>
+      <p class="page-subtitle">Block a faculty member's standing weekly commitments (e.g. external duty every Tuesday) so Timetable Builder, Staffing, and Swap steer around them</p>
     </div>
   </div>
 
@@ -24,14 +24,11 @@
   </div>
 
   <div id="tour-facavail-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
-    <select class="mlp-filter-select" [(ngModel)]="selectedFacultyId" (ngModelChange)="onFacultyChange()" aria-label="Faculty">
-      @if (faculties().length === 0) {
-        <option [ngValue]="null">No faculty found</option>
-      }
-      @for (f of faculties(); track f.id) {
-        <option [ngValue]="f.id">{{ f.fullName }} ({{ f.employeeCode }})</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="Faculty" ariaLabel="Faculty" searchPlaceholder="Search faculty…"
+      [fetchPage]="facultyFetchPage"
+      [selectedValue]="selectedFacultyId" (selectedValueChange)="onFacultySelectChange($event)"
+    />
   </div>
 
   @if (!canManage()) {

@@ -20,6 +20,9 @@ import { ACADEMIC_YEAR_LIST_TOUR, ACADEMIC_YEAR_LIST_FLOW_MAP } from '../../../s
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-academic-year-list',
@@ -40,6 +43,7 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } fr
     CmsIconDeleteComponent,
     CmsIconEditComponent,
     CmsIconViewComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './academic-year-list.component.html',
   styleUrl: './academic-year-list.component.scss',
@@ -131,8 +135,13 @@ export class AcademicYearListComponent implements OnInit, OnDestroy {
     this.searchSubject.next('');
   }
 
-  protected onIsCurrentFilterChange(value: string): void {
-    this.isCurrentFilter.set(value === '' ? null : value === 'true');
+  protected readonly isCurrentFetchPage = staticOptionsFetchPage(() => [
+    { id: 'true', name: 'Current' },
+    { id: 'false', name: 'Past' },
+  ]);
+
+  protected onIsCurrentFilterChange(value: InfiniteSelectValue | null): void {
+    this.isCurrentFilter.set(value == null ? null : value === 'true');
     this.currentPage = 0;
     this.loadPage();
   }

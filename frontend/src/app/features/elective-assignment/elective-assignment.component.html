@@ -12,17 +12,17 @@
   <div class="ea-layout anim-rise anim-rise--d1">
     <div id="tour-elec-choose" class="content-card ea-choose-panel">
       <div class="ea-filters">
-        <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
-          @for (ay of academicYears(); track ay.id) {
-            <option [ngValue]="ay.id">{{ ay.name }}</option>
-          }
-        </select>
+        <cms-infinite-select
+          label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
+          [fetchPage]="academicYearFetchPage"
+          [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+        />
 
-        <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()" aria-label="Term instance">
-          @for (term of termInstances(); track term.id) {
-            <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
-          }
-        </select>
+        <cms-infinite-select
+          label="Term" ariaLabel="Term instance" searchPlaceholder="Search terms…"
+          [fetchPage]="termFetchPage"
+          [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
+        />
       </div>
 
       <h2 class="ea-panel-title">Choose Elective Group</h2>
@@ -89,11 +89,12 @@
               @if (canManageElectiveGroups()) {
                 <div class="ea-mode-switch">
                   <span class="field-hint">Mode:</span>
-                  <select class="mlp-filter-select" [ngModel]="group.selectionMode"
-                    (ngModelChange)="setSelectionMode($event)" [disabled]="modeSaving()" aria-label="Selection mode">
-                    <option value="STUDENT_CHOICE">Student Choice</option>
-                    <option value="INSTITUTION_DECIDED">Institution Decided</option>
-                  </select>
+                  <cms-infinite-select
+                    label="Selection mode" ariaLabel="Selection mode" searchPlaceholder="Search…"
+                    [fetchPage]="selectionModeFetchPage"
+                    [selectedValue]="group.selectionMode" (selectedValueChange)="onSelectionModeChange($event)"
+                    [disabled]="modeSaving()"
+                  />
                 </div>
               } @else {
                 <span class="field-hint">

@@ -5,16 +5,16 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { EligibleFacultyCandidate } from '../../../academic-year/academic-year.model';
 import { AcademicYearService } from '../../../academic-year/academic-year.service';
-import { SkeletonCell } from '../skeleton-builder.model';
+import { TimetableCell } from '../timetable-builder.model';
 
-export interface SkeletonCellReassignFacultyDialogData {
-  cell: SkeletonCell;
+export interface TimetableCellReassignFacultyDialogData {
+  cell: TimetableCell;
   /** Used for the cohort-scoped candidate list — see {@link loadCandidates}. */
   cohortId: number;
 }
 
 /** Just the chosen faculty; the grid owns the API call, same split as the Replace dialog. */
-export interface SkeletonCellReassignFacultyDialogResult {
+export interface TimetableCellReassignFacultyDialogResult {
   facultyId: number;
 }
 
@@ -31,15 +31,15 @@ export interface SkeletonCellReassignFacultyDialogResult {
  *  classroom pick, and it is excluded from this dialog for that reason (see the grid's
  *  {@code reassignBlockedReason}). */
 @Component({
-  selector: 'app-skeleton-cell-reassign-faculty-dialog',
+  selector: 'app-timetable-cell-reassign-faculty-dialog',
   standalone: true,
   imports: [FormsModule, DecimalPipe, TitleCasePipe, MatDialogModule, MatProgressSpinnerModule],
-  templateUrl: './skeleton-cell-reassign-faculty-dialog.component.html',
-  styleUrl: './skeleton-cell-reassign-faculty-dialog.component.scss',
+  templateUrl: './timetable-cell-reassign-faculty-dialog.component.html',
+  styleUrl: './timetable-cell-reassign-faculty-dialog.component.scss',
 })
-export class SkeletonCellReassignFacultyDialogComponent {
-  private readonly dialogRef = inject(MatDialogRef<SkeletonCellReassignFacultyDialogComponent>);
-  protected readonly data: SkeletonCellReassignFacultyDialogData = inject(MAT_DIALOG_DATA);
+export class TimetableCellReassignFacultyDialogComponent {
+  private readonly dialogRef = inject(MatDialogRef<TimetableCellReassignFacultyDialogComponent>);
+  protected readonly data: TimetableCellReassignFacultyDialogData = inject(MAT_DIALOG_DATA);
   private readonly academicYearService = inject(AcademicYearService);
 
   protected readonly selectedFacultyId = signal<number | null>(null);
@@ -117,7 +117,7 @@ export class SkeletonCellReassignFacultyDialogComponent {
   protected onSave(): void {
     const facultyId = this.selectedFacultyId();
     if (facultyId == null) return;
-    this.dialogRef.close({ facultyId } satisfies SkeletonCellReassignFacultyDialogResult);
+    this.dialogRef.close({ facultyId } satisfies TimetableCellReassignFacultyDialogResult);
   }
 
   protected onCancel(): void {

@@ -83,6 +83,46 @@
   }
 }
 
+// ── Finalization form header — matches fee-collection's payment-topbar pattern
+// (kept as its own copy here since Angular's emulated ViewEncapsulation means a
+// component's own SCSS can't extend another component's classes). ─────────────
+.payment-topbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.payment-topbar__text {
+  min-width: 0;
+
+  .page-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--cms-font-display), serif;
+    font-size: var(--cms-text-2xl);
+    font-weight: 400;
+    color: var(--cms-text-primary);
+    line-height: 1.1;
+
+    em {
+      color: var(--cms-primary);
+      font-style: italic;
+    }
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: var(--cms-text-base);
+    color: var(--cms-text-muted);
+  }
+}
+
 // ── Two-column finalization layout ───────────────────────────────────────────
 .finalize-grid {
   display: grid;

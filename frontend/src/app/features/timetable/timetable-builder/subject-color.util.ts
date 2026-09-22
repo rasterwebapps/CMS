@@ -1,4 +1,4 @@
-import { SkeletonSessionType } from './skeleton-builder.model';
+import { TimetableSessionType } from './timetable-builder.model';
 
 /** Four tints of the tenant's own themed primary color (`--cms-primary-rgb`, set per school by
  *  ThemeService — never a hardcoded brand color), one per real curriculum category, so the grid
@@ -26,7 +26,7 @@ export const SPORTS_CELL_COLOR = '#65a30d';
 /** THEORY/LAB/CLINICAL cell accent — Co-curricular (advisory) always wins regardless of session
  *  type, since it's a curriculum classification orthogonal to session type; the three mandatory
  *  session types are otherwise told apart by {@code sessionType} alone. */
-export function colorForCell(sessionType: SkeletonSessionType, coCurricular: boolean): string {
+export function colorForCell(sessionType: TimetableSessionType, coCurricular: boolean): string {
   if (coCurricular) return CO_CURRICULAR_COLOR;
   switch (sessionType) {
     case 'LAB': return LAB_COLOR;

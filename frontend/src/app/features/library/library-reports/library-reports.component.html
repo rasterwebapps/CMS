@@ -33,16 +33,11 @@
       />
     </div>
 
-    <select
-      class="mlp-filter-select"
-      [value]="memberFilter() ?? ''"
-      (change)="memberFilter.set($any($event.target).value || null); onFilterChange()"
-      aria-label="Filter by member type"
-    >
-      <option value="">Students &amp; Faculty</option>
-      <option value="STUDENT">Students only</option>
-      <option value="FACULTY">Faculty only</option>
-    </select>
+    <cms-infinite-select
+      label="Students &amp; Faculty" ariaLabel="Filter by member type" searchPlaceholder="Search…"
+      [fetchPage]="memberFetchPage"
+      [selectedValue]="memberFilter()" (selectedValueChange)="onMemberFilterChange($event)"
+    />
 
     @if (hasActiveFilters()) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">Clear filters</button>

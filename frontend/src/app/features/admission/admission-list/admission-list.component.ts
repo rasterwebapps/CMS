@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { TitleCasePipe } from '@angular/common';
 import { of, Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, map, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
@@ -63,7 +62,6 @@ const SORT_FIELD_MAP: Record<string, string> = {
   standalone: true,
   imports: [
     FormsModule,
-    TitleCasePipe,
     AppDatePipe,
     CmsEmptyStateComponent,
     MatTableModule,
@@ -186,6 +184,25 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
     { value: 'HOSTELER',    label: 'Hosteler' },
   ];
 
+  // Fixed small enums — no backend paging needed, but cms-infinite-select is still the right fit
+  // over a native <select>: keeps these filters visually/behaviourally uniform with Program/
+  // Course/Batch above (same pill, same panel, same outside-click-closes-siblings handling)
+  // instead of mixing in browser-native <select> chrome that can't be restyled.
+  protected readonly statusFetchPage = () =>
+    of({
+      content: this.STUDENT_STATUSES.map(s => ({
+        id: s,
+        name: s.toLowerCase().split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' '),
+      })),
+      totalElements: this.STUDENT_STATUSES.length,
+    });
+
+  protected readonly studentTypeFetchPage = () =>
+    of({
+      content: this.STUDENT_TYPES.map(t => ({ id: t.value, name: t.label })),
+      totalElements: this.STUDENT_TYPES.length,
+    });
+
   protected readonly hasActiveFilters = computed(() =>
     !!this.filterProgramId() ||
     !!this.filterCourseId() ||
@@ -267,12 +284,14 @@ export class AdmissionListComponent implements OnInit, OnDestroy {
     this.navigate({ academicYearId: ayId, page: 0 });
   }
 
-  protected onStatusChange(val: string): void {
+  protected onStatusChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : '';
     this.filterStatus.set(val);
     this.navigate({ status: val || null, page: 0 });
   }
 
-  protected onStudentTypeChange(val: string): void {
+  protected onStudentTypeChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : '';
     this.filterStudentType.set(val);
     this.navigate({ studentType: val || null, page: 0 });
   }

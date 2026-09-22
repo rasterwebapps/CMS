@@ -38,6 +38,9 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
 
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 type PanelMode = 'view' | 'approve' | 'reject';
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -64,7 +67,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent, CmsTypeBadgeComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
-    CmsIconViewComponent,
+    CmsIconViewComponent, CmsInfiniteSelectComponent,
   ],
   templateUrl: './fee-refund-list.component.html',
   styleUrl: './fee-refund-list.component.scss',
@@ -127,6 +130,18 @@ export class FeeRefundListComponent implements OnInit, OnDestroy {
   protected readonly searchValue      = signal('');
   protected readonly statusFilter     = signal('');
   protected readonly filterEntityType = signal('');
+
+  protected readonly statusFetchPage = staticOptionsFetchPage(() => [
+    { id: 'PENDING', name: 'Pending' },
+    { id: 'APPROVED', name: 'Approved' },
+    { id: 'REJECTED', name: 'Rejected' },
+    { id: 'TRANSMITTED', name: 'Transmitted' },
+    { id: 'PAYMENT_FAILED', name: 'Payment Failed' },
+  ]);
+  protected readonly entityTypeFetchPage = staticOptionsFetchPage(() => [
+    { id: 'STUDENT', name: 'Student' },
+    { id: 'ENQUIRY', name: 'Pre-enrollment' },
+  ]);
   protected readonly dateFrom         = signal('');
   protected readonly dateTo           = signal('');
 
@@ -323,6 +338,14 @@ export class FeeRefundListComponent implements OnInit, OnDestroy {
       Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),
     );
     void this.router.navigate([], { relativeTo: this.route, queryParams });
+  }
+
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.navigate({ status: value != null ? String(value) : null, page: 0 });
+  }
+
+  protected onEntityTypeFilterChange(value: InfiniteSelectValue | null): void {
+    this.navigate({ entityType: value != null ? String(value) : null, page: 0 });
   }
 
   // ── Panel ──────────────────────────────────────────────────────────────────

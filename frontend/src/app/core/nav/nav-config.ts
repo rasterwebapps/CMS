@@ -122,7 +122,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       // picker (CourseOfferingSectionFacultyService.getForOffering) only appears once those
       // sections already exist. No separate "Capacity Planner" menu item -- it's still a real,
       // fully standalone screen (own year/term/cohort pickers), just reached contextually from
-      // here, from Skeleton Builder, and from Staffing ("Adjust manually" / "size rooms first"
+      // here, from Timetable Builder, and from Staffing ("Adjust manually" / "size rooms first"
       // links) rather than adding a 2nd top-level entry for what's largely the same job.
       { label: 'Capacity Auto-Plan',  icon: 'auto_awesome',       route: '/timetable/capacity-auto-plan', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
       { label: 'Assign Faculty',      icon: 'person_edit',        route: '/assign-faculty',      permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
@@ -136,9 +136,9 @@ export const NAV_ENTRIES: NavEntry[] = [
       // "Timetable ops". The two were being confused despite already living in different nav
       // sections, so the label itself was renamed rather than moved.)
       { label: 'Recurring Unavailability', icon: 'event_busy',    route: '/faculty-availability', permissions: ['FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'] },
-      { label: 'Skeleton Builder',    icon: 'grid_on',            route: '/timetable/skeleton-builder', permissions: ['TIMETABLE_VIEW'] },
+      { label: 'Timetable Builder',    icon: 'grid_on',            route: '/timetable/timetable-builder', permissions: ['TIMETABLE_VIEW'] },
       // No standalone Staffing nav entry -- Approve now auto-staffs the draft itself (OC-230), and
-      // any leftover unstaffed cell is fixed in-grid via Skeleton Builder's Reassign Faculty dialog.
+      // any leftover unstaffed cell is fixed in-grid via Timetable Builder's Reassign Faculty dialog.
       { label: 'Conflict Inspector',  icon: 'fact_check',         route: '/timetable/conflict-inspector', permissions: ['TIMETABLE_CONFLICT_INSPECTOR_VIEW'] },
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
       { label: 'Resource Timetable',  icon: 'grid_view',          route: '/timetable/resource-grid', permissions: ['TIMETABLE_FACULTY_GRID_VIEW', 'TIMETABLE_CLASSROOM_GRID_VIEW'] },

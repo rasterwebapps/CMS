@@ -6,7 +6,7 @@ export type HoursProgressCardVariant = 'term' | 'theory' | 'lab' | 'clinical';
 
 /** A single "hours progress" stat card — icon + label, an optional unassigned-hours badge, a big
  *  value against its total with a progress bar, and up to two caption lines below (a status line
- *  and a bold "beyond curriculum" line). Purpose-built for Skeleton Builder's term/Theory/Lab/
+ *  and a bold "beyond curriculum" line). Purpose-built for Timetable Builder's term/Theory/Lab/
  *  Clinical hour summary (2026-09-21 redesign, replacing the old plain stat-grid boxes) — no
  *  existing card combines a progress bar with this badge+caption shape, so this is a new component
  *  rather than a reuse of {@code DashboardKpiCardComponent} (simpler icon+value+subtitle layout, no

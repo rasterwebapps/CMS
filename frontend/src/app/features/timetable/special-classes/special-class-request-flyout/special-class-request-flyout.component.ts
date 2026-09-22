@@ -27,10 +27,10 @@ type Mode = 'PICK_MODE' | 'SINGLE_SUBJECT' | 'DAY_REPEAT';
 const WEEKDAYS: WeekDay[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
 /** BR-55: request-creation flyout for a faculty-initiated special class. Two modes share one
- *  academic-year/term/cohort cascade (mirrors SkeletonBuilderComponent's own cascade) — a
+ *  academic-year/term/cohort cascade (mirrors TimetableBuilderComponent's own cascade) — a
  *  single-subject ad-hoc session, or a whole-day-repeat batch. Submits and lets the caller catch
  *  `TimetableConstraintViolationException` via the shared {@link violationText} util, matching
- *  Skeleton Builder/Staffing's own toast-based conflict surfacing rather than a live dry-run
+ *  Timetable Builder/Staffing's own toast-based conflict surfacing rather than a live dry-run
  *  preview endpoint. */
 @Component({
   selector: 'app-special-class-request-flyout',

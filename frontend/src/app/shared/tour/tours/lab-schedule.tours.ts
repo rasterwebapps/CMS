@@ -28,7 +28,7 @@ export const LAB_SCHEDULE_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Schedule Records',
         description:
-          'Each row is one lab session — day, session type, room, subject, faculty, batch, and start/end time. New sessions come from Skeleton Builder or the Special Class Scheduler; edit an existing row here to correct it.',
+          'Each row is one lab session — day, session type, room, subject, faculty, batch, and start/end time. New sessions come from Timetable Builder or the Special Class Scheduler; edit an existing row here to correct it.',
         side: 'top',
         align: 'start',
       },

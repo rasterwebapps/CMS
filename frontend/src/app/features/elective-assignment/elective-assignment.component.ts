@@ -19,10 +19,13 @@ import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.com
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../core/toast/toast.service';
 import { PermissionService } from '../../core/permissions/permission.service';
-import { SkeletonBuilderService } from '../timetable/skeleton-builder/skeleton-builder.service';
-import { ElectiveGroupScheduleResponse } from '../timetable/skeleton-builder/skeleton-builder.model';
+import { TimetableBuilderService } from '../timetable/timetable-builder/timetable-builder.service';
+import { ElectiveGroupScheduleResponse } from '../timetable/timetable-builder/timetable-builder.model';
 import { TourService } from '../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
+import { CmsInfiniteSelectComponent } from '../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../shared/infinite-select/infinite-select.utils';
 import { ELECTIVE_ASSIGNMENT_TOUR, ELECTIVE_ASSIGNMENT_FLOW_MAP } from '../../shared/tour/tours/elective-assignment.tours';
 
 interface ElectiveGroupOption {
@@ -46,13 +49,14 @@ interface AssignmentRow {
     FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, CmsEmptyStateComponent,
     CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './elective-assignment.component.html',
   styleUrl: './elective-assignment.component.scss',
 })
 export class ElectiveAssignmentComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
-  private readonly skeletonBuilderService = inject(SkeletonBuilderService);
+  private readonly skeletonBuilderService = inject(TimetableBuilderService);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
   private readonly permissionService = inject(PermissionService);
@@ -144,18 +148,33 @@ export class ElectiveAssignmentComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+  protected readonly selectionModeFetchPage = staticOptionsFetchPage(() => [
+    { id: 'STUDENT_CHOICE', name: 'Student Choice' },
+    { id: 'INSTITUTION_DECIDED', name: 'Institution Decided' },
+  ]);
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.resetGroupState();
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     this.resetGroupState();
     if (this.selectedTermInstanceId) {
       this.loadElectiveGroupOptions(this.selectedTermInstanceId);
       this.loadGroupSummaries(this.selectedTermInstanceId);
     }
+  }
+
+  protected onSelectionModeChange(value: InfiniteSelectValue | null): void {
+    if (value != null) this.setSelectionMode(value as ElectiveSelectionMode);
   }
 
   /** Clicking a card in the group-launcher strip selects that group and loads its roster —

@@ -16,6 +16,9 @@ import { CmsStatusBadgeComponent } from '../../shared/status-badge/status-badge.
 import { CmsIconEditComponent } from '../../shared/icons';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../shared/column-picker';
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../shared/infinite-select/infinite-select.utils';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { TourService } from '../../shared/tour/tour.service';
@@ -62,6 +65,7 @@ const ASSIGNMENT_STATUS_SORT_RANK: Record<OfferingAssignmentStatus, number> = {
     MatProgressSpinnerModule, MatDialogModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsStatusBadgeComponent, CmsIconEditComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './assign-faculty-list.component.html',
   styleUrl: './assign-faculty-list.component.scss',
@@ -125,7 +129,7 @@ export class AssignFacultyListComponent implements OnInit {
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
 
-  /** Set from an `editOfferingId`/`suggestedFacultyId` deep link (e.g. Skeleton Builder's Global
+  /** Set from an `editOfferingId`/`suggestedFacultyId` deep link (e.g. Timetable Builder's Global
    *  Auto-Schedule capacity report suggesting "move this offering to faculty X") — consumed once,
    *  the first time this offering's term finishes loading, to auto-open its Assign Faculty dialog
    *  with that faculty pre-selected. Never applied without the admin confirming Save themselves. */
@@ -213,7 +217,17 @@ export class AssignFacultyListComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+  protected readonly semesterFetchPage = staticOptionsFetchPage(() =>
+    this.semesterOptions().map(s => ({ id: s, name: `Semester ${s}` })));
+  protected readonly cohortFetchPage = staticOptionsFetchPage(() =>
+    this.cohortOptions().map(c => ({ id: c, name: c })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.selectedSemester.set('ALL');
     this.selectedCohort.set('ALL');
@@ -221,18 +235,21 @@ export class AssignFacultyListComponent implements OnInit {
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     this.selectedSemester.set('ALL');
     this.selectedCohort.set('ALL');
     if (this.selectedTermInstanceId) this.loadOfferings(this.selectedTermInstanceId);
     else this.dataSource.data = [];
   }
 
-  protected onSemesterChange(): void {
+  protected onSemesterChange(value: InfiniteSelectValue | null): void {
+    this.selectedSemester.set(value != null ? Number(value) : 'ALL');
     this.applyRowFilters();
   }
 
-  protected onCohortChange(): void {
+  protected onCohortChange(value: InfiniteSelectValue | null): void {
+    this.selectedCohort.set(value != null ? String(value) : 'ALL');
     this.applyRowFilters();
   }
 

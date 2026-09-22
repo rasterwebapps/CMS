@@ -17,6 +17,9 @@ import { RoomRelocationModalComponent } from '../room-relocation/room-relocation
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TIMETABLE_VIEW_TOUR, TIMETABLE_VIEW_FLOW_MAP } from '../../../shared/tour/tours/timetable-view.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 export type TimetableViewMode = 'week' | 'dateWise' | 'day';
 
@@ -34,7 +37,7 @@ function mondayOf(date: Date): string {
 @Component({
   selector: 'app-timetable-view',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatDialogModule, CmsWeekGridComponent, CmsWeekNavigatorComponent, CmsDayAgendaComponent, CmsTourButtonComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, MatDialogModule, CmsWeekGridComponent, CmsWeekNavigatorComponent, CmsDayAgendaComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './timetable-view.component.html',
   styleUrl: './timetable-view.component.scss',
 })
@@ -139,13 +142,38 @@ export class TimetableViewComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+  protected readonly facultyFetchPage = staticOptionsFetchPage(() =>
+    this.facultyOptions().filter((name): name is string => name != null).map(name => ({ id: name, name })));
+  protected readonly roomFetchPage = staticOptionsFetchPage(() =>
+    this.roomOptions().filter((name): name is string => name != null).map(name => ({ id: name, name })));
+  protected readonly batchFetchPage = staticOptionsFetchPage(() =>
+    this.batchOptions().map(name => ({ id: name, name })));
+
+  protected onFacultyFilterChange(value: InfiniteSelectValue | null): void {
+    this.selectedFaculty.set(value != null ? String(value) : null);
+  }
+
+  protected onRoomFilterChange(value: InfiniteSelectValue | null): void {
+    this.selectedRoom.set(value != null ? String(value) : null);
+  }
+
+  protected onBatchFilterChange(value: InfiniteSelectValue | null): void {
+    this.selectedBatch.set(value != null ? String(value) : null);
+  }
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.sessions.set([]);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     if (this.selectedTermInstanceId) {
       this.loadPublished(this.selectedTermInstanceId);
       this.resetDateWiseAndDayDefaults();

@@ -22,6 +22,9 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { TourService } from '../../../shared/tour/tour.service';
 import { LAB_LIST_TOUR, LAB_LIST_FLOW_MAP } from '../../../shared/tour/tours/lab.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-lab-list',
@@ -41,6 +44,7 @@ import { LAB_LIST_TOUR, LAB_LIST_FLOW_MAP } from '../../../shared/tour/tours/lab
     CmsIconDeleteComponent,
     CmsIconEditComponent,
     CmsIconViewComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './lab-list.component.html',
   styleUrl: './lab-list.component.scss',
@@ -81,6 +85,12 @@ export class LabListComponent implements OnInit, OnDestroy {
   protected readonly specialities = signal<Speciality[]>([]);
   protected readonly labTypes = LAB_TYPES;
   protected readonly labStatuses = LAB_STATUSES;
+  protected readonly specialityFetchPage = staticOptionsFetchPage(() =>
+    this.specialities().map(s => ({ id: s.id, name: s.name })));
+  protected readonly typeFetchPage = staticOptionsFetchPage(() =>
+    this.labTypes.map(t => ({ id: t.value, name: t.label })));
+  protected readonly statusFetchPage = staticOptionsFetchPage(() =>
+    this.labStatuses.map(s => ({ id: s.value, name: s.label })));
 
   protected readonly selectedSpeciality = signal<number | null>(null);
   protected readonly selectedType = signal<LabType | null>(null);
@@ -133,20 +143,20 @@ export class LabListComponent implements OnInit, OnDestroy {
     this.searchSubject.next('');
   }
 
-  protected onSpecialityChange(specialityId: number | null): void {
-    this.selectedSpeciality.set(specialityId);
+  protected onSpecialityChange(value: InfiniteSelectValue | null): void {
+    this.selectedSpeciality.set(value != null ? Number(value) : null);
     this.currentPage = 0;
     this.loadPage();
   }
 
-  protected onTypeChange(type: LabType | null): void {
-    this.selectedType.set(type);
+  protected onTypeChange(value: InfiniteSelectValue | null): void {
+    this.selectedType.set(value != null ? (String(value) as LabType) : null);
     this.currentPage = 0;
     this.loadPage();
   }
 
-  protected onStatusChange(status: LabStatus | null): void {
-    this.selectedStatus.set(status);
+  protected onStatusChange(value: InfiniteSelectValue | null): void {
+    this.selectedStatus.set(value != null ? (String(value) as LabStatus) : null);
     this.currentPage = 0;
     this.loadPage();
   }

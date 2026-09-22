@@ -9,7 +9,7 @@ import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, CohortSummary, CourseOffering, TermInstance } from '../../academic-year/academic-year.model';
 import { CapacityPlannerService } from './capacity-planner.service';
 import { CapacityPlan, FacultyWorkloadOverviewReport, FacultyWorkloadOverviewRow, FacultyWorkloadReport, LabClinicalVenueCapacity, PlanningBasis, VenueOption } from './capacity-planner.model';
-import { OverageContributor } from '../skeleton-builder/skeleton-builder.model';
+import { OverageContributor } from '../timetable-builder/timetable-builder.model';
 import { RaiseCapFlyoutComponent } from '../../faculty/faculty-detail/raise-cap-flyout.component';
 import { CourseOfferingEditDialogComponent } from '../../course-offering/course-offering-edit-dialog/course-offering-edit-dialog.component';
 import { TeachingAssignmentDialogComponent } from '../../assign-faculty/teaching-assignment-dialog/teaching-assignment-dialog.component';
@@ -25,6 +25,9 @@ import { AllocatedBatch, CohortRoomAllocation, CohortSection, CohortSectionReque
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CAPACITY_PLANNER_TOUR, CAPACITY_PLANNER_FLOW_MAP } from '../../../shared/tour/tours/timetable.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { VenueRebalancePanelComponent } from './venue-rebalance-panel/venue-rebalance-panel.component';
 
 /** One physical batch row within a subject block, scoped to a single cohort section. Starts as
@@ -68,6 +71,7 @@ interface DraftSection {
     FormsModule, MatDialogModule, MatProgressSpinnerModule, MatIconModule,
     CmsCapacityMeterComponent, CmsEmptyStateComponent, CmsTourButtonComponent, RaiseCapFlyoutComponent, DecimalPipe, DatePipe,
     VenueRebalancePanelComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './capacity-planner.component.html',
   styleUrl: './capacity-planner.component.scss',
@@ -180,7 +184,7 @@ export class CapacityPlannerComponent implements OnInit {
   /** Share of this classroom's weekly slots already used by OTHER cohorts' real Theory sessions
    *  this term (from Venue Utilization) -- surfaced in the Theory Sections picker so committing
    *  to a heavily-booked room is a visible, informed choice rather than a surprise later in
-   *  Skeleton Builder when there's no free slot left to place this cohort's own sessions. */
+   *  Timetable Builder when there's no free slot left to place this cohort's own sessions. */
   protected classroomUtilizationPercent(classroomId: number | null): number | null {
     if (classroomId == null) return null;
     return this.plan()?.classroomUtilization.find((u) => u.id === classroomId)?.utilizationPercent ?? null;
@@ -719,7 +723,19 @@ export class CapacityPlannerComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+  protected readonly cohortFetchPage = staticOptionsFetchPage(() =>
+    this.cohorts().map(c => ({ id: c.id, name: c.displayName })));
+  protected readonly planningBasisFetchPage = staticOptionsFetchPage(() => [
+    { id: 'SANCTIONED', name: 'Plan by: Sanctioned intake' },
+    { id: 'ENROLLED', name: 'Plan by: Enrolled headcount' },
+  ]);
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.selectedCohortId = null;
     this.offerings.set([]);
@@ -734,7 +750,8 @@ export class CapacityPlannerComponent implements OnInit {
     }
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     this.offerings.set([]);
     this.plan.set(null);
     this.shortfall.set(null);
@@ -766,7 +783,7 @@ export class CapacityPlannerComponent implements OnInit {
 
   /** Real browser-history back, not a fixed destination route -- this screen has no standalone
    *  nav menu entry and is deep-linked from three different places (Capacity Auto-Plan's
-   *  "Adjust manually"/"View", Skeleton Builder, Staffing), each with its own selected
+   *  "Adjust manually"/"View", Timetable Builder, Staffing), each with its own selected
    *  year/term/cohort context. A fixed routerLink back to any one of them would lose whichever
    *  of the other two actually sent the admin here, and would drop the specific deep-link state
    *  (e.g. Auto-Plan's own cohort tab selection) even for the one it matched. */
@@ -902,7 +919,8 @@ export class CapacityPlannerComponent implements OnInit {
     });
   }
 
-  protected onCohortChange(): void {
+  protected onCohortChange(value: InfiniteSelectValue | null): void {
+    this.selectedCohortId = value != null ? Number(value) : null;
     this.offerings.set([]);
     this.plan.set(null);
     this.shortfall.set(null);
@@ -910,7 +928,9 @@ export class CapacityPlannerComponent implements OnInit {
     this.autoLoadPlanIfReady();
   }
 
-  protected onPlanningBasisChange(): void {
+  protected onPlanningBasisChange(value: InfiniteSelectValue | null): void {
+    if (value == null) return;
+    this.planningBasis = value as PlanningBasis;
     this.autoLoadPlanIfReady();
   }
 

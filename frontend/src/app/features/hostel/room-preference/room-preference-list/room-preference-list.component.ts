@@ -20,6 +20,9 @@ import { ToastService } from '../../../../core/toast/toast.service';
 import { TourService } from '../../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
 import { ROOM_PREFERENCE_LIST_TOUR, ROOM_PREFERENCE_LIST_FLOW_MAP } from '../../../../shared/tour/tours/hostel-management.tours';
+import { CmsInfiniteSelectComponent } from '../../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-room-preference-list',
@@ -36,6 +39,7 @@ import { ROOM_PREFERENCE_LIST_TOUR, ROOM_PREFERENCE_LIST_FLOW_MAP } from '../../
     CmsStatusBadgeComponent,
     CmsRowActionButtonComponent,
     CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './room-preference-list.component.html',
   styleUrl: './room-preference-list.component.scss',
@@ -110,8 +114,14 @@ export class RoomPreferenceListComponent implements OnInit, OnDestroy {
     this.searchSubject.next('');
   }
 
-  protected onStatusFilterChange(value: RoomPreferenceStatus | ''): void {
-    this.statusFilter.set(value);
+  protected readonly statusFetchPage = staticOptionsFetchPage(() => [
+    { id: 'PENDING', name: 'Pending' },
+    { id: 'FULFILLED', name: 'Fulfilled' },
+    { id: 'CANCELLED', name: 'Cancelled' },
+  ]);
+
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.statusFilter.set((value != null ? String(value) : '') as RoomPreferenceStatus | '');
     this.currentPage = 0;
     this.loadPage();
   }

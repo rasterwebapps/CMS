@@ -23,6 +23,9 @@ import { CmsIconDeleteComponent, CmsIconEditComponent } from '../../../shared/ic
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 interface Program { id: number; name: string; }
 interface Course  { id: number; name: string; }
 interface AcademicYear { id: number; name: string; }
@@ -49,6 +52,7 @@ type Gender = 'MALE' | 'FEMALE' | 'OTHER' | null;
       CmsIconDeleteComponent,
       CmsIconEditComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './fee-structure-list.component.html',
   styleUrl: './fee-structure-list.component.scss',
@@ -219,9 +223,30 @@ export class FeeStructureListComponent implements OnInit {
   protected applyFilter(event: Event): void { this.searchValue.set((event.target as HTMLInputElement).value); }
   protected clearFilter(): void             { this.searchValue.set(''); }
 
-  protected onAcademicYearChange(id: number | null): void { this.selectedAcademicYearId.set(id); }
+  protected readonly academicYearFilterFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly programFetchPage = staticOptionsFetchPage(() =>
+    this.programs().map(p => ({ id: p.id, name: p.name })));
+  protected readonly courseFetchPage = staticOptionsFetchPage(() =>
+    this.courses().map(c => ({ id: c.id, name: c.name })));
+  protected readonly quotaFetchPage = staticOptionsFetchPage(() => [
+    { id: 'MANAGEMENT', name: 'Management' },
+    { id: 'COUNSELLING', name: 'Counselling' },
+  ]);
+  protected readonly genderFetchPage = staticOptionsFetchPage(() => [
+    { id: 'FEMALE', name: 'Female' },
+    { id: 'MALE', name: 'Male' },
+    { id: 'OTHER', name: 'Other' },
+  ]);
+  protected readonly feeStateFetchPage = staticOptionsFetchPage(() =>
+    this.feeStates().map(s => ({ id: s.id, name: s.name })));
 
-  protected onProgramFilterChange(id: number | null): void {
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId.set(value != null ? Number(value) : null);
+  }
+
+  protected onProgramFilterChange(value: InfiniteSelectValue | null): void {
+    const id = value != null ? Number(value) : null;
     this.selectedProgramId.set(id);
     this.selectedCourseId.set(null);
     this.courses.set([]);
@@ -231,10 +256,18 @@ export class FeeStructureListComponent implements OnInit {
     }
   }
 
-  protected onCourseChange(id: number | null): void     { this.selectedCourseId.set(id); }
-  protected onQuotaChange(v: string | null): void     { this.selectedQuota.set((v || null) as Quota); }
-  protected onGenderChange(v: string | null): void    { this.selectedGender.set((v || null) as Gender); }
-  protected onFeeStateChange(id: number | null): void { this.selectedFeeStateId.set(id); }
+  protected onCourseChange(value: InfiniteSelectValue | null): void {
+    this.selectedCourseId.set(value != null ? Number(value) : null);
+  }
+  protected onQuotaChange(value: InfiniteSelectValue | null): void {
+    this.selectedQuota.set((value != null ? String(value) : null) as Quota);
+  }
+  protected onGenderChange(value: InfiniteSelectValue | null): void {
+    this.selectedGender.set((value != null ? String(value) : null) as Gender);
+  }
+  protected onFeeStateChange(value: InfiniteSelectValue | null): void {
+    this.selectedFeeStateId.set(value != null ? Number(value) : null);
+  }
 
   protected clearFilters(): void {
     this.selectedAcademicYearId.set(null);

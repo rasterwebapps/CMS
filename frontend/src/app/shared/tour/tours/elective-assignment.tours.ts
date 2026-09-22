@@ -38,7 +38,7 @@ export const ELECTIVE_ASSIGNMENT_TOUR: TourDefinition = {
       popover: {
         title: '✅ Assign before scheduling',
         description:
-          'Elective assignment must be resolved before the group is placed into the timetable in Skeleton Builder.',
+          'Elective assignment must be resolved before the group is placed into the timetable in Timetable Builder.',
         side: 'over',
         align: 'center',
       },
@@ -55,6 +55,6 @@ export const ELECTIVE_ASSIGNMENT_FLOW_MAP: TourFlowMap = {
     { label: 'Pick a Group', icon: 'search', detail: 'Select an academic year and term, then choose an elective group card on the left.' },
     { label: 'Review Choices', icon: 'checklist', detail: 'Each row shows a student\'s current elective choice, or "Not assigned" if still pending.' },
     { label: 'Assign', icon: 'open', detail: 'Assign each student individually, or use Apply to All in Institution Decided mode.' },
-    { label: 'Ready for Timetabling', icon: 'send', detail: 'Once resolved, the elective group can be placed into the timetable in Skeleton Builder.' },
+    { label: 'Ready for Timetabling', icon: 'send', detail: 'Once resolved, the elective group can be placed into the timetable in Timetable Builder.' },
   ],
 };

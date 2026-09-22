@@ -28,7 +28,7 @@ export const CLASSROOM_LIST_TOUR: TourDefinition = {
     {
       popover: {
         title: '✅ Used in Staffing',
-        description: 'A classroom is picked as a session\'s room when staffing the timetable in Skeleton Builder / Staffing.',
+        description: 'A classroom is picked as a session\'s room when staffing the timetable in Timetable Builder / Staffing.',
         side: 'over',
         align: 'center',
       },
@@ -114,7 +114,7 @@ export const PERIOD_LIST_TOUR: TourDefinition = {
     {
       popover: {
         title: '✅ The Timetable Grid',
-        description: 'Every period defined here becomes a column in Skeleton Builder\'s weekly grid.',
+        description: 'Every period defined here becomes a column in Timetable Builder\'s weekly grid.',
         side: 'over',
         align: 'center',
       },
@@ -128,7 +128,7 @@ export const PERIOD_LIST_FLOW_MAP: TourFlowMap = {
   steps: [
     { label: 'Search & View', icon: 'search', detail: 'By name, in card or table view.' },
     { label: 'Add / Edit', icon: 'open', detail: 'Start time, end time, and name for a period.' },
-    { label: 'Grid Columns', icon: 'checklist', detail: 'Each period becomes a column in the Skeleton Builder weekly grid.' },
+    { label: 'Grid Columns', icon: 'checklist', detail: 'Each period becomes a column in the Timetable Builder weekly grid.' },
   ],
 };
 

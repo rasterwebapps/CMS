@@ -34,17 +34,11 @@
         }
       </div>
 
-      <select
-        class="mlp-filter-select"
-        [value]="selectedSubjectId() ?? ''"
-        (change)="onSubjectChange($any($event.target).value)"
-        aria-label="Filter by subject"
-      >
-        <option value="" disabled>Select a subject</option>
-        @for (subject of subjects(); track subject.id) {
-          <option [value]="subject.id">{{ subject.name }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="Select a subject" ariaLabel="Filter by subject" searchPlaceholder="Search subjects…"
+        [fetchPage]="subjectFetchPage"
+        [selectedValue]="selectedSubjectId()" (selectedValueChange)="onSubjectChange($event)"
+      />
 
       <input
         type="date"
@@ -54,17 +48,11 @@
         aria-label="Filter by date"
       />
 
-      <select
-        class="mlp-filter-select"
-        [value]="filterStatus()"
-        (change)="onStatusFilterChange($any($event.target).value)"
-        aria-label="Filter by status"
-      >
-        <option value="">All Statuses</option>
-        @for (status of statusOptions; track status) {
-          <option [value]="status">{{ status }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Statuses" ariaLabel="Filter by status" searchPlaceholder="Search statuses…"
+        [fetchPage]="statusFetchPage"
+        [selectedValue]="filterStatus() || null" (selectedValueChange)="onStatusFilterChange($event)"
+      />
 
       @if (!loading()) {
         <span class="count-badge" aria-live="polite">

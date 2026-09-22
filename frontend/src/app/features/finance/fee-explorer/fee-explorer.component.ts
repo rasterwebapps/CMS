@@ -19,6 +19,9 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconViewComponent } from '../../../shared/icons';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { ExportFormat } from '../../../shared/export-button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
@@ -48,6 +51,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsRowActionButtonComponent, CmsIconViewComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     MatMenuModule, MatButtonModule, MatIconModule,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
@@ -117,6 +121,14 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     { value: 'FINALIZED',     label: 'Finalized' },
     { value: 'NOT_ALLOCATED', label: 'Not Allocated' },
   ];
+  protected readonly programFetchPage = staticOptionsFetchPage(() =>
+    this.programs().map(p => ({ id: p, name: p })));
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay, name: ay })));
+  protected readonly yearOfStudyFetchPage = staticOptionsFetchPage(() =>
+    this.yearsOfStudy().map(y => ({ id: String(y), name: `Year ${y}` })));
+  protected readonly allocStatusFetchPage = staticOptionsFetchPage(() =>
+    this.ALLOC_STATUSES.map(s => ({ id: s.value, name: s.label })));
   protected readonly hasActiveFilters = computed(() =>
     this.searchValue()        !== '' ||
     this.filterProgram()      !== 'ALL' ||
@@ -254,22 +266,26 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     this.navigate({ search: null, page: 0 });
   }
 
-  protected onProgramChange(val: string): void {
+  protected onProgramChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : 'ALL';
     this.filterProgram.set(val);
     this.navigate({ program: val === 'ALL' ? null : val, page: 0 });
   }
 
-  protected onAcademicYearChange(val: string): void {
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : 'ALL';
     this.filterAcademicYear.set(val);
     this.navigate({ academicYear: val === 'ALL' ? null : val, page: 0 });
   }
 
-  protected onYearOfStudyChange(val: string): void {
+  protected onYearOfStudyChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : 'ALL';
     this.filterYearOfStudy.set(val);
     this.navigate({ yearOfStudy: val === 'ALL' ? null : val, page: 0 });
   }
 
-  protected onAllocStatusChange(val: string): void {
+  protected onAllocStatusChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : 'ALL';
     this.filterAllocStatus.set(val);
     this.navigate({ allocationStatus: val === 'ALL' ? null : val, page: 0 });
   }

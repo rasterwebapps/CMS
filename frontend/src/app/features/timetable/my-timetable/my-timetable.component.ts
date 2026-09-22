@@ -18,6 +18,9 @@ import { LogProgressDialogComponent } from '../log-progress-dialog/log-progress-
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { MY_TIMETABLE_TOUR, MY_TIMETABLE_FLOW_MAP } from '../../../shared/tour/tours/my-timetable.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 export type TimetableViewMode = 'week' | 'dateWise' | 'day';
 export type MyTimetableAudience = 'STUDENT' | 'STAFF';
@@ -55,7 +58,7 @@ function mondayOf(date: Date): string {
 @Component({
   selector: 'app-my-timetable',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsWeekNavigatorComponent, CmsDayAgendaComponent, CmsTourButtonComponent],
+  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsWeekNavigatorComponent, CmsDayAgendaComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './my-timetable.component.html',
   styleUrl: './my-timetable.component.scss',
 })
@@ -131,13 +134,20 @@ export class MyTimetableComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.sessions.set([]);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     const term = this.selectedTerm();
     if (term) this.weekStart = this.defaultWeekStartFor(term);
     this.load();
