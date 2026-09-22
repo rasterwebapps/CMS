@@ -2975,4 +2975,67 @@ string fix); `V551__split_asset_service_contract_permissions.sql` (new migration
 (Phase 3 checkboxes + handoff note), `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 3
 section), `MILESTONES.md` (Phase 5 re-audit note, status unchanged); this decision log entry.
 
+## 2026-09-22 — Phase 4: Final checkup, cross-report verification, wrap-up (OC-264)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Fresh, independent re-verification of Phases 1-3's own claims (not trusting their checkmarks
+blindly), per the plan's own Phase 8-style re-examination discipline. Re-grepped controllers,
+enums, migrations, routes, and nav-config rather than re-reading only the prior phases' prose —
+every checkbox in `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phases 1-3 held up under this
+re-derivation: the 13 Purchasing & Suppliers screens' `uniqueFieldValidator`/`-exists` endpoint
+pairs are real and wired (`SupplierController`, `TaxRuleController`, `VendorProductMappingController`,
+`CurrencyExchangeRateController`), `PurchaseOrderStatus` genuinely has all 6 lifecycle values,
+`AssetStatus` genuinely has the documented `AVAILABLE` default, and all 7 cited permission
+migrations (V431/V433/V435/V437/V439/V493/V519) genuinely end with the DEV_ADMIN/SUPPORT_ADMIN
+catch-all sync block (V519's own block reads `r.name IN ('DEV_ADMIN', 'SUPPORT_ADMIN')` — an
+earlier grep pass under-counted it on quote-style alone; reading the file directly confirmed it's
+present). The V551 Service Contracts permission split (Phase 3's one real defect fix) was
+independently re-verified end-to-end: migration inserts + backfills correctly, `role_permissions`
+shows both new permission codes on the same 2 roles as every other pre-existing Asset permission
+in local dev, `AssetServiceContractController`'s three `@PreAuthorize` annotations and
+`app.routes.ts`/`nav-config.ts` all use the new strings — no lingering reference to the old shared
+maintenance pair anywhere in this screen's own code.
+
+**One real (non-blocking) finding, fixed:** hitting the PO Aging and PO Cycle-Time reports live
+against Phase 2/3's seeded Purchase Orders (via a fresh `bootRun` on port 8099) showed
+mathematically correct but poorly varied output — all 5 open POs landed in the Aging report's
+0-30-day bucket (3 of 4 buckets permanently empty), and the two COMPLETED orders' Cycle-Time
+averages were identically 30.0 days for both suppliers. Root cause: `PurchasingAssetBulkDemoDataSeeder`
+happened to use the same `today.minusDays(30)` offset for both completed POs' `po_date`, and none
+of the open POs were backdated past 30 days — not a computation bug (both report services compute
+correctly off `po_date`/last-confirmed-receipt timestamp), just an under-varied demo-data input.
+Fixed by backdating PO3/PO4/PO5's `po_date` further (IN_PROGRESS 15→70 days, PARTIALLY_COMPLETED
+25→45 days, COMPLETED 30→55 days) in the seeder source, and correcting the three already-seeded
+rows directly via `psql` (zero real history, local demo data only — same posture as Phase 2's
+stray-partial-row cleanup) so this run's live data reflects the fix without a full reseed.
+Re-verified live after the fix: Aging now spreads 3/1/1/0 across the four buckets (grand total
+still 5 orders/₹17,070 unchanged), Cycle-Time now shows Chennai IT Solutions 30.0 days vs. Sri
+Lakshmi Lab Equipments 55.0 days (overall average 42.5). Price Comparison independently confirmed
+varied (9 STANDARD + 2 CONTRACT-sourced rows, one USD-priced row converting to INR). Depreciation
+Summary re-confirmed identical to Phase 3's own figures (Computers 7/₹2.01L, Medical Equipment
+12/₹6.65L, grand total 19 excluding both DISPOSED assets) — no drift since Phase 3.
+
+**Final real counts against Postgres** (all seeded tables, Phases 2-3 combined): 10 suppliers, 4
+tax rules, 1 currency setting + 3 exchange rates, 3 rate contracts + 4 lines, 11 vendor product
+mappings, 10 purchase requisitions + 23 items, 4 quotation requests + 5 lines, 4 wanted list items,
+8 purchase orders + 12 items, 4 goods receipts + 5 lines, 21 assets, 6 maintenance schedules, 4
+service contracts. (Requisition/PO/GR counts are one higher than Phase 2's own tally because Phase
+3's asset-onboarding chain added one more of each — expected, not a discrepancy.)
+
+**Verified clean:** `./gradlew compileJava compileTestJava` and `./gradlew test --tests
+"com.cms.inventory.*"` green (before and after the seeder date fix); `npx tsc -p tsconfig.app.json
+--noEmit` clean. `bootRun` on port 8099 killed after verification — port confirmed free again.
+
+**Not visually verified tonight** (per the plan's standing rule 10 — nobody present to click
+through): light/dark mode and role-conditional rendering on all 17 screens, and specifically the
+Service Contracts screen's new permission strings actually gating the UI correctly for a
+non-DEV_ADMIN role. This needs a manual pass before the module is considered UI-verified, not just
+compile/test-clean.
+
+**Impact:** `PurchasingAssetBulkDemoDataSeeder.java` (3 date offsets changed); 3 `purchase_orders`
+rows corrected directly in local Postgres to match; `PURCHASING_ASSET_OVERNIGHT_PLAN.md` (Phase 4
+checkboxes + final handoff note); `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 4 section);
+this decision log entry. OC-264 left **In Progress** for the user to review and resolve.
+
 *Next entry goes here — do not insert above this line.*

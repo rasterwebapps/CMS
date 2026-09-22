@@ -192,20 +192,33 @@ the phase prompt files for convenience.
 
 ## Phase 4 — Final checkup, cross-report verification, wrap-up
 
-- [ ] Re-check both PO reports (Aging, Cycle-Time) and Price Comparison render real, varied output
-      against Phase 2's seeded Purchase Orders / Vendor Product Rates.
-- [ ] Full top-to-bottom re-read of this file — verify every checkbox reflects reality (grep the
+- [x] Re-check both PO reports (Aging, Cycle-Time) and Price Comparison render real, varied output
+      against Phase 2's seeded Purchase Orders / Vendor Product Rates. **Found and fixed a real
+      (non-blocking) demo-data gap**: both reports were mathematically correct but under-varied —
+      all 5 open POs landed in Aging's 0-30-day bucket, both COMPLETED orders averaged an
+      identical 30.0 days in Cycle-Time. Backdated 3 seeded PO dates further (see decision log);
+      re-verified live — Aging now spreads 3/1/1/0 across buckets, Cycle-Time shows 30.0 vs 55.0
+      days across the two suppliers. Price Comparison confirmed varied (9 STANDARD + 2
+      CONTRACT-sourced, one USD row converting to INR) with no changes needed.
+- [x] Full top-to-bottom re-read of this file — verify every checkbox reflects reality (grep the
       code, don't trust an earlier phase's own claim blindly, same discipline
       `AUTONOMOUS_OVERNIGHT_PLAN.md`'s Phase 8 re-examinations proved valuable).
-  Do this in a fresh headless invocation, not by re-running Phase 1-3's own claims.
-- [ ] `./gradlew compileJava compileTestJava` and relevant `com.cms.inventory.*` test classes
-      green; `npx tsc -p tsconfig.app.json --noEmit` clean.
-- [ ] Final real-count verification against Postgres for every seeded table, recorded in the
-      session log and in this file's handoff notes.
+  Done in this fresh Phase 4 invocation — spot-checked Phase 1's uniqueness-validator/`-exists`
+  endpoint claims, `PurchaseOrderStatus`/`AssetStatus` enum shapes, all 7 permission migrations'
+  DEV_ADMIN/SUPPORT_ADMIN catch-all blocks, and Phase 3's V551 permission split end-to-end
+  (migration, `role_permissions` backfill, controller, routes, nav-config). **Every Phase 1-3
+  checkbox genuinely holds up** — no corrections needed to any of them.
+- [x] `./gradlew compileJava compileTestJava` and relevant `com.cms.inventory.*` test classes
+      green; `npx tsc -p tsconfig.app.json --noEmit` clean. Run both before and after this phase's
+      own seeder fix — clean both times.
+- [x] Final real-count verification against Postgres for every seeded table, recorded in the
+      session log and in this file's handoff notes below.
 - [ ] Publish or update a progress Artifact dashboard (optional but nice — see
       `AUTONOMOUS_OVERNIGHT_PLAN.md`'s sibling 2026-09-15 run for the pattern) so the user has
-      something to open in the morning.
-- [ ] `bash scripts/jira.sh comment OC-264 "..."` with a final summary; leave OC-264 "In Progress"
+      something to open in the morning. **Skipped** — time/scope prioritized toward the mandatory
+      re-verification and the report-variety fix found along the way; no dashboard published this
+      run.
+- [x] `bash scripts/jira.sh comment OC-264 "..."` with a final summary; leave OC-264 "In Progress"
       (not resolved) so the user reviews and resolves it themselves in the morning.
 
 ---
@@ -323,3 +336,60 @@ any judgment call made that a future session should sanity-check.)*
   verification, wrap-up) — no blockers. Note for Phase 4: it should double-check the permission
   split (migration V551) reads cleanly on a fresh top-to-bottom re-read, since it's the one
   Phase 3 change that touches shipped screens rather than pure demo data.
+- **2026-09-22, ~21:15 IST / 15:40 UTC, Phase 4 complete — session wrap-up:** Fresh, independent
+  re-verification of every Phase 1-3 checkbox (grepped code directly — controllers, enums,
+  migrations, routes, nav-config — not re-reading prior phases' own prose). **Everything held up,
+  zero corrections needed to Phase 1-3's claims**, including the V551 permission split (migration
+  backfill + `role_permissions` + controller `@PreAuthorize` + `app.routes.ts` + `nav-config.ts`
+  all independently confirmed consistent) and the 7 permission migrations' DEV_ADMIN/SUPPORT_ADMIN
+  catch-all blocks (V519 initially looked short by a grep quoting mismatch — reading the file
+  directly confirmed the block is genuinely present, false alarm from the grep pattern, not the
+  file).
+  **One real, non-blocking finding — fixed:** hit PO Aging, PO Cycle-Time, and Price Comparison
+  live via `curl` against a fresh `bootRun` (port 8099, SSL disabled, seed flag on) with a real
+  `devadmin` JWT. Aging and Cycle-Time were mathematically correct but poorly varied — all 5 open
+  demo POs fell into Aging's 0-30-day bucket (3 of 4 buckets always empty) and both COMPLETED POs
+  coincidentally shared the same `today.minusDays(30)` seed offset, making Cycle-Time show an
+  identical 30.0-day average for both suppliers. Not a computation bug — the report services
+  themselves are correct — just under-varied seed input. Fixed by backdating 3 POs' `po_date`
+  further in `PurchasingAssetBulkDemoDataSeeder` (IN_PROGRESS 15→70 days, PARTIALLY_COMPLETED
+  25→45 days, COMPLETED 30→55 days) and correcting the 3 already-seeded rows directly via `psql`
+  (zero real history, local-only demo data — same posture as Phase 2's own stray-row cleanup) so
+  this run's live data reflects the fix without a full reseed. Re-verified live post-fix: Aging
+  spreads 3/1/1/0 across the four buckets (₹17,070 grand total unchanged), Cycle-Time shows 30.0
+  vs. 55.0 days across the two suppliers (42.5 overall average). Price Comparison needed no fix —
+  already varied (9 STANDARD + 2 CONTRACT-sourced rows, one USD-priced row correctly converting to
+  INR). Depreciation Summary re-confirmed identical to Phase 3's own live-curl figures (Computers
+  7/₹2.01L, Medical Equipment 12/₹6.65L, grand total 19 excluding both DISPOSED) — no drift since
+  Phase 3, confirming report stability across sessions.
+  **Final real Postgres counts** (Phases 2+3 combined, unchanged by this phase's date-only fix):
+  10 suppliers, 4 tax rules, 1 currency setting + 3 exchange rates, 3 rate contracts + 4 lines, 11
+  vendor product mappings, 10 purchase requisitions + 23 items, 4 quotation requests + 5 lines, 4
+  wanted list items, 8 purchase orders + 12 items, 4 goods receipts + 5 lines, 21 assets, 6
+  maintenance schedules, 4 service contracts. (Requisition/PO/GR/GR-line counts are each one higher
+  than Phase 2's own tally purely because Phase 3's asset-onboarding chain added one more of each —
+  expected, cross-checked against both phases' own logs, not a discrepancy.)
+  **Compile/test gates:** `./gradlew compileJava compileTestJava` and `./gradlew test --tests
+  "com.cms.inventory.*"` green both before and after this phase's own seeder edit; `npx tsc -p
+  tsconfig.app.json --noEmit` clean. `bootRun` on port 8099 killed after verification, port
+  confirmed free again — no orphaned JVM left running.
+  **Not done this phase:** no progress-dashboard Artifact was published (optional item, skipped in
+  favor of the mandatory re-verification work and the report-variety fix found along the way).
+  **What still needs the user's own eyes** (compile/test-clean is not the same as visually
+  verified, per the plan's own standing rule 10 — nobody was present tonight to click through):
+  light mode, dark mode, and role-conditional rendering (admin/faculty/whatever non-DEV_ADMIN
+  roles see this module) on all 17 screens across both nav groups — with particular attention to
+  the Service Contracts screen specifically, since its permission strings changed in Phase 3
+  (V551) and a UI-level check that a non-DEV_ADMIN role sees/doesn't-see it correctly has not been
+  done by any phase tonight, only the backend `@PreAuthorize`/route-guard layer. Also worth a human
+  glance: the PO Aging/Cycle-Time bucket spread this phase engineered is still a small, hand-picked
+  demo shape (5 open + 2 completed orders) — real production data will naturally vary far more:
+  treat tonight's fix as "removed an artificial flatness," not as a claim the report needs no
+  further eyes-on once genuine production volume exists.
+  **No genuinely open/blocked items remain from Phases 1-3** — both nav groups' own functional
+  completeness claims held up under two independent audits (Phase 1/3's own, and this phase's
+  re-derivation). OC-264 left **In Progress**, not resolved, per the plan's standing instruction —
+  final JIRA summary comment posted separately. This is the last of the 4 chained phases; no
+  further phase follows. Working tree is clean: one commit this phase
+  (`OC-264: fix(inventory): spread demo PO dates so Aging/Cycle-Time reports show real variety`),
+  nothing mid-edit, all gates green.
