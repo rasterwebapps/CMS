@@ -85,7 +85,7 @@
         }
         @if (canGlobalAutoPlace() && (allCohortsSelected() || (selectedCohortId && viewMode() === 'grid'))) {
           <button type="button" class="btn-primary" [disabled]="!allCohortsSelected() && termTimetablePublished()"
-            [title]="!allCohortsSelected() && termTimetablePublished() ? 'This term\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
+            [title]="!allCohortsSelected() && termTimetablePublished() ? 'This cohort\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
             (click)="confirmAndOpenGlobalAutoSchedule()">{{ allCohortsSelected() ? 'Run Global Auto-Schedule' : 'Run Automation' }}</button>
         }
       </div>
@@ -295,7 +295,7 @@
           <cms-empty-state
             icon="lock"
             [title]="'Timetable already approved for ' + skeleton()!.cohortName"
-            subtitle="This term's timetable is already approved on Draft Review, so automation can no longer run for it — place or edit sessions manually instead (swap staff, swap sessions).">
+            subtitle="This cohort's timetable is already approved on Draft Review, so automation can no longer run for it — place or edit sessions manually instead (swap staff, swap sessions).">
           </cms-empty-state>
         } @else if (canGlobalAutoPlace()) {
           <cms-empty-state

@@ -438,12 +438,14 @@ export interface GlobalAutoScheduleResult {
    *  window capacity (not faculty, not a room/schedule conflict) is why this run couldn't place
    *  everything still short against it. Empty when no venue was the real ceiling this run. */
   venueCapacityGaps: VenueCapacityGap[];
-  /** Every cohort this "All Cohorts" run deliberately left untouched because this term's timetable
-   *  is already approved/PUBLISHED on Draft Review — once approved, only manual period/staff edits
-   *  (swap staff, swap sessions) are allowed, never a full automated re-run. Publish is atomic
-   *  term-wide, so this is either every enrolled cohort or none — never a partial list. Always empty
-   *  for a single-cohort run (that case is a hard block at the API boundary instead — see
-   *  `canRunAutoSchedule` in timetable-builder.component.ts). */
+  /** Every cohort this "All Cohorts" run deliberately left untouched because THAT cohort's own
+   *  timetable is already approved/PUBLISHED on Draft Review — once approved, only manual
+   *  period/staff edits (swap staff, swap sessions) are allowed, never a full automated re-run.
+   *  Approve is cohort-scoped (OC-258/OC-260), so this can be a genuine partial list — other cohorts
+   *  enrolled in the same term instance (e.g. a different year-group of the same program) may still
+   *  be Pending and get placed normally in the same run. Always empty for a single-cohort run (that
+   *  case is a hard block at the API boundary instead — see `canRunAutoSchedule` in
+   *  timetable-builder.component.ts). */
   skippedPublishedCohorts: SkippedPublishedCohort[];
   /** How many cross-offering LAB pairings this run turned into a real RotationGroup (two offerings
    *  sharing one cohort section, each split into exactly 2 batches on its own Lab, alternated

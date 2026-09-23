@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -33,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.AutoPlaceUnplacedItem;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.CourseOfferingFacultySummaryDto;
+import com.cms.dto.CohortPlacementSummary;
 import com.cms.dto.CourseOfferingSectionFacultyResponse;
 import com.cms.dto.SectionFacultyAssignment;
 import com.cms.dto.EligibleFacultyCandidateDto;
@@ -170,9 +172,10 @@ class TimetableGlobalAutoScheduleServiceTest {
         // suite (none of which are about conflict scanning) don't all need updating individually.
         lenient().when(timetableConflictInspectorService.scanTerm(anyLong())).thenReturn(
             new com.cms.dto.ConflictScanResponse(null, null, null, 0, 0, 0, java.util.Map.of(), List.of()));
-        // No fixture in this suite approves/publishes the term's timetable, so every cohort defaults
+        // No fixture in this suite approves/publishes any cohort's timetable, so every cohort defaults
         // to "draft" (not published) unless a specific test overrides this stub — Mockito already
-        // returns false by default for the unstubbed existsByTermInstanceIdAndStatus boolean.
+        // returns an empty list by default for the unstubbed getCohortActiveClassSchedules(...,
+        // PUBLISHED) call the per-cohort publish gate now uses.
         // No fixture configures a Library classroom (Classroom linked to a Room tagged Library
         // Purpose Category), so fillLibraryGaps correctly reports this once per cohort per run —
         // see NO_LIBRARY_CLASSROOM_REASON below.
@@ -2347,7 +2350,8 @@ class TimetableGlobalAutoScheduleServiceTest {
             .thenReturn(new HashSet<>(List.of(1L)));
         Cohort committed = cohort(1L, "Cohort 1");
         committed.setDisplayName("Cohort 1");
-        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(true);
+        when(timetableSkeletonService.getCohortActiveClassSchedules(10L, 1L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(new ClassSchedule()));
 
         assertThatThrownBy(() -> service.runGlobalAutoSchedule(10L, 1L))
             .isInstanceOf(TimetableConstraintViolationException.class);
@@ -2357,14 +2361,17 @@ class TimetableGlobalAutoScheduleServiceTest {
     }
 
     @Test
-    void runAllCohorts_excludesEveryCohort_whenTermTimetableIsPublished_andReportsThemAsSkipped() {
+    void runAllCohorts_excludesEveryCohort_whenEveryCohortsOwnTimetableIsPublished_andReportsThemAsSkipped() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L, 2L)));
         Cohort cohort1 = cohort(1L, "Cohort 1");
         cohort1.setDisplayName("Cohort 1");
         Cohort cohort2 = cohort(2L, "Cohort 2");
         cohort2.setDisplayName("Cohort 2");
-        when(classScheduleRepository.existsByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED)).thenReturn(true);
+        when(timetableSkeletonService.getCohortActiveClassSchedules(10L, 1L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(new ClassSchedule()));
+        when(timetableSkeletonService.getCohortActiveClassSchedules(10L, 2L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(new ClassSchedule()));
 
         var result = service.runGlobalAutoSchedule(10L, null);
 
@@ -2373,6 +2380,36 @@ class TimetableGlobalAutoScheduleServiceTest {
             .containsExactlyInAnyOrder(1L, 2L);
         assertThat(result.cohortSummaries()).isEmpty();
         verify(timetableSkeletonService, never()).getCohortSkeleton(anyLong(), anyLong());
+    }
+
+    @Test
+    void runAllCohorts_onlySkipsThePublishedCohort_leavingOtherCohortsInTheSameTermToRunNormally() {
+        // Regression for the bug where one cohort's own timetable being approved (OC-258/OC-260
+        // cohort-scoped Approve) silently caused every other cohort sharing that termInstanceId to be
+        // wrongly skipped too, because the gate used to be a single term-wide exists() check instead
+        // of a per-cohort one.
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L, 2L)));
+        Cohort published = cohort(1L, "Published Cohort");
+        published.setDisplayName("Published Cohort");
+        Cohort pending = cohort(2L, "Pending Cohort");
+        pending.setDisplayName("Pending Cohort");
+        when(timetableSkeletonService.getCohortActiveClassSchedules(10L, 1L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(new ClassSchedule()));
+        when(timetableSkeletonService.getCohortActiveClassSchedules(10L, 2L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of());
+        when(timetableSkeletonService.resolveActiveSections(2L, 10L)).thenReturn(List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 2L))
+            .thenReturn(new SkeletonBuilderResponse(2L, "Pending Cohort", "Term", List.of(), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(result.skippedPublishedCohorts()).extracting(SkippedPublishedCohort::cohortId)
+            .containsExactly(1L);
+        assertThat(result.cohortSummaries()).extracting(CohortPlacementSummary::cohortId)
+            .containsExactly(2L);
+        verify(timetableSkeletonService, never()).getCohortSkeleton(10L, 1L);
+        verify(timetableSkeletonService, atLeastOnce()).getCohortSkeleton(10L, 2L);
     }
 
     // ── Pre-run "would this overwrite existing draft content" check ────

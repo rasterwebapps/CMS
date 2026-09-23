@@ -1170,10 +1170,10 @@ public class TimetableGlobalAutoScheduleService {
      *  failure. The capacity precheck stays a hard pre-flight gate (re-run defensively so a bad/
      *  stale prerequisite check can never be bypassed even via a direct API call) — that's a
      *  legitimate "don't even start" condition, distinct from the per-session best-effort behavior
-     *  below it. {@code cohortId} null runs every cohort enrolled in the term, unless this term's
-     *  timetable is already approved/{@code PUBLISHED} on Draft Review (today's existing behavior,
-     *  minus a published term — see {@link #isTermTimetablePublished}); non-null scopes the run to
-     *  just that cohort's shortfall, hard-blocked entirely once the term is published. */
+     *  below it. {@code cohortId} null runs every cohort enrolled in the term, minus whichever ones
+     *  already have their own timetable approved/{@code PUBLISHED} on Draft Review (checked per
+     *  cohort — see {@link #isCohortTimetablePublished}); non-null scopes the run to just that
+     *  cohort's shortfall, hard-blocked entirely once that cohort's own timetable is published. */
     @Transactional
     public GlobalAutoScheduleResult runGlobalAutoSchedule(Long termInstanceId, Long cohortId) {
         // See ACTIVE_GLOBAL_AUTO_SCHEDULE_RUNS's own javadoc -- add() returns false if a run for
@@ -1225,32 +1225,39 @@ public class TimetableGlobalAutoScheduleService {
         List<Period> periods = periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc();
         Set<Long> cohortIds = resolveCohortIds(termInstanceId, cohortId);
 
-        // Once this term's timetable is approved/PUBLISHED on Draft Review, that's the line past
-        // which only manual period/staff edits (swap staff, swap sessions) are allowed -- never a
-        // full automated re-run, at any cost. Room allocation being committed in Capacity Planner is
-        // a prerequisite for placement, not a "stop touching it" signal, so it plays no part in this
-        // gate. An explicit single-cohort request against a published term is a hard block (the
-        // frontend also disables the action before this is ever reached, but this defensive re-check
-        // can't be bypassed via a direct API call, same philosophy as the capacity/venue prechecks
-        // above). An "All Cohorts" run instead reports every cohort back by name as skipped, since
-        // publish is atomic term-wide -- either every cohort in the term is skipped, or none are.
+        // Once a cohort's own timetable is approved/PUBLISHED on Draft Review, that's the line past
+        // which only manual period/staff edits (swap staff, swap sessions) are allowed for THAT
+        // cohort -- never a full automated re-run, at any cost. Room allocation being committed in
+        // Capacity Planner is a prerequisite for placement, not a "stop touching it" signal, so it
+        // plays no part in this gate. An explicit single-cohort request against its own published
+        // timetable is a hard block (the frontend also disables the action before this is ever
+        // reached, but this defensive re-check can't be bypassed via a direct API call, same
+        // philosophy as the capacity/venue prechecks above). An "All Cohorts" run instead reports
+        // each already-published cohort back by name as skipped and proceeds with the rest -- OC-260
+        // made Approve itself cohort-scoped (see TimetableGenerationService#approve's cohortIds
+        // param), so one cohort in a term being published no longer implies every cohort sharing that
+        // termInstanceId is. Checking per cohort here (instead of a single termInstanceId-wide
+        // existsByTermInstanceIdAndStatus) is what makes that true -- see
+        // isCohortTimetablePublished's own doc.
         List<SkippedPublishedCohort> skippedPublishedCohorts = new ArrayList<>();
-        boolean termPublished = isTermTimetablePublished(termInstanceId);
         if (cohortId != null) {
-            if (termPublished) {
+            if (isCohortTimetablePublished(termInstanceId, cohortId)) {
                 Cohort thisCohort = cohortRepository.findById(cohortId).orElse(null);
                 throw new TimetableConstraintViolationException(List.of(new ConstraintViolation(
                     "GLOBAL_AUTO_SCHEDULE_TERM_PUBLISHED",
                     (thisCohort != null ? thisCohort.getDisplayName() : "This cohort")
-                        + " — this term's timetable is already approved; only manual period/staff edits are allowed now")));
+                        + " — this cohort's timetable is already approved; only manual period/staff edits are allowed now")));
             }
-        } else if (termPublished) {
-            for (Long id : cohortIds) {
+        } else {
+            Set<Long> publishedCohortIds = cohortIds.stream()
+                .filter(id -> isCohortTimetablePublished(termInstanceId, id))
+                .collect(Collectors.toSet());
+            for (Long id : publishedCohortIds) {
                 Cohort thisCohort = cohortRepository.findById(id).orElse(null);
                 skippedPublishedCohorts.add(new SkippedPublishedCohort(id,
                     thisCohort != null ? thisCohort.getDisplayName() : ("Cohort " + id)));
             }
-            cohortIds = Set.of();
+            cohortIds = cohortIds.stream().filter(id -> !publishedCohortIds.contains(id)).collect(Collectors.toSet());
         }
 
         PurgeOutcome purge = purgeDraftCellsForRebuild(termInstanceId, cohortIds);
@@ -2350,16 +2357,28 @@ public class TimetableGlobalAutoScheduleService {
         return Set.of(cohortId);
     }
 
-    /** True once this term's timetable has been approved on Draft Review — {@code
-     *  TimetableGenerationService#approve} flips every {@code ClassSchedule} row for the whole term
-     *  to {@code PUBLISHED} atomically, so this is a term-wide fact, not a per-cohort one: it can
-     *  never be true for one cohort in a term and false for another. This is the line past which
-     *  only manual period/staff edits (swap staff, swap sessions) are allowed, never a full
-     *  automated re-run. Committing a Cohort Room Allocation in Capacity Planner does NOT trip this
-     *  — that only unlocks placement (see {@code TimetableSkeletonService#resolveActiveSections}),
-     *  it isn't itself a "done, stop touching this" signal. */
-    private boolean isTermTimetablePublished(Long termInstanceId) {
-        return classScheduleRepository.existsByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
+    /** True once THIS cohort's own timetable has been approved on Draft Review. {@code
+     *  TimetableGenerationService#approve} takes an explicit {@code cohortIds} list (OC-258/OC-260)
+     *  and flips only the selected cohorts' {@code ClassSchedule} rows to {@code PUBLISHED} — so two
+     *  cohorts sharing the same {@code termInstanceId} (a shared physical term, e.g. every year-group
+     *  of BSc Nursing running concurrently in the same academic-year/term-type) can legitimately be
+     *  in different states: one already approved, another still Pending/DRAFT. Checking
+     *  {@code classScheduleRepository.existsByTermInstanceIdAndStatus(termInstanceId, PUBLISHED)}
+     *  alone (the old implementation) answers "has ANY cohort in this term instance been approved",
+     *  not "has this one" — that mistakenly treated every other cohort in the term as published too
+     *  and silently skipped them from Global Auto-Schedule the moment a single cohort was approved.
+     *  Reuses {@link TimetableSkeletonService#getCohortActiveClassSchedules(Long, Long,
+     *  com.cms.model.enums.ClassScheduleStatus)}, the same per-cohort row resolution Approve/Revert/
+     *  Discard already rely on, so this can never disagree with what Approve itself just published.
+     *  This is the line past which only manual period/staff edits (swap staff, swap sessions) are
+     *  allowed for that cohort, never a full automated re-run. Committing a Cohort Room Allocation in
+     *  Capacity Planner does NOT trip this — that only unlocks placement (see {@code
+     *  TimetableSkeletonService#resolveActiveSections}), it isn't itself a "done, stop touching this"
+     *  signal. */
+    private boolean isCohortTimetablePublished(Long termInstanceId, Long cohortId) {
+        return !timetableSkeletonService
+            .getCohortActiveClassSchedules(termInstanceId, cohortId, ClassScheduleStatus.PUBLISHED)
+            .isEmpty();
     }
 
     private static String occupantLabel(SkeletonSubjectBudget budget) {

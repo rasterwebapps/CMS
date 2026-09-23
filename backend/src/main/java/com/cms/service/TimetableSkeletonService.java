@@ -190,8 +190,13 @@ public class TimetableSkeletonService {
         List<CohortSectionResponse> sectionResponses = activeSections.stream().map(this::toSectionResponse).toList();
         List<ClinicalShiftWindow> shiftWindows = clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, termInstanceId);
 
-        boolean termTimetablePublished = classScheduleRepository
-            .existsByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
+        // Scoped to THIS cohort, not existsByTermInstanceIdAndStatus's old term-wide exists check --
+        // OC-258/OC-260 made Approve cohort-scoped, so cohorts sharing one termInstanceId (e.g. every
+        // year-group of the same program running concurrently) can independently be
+        // published/Pending. A term-wide check would wrongly lock out a still-Pending cohort's own
+        // Skeleton Builder the moment any other cohort in the term got approved.
+        boolean termTimetablePublished =
+            !getCohortActiveClassSchedules(termInstanceId, cohortId, ClassScheduleStatus.PUBLISHED).isEmpty();
 
         List<Long> offeringIds = new ArrayList<>(nonElectiveOfferingIds(termInstanceId, cohortId));
         offeringIds.addAll(electiveOfferingIds(termInstanceId, cohortId));

@@ -518,7 +518,7 @@
           }
           @if (r.skippedPublishedCohorts.length > 0) {
             <div class="gas-prereq-group">
-              <div class="gas-prereq-group__title">Skipped — this term's timetable is already approved</div>
+              <div class="gas-prereq-group__title">Skipped — already approved</div>
               <ul class="gas-contributors">
                 @for (s of r.skippedPublishedCohorts; track s.cohortId) {
                   <li>{{ s.cohortName }} — untouched; only manual period/staff edits are allowed for it now</li>
