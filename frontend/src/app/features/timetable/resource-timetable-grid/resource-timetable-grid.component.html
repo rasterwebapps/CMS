@@ -66,9 +66,7 @@
             <div class="resource-grid__cell">
               @for (cell of cellsFor(row, col); track cell.sessionId) {
                 <div class="resource-grid__chip"
-                  [class.resource-grid__chip--theory]="cell.sessionType === 'THEORY'"
-                  [class.resource-grid__chip--lab]="cell.sessionType === 'LAB'"
-                  [class.resource-grid__chip--clinical]="cell.sessionType === 'CLINICAL'"
+                  [style.--subject-color]="cellColor(cell.sessionType)"
                   [class.resource-grid__chip--shift]="cell.isOffCampusShift"
                   [title]="cell.isOffCampusShift ? 'Off-campus Clinical Shift (incl. buffer)' : ''">
                   <span class="resource-grid__chip-subject">{{ cell.subjectName }}</span>

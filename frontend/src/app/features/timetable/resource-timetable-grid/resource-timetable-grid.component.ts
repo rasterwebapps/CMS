@@ -15,6 +15,7 @@ import { RESOURCE_TIMETABLE_GRID_TOUR, RESOURCE_TIMETABLE_GRID_FLOW_MAP } from '
 import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
 import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
+import { colorForSessionType, SessionTypeForColor } from '../../../shared/util/session-color.util';
 
 interface TimeColumn {
   key: string;
@@ -138,6 +139,13 @@ export class ResourceTimetableGridComponent implements OnInit {
 
   protected cellsFor(row: ResourceGridRow, column: TimeColumn) {
     return row.sessions.filter((s) => s.startTime === column.startTime && s.endTime === column.endTime);
+  }
+
+  /** Same primary-color-tint accent Timetable Builder/Week Grid/Day Agenda use for every session
+   *  type — see {@link colorForSessionType}. ResourceGridCell carries no coCurricular flag, so
+   *  this always colors by session type alone. */
+  protected cellColor(sessionType: SessionTypeForColor): string {
+    return colorForSessionType(sessionType);
   }
 
   private loadTermInstances(academicYearId: number): void {

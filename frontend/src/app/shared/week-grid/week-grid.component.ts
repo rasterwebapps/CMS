@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
+import { colorForSessionType, SessionTypeForColor } from '../util/session-color.util';
 import {
   WeekGridSession,
   WeekGridMode,
@@ -157,6 +158,13 @@ export class CmsWeekGridComponent {
    *  "negative id = non-interactive placeholder" convention ResourceGridCellResponse already uses. */
   protected isSynthetic(session: WeekGridSession): boolean {
     return session.id < 0;
+  }
+
+  /** Same primary-color-tint accent Timetable Builder/Day Agenda use for every session type — see
+   *  {@link colorForSessionType}. WeekGridSession carries no coCurricular flag, so this always
+   *  colors by session type alone. */
+  protected sessionColor(sessionType: SessionTypeForColor): string {
+    return colorForSessionType(sessionType);
   }
 
   protected onSessionClick(session: WeekGridSession, day: string, row: WeekGridRow, event: Event): void {

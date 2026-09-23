@@ -69,11 +69,7 @@
             @for (session of cell(day, row); track session.id) {
               <button type="button"
                 class="session-chip"
-                [class.session-chip--theory]="session.sessionType === 'THEORY'"
-                [class.session-chip--lab]="session.sessionType === 'LAB'"
-                [class.session-chip--clinical]="session.sessionType === 'CLINICAL'"
-                [class.session-chip--library]="session.sessionType === 'LIBRARY'"
-                [class.session-chip--sports]="session.sessionType === 'SPORTS'"
+                [style.--subject-color]="sessionColor(session.sessionType)"
                 [class.session-chip--draft]="session.status === 'DRAFT'"
                 [class.session-chip--unstaffed]="!session.facultyName && session.sessionType !== 'LIBRARY'"
                 [class.session-chip--swap-source]="swapMode && session.id === swapSourceSessionId"

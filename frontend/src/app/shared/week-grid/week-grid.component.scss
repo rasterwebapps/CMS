@@ -1,8 +1,9 @@
 .week-grid-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
+  padding: 16px;
 }
 
 .week-grid-toolbar {
@@ -111,36 +112,19 @@
   width: 100%;
   font-family: inherit;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+  // Same accent every timetable-shaped screen uses (Timetable Builder's own left accent bar, Day
+  // Agenda's border-left) -- see session-color.util.ts. --subject-color is set inline per chip
+  // from the session's sessionType (component.ts#sessionColor), so this rule never hardcodes a
+  // session-type color itself. color-mix dilutes --subject-color's own tint down to a
+  // background-appropriate strength (matching this file's existing color-mix usage above for the
+  // swap-candidate overlay) instead of needing a second hardcoded alpha tier per session type.
+  background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 28%, transparent);
 
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.25);
   }
-}
-
-.session-chip--theory {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.28);
-}
-
-.session-chip--lab {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.28);
-}
-
-.session-chip--clinical {
-  background: rgba(168, 85, 247, 0.12);
-  border-color: rgba(168, 85, 247, 0.28);
-}
-
-.session-chip--library {
-  background: rgba(217, 119, 6, 0.12);
-  border-color: rgba(217, 119, 6, 0.28);
-}
-
-.session-chip--sports {
-  background: rgba(6, 182, 212, 0.12);
-  border-color: rgba(6, 182, 212, 0.28);
 }
 
 // A synthetic entry (e.g. a Clinical Shift Group duty roster block) has no real ClassSchedule row

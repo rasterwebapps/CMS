@@ -26,7 +26,7 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { GlobalAutoScheduleReportFlyoutComponent } from './global-auto-schedule-report-flyout.component';
 import { WorkingSaturdaysFlyoutComponent } from './working-saturdays-flyout.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
-import { colorForCell, LIBRARY_CELL_COLOR, SPORTS_CELL_COLOR } from './subject-color.util';
+import { colorForSessionType } from '../../../shared/util/session-color.util';
 import { violationText } from '../../../shared/util/violation-text';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
@@ -1060,11 +1060,10 @@ export class TimetableBuilderComponent implements OnInit {
   /** A cell's accent: Sports/Library keep their own fixed colors (neither has a curriculum
    *  category to tint by); every other cell gets one of four primary-color tints by category —
    *  Theory/Lab/Clinical by session type, Co-curricular (advisory) overriding all three when the
-   *  subject is curriculum-typed that way — see {@link colorForCell}. */
+   *  subject is curriculum-typed that way — see {@link colorForSessionType}, shared with Week Grid
+   *  and Day Agenda so every timetable-shaped screen renders the same accent. */
   protected cellColor(cell: TimetableCell): string {
-    if (cell.sessionType === 'SPORTS') return SPORTS_CELL_COLOR;
-    if (cell.sessionType === 'LIBRARY') return LIBRARY_CELL_COLOR;
-    return colorForCell(cell.sessionType, cell.coCurricular);
+    return colorForSessionType(cell.sessionType, cell.coCurricular);
   }
 
   /** Whether {@code cell} has a same-subject/type/occupant cell in the immediately adjacent period

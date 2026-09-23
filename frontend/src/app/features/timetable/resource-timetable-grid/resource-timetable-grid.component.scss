@@ -91,28 +91,20 @@
   padding: 4px 6px;
   border-radius: 6px;
   border: 1px solid transparent;
-
-  &--theory {
-    background: rgba(59, 130, 246, 0.12);
-    border-color: rgba(59, 130, 246, 0.28);
-  }
-
-  &--lab {
-    background: rgba(16, 185, 129, 0.12);
-    border-color: rgba(16, 185, 129, 0.28);
-  }
-
-  &--clinical {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.28);
-  }
+  // Same accent every timetable-shaped screen uses (Timetable Builder's own left accent bar, Week
+  // Grid's chip, Day Agenda's border-left) -- see session-color.util.ts. --subject-color is set
+  // inline per chip from the cell's sessionType (component.ts#cellColor), so this rule never
+  // hardcodes a session-type color itself.
+  background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
+  border-color: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 28%, transparent);
 
   // Synthetic Clinical Shift cell (bus-depart through bus-return) — no backing ClassSchedule row,
   // so it's visually distinguished from a real Clinical session with a dashed border rather than
-  // the solid one every real chip uses.
+  // the solid one every real chip uses. Still tinted off the same --subject-color (Clinical's own
+  // tint) rather than a separate hardcoded color, just fainter and dashed.
   &--shift {
-    background: rgba(245, 158, 11, 0.08);
-    border-color: rgba(245, 158, 11, 0.4);
+    background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 8%, transparent);
+    border-color: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 40%, transparent);
     border-style: dashed;
     cursor: default;
   }
