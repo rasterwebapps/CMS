@@ -37,13 +37,16 @@ class BlockedPeriodServiceTest {
     @Mock
     private PeriodRepository periodRepository;
 
+    @Mock
+    private HolidayDisruptionNotificationService holidayDisruptionNotificationService;
+
     private BlockedPeriodService service;
 
     private Period period;
 
     @BeforeEach
     void setUp() {
-        service = new BlockedPeriodService(blockedPeriodRepository, periodRepository);
+        service = new BlockedPeriodService(blockedPeriodRepository, periodRepository, holidayDisruptionNotificationService);
         period = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50), 1);
         period.setId(1L);
         period.setDurationMinutes(50);
@@ -80,6 +83,20 @@ class BlockedPeriodServiceTest {
         assertThat(response.blockType()).isEqualTo(BlockType.ONE_OFF);
         assertThat(response.specificDate()).isEqualTo(LocalDate.of(2026, 11, 15));
         verify(blockedPeriodRepository).save(any(BlockedPeriod.class));
+    }
+
+    @Test
+    void shouldNotifyDisruptionAfterCreatingBlock() {
+        BlockedPeriodRequest request = new BlockedPeriodRequest(
+            1L, BlockType.ONE_OFF, LocalDate.of(2026, 11, 15), null, null, null, "Staff meeting");
+        BlockedPeriod saved = buildBlock(1L, BlockType.ONE_OFF);
+
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
+        when(blockedPeriodRepository.save(any(BlockedPeriod.class))).thenReturn(saved);
+
+        service.create(request);
+
+        verify(holidayDisruptionNotificationService).notifyIfDisrupts(saved);
     }
 
     @Test

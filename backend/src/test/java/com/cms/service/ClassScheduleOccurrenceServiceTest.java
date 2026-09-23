@@ -327,4 +327,78 @@ class ClassScheduleOccurrenceServiceTest {
 
         assertThat(withMapping).isEqualTo(withoutMapping);
     }
+
+    // ── schedulesDisruptedBy ──
+
+    private BlockedPeriod oneOffBlock(Long id, LocalDate date) {
+        BlockedPeriod block = new BlockedPeriod();
+        block.setId(id);
+        block.setPeriod(period);
+        block.setBlockType(BlockType.ONE_OFF);
+        block.setSpecificDate(date);
+        block.setReason("Government Holiday");
+        return block;
+    }
+
+    @Test
+    void schedulesDisruptedByReturnsThePublishedScheduleTheNewBlockCovers() {
+        BlockedPeriod newBlock = oneOffBlock(900L, LocalDate.of(2024, 8, 12)); // a Monday in term
+        ClassSchedule published = mondaySchedule();
+        published.setStatus(com.cms.model.enums.ClassScheduleStatus.PUBLISHED);
+
+        when(classScheduleRepository.findByPeriodIdAndStatusAndDayOfWeekAndIsActiveTrue(
+                50L, com.cms.model.enums.ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(published));
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(50L, newBlock.getSpecificDate(), newBlock.getSpecificDate()))
+            .thenReturn(List.of(newBlock));
+
+        List<ClassSchedule> disrupted = service.schedulesDisruptedBy(newBlock);
+
+        assertThat(disrupted).containsExactly(published);
+    }
+
+    @Test
+    void schedulesDisruptedByIsEmptyForARecurringBlock() {
+        BlockedPeriod recurring = new BlockedPeriod();
+        recurring.setId(901L);
+        recurring.setPeriod(period);
+        recurring.setBlockType(BlockType.RECURRING);
+        recurring.setDayOfWeek(DayOfWeek.MONDAY);
+        recurring.setRangeStartDate(LocalDate.of(2024, 8, 5));
+        recurring.setRangeEndDate(LocalDate.of(2024, 8, 26));
+
+        assertThat(service.schedulesDisruptedBy(recurring)).isEmpty();
+    }
+
+    @Test
+    void schedulesDisruptedByExcludesADateAlreadyCoveredByAnotherBlock() {
+        BlockedPeriod newBlock = oneOffBlock(902L, LocalDate.of(2024, 8, 12));
+        BlockedPeriod preExisting = oneOffBlock(903L, LocalDate.of(2024, 8, 12));
+        ClassSchedule published = mondaySchedule();
+        published.setStatus(com.cms.model.enums.ClassScheduleStatus.PUBLISHED);
+
+        when(classScheduleRepository.findByPeriodIdAndStatusAndDayOfWeekAndIsActiveTrue(
+                50L, com.cms.model.enums.ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(published));
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(50L, newBlock.getSpecificDate(), newBlock.getSpecificDate()))
+            .thenReturn(List.of(newBlock, preExisting));
+
+        assertThat(service.schedulesDisruptedBy(newBlock)).isEmpty();
+    }
+
+    @Test
+    void schedulesDisruptedByIsEmptyWhenDateIsOutsideTheSchedulesTermBounds() {
+        // 2024-01-01 is a Monday, well before the term's 2024-08-05 start.
+        BlockedPeriod newBlock = oneOffBlock(904L, LocalDate.of(2024, 1, 1));
+        ClassSchedule published = mondaySchedule();
+        published.setStatus(com.cms.model.enums.ClassScheduleStatus.PUBLISHED);
+
+        when(classScheduleRepository.findByPeriodIdAndStatusAndDayOfWeekAndIsActiveTrue(
+                50L, com.cms.model.enums.ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(published));
+        when(blockedPeriodRepository.findApplicableForPeriodInRange(50L, newBlock.getSpecificDate(), newBlock.getSpecificDate()))
+            .thenReturn(List.of(newBlock));
+
+        assertThat(service.schedulesDisruptedBy(newBlock)).isEmpty();
+    }
 }

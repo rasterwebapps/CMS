@@ -68,6 +68,13 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findByFacultyIdAndStatusAndDayOfWeek(
         Long facultyId, ClassScheduleStatus status, DayOfWeek dayOfWeek);
 
+    /** Every still-active PUBLISHED row sharing one Period+dayOfWeek slot, across all faculty --
+     *  the period-scoped sibling of {@link #findByFacultyIdAndStatusAndDayOfWeek}, used by {@link
+     *  com.cms.service.ClassScheduleOccurrenceService#schedulesDisruptedBy} to find every session a
+     *  newly created BlockedPeriod actually cancels. */
+    List<ClassSchedule> findByPeriodIdAndStatusAndDayOfWeekAndIsActiveTrue(
+        Long periodId, ClassScheduleStatus status, DayOfWeek dayOfWeek);
+
     List<ClassSchedule> findByTermInstanceIdAndStatusAndFacultyId(
         Long termInstanceId, ClassScheduleStatus status, Long facultyId);
 

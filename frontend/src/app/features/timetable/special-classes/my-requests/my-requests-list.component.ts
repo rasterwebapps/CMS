@@ -12,6 +12,7 @@ import { ToastService } from '../../../../core/toast/toast.service';
 import { SpecialClassService } from '../special-class.service';
 import { SpecialClassOccurrence } from '../special-class.model';
 import { SpecialClassRequestFlyoutComponent } from '../special-class-request-flyout/special-class-request-flyout.component';
+import { LogSpecialClassProgressDialogComponent } from '../log-special-class-progress-dialog/log-special-class-progress-dialog.component';
 import { TourService } from '../../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../../shared/tour/tour-button.component';
 import { MY_SPECIAL_CLASSES_TOUR, MY_SPECIAL_CLASSES_FLOW_MAP } from '../../../../shared/tour/tours/special-class.tours';
@@ -77,6 +78,33 @@ export class MyRequestsListComponent implements OnInit {
 
   protected canCancel(row: SpecialClassOccurrence): boolean {
     return row.approvalStatus === 'APPROVED' && new Date(row.occurrenceDate) > new Date();
+  }
+
+  /** Mirrors the backend's own gate in ProgressTrackingService.logCoverageForOccurrence --
+   *  approved and not in the future. */
+  protected canLogProgress(row: SpecialClassOccurrence): boolean {
+    return row.approvalStatus === 'APPROVED'
+      && new Date(row.occurrenceDate + 'T00:00:00') <= new Date();
+  }
+
+  protected openLogProgress(row: SpecialClassOccurrence): void {
+    this.dialog.open(LogSpecialClassProgressDialogComponent, {
+      data: {
+        occurrenceId: row.id,
+        subjectName: row.subjectName ?? '—',
+        subjectCode: row.subjectCode ?? '—',
+        occurrenceDate: row.occurrenceDate,
+        periodHours: this.periodHoursOf(row),
+      },
+    });
+  }
+
+  private periodHoursOf(row: SpecialClassOccurrence): number {
+    if (!row.periodStartTime || !row.periodEndTime) return 1;
+    const [startH, startM] = row.periodStartTime.split(':').map(Number);
+    const [endH, endM] = row.periodEndTime.split(':').map(Number);
+    const minutes = (endH * 60 + endM) - (startH * 60 + startM);
+    return minutes > 0 ? Math.round((minutes / 60) * 100) / 100 : 1;
   }
 
   protected confirmCancel(row: SpecialClassOccurrence): void {

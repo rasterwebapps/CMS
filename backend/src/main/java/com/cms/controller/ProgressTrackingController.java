@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.LogProgressRequest;
+import com.cms.dto.OccurrenceCoverageRequest;
 import com.cms.dto.OfferingProgressResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.SessionOccurrenceDto;
@@ -63,6 +64,29 @@ public class ProgressTrackingController {
     public ResponseEntity<SessionOccurrenceDto> getOccurrence(
             @PathVariable Long classScheduleId, @PathVariable LocalDate date) {
         return progressTrackingService.getOccurrence(classScheduleId, date)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/occurrences/{occurrenceId}/log")
+    @PreAuthorize("@perm.has('PROGRESS_LOG_CREATE')")
+    public ResponseEntity<SessionOccurrenceDto> logCoverageForOccurrence(
+            @PathVariable Long occurrenceId, @RequestBody OccurrenceCoverageRequest request) {
+        ProfileIdentity identity = profileService.resolveCurrentUser();
+        Long facultyId = "FACULTY".equals(identity.entityType()) ? identity.entityId() : null;
+        return ResponseEntity.ok(progressTrackingService.logCoverageForOccurrence(occurrenceId, request, facultyId));
+    }
+
+    @GetMapping("/occurrences/{occurrenceId}/units")
+    @PreAuthorize("@perm.has('PROGRESS_LOG_CREATE')")
+    public ResponseEntity<List<UnitPickerOptionDto>> getAvailableUnitsForOccurrence(@PathVariable Long occurrenceId) {
+        return ResponseEntity.ok(progressTrackingService.getAvailableUnitsForOccurrence(occurrenceId));
+    }
+
+    @GetMapping("/occurrences/{occurrenceId}")
+    @PreAuthorize("@perm.has('PROGRESS_LOG_CREATE')")
+    public ResponseEntity<SessionOccurrenceDto> getOccurrenceById(@PathVariable Long occurrenceId) {
+        return progressTrackingService.getOccurrenceById(occurrenceId)
             .map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.notFound().build());
     }

@@ -3,12 +3,14 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,8 +25,11 @@ import com.cms.dto.CalendarEventResponse;
 import com.cms.dto.EventRecurrenceRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.BlockedPeriod;
 import com.cms.model.CalendarEvent;
 import com.cms.model.HolidayTemplate;
+import com.cms.model.Period;
+import com.cms.model.enums.BlockType;
 import com.cms.model.enums.CalendarEventType;
 import com.cms.model.enums.HolidayCategory;
 import com.cms.model.enums.HolidayRecurrenceType;
@@ -55,6 +60,9 @@ class CalendarEventServiceTest {
     @Mock
     private HolidayTemplateService holidayTemplateService;
 
+    @Mock
+    private HolidayDisruptionNotificationService holidayDisruptionNotificationService;
+
     private CalendarEventService calendarEventService;
 
     private AcademicYear academicYear;
@@ -63,7 +71,8 @@ class CalendarEventServiceTest {
     void setUp() {
         calendarEventService = new CalendarEventService(
             calendarEventRepository, academicYearRepository, blockedPeriodRepository,
-            periodRepository, holidayTemplateRepository, holidayTemplateService);
+            periodRepository, holidayTemplateRepository, holidayTemplateService,
+            holidayDisruptionNotificationService);
         academicYear = new AcademicYear(
             "2024-2025", LocalDate.of(2024, 8, 1), LocalDate.of(2025, 5, 31), true);
         academicYear.setId(1L);
@@ -106,6 +115,30 @@ class CalendarEventServiceTest {
         assertThat(response.title()).isEqualTo("Diwali");
         assertThat(response.eventType()).isEqualTo(CalendarEventType.HOLIDAY);
         verify(calendarEventRepository).save(any(CalendarEvent.class));
+    }
+
+    @Test
+    void shouldNotifyDisruptionOncePerDateWhenHolidayAutoBlocksPeriods() {
+        Period period = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(9, 50), 1);
+        period.setId(10L);
+
+        CalendarEventRequest request = new CalendarEventRequest(
+            "Gandhi Jayanti", "Holiday", LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 1),
+            CalendarEventType.HOLIDAY, 1L);
+        CalendarEvent saved = buildEvent(1L, "Gandhi Jayanti", CalendarEventType.HOLIDAY, academicYear);
+
+        when(academicYearRepository.findById(1L)).thenReturn(Optional.of(academicYear));
+        when(calendarEventRepository.save(any(CalendarEvent.class))).thenReturn(saved);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(periodRepository.findAllById(any())).thenReturn(List.of(period));
+        when(blockedPeriodRepository.findBySourceCalendarEventId(1L)).thenReturn(List.of());
+        when(blockedPeriodRepository.existsByPeriodIdAndBlockTypeAndSpecificDate(
+            10L, BlockType.ONE_OFF, LocalDate.of(2024, 10, 1))).thenReturn(false);
+        when(blockedPeriodRepository.save(any(BlockedPeriod.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        calendarEventService.create(request);
+
+        verify(holidayDisruptionNotificationService).notifyIfDisrupts(eq(saved), any());
     }
 
     @Test

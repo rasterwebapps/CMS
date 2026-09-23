@@ -20,10 +20,13 @@ public class BlockedPeriodService {
 
     private final BlockedPeriodRepository blockedPeriodRepository;
     private final PeriodRepository periodRepository;
+    private final HolidayDisruptionNotificationService holidayDisruptionNotificationService;
 
-    public BlockedPeriodService(BlockedPeriodRepository blockedPeriodRepository, PeriodRepository periodRepository) {
+    public BlockedPeriodService(BlockedPeriodRepository blockedPeriodRepository, PeriodRepository periodRepository,
+                                 HolidayDisruptionNotificationService holidayDisruptionNotificationService) {
         this.blockedPeriodRepository = blockedPeriodRepository;
         this.periodRepository = periodRepository;
+        this.holidayDisruptionNotificationService = holidayDisruptionNotificationService;
     }
 
     @Transactional
@@ -35,7 +38,9 @@ public class BlockedPeriodService {
         BlockedPeriod block = new BlockedPeriod();
         applyRequest(block, request, period);
 
-        return toResponse(blockedPeriodRepository.save(block));
+        BlockedPeriod saved = blockedPeriodRepository.save(block);
+        holidayDisruptionNotificationService.notifyIfDisrupts(saved);
+        return toResponse(saved);
     }
 
     public List<BlockedPeriodResponse> findAll() {

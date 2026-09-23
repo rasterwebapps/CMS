@@ -7,8 +7,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.config.PermSecurityBean;
 import com.cms.dto.NotificationResponse;
+import com.cms.model.AppUser;
+import com.cms.model.Faculty;
 import com.cms.model.Notification;
 import com.cms.model.NotificationDismissal;
+import com.cms.repository.AppUserRepository;
 import com.cms.repository.NotificationDismissalRepository;
 import com.cms.repository.NotificationRepository;
 import com.cms.repository.UserNotificationPreferenceRepository;
@@ -31,17 +34,20 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationDismissalRepository dismissalRepository;
     private final UserNotificationPreferenceRepository preferenceRepository;
+    private final AppUserRepository appUserRepository;
     private final CurrentUserResolver currentUserResolver;
     private final PermSecurityBean permSecurityBean;
 
     public NotificationService(NotificationRepository notificationRepository,
                                 NotificationDismissalRepository dismissalRepository,
                                 UserNotificationPreferenceRepository preferenceRepository,
+                                AppUserRepository appUserRepository,
                                 CurrentUserResolver currentUserResolver,
                                 PermSecurityBean permSecurityBean) {
         this.notificationRepository = notificationRepository;
         this.dismissalRepository = dismissalRepository;
         this.preferenceRepository = preferenceRepository;
+        this.appUserRepository = appUserRepository;
         this.currentUserResolver = currentUserResolver;
         this.permSecurityBean = permSecurityBean;
     }
@@ -52,13 +58,22 @@ public class NotificationService {
             return List.of();
         }
         boolean canSeeTermAlerts = permSecurityBean.has(ACADEMIC_TERM_ALERTS_PERMISSION);
+        Long facultyId = currentFacultyId(userId);
 
         return notificationRepository.findByResolvedAtIsNullOrderByCreatedAtDesc().stream()
             .filter(n -> !ACADEMIC_TERM_ALERTS_CATEGORY.equals(n.getCategoryKey()) || canSeeTermAlerts)
+            .filter(n -> n.getRecipientFacultyId() == null || n.getRecipientFacultyId().equals(facultyId))
             .filter(n -> isCategoryEnabled(userId, n.getCategoryKey()))
             .filter(n -> !dismissalRepository.existsByNotificationIdAndUserId(n.getId(), userId))
             .map(this::toResponse)
             .toList();
+    }
+
+    private Long currentFacultyId(String userId) {
+        return appUserRepository.findByKeycloakUsername(userId)
+            .map(AppUser::getLinkedFaculty)
+            .map(Faculty::getId)
+            .orElse(null);
     }
 
     @Transactional
