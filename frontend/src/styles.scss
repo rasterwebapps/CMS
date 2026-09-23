@@ -3290,12 +3290,6 @@ th.cms-th-resize-hover .mat-sort-header-container {
     }
   }
 
-  &:read-only {
-    background: var(--cms-bg-muted);
-    color: var(--cms-text-secondary);
-    cursor: not-allowed;
-  }
-
   &--narrow {
     max-width: 160px;
   }

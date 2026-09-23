@@ -50,7 +50,6 @@
                 <input id="subj-code" class="field-input" formControlName="code"
                   placeholder="e.g., BSN101" autocomplete="off"
                   (input)="onCodeInput($event)"
-                  [readOnly]="isSystemManagedSubject()"
                   [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
                 @if (isSystemManagedSubject()) {
                   <p class="field-hint">Fixed -- this code is a lookup key the auto-scheduler depends on and can't be renamed here.</p>
@@ -68,7 +67,6 @@
                 <label for="subj-term" class="field-label">Term Number <span class="required-star">*</span></label>
                 <input id="subj-term" class="field-input" formControlName="termNumber"
                   type="number" min="1" max="12" placeholder="e.g., 1" autocomplete="off"
-                  [readOnly]="isSystemManagedSubject()"
                   [class.field-input--error]="form.get('termNumber')?.invalid && form.get('termNumber')?.touched" />
                 @if (isSystemManagedSubject()) {
                   <p class="field-hint">Fixed at 0 for this system-managed subject — it's never placed in a curriculum term.</p>
@@ -83,7 +81,6 @@
                 <label for="subj-credits" class="field-label">Credits <span class="required-star">*</span></label>
                 <input id="subj-credits" class="field-input" formControlName="credits"
                   type="number" min="1" max="20" autocomplete="off"
-                  [readOnly]="isSystemManagedSubject()"
                   [class.field-input--error]="form.get('credits')?.invalid && form.get('credits')?.touched" />
                 @if (isSystemManagedSubject()) {
                   <p class="field-hint">Fixed at 0 for this system-managed subject — it carries no real credit value.</p>
@@ -232,10 +229,10 @@
             {{ previewName() || 'Subject name will appear here' }}
           </div>
           <div class="prev-meta-row">
-            @if (previewTermNumber()) {
+            @if (previewTermNumber() !== null) {
               <span class="prev-pill">Term {{ previewTermNumber() }}</span>
             }
-            @if (previewCredits()) {
+            @if (previewCredits() !== null) {
               <span class="prev-pill">{{ previewCredits() }} credits</span>
             }
           </div>

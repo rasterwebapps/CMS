@@ -86,29 +86,26 @@ export class SubjectFormComponent implements OnInit {
   private subjectId: number | null = null;
 
   /** Set from the loaded subject's own `isSystemManaged` flag on every `loadSubject()` call
-   *  (SubjectService is the single source of truth for which two codes this covers) -- not
-   *  re-derived from the live Code field, which is why Code itself is also locked read-only below
-   *  rather than left editable. Explicitly reset to false, with the credits/termNumber validators
-   *  restored to their ordinary-subject minimums, for a non-system-managed subject on every load --
-   *  Angular's default RouteReuseStrategy can reuse this component instance across a same-route
-   *  `:id` change (`subjects/:id/edit` -> a different id) without a fresh `ngOnInit`/constructor
-   *  run, so leaving this one-sided would let SYSTEM-SPORTS's loosened min(0) state leak onto the
-   *  next ordinary subject loaded into the same instance. */
+   *  (SubjectService is the single source of truth for which two codes this covers). Code/
+   *  credits/termNumber are Angular-`disable()`d together with it (see loadSubject()), the same
+   *  lock-affected-controls idiom referral-type-form.component.ts already uses for its own
+   *  isSystemDefined flag -- disabled controls are skipped entirely by Angular's own validity
+   *  computation, so the ordinary min(1) validators below never need a loosened second copy, and
+   *  a disabled control can never be edited by mouse, keyboard, or scroll-wheel. Always
+   *  enable()/disable() explicitly (never just one branch) so a component instance Angular's
+   *  default RouteReuseStrategy reuses across a same-route `:id` change (`subjects/:id/edit` -> a
+   *  different id, no fresh `ngOnInit`) can't leak SYSTEM-SPORTS's locked fields onto the next,
+   *  ordinary subject loaded into it. */
   protected readonly isSystemManagedSubject = signal(false);
-
-  private static readonly CREDITS_VALIDATORS_DEFAULT = [Validators.required, Validators.min(1), Validators.max(20)];
-  private static readonly CREDITS_VALIDATORS_SYSTEM_MANAGED = [Validators.required, Validators.min(0), Validators.max(20)];
-  private static readonly TERM_NUMBER_VALIDATORS_DEFAULT = [Validators.required, Validators.min(1), Validators.max(12)];
-  private static readonly TERM_NUMBER_VALIDATORS_SYSTEM_MANAGED = [Validators.required, Validators.min(0), Validators.max(12)];
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255), trimmedMinLength(2), noConsecutiveSpaces()]],
     code: ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
-    credits: [null as number | null, SubjectFormComponent.CREDITS_VALIDATORS_DEFAULT],
+    credits: [null as number | null, [Validators.required, Validators.min(1), Validators.max(20)]],
     theoryCredits: [null as number | null, [Validators.required, Validators.min(0), Validators.max(20)]],
     labCredits: [null as number | null, [Validators.required, Validators.min(0), Validators.max(20)]],
     specialityId: [null as number | null],
-    termNumber: [null as number | null, SubjectFormComponent.TERM_NUMBER_VALIDATORS_DEFAULT],
+    termNumber: [null as number | null, [Validators.required, Validators.min(1), Validators.max(12)]],
     isActive: [true],
     labSessionBlockPeriods: [1, [Validators.required, Validators.min(1), Validators.max(12)]],
     clinicalSessionBlockPeriods: [1, [Validators.required, Validators.min(1), Validators.max(12)]],
@@ -117,7 +114,10 @@ export class SubjectFormComponent implements OnInit {
   constructor() {
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => {
+      .subscribe(() => {
+        // getRawValue(), not the emitted (enabled-only) value, so the preview keeps reflecting
+        // Code/Credits/Term Number even while they're disabled for a system-managed subject.
+        const v = this.form.getRawValue();
         this.previewName.set((v.name ?? '').trim());
         this.previewCode.set(stripSpaces(v.code ?? '').toUpperCase());
         this.previewTermNumber.set(v.termNumber ?? null);
@@ -208,17 +208,21 @@ export class SubjectFormComponent implements OnInit {
       return;
     }
 
+    // getRawValue(), not .value, since Code/Credits/Term Number are Angular-disabled (not just
+    // readOnly) for a system-managed subject and would otherwise be silently dropped from the
+    // request entirely.
+    const v = this.form.getRawValue();
     const request: SubjectRequest = {
-      name: (this.form.value.name ?? '').trim(),
-      code: (this.form.value.code ?? '').trim(),
-      credits: this.form.value.credits,
-      theoryCredits: this.form.value.theoryCredits,
-      labCredits: this.form.value.labCredits,
-      specialityId: this.form.value.specialityId ?? null,
-      termNumber: this.form.value.termNumber,
-      isActive: this.form.value.isActive,
-      labSessionBlockPeriods: this.form.value.labSessionBlockPeriods,
-      clinicalSessionBlockPeriods: this.form.value.clinicalSessionBlockPeriods,
+      name: (v.name ?? '').trim(),
+      code: (v.code ?? '').trim(),
+      credits: v.credits,
+      theoryCredits: v.theoryCredits,
+      labCredits: v.labCredits,
+      specialityId: v.specialityId ?? null,
+      termNumber: v.termNumber,
+      isActive: v.isActive,
+      labSessionBlockPeriods: v.labSessionBlockPeriods,
+      clinicalSessionBlockPeriods: v.clinicalSessionBlockPeriods,
       eligibleLabIds: [...this.selectedLabIds()],
       eligibleClinicalVenueIds: [...this.selectedClinicalVenueIds()],
       eligibleFacultyIds: [...this.selectedFacultyIds()],
@@ -318,19 +322,20 @@ export class SubjectFormComponent implements OnInit {
 
         const systemManaged = subject.isSystemManaged;
         this.isSystemManagedSubject.set(systemManaged);
-        // Matches the backend's loosened credits=0/termNumber=0 sentinel for a system-managed
-        // subject -- without this, the form patches in 0/0 but the default min(1) validators
-        // immediately mark it invalid, so Save silently no-ops (scrolls to an invalid field the
-        // admin never touched) and this subject's eligible faculty/venues can never actually be
-        // edited. Always set both branches (not just the loosened one) so a component instance
-        // reused across a same-route :id change can't leak SYSTEM-SPORTS's loosened validators onto
-        // the next, ordinary subject loaded into it.
-        this.form.get('credits')?.setValidators(
-          systemManaged ? SubjectFormComponent.CREDITS_VALIDATORS_SYSTEM_MANAGED : SubjectFormComponent.CREDITS_VALIDATORS_DEFAULT);
-        this.form.get('termNumber')?.setValidators(
-          systemManaged ? SubjectFormComponent.TERM_NUMBER_VALIDATORS_SYSTEM_MANAGED : SubjectFormComponent.TERM_NUMBER_VALIDATORS_DEFAULT);
-        this.form.get('credits')?.updateValueAndValidity({ emitEvent: false });
-        this.form.get('termNumber')?.updateValueAndValidity({ emitEvent: false });
+        // Locking these three fields (rather than loosening their validators) is what lets a
+        // system-managed subject's 0/0 credits/termNumber sentinel round-trip through this same
+        // form without ever needing to satisfy the ordinary min(1) rule -- a disabled control is
+        // skipped entirely by Angular's validity computation. Always set both branches so a reused
+        // component instance can't leak SYSTEM-SPORTS's disabled state onto the next subject loaded.
+        const lockedControls = ['code', 'credits', 'termNumber'] as const;
+        for (const name of lockedControls) {
+          const ctrl = this.form.get(name);
+          if (systemManaged) {
+            ctrl?.disable({ emitEvent: false });
+          } else {
+            ctrl?.enable({ emitEvent: false });
+          }
+        }
         this.loading.set(false);
       },
       error: () => {

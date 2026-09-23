@@ -93,15 +93,21 @@ public class SubjectService {
     }
 
     /** Every ordinary (non-system-managed) subject must carry a real credits/term value -- the
-     *  0/0 sentinel is reserved for the two system-managed subjects. Kept as an explicit
-     *  service-level check, not a DTO annotation, because the DTO's own @Min had to be loosened to 0
-     *  so those subjects' existing 0/0 values can round-trip through this same request shape.
-     *  Deliberately also enforced on {@link #create}, even though the two system-managed subjects
-     *  are never created through this service in practice -- the allowlist check above means this
-     *  can only ever pass for a request whose code is exactly one of the two seeded codes, so it
-     *  costs nothing and closes off the same bypass on create as on update. */
+     *  0/0 sentinel is reserved for the two system-managed subjects, and pinned to exactly 0/0 for
+     *  them too -- not just "any value the DTO's loosened @Min(0) happens to allow" -- since the
+     *  whole point of the sentinel, and every caller of {@link #isSystemManaged}, assumes it never
+     *  drifts. Kept as an explicit service-level check, not a DTO annotation, because the DTO's own
+     *  @Min had to be loosened to 0 so those subjects' existing 0/0 values can round-trip through
+     *  this same request shape. Deliberately also enforced on {@link #create}, even though the two
+     *  system-managed subjects are never created through this service in practice -- the allowlist
+     *  check above means this can only ever pass for a request whose code is exactly one of the two
+     *  seeded codes, so it costs nothing and closes off the same bypass on create as on update. */
     private void requireCurriculumCreditsAndTerm(SubjectRequest request) {
         if (isSystemManaged(request.code())) {
+            if (request.credits() != 0 || request.termNumber() != 0) {
+                throw new IllegalArgumentException(
+                    "A system-managed subject's credits and term number must both be 0");
+            }
             return;
         }
         if (request.credits() < 1) {
