@@ -109,8 +109,12 @@ export class CmsWeekNavigatorComponent {
     let iso = toIso(mondayOf(new Date()));
     const min = this._min();
     const max = this._max();
-    if (min && iso < min) iso = min;
-    if (max && iso > max) iso = max;
+    // Realigning to min/max's own Monday (rather than the raw boundary date) keeps the emitted
+    // weekStart Monday-aligned even when the term starts/ends mid-week -- clamping straight to a
+    // mid-week boundary produces a Mon-Sat window that never reaches one or more weekdays, which
+    // then render as silently blank instead of their real sessions or a cancellation marker.
+    if (min && iso < min) iso = toIso(mondayOf(new Date(`${min}T00:00:00`)));
+    if (max && iso > max) iso = toIso(mondayOf(new Date(`${max}T00:00:00`)));
     this.weekStartChange.emit(iso);
   }
 }

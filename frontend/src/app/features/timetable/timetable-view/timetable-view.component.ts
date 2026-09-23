@@ -245,7 +245,7 @@ export class TimetableViewComponent implements OnInit {
   }
 
   protected onWeekStartChange(iso: string): void {
-    const clamped = this.clampToTerm(iso, this.selectedTerm());
+    const clamped = this.clampWeekStartToTerm(iso, this.selectedTerm());
     this.weekStart.set(clamped);
     this.loadDateWiseOccurrences(clamped);
   }
@@ -275,7 +275,7 @@ export class TimetableViewComponent implements OnInit {
     if (!term) return;
     const today = new Date().toISOString().slice(0, 10);
     this.dayDate.set(this.clampToTerm(today, term));
-    this.weekStart.set(this.clampToTerm(mondayOf(new Date()), term));
+    this.weekStart.set(this.clampWeekStartToTerm(mondayOf(new Date()), term));
   }
 
   private clampToTerm(date: string, term: TermInstance | null): string {
@@ -283,6 +283,17 @@ export class TimetableViewComponent implements OnInit {
     if (date < term.startDate) return term.startDate;
     if (date > term.endDate) return term.endDate;
     return date;
+  }
+
+  /** clampToTerm alone can snap a Monday-aligned weekStart to a term.startDate/endDate that falls
+   *  mid-week (e.g. a term starting on a Thursday), producing a "week" window that never actually
+   *  reaches one or more weekdays -- those days then render as silently blank instead of showing
+   *  their real sessions or a cancellation marker. Re-aligning back to that week's Monday keeps the
+   *  Mon-Sat window loadDateWiseOccurrences requests intact even when it starts a few days before
+   *  the term technically begins. */
+  private clampWeekStartToTerm(date: string, term: TermInstance | null): string {
+    const clamped = this.clampToTerm(date, term);
+    return clamped === date ? clamped : mondayOf(new Date(`${clamped}T00:00:00`));
   }
 
   /** Lazy-loads exactly one Mon-Sat week's real occurrences at a time as the user pages through

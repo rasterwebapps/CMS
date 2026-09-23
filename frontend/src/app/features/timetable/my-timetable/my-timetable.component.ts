@@ -155,12 +155,12 @@ export class MyTimetableComponent implements OnInit {
   }
 
   protected onWeekStartChange(): void {
-    this.weekStart = this.clampToTerm(this.weekStart, this.selectedTerm());
+    this.weekStart = this.clampWeekStartToTerm(this.weekStart, this.selectedTerm());
     this.load();
   }
 
   protected onDateWiseWeekChange(iso: string): void {
-    this.weekStart = this.clampToTerm(iso, this.selectedTerm());
+    this.weekStart = this.clampWeekStartToTerm(iso, this.selectedTerm());
     this.loadDateWiseOccurrences(this.weekStart);
   }
 
@@ -173,7 +173,7 @@ export class MyTimetableComponent implements OnInit {
   /** Today's Monday if it falls inside the term, otherwise the nearest term boundary --
    *  never defaults to a week the term hasn't reached yet or has already finished. */
   private defaultWeekStartFor(term: TermInstance): string {
-    return this.clampToTerm(mondayOf(new Date()), term);
+    return this.clampWeekStartToTerm(mondayOf(new Date()), term);
   }
 
   private clampToTerm(date: string, term: TermInstance | null): string {
@@ -181,6 +181,17 @@ export class MyTimetableComponent implements OnInit {
     if (date < term.startDate) return term.startDate;
     if (date > term.endDate) return term.endDate;
     return date;
+  }
+
+  /** clampToTerm alone can snap a Monday-aligned weekStart to a term.startDate/endDate that falls
+   *  mid-week (e.g. a term starting on a Thursday), producing a "week" window that never actually
+   *  reaches one or more weekdays -- those days then render as silently blank instead of showing
+   *  their real sessions or a cancellation marker. Re-aligning back to that week's Monday keeps the
+   *  Mon-Sat window loadDateWiseOccurrences requests intact even when it starts a few days before
+   *  the term technically begins. */
+  private clampWeekStartToTerm(date: string, term: TermInstance | null): string {
+    const clamped = this.clampToTerm(date, term);
+    return clamped === date ? clamped : mondayOf(new Date(`${clamped}T00:00:00`));
   }
 
   protected setViewMode(mode: TimetableViewMode): void {
