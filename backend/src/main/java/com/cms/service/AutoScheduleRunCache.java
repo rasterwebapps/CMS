@@ -7,6 +7,8 @@ import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.ClassScheduleRepository;
 
+import org.hibernate.Hibernate;
+
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -68,9 +70,11 @@ public final class AutoScheduleRunCache {
         // TimetableSkeletonService#getCohortSkeleton's own filter) -- excluded at load so every
         // mirror method below (byCourseOfferingId, byCourseOfferingIdIn, etc.) never has to filter
         // it individually, and a ghost invisible in the grid can never phantom-block a real slot.
-        ACTIVE.set(new AutoScheduleRunCache(repository.findByTermInstanceId(termInstanceId).stream()
+        List<ClassSchedule> loaded = repository.findByTermInstanceId(termInstanceId).stream()
             .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
-            .toList()));
+            .toList();
+        loaded.forEach(AutoScheduleRunCache::initializeRoomAssociations);
+        ACTIVE.set(new AutoScheduleRunCache(loaded));
         try {
             return body.get();
         } finally {
@@ -82,6 +86,7 @@ public final class AutoScheduleRunCache {
      *  — the saved entity already carries every association ({@code courseOffering}, {@code
      *  period}, etc.) placeCell set before saving, so it's usable as-is for every filter below. */
     public void recordPlacement(ClassSchedule cell) {
+        initializeRoomAssociations(cell);
         cells.add(cell);
     }
 
@@ -108,6 +113,7 @@ public final class AutoScheduleRunCache {
      *  the one Computer lab at Monday Periods 7-8, invisible until the Conflict Inspector re-read
      *  the real rows from the database. */
     public void recordStaffing(ClassSchedule staffed) {
+        initializeRoomAssociations(staffed);
         cells.stream()
             .filter(cs -> cs.getId().equals(staffed.getId()))
             .findFirst()
@@ -117,6 +123,33 @@ public final class AutoScheduleRunCache {
                 cs.setLab(staffed.getLab());
                 cs.setClinicalVenue(staffed.getClinicalVenue());
             });
+    }
+
+    /** Force-loads a cell's classroom/lab/clinicalVenue -- and each one's own nested physical
+     *  {@code Room} -- before the cell enters or is updated in this run-long cache. Necessary
+     *  because staffing runs each in its own {@code REQUIRES_NEW} transaction (see
+     *  {@code TimetableStaffingService#staffCell}): an still-uninitialized Hibernate proxy is
+     *  usable only by the exact session that created it, and later code reading this cell out of
+     *  the cache (a room-conflict check against another cell, run from a *different* REQUIRES_NEW
+     *  transaction, or from the outer transaction once resumed) can never initialize it there --
+     *  Hibernate requires the owning session to be the one currently active on the thread, and a
+     *  suspended/different session throws {@code LazyInitializationException} regardless of
+     *  whether the owning session is technically still open. Initializing here, while each
+     *  association's own session is still the active one, resolves it once so every later
+     *  cross-transaction read (e.g. {@code TimetableStaffingService#physicalRoomOf}) is safe. */
+    private static void initializeRoomAssociations(ClassSchedule cs) {
+        if (cs.getClassroom() != null) {
+            Hibernate.initialize(cs.getClassroom());
+            Hibernate.initialize(cs.getClassroom().getRoom());
+        }
+        if (cs.getLab() != null) {
+            Hibernate.initialize(cs.getLab());
+            Hibernate.initialize(cs.getLab().getRoom());
+        }
+        if (cs.getClinicalVenue() != null) {
+            Hibernate.initialize(cs.getClinicalVenue());
+            Hibernate.initialize(cs.getClinicalVenue().getRoom());
+        }
     }
 
     /** Memoizes {@code TimetableBlockedPeriodChecker#blockReason}'s two-repository-call result by
