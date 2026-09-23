@@ -85,6 +85,12 @@ export class SubjectFormComponent implements OnInit {
 
   private subjectId: number | null = null;
 
+  /** Exact allowlist mirroring SubjectService.SYSTEM_MANAGED_CODES on the backend -- the two
+   *  subjects seeded with the deliberate credits=0/termNumber=0 sentinel. Only these two codes ever
+   *  loosen the credits/termNumber validators below; an ordinary subject always requires >=1. */
+  private static readonly SYSTEM_MANAGED_CODES = new Set(['SYSTEM-LIBRARY', 'SYSTEM-SPORTS']);
+  protected readonly isSystemManagedSubject = signal(false);
+
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255), trimmedMinLength(2), noConsecutiveSpaces()]],
     code: ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
@@ -299,6 +305,19 @@ export class SubjectFormComponent implements OnInit {
         this.selectedLabIds.set(new Set(subject.eligibleLabs.map((l) => l.id)));
         this.selectedClinicalVenueIds.set(new Set(subject.eligibleClinicalVenues.map((v) => v.id)));
         this.selectedFacultyIds.set(new Set(subject.eligibleFaculty.map((f) => f.id)));
+
+        const systemManaged = SubjectFormComponent.SYSTEM_MANAGED_CODES.has(subject.code);
+        this.isSystemManagedSubject.set(systemManaged);
+        if (systemManaged) {
+          // Matches the backend's loosened credits=0/termNumber=0 sentinel for this subject --
+          // without this, the form patches in 0/0 but the default min(1) validators immediately
+          // mark it invalid, so Save silently no-ops (scrolls to an invalid field the admin never
+          // touched) and this subject's eligible faculty/venues can never actually be edited.
+          this.form.get('credits')?.setValidators([Validators.required, Validators.min(0), Validators.max(20)]);
+          this.form.get('termNumber')?.setValidators([Validators.required, Validators.min(0), Validators.max(12)]);
+          this.form.get('credits')?.updateValueAndValidity({ emitEvent: false });
+          this.form.get('termNumber')?.updateValueAndValidity({ emitEvent: false });
+        }
         this.loading.set(false);
       },
       error: () => {

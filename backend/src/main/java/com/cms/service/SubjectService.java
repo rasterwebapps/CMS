@@ -2,7 +2,6 @@ package com.cms.service;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
@@ -72,20 +71,29 @@ public class SubjectService {
         this.facultyRepository = facultyRepository;
     }
 
-    /** True for a system-managed subject (SYSTEM-LIBRARY, SYSTEM-SPORTS, ...) seeded directly by a
-     *  migration (V412/V505) with the deliberate credits=0/term_number=0 sentinel so it never
-     *  appears in a curriculum term listing. Never created or renamed through this service -- only
-     *  matters so {@link #requireCurriculumCreditsAndTerm} can let an admin edit one of these
-     *  subjects' eligible faculty/venues through the same {@code update} endpoint without having to
-     *  fabricate a real credits/term value for a subject that intentionally has none. */
+    /** The exact codes of the two subjects seeded directly by a migration (V412/V505, matching
+     *  {@link TimetableGlobalAutoScheduleService}'s own {@code LIBRARY_SUBJECT_CODE}/
+     *  {@code SPORTS_SUBJECT_CODE} lookups) with the deliberate credits=0/term_number=0 sentinel so
+     *  they never appear in a curriculum term listing. An exact allowlist, not a "SYSTEM-" prefix
+     *  match, so this can never be satisfied by a subject an admin creates or renames through this
+     *  service -- only matters so {@link #requireCurriculumCreditsAndTerm} can let an admin edit one
+     *  of these two subjects' eligible faculty/venues through the same {@code update} endpoint
+     *  without having to fabricate a real credits/term value for a subject that intentionally has
+     *  none. */
+    private static final Set<String> SYSTEM_MANAGED_CODES = Set.of("SYSTEM-LIBRARY", "SYSTEM-SPORTS");
+
     private static boolean isSystemManaged(String code) {
-        return code != null && code.toUpperCase(Locale.ROOT).startsWith("SYSTEM-");
+        return SYSTEM_MANAGED_CODES.contains(code);
     }
 
     /** Every ordinary (non-system-managed) subject must carry a real credits/term value -- the
-     *  0/0 sentinel is reserved for system-managed subjects. Kept as an explicit service-level
-     *  check, not a DTO annotation, because the DTO's own @Min had to be loosened to 0 so a
-     *  system-managed subject's existing 0/0 values can round-trip through this same request shape. */
+     *  0/0 sentinel is reserved for the two system-managed subjects. Kept as an explicit
+     *  service-level check, not a DTO annotation, because the DTO's own @Min had to be loosened to 0
+     *  so those subjects' existing 0/0 values can round-trip through this same request shape.
+     *  Deliberately also enforced on {@link #create}, even though the two system-managed subjects
+     *  are never created through this service in practice -- the allowlist check above means this
+     *  can only ever pass for a request whose code is exactly one of the two seeded codes, so it
+     *  costs nothing and closes off the same bypass on create as on update. */
     private void requireCurriculumCreditsAndTerm(SubjectRequest request) {
         if (isSystemManaged(request.code())) {
             return;
