@@ -79,13 +79,18 @@
             <div class="mlp-card__actions">
               <cms-row-action-btn
                 variant="warning" [iconOnly]="true"
+                [disabled]="subject.isSystemManaged"
                 (clicked)="toggleSubjectStatus(subject)"
-                [tooltip]="(subject.isActive ? 'Deactivate ' : 'Activate ') + subject.name"
+                [tooltip]="subject.isSystemManaged ? 'System-managed subject — cannot be deactivated' : (subject.isActive ? 'Deactivate ' : 'Activate ') + subject.name"
                 [ariaLabel]="subject.isActive ? 'Deactivate subject' : 'Activate subject'"
               >
                 <cms-icon-toggle-status [active]="subject.isActive" [size]="13" />
               </cms-row-action-btn>
-              <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete subject" ariaLabel="Delete subject" (clicked)="deleteSubject(subject)">
+              <cms-row-action-btn
+                variant="danger" [iconOnly]="true"
+                [disabled]="subject.isSystemManaged"
+                [tooltip]="subject.isSystemManaged ? 'System-managed subject — cannot be deleted' : 'Delete subject'"
+                ariaLabel="Delete subject" (clicked)="deleteSubject(subject)">
                 <cms-icon-delete [size]="13" />
               </cms-row-action-btn>
               <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit subject" ariaLabel="Edit subject" (clicked)="editSubject(subject)">
@@ -163,13 +168,18 @@
             <div class="row-actions">
               <cms-row-action-btn
                 variant="warning" [iconOnly]="true"
-                [tooltip]="subject.isActive ? 'Deactivate' : 'Activate'"
+                [disabled]="subject.isSystemManaged"
+                [tooltip]="subject.isSystemManaged ? 'System-managed subject — cannot be deactivated' : (subject.isActive ? 'Deactivate' : 'Activate')"
                 [ariaLabel]="subject.isActive ? 'Deactivate subject' : 'Activate subject'"
                 (clicked)="toggleSubjectStatus(subject)"
               >
                 <cms-icon-toggle-status [active]="subject.isActive" />
               </cms-row-action-btn>
-              <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete subject" (clicked)="deleteSubject(subject)">
+              <cms-row-action-btn
+                variant="danger" [iconOnly]="true"
+                [disabled]="subject.isSystemManaged"
+                [tooltip]="subject.isSystemManaged ? 'System-managed subject — cannot be deleted' : 'Delete'"
+                ariaLabel="Delete subject" (clicked)="deleteSubject(subject)">
                 <cms-icon-delete />
               </cms-row-action-btn>
               <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit subject" (clicked)="editSubject(subject)">
