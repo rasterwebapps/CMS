@@ -238,7 +238,6 @@ public class SubjectService {
 
     @Transactional
     public SubjectResponse update(Long id, SubjectRequest request) {
-        requireCurriculumCreditsAndTerm(request);
         Subject subject = subjectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + id));
 
@@ -247,11 +246,16 @@ public class SubjectService {
         // via SubjectRepository#findByCode -- an exact-case `=` query, not IgnoreCase. Renaming it
         // away, even to a same-text different-case variant (e.g. "system-sports"), would silently
         // detach the subject from that lookup with no error anywhere, so this compares with exact
-        // .equals(), not .equalsIgnoreCase() -- a case-only change must still trip this guard.
+        // .equals(), not .equalsIgnoreCase() -- a case-only change must still trip this guard. Runs
+        // *before* requireCurriculumCreditsAndTerm below so a direct-API rename attempt (credits/
+        // termNumber still 0/0, round-tripped from the loaded entity) fails with this specific
+        // message instead of the misleading "Credits must be at least 1" the generic check would
+        // throw once the new, non-allowlisted code makes isSystemManaged(request.code()) false.
         if (isSystemManaged(subject.getCode()) && !subject.getCode().equals(request.code())) {
             throw new IllegalArgumentException(
                 "Cannot change the code of a system-managed subject (" + subject.getCode() + ")");
         }
+        requireCurriculumCreditsAndTerm(request);
 
         Speciality speciality = null;
         if (request.specialityId() != null) {

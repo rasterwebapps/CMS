@@ -206,6 +206,9 @@
                 <option [ngValue]="true">Active</option>
                 <option [ngValue]="false">Inactive</option>
               </select>
+              @if (isSystemManagedSubject()) {
+                <p class="field-hint">Fixed -- this subject is permanent scheduling infrastructure and can't be deactivated here.</p>
+              }
             </div>
           </div>
 
