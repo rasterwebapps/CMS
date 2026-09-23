@@ -4,6 +4,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -468,9 +469,11 @@ public class TimetableSkeletonService {
      *  so the two renderings of one shift never disagree. Negative ids (never colliding with a real
      *  ClassSchedule id) double as a "non-interactive" signal the frontend uses to disable click/
      *  swap on these rows, the same convention {@code ResourceGridCellResponse}'s own synthetic
-     *  cells already use. {@code status} is stamped with whatever the caller is displaying
-     *  (DRAFT/PUBLISHED) purely for consistent chip styling -- these rows aren't actually gated by
-     *  that lifecycle themselves. */
+     *  cells already use. {@code status} is stamped onto the returned rows for consistent chip
+     *  styling; for {@code PUBLISHED} it's also a real gate (see {@link #isCohortPublished}), since
+     *  these rows carry no {@code ClassSchedule.status} of their own and Revert-to-Draft never
+     *  touches {@code ClinicalShiftGroup}/{@code Batch} -- without the gate a reverted cohort's
+     *  clinical entries kept rendering PUBLISHED on the browse Timetable screen forever. */
     public List<ClassScheduleResponse> findClinicalShiftGridEntries(Long termInstanceId, ClassScheduleStatus status) {
         return findClinicalShiftGridEntries(termInstanceId, status, null);
     }
@@ -480,6 +483,7 @@ public class TimetableSkeletonService {
      *  cohort's entries, as before. */
     public List<ClassScheduleResponse> findClinicalShiftGridEntries(Long termInstanceId, ClassScheduleStatus status, Long cohortId) {
         List<ClassScheduleResponse> entries = new ArrayList<>();
+        Map<Long, Boolean> publishedByCohortId = new HashMap<>();
         for (ClinicalShiftGroup group : clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId)) {
             if (group.getCourseOffering() == null) continue;
             ClinicalShiftWindow window = ClinicalShiftWindow.from(group);
@@ -487,6 +491,7 @@ public class TimetableSkeletonService {
             for (Batch batch : batchRepository.findByClinicalShiftGroupId(group.getId())) {
                 if (!Boolean.TRUE.equals(batch.getIsActive())) continue;
                 if (cohortId != null && !matchesCohort(batch, cohortId)) continue;
+                if (status == ClassScheduleStatus.PUBLISHED && !isCohortPublished(termInstanceId, batch, publishedByCohortId)) continue;
                 entries.add(toClinicalShiftGridEntry(group, window, batch, termInstanceId, status));
             }
         }
@@ -497,6 +502,20 @@ public class TimetableSkeletonService {
         return batch.getCohortRoomAllocation() != null
             && batch.getCohortRoomAllocation().getCohort() != null
             && cohortId.equals(batch.getCohortRoomAllocation().getCohort().getId());
+    }
+
+    /** Whether this batch's own cohort currently has any real, active PUBLISHED {@link ClassSchedule}
+     *  row for this term -- the same "published == 0 -&gt; not published" rule {@code
+     *  buildCohortTermStatusSummaryRow} already uses, reused here so a cohort's synthetic Clinical
+     *  Shift entries never disagree with what Timetable Builder itself calls that cohort's real
+     *  publish state. Memoized per call since one term can have many batches sharing a cohort. */
+    private boolean isCohortPublished(Long termInstanceId, Batch batch, Map<Long, Boolean> cache) {
+        if (batch.getCohortRoomAllocation() == null || batch.getCohortRoomAllocation().getCohort() == null) {
+            return false;
+        }
+        Long cohortId = batch.getCohortRoomAllocation().getCohort().getId();
+        return cache.computeIfAbsent(cohortId,
+            id -> !getCohortActiveClassSchedules(termInstanceId, id, ClassScheduleStatus.PUBLISHED).isEmpty());
     }
 
     private ClassScheduleResponse toClinicalShiftGridEntry(ClinicalShiftGroup group, ClinicalShiftWindow window,

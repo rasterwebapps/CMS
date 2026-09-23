@@ -686,6 +686,83 @@ class TimetableSkeletonServiceTest {
             .containsExactlyInAnyOrder("Batch A", "Batch B");
     }
 
+    /** Real bug: Revert-to-Draft flips a cohort's real {@code ClassSchedule} rows back to DRAFT but
+     *  never touches {@code ClinicalShiftGroup}/{@code Batch} at all, so without this gate a reverted
+     *  cohort's Clinical Shift entries kept rendering PUBLISHED forever on the browse Timetable
+     *  screen. The PUBLISHED request must now be gated on the batch's own cohort actually having a
+     *  real, active PUBLISHED row -- here it only has a DRAFT one (reverted), so the entry drops. */
+    @Test
+    void shouldOmitAPublishedClinicalShiftEntryWhenItsCohortHasNoRealPublishedRows() {
+        offering.setClinicalShiftDurationMinutes(360);
+        offering.setClinicalTravelBufferMinutes(30);
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setCourseOffering(offering);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        CohortRoomAllocation allocation = new CohortRoomAllocation();
+        allocation.setId(900L);
+        allocation.setCohort(cohort);
+        Batch batch = new Batch();
+        batch.setId(400L);
+        batch.setName("Batch A");
+        batch.setIsActive(true);
+        batch.setCohortRoomAllocation(allocation);
+        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(batch));
+
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(5L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
+            .thenReturn(List.of(existingRow(ClassSessionType.THEORY, null, false))); // DRAFT -- reverted
+
+        List<com.cms.dto.ClassScheduleResponse> entries =
+            service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.PUBLISHED);
+
+        assertThat(entries).isEmpty();
+    }
+
+    /** Sibling of the above: the cohort's real timetable is still genuinely PUBLISHED, so the
+     *  synthetic Clinical Shift entry must keep rendering as PUBLISHED, matching what the rest of
+     *  the cohort's grid shows. */
+    @Test
+    void shouldIncludeAPublishedClinicalShiftEntryWhenItsCohortHasARealPublishedRow() {
+        offering.setClinicalShiftDurationMinutes(360);
+        offering.setClinicalTravelBufferMinutes(30);
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setCourseOffering(offering);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        CohortRoomAllocation allocation = new CohortRoomAllocation();
+        allocation.setId(900L);
+        allocation.setCohort(cohort);
+        Batch batch = new Batch();
+        batch.setId(400L);
+        batch.setName("Batch A");
+        batch.setIsActive(true);
+        batch.setCohortRoomAllocation(allocation);
+        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(batch));
+
+        when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(5L, 10L, CohortRoomAllocationStatus.COMMITTED))
+            .thenReturn(Optional.empty());
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
+            .thenReturn(List.of(existingRow(ClassSessionType.THEORY, null, true))); // PUBLISHED -- still live
+
+        List<com.cms.dto.ClassScheduleResponse> entries =
+            service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.PUBLISHED);
+
+        assertThat(entries).hasSize(1);
+        assertThat(entries.get(0).status()).isEqualTo(ClassScheduleStatus.PUBLISHED);
+    }
+
     // ── getCohortTermStatusSummary (paginated, OC-262) ──────────────────
 
     private static final Pageable ANY_PAGE = PageRequest.of(0, 25);
