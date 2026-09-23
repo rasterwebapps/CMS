@@ -76,16 +76,19 @@
   padding: 16px;
   border-radius: 8px;
   border: 1px solid var(--cms-border-default);
-  background: var(--cms-bg-card);
-  // Same accent every timetable-shaped screen uses (Timetable Builder's own left accent bar,
-  // Week Grid's chip) -- see session-color.util.ts. --subject-color is set inline per item from
-  // the session's sessionType, so this rule itself never hardcodes a session-type color.
+  // Same recipe every timetable-shaped screen uses -- see session-color.util.ts and
+  // week-grid.component.scss's identical rule. --subject-color is set inline per item from the
+  // session's sessionType (sessionColor()), so this rule never hardcodes a session-type color
+  // itself. Previously this only had the accent bar with a flat, untinted card background, which
+  // read as visibly plainer than Timetable Builder/Week Grid's light background tint.
+  background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
   border-left: 3px solid var(--subject-color, var(--cms-border-default));
 
   // A session that doesn't happen on this date (holiday-blocked) -- muted + struck through
   // instead of just vanishing from the day's agenda.
   &--cancelled {
     opacity: 0.65;
+    background: var(--cms-bg-muted);
     border-left-color: var(--cms-border-default);
 
     .day-agenda__subject {
