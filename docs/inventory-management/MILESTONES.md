@@ -121,6 +121,8 @@ Inventory Management is a new, standalone module being built for the platform �
 
 **Shipped:** Individual physical units of a product (a specific laptop, a specific microscope — distinct from the catalog/stock-ledger's aggregate quantity tracking) can be registered with a unique asset tag, optionally traced back to the delivery they were received against, and moved through an open-ended status lifecycle (Available/In Use/Under Maintenance/Retired) as real-world use isn't a strict linear workflow. Recurring or one-off maintenance visits are tracked with live overdue flagging, and vendor service contracts reuse the existing Supplier master. Book value is computed live using standard straight-line depreciation. Disposing an asset requires a documented reason, and writes off any remaining on-hand stock for its product at its location.
 
+**2026-09-22 re-audit note:** re-verified end-to-end from code (not doc prose) as part of the Purchasing/Asset overnight run — genuinely complete, no functional gaps. One permission-hygiene defect found and fixed: Maintenance Schedules and Service Contracts had shared one permission pair since launch, violating the operation-wise permission mapping convention; split into a dedicated `INVENTORY_ASSET_SERVICE_CONTRACT_VIEW`/`MANAGE` pair (migration V551). Does not change this phase's status.
+
 **Todo:**
 - Asset register and lifecycle tracking — ✅ done
 - Maintenance scheduling and service contracts — ✅ done (recurring or one-off maintenance visits with live overdue tracking; vendor service contracts reusing the existing Supplier master)

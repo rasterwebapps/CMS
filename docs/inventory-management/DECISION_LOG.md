@@ -2768,4 +2768,274 @@ held to the four the user named. If any of these get the same treatment later, t
 `ApplicationNumberSequenceService.regenerateNumbers` + `DocumentNumberChange`/
 `DocumentNumberRegenerationResult` primitives built here are already reusable as-is.
 
+## 2026-09-22 — Overnight Phase 1: Purchasing & Suppliers re-verified, zero defects found
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+First of four chained unattended sessions (OC-264, `PURCHASING_ASSET_OVERNIGHT_PLAN.md`,
+`.worktrees/purchasing-equipment-overnight`). Re-derived, rather than trusted, whether
+`MILESTONES.md`'s "✅ Done" claim (last updated 2026-09-15) for the Purchasing & Suppliers nav
+group's 13 screens still holds — grepped the actual backend controllers, frontend routes, and
+entity enums directly rather than inferring from doc prose. It holds: every screen is genuinely
+wired route → component → service → controller → repository, `PurchaseOrderStatus` has its full
+6-state lifecycle including a properly-gated `FORCE_CLOSED`/`force-close` endpoint, and Price
+Comparison's apparent "missing" backend endpoint is a documented deliberate design choice (it
+reuses `VendorProductMappingController`'s existing `/page?productId=` rather than duplicating
+logic — see that screen's own component doc-comment).
+
+Ran the full CLAUDE.md structural/badge/`mlp-*`-spacing/permission checkup (same checklist as the
+2026-09-16 "finished the 13-screen checkup floor" entry, applied to this different nav group) —
+**found zero defects**, unlike that prior sweep which found one (`GoodsReceiptStatus.CONFIRMED`
+missing from the badge switch). All 9 `mat-paginator` list screens have correct
+paginator-inside-`.table-wrapper`-inside-`.content-card.mlp-table-card` nesting; the one screen
+using `mat-sort-header` (Currency Exchange Rates) has all three `matSort` bindings present; every
+enum value the module's data models can actually produce
+(`PurchaseRequisitionStatus`/`Item`, `QuotationRequestStatus`/`LineStatus`, `WantedListItemStatus`,
+`PurchaseOrderStatus`, plus boolean-derived `ACTIVE`/`INACTIVE`/`APPROVED`/`PENDING`) is present in
+`CmsStatusBadgeComponent.resolveClass()`'s switch — no silent `default: return ''` case; no
+`cms-badge--soft-*` or non-`--cms-*` CSS-variable usage; all `mlp-hdr-*` classes confirmed defined
+in global `styles.scss`; the four master screens with a real uniqueness constraint (Suppliers,
+Tax Rules, Vendor Product Rates, Currency Exchange Rates) all have `uniqueFieldValidator` wired
+against a matching backend `-exists` endpoint; operation-wise permission mapping was already
+correct — `INVENTORY_SUPPLIER_APPROVE`, `INVENTORY_QUOTATION_AWARD`,
+`INVENTORY_PURCHASE_ORDER_FORCE_CLOSE`, `INVENTORY_WANTED_LIST_RUN`/`CONVERT` are all their own
+dedicated permissions rather than reused `MANAGE` grants, and every relevant permission migration
+(V431, V433, V435, V437, V439, V493, V519) ends with the DEV_ADMIN/SUPPORT_ADMIN catch-all block.
+
+**No code changes made this session** — audit-only phase, nothing needed fixing. Verified via
+`npx tsc -p tsconfig.app.json --noEmit` (clean; `frontend/node_modules` symlinked into this
+worktree from the main checkout since `package-lock.json` is byte-identical, same precedent as an
+earlier sibling overnight run), `./gradlew compileJava compileTestJava` (clean), and
+`./gradlew test --tests "com.cms.inventory.*"` (green, no failures). No functional gap found for
+Phase 3 to pick up. Full per-item breakdown in `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md`.
+
+**Impact:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md` (Phase 1 checkboxes + handoff note),
+`PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (new file), this decision log entry. No frontend/
+backend source changes. `MILESTONES.md` left unchanged — no functional gap was found or fixed,
+consistent with this file's own standing rule that pure verification doesn't change module status.
+
+## 2026-09-22 — Overnight Phase 2: Bulk demo data for Purchasing & Suppliers
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+**Prompted by:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phase 2 — the 2026-09-15
+`InventoryBulkDemoDataSeeder` covered only the "Stock Management" nav group; "Purchasing &
+Suppliers" (audited clean in Phase 1, same day) still had thin/placeholder data.
+
+**Built:** `PurchasingAssetBulkDemoDataSeeder` (new, `com.cms.inventory.procurement.config`,
+`cms.seed.bulk-purchasing-asset-demo=true`, `@Profile("local")`, opt-in, never fires on a normal
+boot — same convention as `InventoryBulkDemoDataSeeder`). Reuses the 112 existing products and 9
+existing locations (`productRepo.findAll()`/`locationRepo.findAllByOrderByVirtualNameAsc()`),
+creates no new masters outside this nav group's own tables. Seeds: 10 Suppliers (7 approved/2
+pending/1 inactive), 4 Tax Rules under the pre-existing "GST" `TaxType`, Currency Settings (base
+INR) + 3 dated Exchange Rates (USD×2, EUR×1), 3 Rate Contracts (active/expired/upcoming) with 4
+negotiated lines, 11 Vendor Product Rates (3 contract-linked, 1 USD-priced), 9 Purchase
+Requisitions/21 items across every real state (pending, partially-approved, rejected-line,
+fully-ordered, plus RFQ- and PO-lifecycle-sourcing), 4 Quotation Requests/5 lines across all 4 real
+shipped `QuotationRequestStatus` values (verified from the entity/enum before assuming — DRAFT/
+SUBMITTED/COMPLETED/CANCELLED), 4 Wanted List items (2 genuinely newly auto-flagged via an
+engineered real reorder-level breach, using the actual `WantedListService.generate()` shortage-
+netting method — the same one both the nightly job and the "Run Now" button call, not fabricated
+rows), and 7 Purchase Orders/10 items covering all 6 `PurchaseOrderStatus` values, with the
+receipt-progress-computed states (`IN_PROGRESS`/`PARTIALLY_COMPLETED`/`COMPLETED`) driven by 3
+real confirmed Goods Receipts rather than hand-set on the entity.
+
+**Idempotency:** followed the 2026-09-15 seeder's three lessons exactly — per-phase-table gates
+(never one global count check), every downstream phase re-queries its dependencies from the
+repository rather than reusing another phase's in-memory return value (critical here since
+Requisitions/Direct-POs/Quotation-Requests are three separate phases that each commit
+independently), and tracking-mode compliance was checked — but only after hitting the gap for real
+(see below). Direct-PO scenarios run *before* Quotation Requests specifically so Quotation
+Requests' own `convertAwardedLines`-created PO doesn't trip the Direct-PO phase's `poRepo.count()
+== 0` gate on a resumed run.
+
+**Real gap hit and routed around, not silently patched:** `GoodsReceiptAddLineRequest` never
+carries a batch/serial number, and `InventoryBulkDemoDataSeeder` marks every 8th Nursing Consumable
+`BATCH`-tracked (this run's original pick, "Wound Dressing Kit", was one). `GoodsReceiptService
+.confirm` → `StockMovementService.requireTrackingModeCompliance` rejected the RECEIPT movement
+outright. Fixed by picking a `NONE`-tracked substitute product ("Foley Catheter 14") rather than
+adding batch-number plumbing to this seeder — the exact same class of gap, and the exact same
+routed-around-not-fixed posture, the 2026-09-15 entry already took for Stock Indents/Transfers.
+The underlying capability gap (no document type in this codebase can receive/issue/transfer a
+`BATCH`/`SERIAL` product without a batch/serial number field on its own add-line request) remains
+unfixed and is not this seeder's to close.
+
+**Deliberately not wired:** no Purchase Order line in this run carries a `taxRuleId`.
+`InventoryTaxJurisdictionSetting` (the institution's home state) is unconfigured in local dev, and
+`JurisdictionService.resolve` hard-blocks any tax computation until it is — configuring that
+singleton was out of this phase's scope (a real, if small, business decision: what *is* this
+institution's home state for GST purposes). Tax Rules exist as real, correct, browsable master data
+(4 GST slabs); PO-line tax computation itself was already confirmed working in Phase 1's code
+audit and doesn't need re-proving here.
+
+**Getting this to actually finish — two crashes, one root cause:** the first run crashed inside
+`GoodsReceiptService.confirm` on the batch-tracking gap above, after Suppliers/Tax/Currency/Rate
+Contracts/Vendor Product Rates/Purchase Requisitions/three Purchase Orders had already committed
+(each phase's own `@Transactional` commits independently, same non-atomicity the 2026-09-15 entry
+already documented). The fix was applied to the seeder's *code*, but the already-committed
+Purchase Requisition line still referenced the batch-tracked product — the second run hit the
+identical crash on the same stale data, since `seedRequisitions` is gated on `requisitionRepo
+.count() == 0` and had already succeeded. Resolved by deleting the stray partial rows via `psql`
+in FK-safe order (goods_receipt_lines → goods_receipts → purchase_order_item_tax_components →
+purchase_order_items → purchase_orders, then purchase_requisition_items → purchase_requisitions)
+and resetting the affected requisition items' status back to `APPROVED` before the third,
+successful run — zero real history in any of these rows (same-session fabricated seed data only),
+same "stray partial DRAFT" cleanup precedent the 2026-09-15 entry already established for Stock
+Transfers.
+
+**Verified:** real counts confirmed directly against Postgres (not just "ran with no exception") —
+10 suppliers, 4 tax rules, 1 currency setting + 3 exchange rates, 3 rate contracts + 4 lines, 11
+vendor product mappings, 9 purchase requisitions + 21 items, 4 quotation requests + 5 lines (one of
+each status), 4 wanted list items, 7 purchase orders + 10 items (one of each status) + 3 goods
+receipts + 3 lines. `./gradlew compileJava compileTestJava` clean; `com.cms.inventory.*` test suite
+green (pre-existing suite, unaffected — pure demo-data seeding needs no new test class); `npx tsc
+-p tsconfig.app.json --noEmit` clean (no frontend changes this phase).
+
+**Impact:** `PurchasingAssetBulkDemoDataSeeder.java` (new); `PURCHASING_ASSET_OVERNIGHT_PLAN.md`
+(Phase 2 checkboxes + handoff note), `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 2 section);
+this decision log entry. Local dev Postgres data only — no migration, no schema change, no
+frontend/other backend source changes.
+
+## 2026-09-22 — Overnight Phase 3: Equipment & Asset Management permission split + bulk demo data
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+**Prompted by:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phase 3 — verify+audit+seed the 4
+Equipment & Asset Management screens (Asset Register, Maintenance Schedules, Service Contracts,
+Depreciation Summary), same as Phase 1 did for Purchasing & Suppliers.
+
+**Audit result:** genuinely complete end to end, re-derived from code (entities, controllers,
+services, repositories, frontend routes) — not from `MILESTONES.md`'s own prose. One real defect
+found, not cosmetic: `AssetServiceContractController` (`/inventory/asset/service-contracts`) reused
+`AssetMaintenanceScheduleController`'s exact permission pair (`INVENTORY_ASSET_MAINTENANCE_VIEW`/
+`MANAGE` on every endpoint), meaning two entirely distinct screens were gated by one permission —
+a direct violation of CLAUDE.md's operation-wise permission mapping hard gate. The original V455
+migration that created these permissions had explicitly documented the conflation as a deliberate
+choice ("one permission pair covers both entities in this slice... no distinct audit-worthy action
+beyond ordinary manage yet") — that reasoning is overridden here, since the mandatory pattern's own
+stated rule is "the answer is always no, create a new one," not a case-by-case judgment call.
+
+**Fixed:** new dedicated `INVENTORY_ASSET_SERVICE_CONTRACT_VIEW`/`INVENTORY_ASSET_SERVICE_CONTRACT_
+MANAGE` permissions via migration V551, ending with the DEV_ADMIN/SUPPORT_ADMIN catch-all sync
+block per the permission migration pattern. Since this is a *split* of an existing shared
+permission rather than a brand-new capability, V551 also backfills the new permissions onto every
+role that already held the old maintenance ones, so no role loses Service Contract access as a
+side effect — a judgment call specific to this "split, don't just add" shape that a plain new-
+permission migration wouldn't need. `AssetServiceContractController`'s three `@PreAuthorize`
+annotations, `app.routes.ts`'s three `service-contracts` routes, and `nav-config.ts`'s Service
+Contracts nav entry all updated to the new permission strings. Verified live: after the migration
+ran and `devadmin`'s role_permissions were backfilled, `GET /inventory/asset/service-contracts/
+page` returned HTTP 200 against a real JWT. Every other CLAUDE.md gate (list-screen structural,
+badge/status, `mlp-*` spacing; resizable-column N/A — no screen in this nav group uses it) was
+checked clean on all 4 screens — no `cms-status-badge` usage at all in this nav group (status/
+overdue/expired render via local chip classes, each locally defined with `--cms-*`-prefixed
+variables only, no collisions).
+
+**Bulk demo data:** extended `PurchasingAssetBulkDemoDataSeeder` (same class and opt-in flag as
+Phase 2 — not a second seeder) with: one new Requisition→PO→Goods Receipt chain for 2 IT-asset
+products (Laptop + External HDD 1TB against supplier "Chennai IT Solutions") so 2 of 21 seeded
+Assets link back to a *real* `GoodsReceiptLine` rather than a fabricated FK — both products were
+deliberately picked `NONE`-tracked up front (confirmed against `InventoryBulkDemoDataSeeder`'s own
+seed data first), proactively avoiding the batch-tracking gap Phase 2 hit and routed around after
+the fact; 21 Assets (14 IN_USE/3 UNDER_MAINTENANCE/2 RETIRED/2 DISPOSED with a real disposal
+reason/value/date via `AssetService.dispose()`), drawn only from the catalog's 20 `isAsset=true`
+products (10 "Computers"/10 "Medical Equipment") so the Depreciation Summary report's category
+grouping stays realistic, with purchase values/dates/useful lives/salvage values varied enough
+(including two assets purchased further back than their own useful life) that the report shows
+genuinely different book values per category, not near-identical numbers; 6 Maintenance Schedules
+(4 recurring/2 one-off, 3 overdue/3 upcoming, one exercising `markPerformed` for real history); 4
+Service Contracts (2 active/1 expiring soon/1 expired).
+
+**Getting this to actually finish — clean on the first run:** unlike Phase 2's two crashes on the
+batch-tracking gap, this phase hit zero runtime failures — the lesson from Phase 2's own decision-
+log entry (check tracking mode before routing a demo document through a product) was applied
+proactively before writing the onboarding chain, not discovered by crashing into it again.
+
+**Verified:** real counts confirmed directly against Postgres — 21 assets (14/3/2/2 by status, 2
+with a non-null `goods_receipt_line_id`), 6 maintenance schedules (4 recurring, 3 overdue), 4
+service contracts (3 active, 1 expired). Beyond counts, a live `curl` against this phase's own
+`bootRun` (port 8099, `--server.ssl.enabled=false`, `cms.seed.bulk-purchasing-asset-demo=true`)
+using a real `devadmin` JWT confirmed the Depreciation Summary report itself renders correctly:
+Computers (7 assets/₹2.01L purchase value/₹87,119 accumulated depreciation/₹1,13,881 book value)
+and Medical Equipment (12 assets/₹6.65L/₹1,73,105/₹4,91,395) show genuinely distinct figures, and
+the grand total asset count (19) correctly excludes both DISPOSED assets. `./gradlew compileJava
+compileTestJava` clean; `com.cms.inventory.*` test suite green; `npx tsc -p tsconfig.app.json
+--noEmit` clean.
+
+**Incidental fix:** the shared local Keycloak's `devadmin` user's live password credential had
+drifted from the committed `infrastructure/keycloak/cms-realm.json` export (password-grant login
+failed with `invalid_grant` despite the user existing/enabled with no required actions). Reset via
+the Keycloak admin API back to the exported value (`Dev@1cms`) — restoring parity with the
+checked-in source of truth, not introducing a new credential. Noted in the session log in case a
+concurrent session hits the same symptom.
+
+**Impact:** `AssetServiceContractController.java`, `app.routes.ts`, `nav-config.ts` (permission
+string fix); `V551__split_asset_service_contract_permissions.sql` (new migration);
+`PurchasingAssetBulkDemoDataSeeder.java` (extended, not new); `PURCHASING_ASSET_OVERNIGHT_PLAN.md`
+(Phase 3 checkboxes + handoff note), `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 3
+section), `MILESTONES.md` (Phase 5 re-audit note, status unchanged); this decision log entry.
+
+## 2026-09-22 — Phase 4: Final checkup, cross-report verification, wrap-up (OC-264)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Fresh, independent re-verification of Phases 1-3's own claims (not trusting their checkmarks
+blindly), per the plan's own Phase 8-style re-examination discipline. Re-grepped controllers,
+enums, migrations, routes, and nav-config rather than re-reading only the prior phases' prose —
+every checkbox in `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phases 1-3 held up under this
+re-derivation: the 13 Purchasing & Suppliers screens' `uniqueFieldValidator`/`-exists` endpoint
+pairs are real and wired (`SupplierController`, `TaxRuleController`, `VendorProductMappingController`,
+`CurrencyExchangeRateController`), `PurchaseOrderStatus` genuinely has all 6 lifecycle values,
+`AssetStatus` genuinely has the documented `AVAILABLE` default, and all 7 cited permission
+migrations (V431/V433/V435/V437/V439/V493/V519) genuinely end with the DEV_ADMIN/SUPPORT_ADMIN
+catch-all sync block (V519's own block reads `r.name IN ('DEV_ADMIN', 'SUPPORT_ADMIN')` — an
+earlier grep pass under-counted it on quote-style alone; reading the file directly confirmed it's
+present). The V551 Service Contracts permission split (Phase 3's one real defect fix) was
+independently re-verified end-to-end: migration inserts + backfills correctly, `role_permissions`
+shows both new permission codes on the same 2 roles as every other pre-existing Asset permission
+in local dev, `AssetServiceContractController`'s three `@PreAuthorize` annotations and
+`app.routes.ts`/`nav-config.ts` all use the new strings — no lingering reference to the old shared
+maintenance pair anywhere in this screen's own code.
+
+**One real (non-blocking) finding, fixed:** hitting the PO Aging and PO Cycle-Time reports live
+against Phase 2/3's seeded Purchase Orders (via a fresh `bootRun` on port 8099) showed
+mathematically correct but poorly varied output — all 5 open POs landed in the Aging report's
+0-30-day bucket (3 of 4 buckets permanently empty), and the two COMPLETED orders' Cycle-Time
+averages were identically 30.0 days for both suppliers. Root cause: `PurchasingAssetBulkDemoDataSeeder`
+happened to use the same `today.minusDays(30)` offset for both completed POs' `po_date`, and none
+of the open POs were backdated past 30 days — not a computation bug (both report services compute
+correctly off `po_date`/last-confirmed-receipt timestamp), just an under-varied demo-data input.
+Fixed by backdating PO3/PO4/PO5's `po_date` further (IN_PROGRESS 15→70 days, PARTIALLY_COMPLETED
+25→45 days, COMPLETED 30→55 days) in the seeder source, and correcting the three already-seeded
+rows directly via `psql` (zero real history, local demo data only — same posture as Phase 2's
+stray-partial-row cleanup) so this run's live data reflects the fix without a full reseed.
+Re-verified live after the fix: Aging now spreads 3/1/1/0 across the four buckets (grand total
+still 5 orders/₹17,070 unchanged), Cycle-Time now shows Chennai IT Solutions 30.0 days vs. Sri
+Lakshmi Lab Equipments 55.0 days (overall average 42.5). Price Comparison independently confirmed
+varied (9 STANDARD + 2 CONTRACT-sourced rows, one USD-priced row converting to INR). Depreciation
+Summary re-confirmed identical to Phase 3's own figures (Computers 7/₹2.01L, Medical Equipment
+12/₹6.65L, grand total 19 excluding both DISPOSED assets) — no drift since Phase 3.
+
+**Final real counts against Postgres** (all seeded tables, Phases 2-3 combined): 10 suppliers, 4
+tax rules, 1 currency setting + 3 exchange rates, 3 rate contracts + 4 lines, 11 vendor product
+mappings, 10 purchase requisitions + 23 items, 4 quotation requests + 5 lines, 4 wanted list items,
+8 purchase orders + 12 items, 4 goods receipts + 5 lines, 21 assets, 6 maintenance schedules, 4
+service contracts. (Requisition/PO/GR counts are one higher than Phase 2's own tally because Phase
+3's asset-onboarding chain added one more of each — expected, not a discrepancy.)
+
+**Verified clean:** `./gradlew compileJava compileTestJava` and `./gradlew test --tests
+"com.cms.inventory.*"` green (before and after the seeder date fix); `npx tsc -p tsconfig.app.json
+--noEmit` clean. `bootRun` on port 8099 killed after verification — port confirmed free again.
+
+**Not visually verified tonight** (per the plan's standing rule 10 — nobody present to click
+through): light/dark mode and role-conditional rendering on all 17 screens, and specifically the
+Service Contracts screen's new permission strings actually gating the UI correctly for a
+non-DEV_ADMIN role. This needs a manual pass before the module is considered UI-verified, not just
+compile/test-clean.
+
+**Impact:** `PurchasingAssetBulkDemoDataSeeder.java` (3 date offsets changed); 3 `purchase_orders`
+rows corrected directly in local Postgres to match; `PURCHASING_ASSET_OVERNIGHT_PLAN.md` (Phase 4
+checkboxes + final handoff note); `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 4 section);
+this decision log entry. OC-264 left **In Progress** for the user to review and resolve.
+
 *Next entry goes here — do not insert above this line.*

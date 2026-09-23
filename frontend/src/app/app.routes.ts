@@ -844,7 +844,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory/asset/service-contracts',
-    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    canActivate: withPermission('INVENTORY_ASSET_SERVICE_CONTRACT_VIEW', 'INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/asset/service-contract/service-contract-list/service-contract-list.component').then(
         (m) => m.ServiceContractListComponent
@@ -852,7 +852,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory/asset/service-contracts/new',
-    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    canActivate: withPermission('INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/asset/service-contract/service-contract-form/service-contract-form.component').then(
         (m) => m.ServiceContractFormComponent
@@ -860,7 +860,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory/asset/service-contracts/:id/edit',
-    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    canActivate: withPermission('INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/asset/service-contract/service-contract-form/service-contract-form.component').then(
         (m) => m.ServiceContractFormComponent

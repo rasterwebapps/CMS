@@ -59,6 +59,9 @@ module (`docs/inventory-management/`): "Equipment & Asset Management" → Mainte
 
 **Preconditions:**
 - An asset and at least one approved Supplier exist.
+- Logged in as a user holding `INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE` (its own dedicated
+  permission, distinct from Maintenance Schedules' `INVENTORY_ASSET_MAINTENANCE_MANAGE` since the
+  2026-09-22 permission split — see `DECISION_LOG.md`).
 
 **Steps:**
 1. Go to Equipment & Asset Management → Service Contracts → New Contract.
