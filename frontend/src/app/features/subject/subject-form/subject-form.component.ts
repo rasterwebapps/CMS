@@ -92,10 +92,11 @@ export class SubjectFormComponent implements OnInit {
    *  isSystemDefined flag -- disabled controls are skipped entirely by Angular's own validity
    *  computation, so the ordinary min(1) validators below never need a loosened second copy, and
    *  a disabled control can never be edited by mouse, keyboard, or scroll-wheel. Always
-   *  enable()/disable() explicitly (never just one branch) so a component instance Angular's
-   *  default RouteReuseStrategy reuses across a same-route `:id` change (`subjects/:id/edit` -> a
-   *  different id, no fresh `ngOnInit`) can't leak SYSTEM-SPORTS's locked fields onto the next,
-   *  ordinary subject loaded into it. */
+   *  enable()/disable() both branches explicitly, never just one -- this component's ngOnInit reads
+   *  the route id from a one-time snapshot (same as referral-type-form.component.ts), so it won't
+   *  itself be re-run by Angular's default RouteReuseStrategy reusing the instance across a
+   *  same-route `:id` change; the symmetry here is just correctness hygiene for `loadSubject()`
+   *  in general, not a defense tied to that specific navigation case. */
   protected readonly isSystemManagedSubject = signal(false);
 
   protected readonly form: FormGroup = this.fb.group({
@@ -304,6 +305,27 @@ export class SubjectFormComponent implements OnInit {
     this.loading.set(true);
     this.subjectService.getById(this.subjectId).subscribe({
       next: (subject) => {
+        const systemManaged = subject.isSystemManaged;
+        this.isSystemManagedSubject.set(systemManaged);
+        // Locking these three fields (rather than loosening their validators) is what lets a
+        // system-managed subject's 0/0 credits/termNumber sentinel round-trip through this same
+        // form without ever needing to satisfy the ordinary min(1) rule -- a disabled control is
+        // skipped entirely by Angular's validity computation. Always set both branches so a reused
+        // component instance can't leak SYSTEM-SPORTS's disabled state onto the next subject loaded.
+        // Done *before* patchValue, not after -- disabling first means Angular skips running Code's
+        // async uniqueness validator at all for a system-managed subject, instead of kicking off a
+        // real HTTP check (fired by patchValue's own default emitEvent:true) that disable() alone
+        // can't cancel and whose result would just be silently discarded on the now-disabled control.
+        const lockedControls = ['code', 'credits', 'termNumber'] as const;
+        for (const name of lockedControls) {
+          const ctrl = this.form.get(name);
+          if (systemManaged) {
+            ctrl?.disable({ emitEvent: false });
+          } else {
+            ctrl?.enable({ emitEvent: false });
+          }
+        }
+
         this.form.patchValue({
           name: subject.name,
           code: subject.code,
@@ -319,23 +341,6 @@ export class SubjectFormComponent implements OnInit {
         this.selectedLabIds.set(new Set(subject.eligibleLabs.map((l) => l.id)));
         this.selectedClinicalVenueIds.set(new Set(subject.eligibleClinicalVenues.map((v) => v.id)));
         this.selectedFacultyIds.set(new Set(subject.eligibleFaculty.map((f) => f.id)));
-
-        const systemManaged = subject.isSystemManaged;
-        this.isSystemManagedSubject.set(systemManaged);
-        // Locking these three fields (rather than loosening their validators) is what lets a
-        // system-managed subject's 0/0 credits/termNumber sentinel round-trip through this same
-        // form without ever needing to satisfy the ordinary min(1) rule -- a disabled control is
-        // skipped entirely by Angular's validity computation. Always set both branches so a reused
-        // component instance can't leak SYSTEM-SPORTS's disabled state onto the next subject loaded.
-        const lockedControls = ['code', 'credits', 'termNumber'] as const;
-        for (const name of lockedControls) {
-          const ctrl = this.form.get(name);
-          if (systemManaged) {
-            ctrl?.disable({ emitEvent: false });
-          } else {
-            ctrl?.enable({ emitEvent: false });
-          }
-        }
         this.loading.set(false);
       },
       error: () => {
