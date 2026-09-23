@@ -19,6 +19,8 @@ export interface InventoryLocation {
   virtualName: string;
   locationRole: LocationRole;
   description?: string;
+  defaultSupplyingLocationId?: number | null;
+  defaultSupplyingLocationVirtualName?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -29,6 +31,7 @@ export interface InventoryLocationRequest {
   virtualName: string;
   locationRole: LocationRole;
   description?: string;
+  defaultSupplyingLocationId?: number | null;
   isActive?: boolean;
 }
 

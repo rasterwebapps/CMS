@@ -2,6 +2,10 @@
 // (.detail-page, .profile-hero*, .profile-stat*, .detail-grid). This file
 // only adds component-scoped tweaks.
 
+.profile-hero > .entry-form-back-btn {
+  margin-top: 15px;
+}
+
 .tab-content {
   padding: 16px 0;
 }

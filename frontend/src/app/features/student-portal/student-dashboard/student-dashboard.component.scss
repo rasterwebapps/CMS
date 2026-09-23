@@ -34,6 +34,37 @@
   font-size: 0.875rem;
 }
 
+.std-fee-dues {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 0 16px;
+}
+
+.std-fee-dues-label {
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.std-fee-dues-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.std-fee-dues-link {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .std-table {
   width: 100%;
   border-collapse: collapse;

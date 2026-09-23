@@ -8,6 +8,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -174,6 +175,7 @@ public class TimetableStaffingService {
             violations.addAll(staging.violations());
             stagings.add(staging);
         }
+        violations.addAll(checkGroupWorkloadCaps(faculty, group));
 
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
@@ -692,6 +694,106 @@ public class TimetableStaffingService {
         return violations;
     }
 
+    /** OC-127 periodSpan groups stage every sibling member independently via {@link #stageCell}
+     *  (each member's own {@link #checkWithinWorkloadCaps} call queries only already-committed
+     *  rows), so a sibling being staffed in the very same {@link #staffCell} call never counted
+     *  toward another sibling's daily/weekly/continuous check -- every member still has {@code
+     *  faculty=null} in the database until the whole group passes and gets saved. A baseline that
+     *  reads under cap for every member checked alone could therefore still push the group's real
+     *  combined total over a configured cap the moment all rows are actually saved (e.g. a 1h
+     *  pre-existing load plus two 1h periods of the same 2-period block, daily cap 2h: each member
+     *  checked alone reads 2h/2h -- fine -- but the true combined total is 3h, silently over cap).
+     *  Runs once for the whole group, after the independent per-member {@link #stageCell} loop,
+     *  reusing the exact same cap resolution and otherSessions baseline (real DB/cache rows, this
+     *  time excluding every member of this group rather than just one row) plus every member's own
+     *  hours summed together -- the one aggregate reality-check the independent per-row validation
+     *  above can't see on its own. A single-row group (the ordinary case) always short-circuits to
+     *  no-op. */
+    private List<ConstraintViolation> checkGroupWorkloadCaps(Faculty faculty, List<ClassSchedule> group) {
+        if (group.size() <= 1) {
+            return List.of();
+        }
+        Optional<Double> dailyCap = resolveDailyCap(faculty);
+        Optional<Double> weeklyCap = resolveWeeklyCap(faculty);
+        Optional<Double> continuousCap = resolveContinuousCap(faculty);
+        if (dailyCap.isEmpty() && weeklyCap.isEmpty() && continuousCap.isEmpty()) {
+            return List.of();
+        }
+
+        ClassSchedule anyMember = group.get(0);
+        Set<Long> groupIds = group.stream().map(ClassSchedule::getId).collect(Collectors.toSet());
+        Optional<AutoScheduleRunCache> runCache = AutoScheduleRunCache.current();
+        List<ClassSchedule> otherSessions = Stream.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)
+            .flatMap(status -> runCache
+                .map(cache -> cache.byStatusAndFacultyId(status, faculty.getId()))
+                .orElseGet(() -> classScheduleRepository
+                    .findByTermInstanceIdAndStatusAndFacultyId(anyMember.getTermInstance().getId(), status, faculty.getId()))
+                .stream())
+            .filter(other -> !groupIds.contains(other.getId()))
+            .filter(other -> other.getPeriod() != null)
+            .filter(other -> Boolean.TRUE.equals(other.getIsActive()))
+            .toList();
+
+        List<ConstraintViolation> violations = new ArrayList<>();
+
+        if (dailyCap.isPresent()) {
+            Map<DayOfWeek, Double> groupHoursByDay = group.stream()
+                .collect(Collectors.groupingBy(ClassSchedule::getDayOfWeek, Collectors.summingDouble(m -> sessionHours(m.getPeriod()))));
+            for (Map.Entry<DayOfWeek, Double> entry : groupHoursByDay.entrySet()) {
+                double dailyHours = otherSessions.stream()
+                    .filter(other -> other.getDayOfWeek() == entry.getKey())
+                    .mapToDouble(other -> sessionHours(other.getPeriod()))
+                    .sum() + entry.getValue();
+                if (dailyHours > dailyCap.get()) {
+                    violations.add(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED",
+                        "Staffing this multi-period session together would put this faculty member at "
+                            + formatHours(dailyHours) + " hours on " + entry.getKey()
+                            + ", over the configured daily cap of " + formatHours(dailyCap.get()) + " hours."));
+                }
+            }
+        }
+
+        if (weeklyCap.isPresent()) {
+            double groupTotalHours = group.stream().mapToDouble(m -> sessionHours(m.getPeriod())).sum();
+            double weeklyHours = otherSessions.stream()
+                .mapToDouble(other -> sessionHours(other.getPeriod()))
+                .sum() + groupTotalHours;
+            if (weeklyHours > weeklyCap.get()) {
+                violations.add(new ConstraintViolation("STAFFING_WORKLOAD_WEEKLY_CAP_EXCEEDED",
+                    "Staffing this multi-period session together would put this faculty member at "
+                        + formatHours(weeklyHours) + " hours this week, over the configured weekly cap of "
+                        + formatHours(weeklyCap.get()) + " hours."));
+            }
+        }
+
+        if (continuousCap.isPresent()) {
+            Map<DayOfWeek, List<ClassSchedule>> groupByDay = group.stream()
+                .collect(Collectors.groupingBy(ClassSchedule::getDayOfWeek));
+            for (List<ClassSchedule> dayMembers : groupByDay.values()) {
+                double worstContinuousHours = 0;
+                for (ClassSchedule anchor : dayMembers) {
+                    List<ClassSchedule> augmented = new ArrayList<>(otherSessions);
+                    for (ClassSchedule sibling : dayMembers) {
+                        if (!sibling.getId().equals(anchor.getId())) {
+                            augmented.add(sibling);
+                        }
+                    }
+                    double continuousHours = continuousChainHours(augmented, anchor.getDayOfWeek(),
+                        anchor.getPeriod().getStartTime(), anchor.getPeriod().getEndTime());
+                    worstContinuousHours = Math.max(worstContinuousHours, continuousHours);
+                }
+                if (worstContinuousHours > continuousCap.get()) {
+                    violations.add(new ConstraintViolation("STAFFING_WORKLOAD_CONTINUOUS_CAP_EXCEEDED",
+                        "Staffing this multi-period session together would put this faculty member into a "
+                            + formatHours(worstContinuousHours) + "-hour unbroken run on " + dayMembers.get(0).getDayOfWeek()
+                            + ", over the configured continuous-hours cap of " + formatHours(continuousCap.get()) + " hours."));
+                }
+            }
+        }
+
+        return violations;
+    }
+
     /** Sums the back-to-back (no-gap) run of same-day sessions that the new [start,end) interval
      *  joins onto, including the new interval itself — faculty-free already guarantees no true
      *  overlap, so "continuous" here just means adjacent intervals with zero gap between them. */
@@ -809,8 +911,7 @@ public class TimetableStaffingService {
                                                  Long termInstanceId, Long excludeClassScheduleId,
                                                  DayOfWeek day, LocalTime start, LocalTime end) {
         for (ClassScheduleStatus status : List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)) {
-            List<ClassSchedule> overlapping = classScheduleRepository.findOverlapping(
-                day, termInstanceId, start, end, status, excludeClassScheduleId);
+            List<ClassSchedule> overlapping = findOverlappingCached(day, termInstanceId, start, end, status, excludeClassScheduleId);
             boolean conflict = overlapping.stream().anyMatch(other -> conflictsOnRoom(other, type, venueId, physicalRoom));
             if (conflict) {
                 return Optional.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT",

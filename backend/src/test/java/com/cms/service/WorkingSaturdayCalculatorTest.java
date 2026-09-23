@@ -50,6 +50,25 @@ class WorkingSaturdayCalculatorTest {
         assertThat(WorkingSaturdayCalculator.runsInTerm(com.cms.model.enums.DayOfWeek.SATURDAY, oddTerm(Set.of()), 26)).isZero();
     }
 
+    // Regression: SkeletonBuilderResponse.workingSaturdayCount and TermInstanceDto.workingSaturdayCount
+    // both gate a UI's Saturday-column visibility (Skeleton Builder's grid, the published timetable's
+    // Generic week grid). Both used to call the raw workingSaturdayCount(term) directly, which returns
+    // the term's total calendar Saturdays -- not 0 -- when no pattern is configured, so the Saturday
+    // column silently never hid itself for an unconfigured (Mon-Fri only) term. enabledWorkingSaturdayCount
+    // is the fix: 0 for an unconfigured term, same real count as before once a pattern is configured.
+    @Test
+    void enabledWorkingSaturdayCountIsZeroForATermWithNoPatternConfigured() {
+        assertThat(WorkingSaturdayCalculator.enabledWorkingSaturdayCount(oddTerm(Set.of()))).isZero();
+    }
+
+    @Test
+    void enabledWorkingSaturdayCountMatchesTheRawCountOnceAPatternIsConfigured() {
+        TermInstance firstOnly = oddTerm(EnumSet.of(WeekOfMonth.FIRST));
+        assertThat(WorkingSaturdayCalculator.enabledWorkingSaturdayCount(firstOnly))
+            .isEqualTo(WorkingSaturdayCalculator.workingSaturdayCount(firstOnly))
+            .isEqualTo(6);
+    }
+
     @Test
     void lastAlsoMatchesAFifthSaturdayNotJustTheFourth() {
         // May 2027 has Saturdays on the 1st, 8th, 15th, 22nd and 29th -- the 29th is a 5th Saturday,

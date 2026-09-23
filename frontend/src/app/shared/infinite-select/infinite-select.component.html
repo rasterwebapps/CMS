@@ -1,0 +1,74 @@
+<div class="isel-wrap">
+  <button
+    type="button"
+    class="isel-btn"
+    [class.isel-btn--active]="multiple ? selectedValues.size > 0 : selectedValue !== null"
+    [disabled]="disabled"
+    (click)="toggleOpen()"
+    [attr.aria-label]="ariaLabel"
+    aria-haspopup="listbox"
+    [attr.aria-expanded]="open()"
+  >
+    <span class="isel-btn-label">{{ !multiple && selectedValue !== null ? selectedLabel() : label }}</span>
+    @if (multiple && selectedValues.size > 0) {
+      <span class="isel-count">{{ selectedValues.size }}</span>
+    } @else {
+      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    }
+  </button>
+
+  @if (open()) {
+    <div class="isel-panel" role="listbox" [attr.aria-multiselectable]="multiple" (click)="$event.stopPropagation()">
+      <div class="isel-search">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input
+          type="text"
+          class="isel-search-input"
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchInput($event)"
+          [placeholder]="searchPlaceholder"
+          [attr.aria-label]="searchPlaceholder"
+        />
+      </div>
+
+      @if (!multiple) {
+        <div class="isel-list isel-list--pinned">
+          <div class="isel-item" role="option" [attr.aria-selected]="selectedValue === null" (click)="selectAll()">
+            <span>{{ label }}</span>
+          </div>
+        </div>
+      }
+
+      <div class="isel-list isel-scroll" (scroll)="onScroll($event)">
+        @for (o of options(); track o.id) {
+          <div
+            class="isel-item"
+            role="option"
+            [attr.aria-selected]="isSelected(o)"
+            (click)="multiple ? toggleMulti(o) : selectSingle(o)"
+          >
+            @if (multiple) {
+              <span class="isel-check" [class.isel-check--on]="isSelected(o)">
+                @if (isSelected(o)) {
+                  <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                }
+              </span>
+            }
+            <span>{{ o.name }}</span>
+          </div>
+        }
+        @if (loading()) {
+          <div class="isel-status">Loading…</div>
+        } @else if (options().length === 0) {
+          <div class="isel-status">No matches</div>
+        }
+      </div>
+
+      @if (multiple && showClear) {
+        <div class="isel-footer">
+          <button type="button" class="isel-clear" (click)="onClear()">{{ clearLabel }}</button>
+        </div>
+      }
+    </div>
+  }
+</div>

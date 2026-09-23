@@ -119,26 +119,17 @@
       }
     </div>
 
-    <select
-      class="mlp-filter-select"
-      [value]="selectedMode()"
-      (change)="navigate({paymentMode: $any($event.target).value || null, page: 0})"
-      aria-label="Filter by payment mode">
-      <option value="">All Modes</option>
-      @for (mode of paymentModes; track mode) {
-        <option [value]="mode">{{ mode | paymentModeLabel }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Modes" ariaLabel="Filter by payment mode" searchPlaceholder="Search modes…"
+      [fetchPage]="paymentModeFetchPage"
+      [selectedValue]="selectedMode() || null" (selectedValueChange)="onPaymentModeFilterChange($event)"
+    />
 
-    <select
-      class="mlp-filter-select"
-      [value]="selectedType()"
-      (change)="navigate({payerType: $any($event.target).value || null, page: 0})"
-      aria-label="Filter by payer type">
-      <option value="">All Types</option>
-      <option value="STUDENT">Student</option>
-      <option value="ENQUIRY">Pre-enrollment</option>
-    </select>
+    <cms-infinite-select
+      label="All Types" ariaLabel="Filter by payer type" searchPlaceholder="Search types…"
+      [fetchPage]="payerTypeFetchPage"
+      [selectedValue]="selectedType() || null" (selectedValueChange)="onPayerTypeFilterChange($event)"
+    />
 
     <div class="date-range-group">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"

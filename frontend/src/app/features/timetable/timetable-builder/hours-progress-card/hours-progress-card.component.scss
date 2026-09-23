@@ -1,0 +1,131 @@
+// The component's host element defaults to `display: inline` (it's a plain custom element with no
+// display rule of its own), so it never stretched to match its siblings' height inside the parent
+// CSS grid — each card was only as tall as its own content, and a card with a shorter caption (or
+// none at all) visibly fell short of its neighbors. `display: flex` on the host makes it a proper
+// grid item the grid's own (default) row-stretch can act on; `.hpc` then fills that full height.
+:host {
+  display: flex;
+}
+
+// One consistent accent — the tenant's own themed --cms-primary (ThemeService sets --cms-primary-rgb
+// per school, so this is never a hardcoded brand color) — instead of a different hue per card. Four
+// distinct rainbow colors read as noisy, especially in dark mode; the icon glyph + label already
+// tell the four cards apart without needing color to do it too.
+.hpc {
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  padding: 16px 18px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+
+  .hpc__icon {
+    background: rgba(var(--cms-primary-rgb), 0.12);
+    color: var(--cms-primary);
+  }
+
+  .hpc__fill {
+    background: rgba(var(--cms-primary-rgb), 0.6);
+  }
+}
+
+.hpc__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hpc__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.hpc__label {
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  color: var(--cms-text-secondary);
+  flex: 1;
+  min-width: 0;
+}
+
+.hpc__badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &--ok {
+    background: var(--cms-success-light);
+    color: var(--cms-success);
+  }
+
+  &--warn {
+    background: var(--cms-warning-light);
+    color: var(--cms-warning);
+  }
+}
+
+.hpc__value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hpc__value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--cms-text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.hpc__of {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+}
+
+.hpc__track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cms-bg-muted);
+  overflow: hidden;
+}
+
+.hpc__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.hpc__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--cms-text-xs);
+}
+
+.hpc__caption-muted {
+  color: var(--cms-text-muted);
+}
+
+.hpc__caption-strong {
+  color: var(--cms-text-primary);
+  font-weight: 700;
+}

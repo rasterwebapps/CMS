@@ -15,11 +15,16 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,6 +44,7 @@ import com.cms.service.FeeRefundService;
 import com.cms.service.OneBookIntegrationService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
+import com.cms.service.StudentFeeSelfServiceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(controllers = StudentFeeController.class)
@@ -74,6 +80,9 @@ class StudentFeeControllerTest {
 
     @MockitoBean
     private com.cms.service.FeeRefundExportService feeRefundExportService;
+
+    @MockitoBean
+    private StudentFeeSelfServiceService studentFeeSelfServiceService;
 
     @Test
     void shouldFinalizeFeeAllocation() throws Exception {
@@ -288,6 +297,55 @@ class StudentFeeControllerTest {
     }
 
     @Test
+    void shouldPassDropdownFiltersThroughToPaginatedExplorer() throws Exception {
+        FeeExplorerResponse.StudentFeeSummary summary = new FeeExplorerResponse.StudentFeeSummary(
+            1L, "John Doe", "CS2024001", "B.Tech Computer Science",
+            4, new BigDecimal("200000.00"), new BigDecimal("50000.00"),
+            new BigDecimal("150000.00"), new BigDecimal("1500.00"),
+            "FINALIZED", 2, "2024-2025", new BigDecimal("150000.00"), new BigDecimal("150000.00")
+        );
+        Page<FeeExplorerResponse.StudentFeeSummary> page =
+            new PageImpl<>(List.of(summary), PageRequest.of(0, 25), 1);
+
+        when(feeExplorerService.searchPageable(
+            isNull(), eq("B.Tech Computer Science"), eq("2024-2025"), eq(2), eq("FINALIZED"), any(Pageable.class)))
+            .thenReturn(page);
+
+        mockMvc.perform(get("/student-fees/explorer")
+                .param("program", "B.Tech Computer Science")
+                .param("academicYear", "2024-2025")
+                .param("yearOfStudy", "2")
+                .param("allocationStatus", "FINALIZED"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.totalElements").value(1))
+            .andExpect(jsonPath("$.content[0].studentId").value(1));
+
+        verify(feeExplorerService).searchPageable(
+            isNull(), eq("B.Tech Computer Science"), eq("2024-2025"), eq(2), eq("FINALIZED"), any(Pageable.class));
+    }
+
+    @Test
+    void shouldReturnExplorerFilterOptionsAcrossEveryStudent() throws Exception {
+        FeeExplorerService.FilterOptions options = new FeeExplorerService.FilterOptions(
+            List.of("B.Tech Computer Science", "BSc Nursing"),
+            List.of("2023-2024", "2024-2025", "2025-2026"),
+            List.of(1, 2, 3, 4)
+        );
+
+        when(feeExplorerService.getFilterOptions()).thenReturn(options);
+
+        mockMvc.perform(get("/student-fees/explorer/filter-options"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.programs.length()").value(2))
+            .andExpect(jsonPath("$.academicYears.length()").value(3))
+            .andExpect(jsonPath("$.yearsOfStudy.length()").value(4))
+            .andExpect(jsonPath("$.academicYears[1]").value("2024-2025"));
+
+        verify(feeExplorerService).getFilterOptions();
+    }
+
+    @Test
     void shouldGetReceipts() throws Exception {
         List<ReceiptResponse> receipts = List.of(
             createReceiptResponse(1L, "RCP-2025-0001"),
@@ -366,6 +424,64 @@ class StudentFeeControllerTest {
             .andExpect(status().isNotFound());
 
         verify(paymentCollectionService).getReceiptById(1L, 999L);
+    }
+
+    @Test
+    void shouldGetMySummary() throws Exception {
+        StudentFeeAllocationResponse response = createAllocationResponse();
+        when(studentFeeSelfServiceService.findMySummary("")).thenReturn(Optional.of(response));
+
+        mockMvc.perform(get("/student-fees/my/summary"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.studentId").value(1))
+            .andExpect(jsonPath("$.installmentFees.length()").value(2));
+
+        verify(studentFeeSelfServiceService).findMySummary("");
+    }
+
+    @Test
+    void shouldReturnNoContentForMySummaryWhenUnlinkedOrNotFinalized() throws Exception {
+        when(studentFeeSelfServiceService.findMySummary("")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/student-fees/my/summary"))
+            .andExpect(status().isNoContent());
+
+        verify(studentFeeSelfServiceService).findMySummary("");
+    }
+
+    @Test
+    void shouldGetMyReceipts() throws Exception {
+        List<ReceiptResponse> receipts = List.of(createReceiptResponse(1L, "RCP-2025-0001"));
+        when(studentFeeSelfServiceService.findMyReceipts("")).thenReturn(receipts);
+
+        mockMvc.perform(get("/student-fees/my/receipts"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].receiptNumber").value("RCP-2025-0001"));
+
+        verify(studentFeeSelfServiceService).findMyReceipts("");
+    }
+
+    @Test
+    void shouldGetMyPenalties() throws Exception {
+        PenaltyResponse response = createPenaltyResponse();
+        when(studentFeeSelfServiceService.findMyPenalties("")).thenReturn(Optional.of(response));
+
+        mockMvc.perform(get("/student-fees/my/penalties"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalPenalty").value(1500.00));
+
+        verify(studentFeeSelfServiceService).findMyPenalties("");
+    }
+
+    @Test
+    void shouldReturnNoContentForMyPenaltiesWhenUnlinkedOrNotFinalized() throws Exception {
+        when(studentFeeSelfServiceService.findMyPenalties("")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/student-fees/my/penalties"))
+            .andExpect(status().isNoContent());
+
+        verify(studentFeeSelfServiceService).findMyPenalties("");
     }
 
     private StudentFeeAllocationResponse createAllocationResponse() {

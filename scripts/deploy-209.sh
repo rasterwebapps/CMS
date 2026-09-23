@@ -38,6 +38,11 @@ BACKEND_DB_PASSWORD="${DEPLOY209_BACKEND_DB_PASS:?DEPLOY209_BACKEND_DB_PASS must
 KC_PASS="${DEPLOY209_KC_PASS:?DEPLOY209_KC_PASS must be set}"
 MINIO_ACCESS_KEY="${DEPLOY209_MINIO_ACCESS_KEY:?DEPLOY209_MINIO_ACCESS_KEY must be set}"
 MINIO_SECRET_KEY="${DEPLOY209_MINIO_SECRET_KEY:?DEPLOY209_MINIO_SECRET_KEY must be set}"
+# The server's own certbot-managed certificate is the source of truth (it
+# auto-renews there independently of anything on this machine). These local
+# files are only a fallback for when the server has no valid LE cert yet —
+# keep them around, but do not rely on them being fresh.
+LE_DOMAIN="${DEPLOY209_LE_DOMAIN:-$PUBLIC_HOST}"
 TLS_CERT_FILE="${DEPLOY209_TLS_CERT_FILE:-/home/raster/Downloads/Telegram Desktop/Certificate.txt}"
 TLS_INTERMEDIATE_FILE="${DEPLOY209_TLS_INTERMEDIATE_FILE:-/home/raster/Downloads/Telegram Desktop/Intermediate Certificate.txt}"
 TLS_PRIVATE_KEY_FILE="${DEPLOY209_TLS_PRIVATE_KEY_FILE:-/home/raster/Downloads/Telegram Desktop/RSA Private Key.txt}"
@@ -133,6 +138,31 @@ prepare_tls_bundle() {
 
   print_step "Preparing TLS certificate bundle..."
 
+  local le_live_dir="/etc/letsencrypt/live/$LE_DOMAIN"
+  local le_status
+  le_status=$(ssh_run "
+    if [ -r '$le_live_dir/fullchain.pem' ] && [ -r '$le_live_dir/privkey.pem' ]; then
+      if openssl x509 -in '$le_live_dir/fullchain.pem' -checkend 604800 -noout >/dev/null 2>&1; then
+        echo VALID
+      else
+        echo EXPIRING_OR_EXPIRED
+      fi
+    else
+      echo MISSING
+    fi
+  " 2>&1 | tail -1 | tr -d '\r\n')
+
+  if [ "$le_status" = "VALID" ]; then
+    echo "Using the server's own Let's Encrypt certificate for $LE_DOMAIN (auto-renewed by certbot on the server)."
+    remote_run "mkdir -p $REMOTE_STAGE/tls"
+    ssh_run "cp '$le_live_dir/fullchain.pem' '$REMOTE_STAGE/tls/self.crt' && cp '$le_live_dir/privkey.pem' '$REMOTE_STAGE/tls/self.key' && chmod 644 '$REMOTE_STAGE/tls/self.crt' && chmod 600 '$REMOTE_STAGE/tls/self.key'"
+    return
+  fi
+
+  echo "No valid Let's Encrypt cert found on the server for $LE_DOMAIN (status: $le_status)."
+  echo "Falling back to the local TLS bundle (DEPLOY209_TLS_CERT_FILE etc.) — this can go stale, so fix"
+  echo "certbot on the server (run 'certbot renew') rather than relying on this path long-term."
+
   if ! command -v openssl >/dev/null 2>&1; then
     echo "openssl is required to validate TLS files before deployment."
     exit 1
@@ -141,6 +171,7 @@ prepare_tls_bundle() {
   for file in "$TLS_CERT_FILE" "$TLS_INTERMEDIATE_FILE" "$TLS_PRIVATE_KEY_FILE"; do
     if [ ! -r "$file" ]; then
       echo "TLS file is missing or unreadable: $file"
+      echo "And no valid Let's Encrypt cert was found on the server either — cannot proceed."
       exit 1
     fi
   done
@@ -158,6 +189,11 @@ prepare_tls_bundle() {
   if ! cmp -s "$TMP_TLS_DIR/cert.pub" "$TMP_TLS_DIR/key.pub"; then
     echo "TLS certificate and private key do not match."
     exit 1
+  fi
+
+  if ! openssl x509 -in "$TMP_TLS_DIR/self.crt" -checkend 604800 -noout >/dev/null 2>&1; then
+    echo "WARNING: the local fallback TLS certificate is expired or expires within 7 days."
+    echo "Deploying it anyway since no better option was found — fix the server's certbot setup before the next deploy."
   fi
 
   remote_run "mkdir -p $REMOTE_STAGE/tls"
@@ -473,6 +509,17 @@ remote_run "
   curl -sk -o /dev/null -w 'Keycloak (OIDC):   %{http_code}\n' https://localhost/realms/cms/.well-known/openid-configuration
   curl -sk -o /dev/null -w 'Backend API:       %{http_code}\n' https://localhost/api/v1/health
   curl -sk -o /dev/null -w 'Local IP URL:      %{http_code}\n' https://$LOCAL_HOST/
+"
+ssh_run "
+  if [ -r '$REMOTE_DIR/ssl/self.crt' ]; then
+    end_date=\$(openssl x509 -in '$REMOTE_DIR/ssl/self.crt' -noout -enddate | cut -d= -f2)
+    end_epoch=\$(date -d \"\$end_date\" +%s)
+    days_left=\$(( (end_epoch - \$(date +%s)) / 86400 ))
+    echo \"TLS cert in use:   expires \$end_date (\${days_left}d left)\"
+    if [ \"\$days_left\" -lt 14 ]; then
+      echo \"WARNING: TLS certificate expires in under 14 days — run certbot renew on the server.\"
+    fi
+  fi
 "
 
 print_step "Cleaning remote staging directory..."

@@ -8,6 +8,7 @@ import com.cms.dto.ClinicalShiftConfigUpdateRequest;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.GenerateOfferingsResponse;
 import com.cms.model.Cohort;
+import com.cms.model.CourseOffering;
 
 public interface CourseOfferingService {
     GenerateOfferingsResponse generateOfferingsForTermInstance(Long termInstanceId);
@@ -34,4 +35,10 @@ public interface CourseOfferingService {
     /** Sets/clears this offering's off-campus clinical shift duration + travel buffer (OC-175) --
      *  both null means the offering has no shift-based clinical component. */
     CourseOfferingDto updateClinicalShiftConfig(Long id, ClinicalShiftConfigUpdateRequest request);
+    /** Reverse-resolves which cohort(s) this offering actually belongs to -- an offering has no
+     *  cohort FK of its own (shareable across cohorts on the same curriculum version/semester), so
+     *  this reconstructs the name(s) from whichever cohort(s) have an ENROLLED student against
+     *  this offering's (curriculumVersion, semesterNumber) this term. Usually one name; more than
+     *  one means the offering is genuinely shared. Empty when none resolve. */
+    List<String> resolveCohortNames(CourseOffering offering);
 }

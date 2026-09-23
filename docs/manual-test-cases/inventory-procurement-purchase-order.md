@@ -110,3 +110,44 @@ module (`docs/inventory-management/`): "Purchasing & Suppliers" → Purchase Ord
   code alongside the sum of every line's line total.
 
 **Status:** NOT TESTED
+
+## TC-INV-PROC-032: PO number is auto-generated and immutable
+
+**Preconditions:**
+- A `PURCHASE_ORDER_NUMBER` series is configured under Settings → Number Sequences (seeded by
+  default: prefix "PO", scope Financial Year, e.g. `PO-2526-00001`).
+
+**Steps:**
+1. Create a new purchase order and note its number in the list/detail header.
+2. Create a second purchase order for the same financial year.
+3. Open the first order for editing/viewing again.
+
+**Expected Result:**
+- Step 1: the number matches the configured series format and is shown as the order's primary
+  identifier (list column "PO Number", detail page header) — never `#{id}` unless the row predates
+  this feature.
+- Step 2: its number is the next sequence value, never a repeat.
+- Step 3: the number is unchanged.
+
+**Status:** NOT TESTED
+
+## TC-INV-PROC-033: Regenerate Purchase Order Numbers (admin action)
+
+**Preconditions:**
+- Logged in as a user holding `INVENTORY_PURCHASE_ORDER_REGENERATE_NUMBERS`.
+- At least one purchase order predates this feature (no number) or has a number that no longer
+  matches the current series format.
+- **This mutates production data — take a database backup first** outside a local/throwaway
+  environment, per the project's production-data-safety policy.
+
+**Steps:**
+1. From the Purchase Orders list, click "Regenerate Numbers".
+2. Review the confirmation dialog's summary (count of orders affected).
+3. Confirm.
+
+**Expected Result:**
+- Every affected order's number updates to a fresh, gap-free per-scope-period sequence (oldest
+  `po_date` first), a success toast reports the count, and the list refreshes with the new numbers.
+  A user without the permission never sees the "Regenerate Numbers" button.
+
+**Status:** NOT TESTED

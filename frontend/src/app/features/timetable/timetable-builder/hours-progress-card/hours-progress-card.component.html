@@ -1,0 +1,31 @@
+<div class="hpc" [attr.data-variant]="variant()">
+  <div class="hpc__top">
+    <div class="hpc__icon"><mat-icon>{{ icon() }}</mat-icon></div>
+    <span class="hpc__label">{{ label() }}</span>
+    @if (hasUnassigned()) {
+      <span class="hpc__badge hpc__badge--warn">⚠ {{ unassigned() | number: '1.0-1' }}h unassigned</span>
+    } @else if (requiredCaption() !== null) {
+      <span class="hpc__badge hpc__badge--ok">✓ 0h unassigned</span>
+    }
+  </div>
+
+  <div class="hpc__value-row">
+    <span class="hpc__value">{{ value() | number: '1.0-1' }}h</span>
+    <span class="hpc__of">of {{ total() | number: '1.0-1' }}h {{ totalSuffix() }}</span>
+  </div>
+
+  <div class="hpc__track">
+    <div class="hpc__fill" [style.width.%]="progressPercent()"></div>
+  </div>
+
+  @if (hasCaption()) {
+    <div class="hpc__caption">
+      @if (requiredCaption() !== null) {
+        <span class="hpc__caption-muted">{{ requiredCaption() }}</span>
+      }
+      @if (hasExtra()) {
+        <span class="hpc__caption-strong">+{{ extra() | number: '1.0-1' }}h beyond curriculum</span>
+      }
+    </div>
+  }
+</div>

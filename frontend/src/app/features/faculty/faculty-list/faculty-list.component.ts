@@ -40,6 +40,9 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconViewComponent } fr
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-faculty-list',
@@ -66,6 +69,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     CmsIconEditComponent,
     CmsIconViewComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './faculty-list.component.html',
   styleUrl: './faculty-list.component.scss',
@@ -133,6 +137,16 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
   protected readonly selectedDocumentReview = signal<FacultyDocumentReviewFilter>('ALL');
   protected readonly statusOptions = FACULTY_STATUS_OPTIONS;
   protected readonly documentReviewOptions = FACULTY_DOCUMENT_REVIEW_FILTER_OPTIONS;
+  protected readonly specialityFetchPage = staticOptionsFetchPage(() =>
+    this.specialities().map(s => ({ id: s.id, name: s.name })));
+  protected readonly statusFetchPage = staticOptionsFetchPage(() =>
+    this.statusOptions.map(o => ({ id: o.value, name: o.label })));
+  protected readonly documentReviewFetchPage = staticOptionsFetchPage(() =>
+    this.documentReviewOptions.filter(o => o.value !== 'ALL').map(o => ({ id: o.value, name: o.label })));
+  protected readonly workloadAcademicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly workloadTermFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -229,20 +243,20 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadPage();
   }
 
-  protected onSpecialityChange(specialityId: number | null): void {
-    this.selectedSpecialityId.set(specialityId);
+  protected onSpecialityChange(value: InfiniteSelectValue | null): void {
+    this.selectedSpecialityId.set(value != null ? Number(value) : null);
     this.currentPage = 0;
     this.loadPage();
   }
 
-  protected onDocumentReviewChange(value: FacultyDocumentReviewFilter): void {
-    this.selectedDocumentReview.set(value);
+  protected onDocumentReviewChange(value: InfiniteSelectValue | null): void {
+    this.selectedDocumentReview.set((value != null ? String(value) : 'ALL') as FacultyDocumentReviewFilter);
     this.currentPage = 0;
     this.loadPage();
   }
 
-  protected onStatusChange(status: FacultyStatus | null): void {
-    this.selectedStatus.set(status);
+  protected onStatusChange(value: InfiniteSelectValue | null): void {
+    this.selectedStatus.set(value != null ? (String(value) as FacultyStatus) : null);
     this.currentPage = 0;
     this.loadPage();
   }
@@ -450,14 +464,16 @@ export class FacultyListComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.permissionService.has('FACULTY_WORKLOAD_VIEW');
   }
 
-  protected onAcademicYearChange(academicYearId: number | null): void {
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    const academicYearId = value != null ? Number(value) : null;
     this.selectedAcademicYearId = academicYearId;
     this.selectedTermInstanceId = null;
     this.workloadByFacultyId.set(new Map());
     if (academicYearId) this.loadTermInstances(academicYearId);
   }
 
-  protected onTermChange(termInstanceId: number | null): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    const termInstanceId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = termInstanceId;
     this.loadWorkloadSummaries(this.dataSource.data.map((f) => f.id));
   }

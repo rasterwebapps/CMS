@@ -17,6 +17,9 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { LIBRARY_REPORTS_TOUR, LIBRARY_REPORTS_FLOW_MAP } from '../../../shared/tour/tours/library-circulation.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-library-reports',
@@ -25,6 +28,7 @@ import { LIBRARY_REPORTS_TOUR, LIBRARY_REPORTS_FLOW_MAP } from '../../../shared/
     DatePipe, FormsModule,
     MatTableModule, MatPaginatorModule, MatSortModule, MatIconModule,
     CmsTypeBadgeComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './library-reports.component.html',
   styleUrl:    './library-reports.component.scss',
@@ -90,6 +94,16 @@ export class LibraryReportsComponent implements OnInit, OnDestroy {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue.set(value);
     this.searchSubject.next(value);
+  }
+
+  protected readonly memberFetchPage = staticOptionsFetchPage(() => [
+    { id: 'STUDENT', name: 'Students only' },
+    { id: 'FACULTY', name: 'Faculty only' },
+  ]);
+
+  protected onMemberFilterChange(value: InfiniteSelectValue | null): void {
+    this.memberFilter.set(value != null ? (String(value) as LibraryMemberType) : null);
+    this.onFilterChange();
   }
 
   protected onFilterChange(): void { this.currentPage = 0; this.loadPage(); }

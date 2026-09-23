@@ -18,6 +18,9 @@
     <header id="tour-stu-detail-hero" class="profile-hero">
       <div class="profile-hero__top">
         <div class="profile-hero__identity">
+          <a class="entry-form-back-btn" routerLink="/students" aria-label="Back to students">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </a>
           @if (passportPhotoUrl()) {
             <div class="profile-hero__avatar profile-hero__avatar--photo" aria-hidden="true">
               <img [src]="passportPhotoUrl()!" alt="" class="profile-hero__avatar-img" />
@@ -200,6 +203,12 @@
           </div>
         </div>
       </mat-tab>
+
+      @if (canViewGuardians()) {
+        <mat-tab label="Guardians">
+          <app-student-guardians-tab [studentId]="student()!.id" [studentName]="student()!.fullName" />
+        </mat-tab>
+      }
 
       <!-- Tab 3: Academics — enrollments + course registrations merged -->
       <mat-tab label="Academics">

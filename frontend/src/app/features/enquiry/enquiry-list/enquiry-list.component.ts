@@ -1,8 +1,8 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { Subject, Subscription, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -16,7 +16,6 @@ import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear } from '../../academic-year/academic-year.model';
 import { ProgramService } from '../../program/program.service';
 import { CourseService } from '../../course/course.service';
-import { Course } from '../../course/course.model';
 import { ReferralTypeService } from '../../referral-type/referral-type.service';
 import { AgentService } from '../../agent/agent.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
@@ -35,6 +34,8 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 export const STATUS_LABELS: Record<string, string> = {
   ENQUIRED:             'Enquired',
   INTERESTED:           'Interested',
@@ -63,6 +64,7 @@ export const STATUS_LABELS: Record<string, string> = {
     CmsIconViewComponent,
     ExportButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './enquiry-list.component.html',
   styleUrl: './enquiry-list.component.scss',
@@ -131,7 +133,6 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   protected readonly computeInitials  = computeInitials;
   protected readonly STATUS_LABELS    = STATUS_LABELS;
   protected statusMenuOpen       = false;
-  protected academicYearMenuOpen = false;
   protected moreFiltersOpen      = false;
   protected readonly exporting   = signal(false);
 
@@ -142,20 +143,65 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   protected dateFrom: string;
   protected dateTo:   string;
 
-  // ── Filter dropdown options (loaded from master services on init) ─────────
-  protected programs:   { id: number; name: string }[] = [];
-  protected allCourses: Course[] = [];
-  protected readonly courseOptions = computed(() => {
-    const pid = this.selectedProgramId();
-    return pid ? this.allCourses.filter(c => c.program?.id === pid) : this.allCourses;
-  });
-  protected referralTypeNames: string[] = [];
-  protected agentNames:        string[] = [];
+  // ── Filter dropdown data sources — each searches/paginates against the backend rather than
+  // loading (or capping) the full master list; see CmsInfiniteSelectComponent. ──────────────────
+  protected readonly programFetchPage = (search: string, page: number, size: number) =>
+    this.programService.getPage({ search, page, size });
+  protected readonly programResolveLabel = (id: InfiniteSelectValue) =>
+    this.programService.getById(Number(id)).pipe(map(p => p.name));
+
+  // Re-scoped to the selected program server-side; reloadKey forces the picker to drop its
+  // cached page whenever the program changes so it never shows another program's courses.
+  protected readonly courseFetchPage = (search: string, page: number, size: number) =>
+    this.courseService.getPage({ search, page, size, programId: this.selectedProgramId() ?? undefined });
+  protected readonly courseResolveLabel = (id: InfiniteSelectValue) =>
+    this.courseService.getById(Number(id)).pipe(map(c => c.name));
+
+  protected readonly referralTypeFetchPage = (search: string, page: number, size: number) =>
+    this.referralTypeService.getPage({ search, page, size });
+
+  // Fixed small enums — no backend paging needed, but cms-infinite-select is still the right fit
+  // over a native <select>: keeps these filters visually/behaviourally uniform with the other
+  // pickers in this row (same pill, same panel, same outside-click-closes-siblings handling)
+  // instead of mixing in browser-native <select> chrome that can't be restyled.
+  protected readonly studentTypeFetchPage = () =>
+    of({
+      content: [
+        { id: 'DAY_SCHOLAR', name: 'Day Scholar' },
+        { id: 'HOSTELER', name: 'Hosteler' },
+      ],
+      totalElements: 2,
+    });
+
+  protected readonly admissionQuotaFetchPage = () =>
+    of({
+      content: [
+        { id: 'MANAGEMENT', name: 'Management' },
+        { id: 'COUNSELLING', name: 'Counselling' },
+      ],
+      totalElements: 2,
+    });
+
+  protected readonly admissionSourceFetchPage = () =>
+    of({
+      content: [
+        { id: 'ENQUIRY_FLOW', name: 'Enquiry Flow' },
+        { id: 'DIRECT_ADMIT', name: 'Direct Admit' },
+      ],
+      totalElements: 2,
+    });
+
+  protected readonly agentFetchPage = (search: string, page: number, size: number) =>
+    this.agentService.getPage({ search, page, size });
 
   // ── Academic year multiselect ─────────────────────────────────────────────
-  protected readonly academicYearOptions = computed(() =>
-    [...this.allAcademicYears_()].sort((a, b) => b.startDate.localeCompare(a.startDate))
-  );
+  // The picker's own scrollable option list now fetches from the backend (see
+  // academicYearFetchPage below); allAcademicYears_ stays only to compute the "current + next"
+  // default selection and this filter button's own summary label -- a college has at most a
+  // few dozen academic years ever, so this one bounded call was never the truncation risk the
+  // Program/Course/Referral Type/Agent filters had.
+  protected readonly academicYearFetchPage = (search: string, page: number, size: number) =>
+    this.academicYearService.getPage({ search, page, size });
 
   private defaultAcademicYearIds(): Set<number> {
     const years = this.allAcademicYears_();
@@ -179,16 +225,8 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     return `${sel.size} years`;
   });
 
-  protected isAcademicYearSelected(id: number): boolean {
-    return this.selectedAcademicYearIds().has(id);
-  }
-
-  protected toggleAcademicYear(id: number): void {
-    this.selectedAcademicYearIds.update(s => {
-      const next = new Set(s);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  protected onAcademicYearsChange(next: Set<InfiniteSelectValue>): void {
+    this.selectedAcademicYearIds.set(new Set([...next].map(Number)));
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
@@ -244,6 +282,17 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     this.dateTo   = this.toDateString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   }
 
+  // Capture phase so this still fires even though the status-drop-panel itself stops bubble
+  // propagation on its own clicks (to protect its checkboxes) — matches cms-infinite-select's
+  // same capture-phase approach, which this status dropdown doesn't use since it predates it.
+  // Scoped to .status-drop-wrap specifically (not the whole component root), otherwise every
+  // click anywhere on the page would count as "inside" and never close it.
+  private readonly documentClickListener = (event: MouseEvent): void => {
+    if (this.statusMenuOpen && !(event.target as HTMLElement).closest?.('.status-drop-wrap')) {
+      this.statusMenuOpen = false;
+    }
+  };
+
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
@@ -275,20 +324,6 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
     this.sortDirection   = (p.get('sortDir') ?? 'desc') as 'asc' | 'desc';
     if (this.moreFiltersCount > 0) this.moreFiltersOpen = true;
 
-    // Load filter dropdown options (non-critical — best effort)
-    this.programService.getAll().subscribe({
-      next: list => { this.programs = list; },
-    });
-    this.courseService.getAll().subscribe({
-      next: list => { this.allCourses = list; },
-    });
-    this.referralTypeService.getPage({ size: 1000 }).subscribe({
-      next: page => { this.referralTypeNames = page.content.map(r => r.name); },
-    });
-    this.agentService.getPage({ size: 1000 }).subscribe({
-      next: page => { this.agentNames = page.content.map(a => a.name); },
-    });
-
     // Debounced search
     this.searchSubject.pipe(
       debounceTime(400),
@@ -314,11 +349,14 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
       },
       error: () => this.loadPage(),
     });
+
+    document.addEventListener('click', this.documentClickListener, true);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    document.removeEventListener('click', this.documentClickListener, true);
   }
 
   // ── URL filter sync (for back-navigation state restoration) ───────────────
@@ -435,51 +473,51 @@ export class EnquiryListComponent implements OnInit, OnDestroy {
   }
 
   // ── Filter change handlers ────────────────────────────────────────────────
-  protected onProgramChange(value: string): void {
-    this.selectedProgramId.set(value ? Number(value) : null);
+  protected onProgramChange(value: InfiniteSelectValue | null): void {
+    this.selectedProgramId.set(value != null ? Number(value) : null);
     this.selectedCourseId.set(null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
   }
 
-  protected onCourseChange(value: string): void {
-    this.selectedCourseId.set(value ? Number(value) : null);
+  protected onCourseChange(value: InfiniteSelectValue | null): void {
+    this.selectedCourseId.set(value != null ? Number(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
   }
 
-  protected onStudentTypeChange(value: string): void {
-    this.selectedStudentType.set(value || null);
+  protected onStudentTypeChange(value: InfiniteSelectValue | null): void {
+    this.selectedStudentType.set(value != null ? String(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
   }
 
-  protected onReferralTypeChange(value: string): void {
-    this.selectedReferralType.set(value || null);
+  protected onReferralTypeChange(value: InfiniteSelectValue | null): void {
+    this.selectedReferralType.set(value != null ? String(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
   }
 
-  protected onAdmissionQuotaChange(value: string): void {
-    this.selectedAdmissionQuota.set(value || null);
+  protected onAdmissionQuotaChange(value: InfiniteSelectValue | null): void {
+    this.selectedAdmissionQuota.set(value != null ? String(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
   }
 
-  protected onAgentChange(value: string): void {
-    this.selectedAgent.set(value || null);
+  protected onAgentChange(value: InfiniteSelectValue | null): void {
+    this.selectedAgent.set(value != null ? String(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();
   }
 
-  protected onAdmissionSourceChange(value: string): void {
-    this.selectedAdmissionSource.set(value || null);
+  protected onAdmissionSourceChange(value: InfiniteSelectValue | null): void {
+    this.selectedAdmissionSource.set(value != null ? String(value) : null);
     this.resetPage();
     this.syncUrlFilters();
     this.loadPage();

@@ -37,7 +37,7 @@ export const ASSIGN_FACULTY_TOUR: TourDefinition = {
       popover: {
         title: '✅ Then build the timetable',
         description:
-          'Once faculty are assigned, Skeleton Builder and Staffing can place and staff their sessions.',
+          'Once faculty are assigned, Timetable Builder and Staffing can place and staff their sessions.',
         side: 'over',
         align: 'center',
       },
@@ -54,6 +54,6 @@ export const ASSIGN_FACULTY_FLOW_MAP: TourFlowMap = {
     { label: 'Pick Term & Filter', icon: 'search', detail: 'Choose the term, then search or filter by semester/cohort.' },
     { label: 'Review Offerings', icon: 'checklist', detail: 'See each offering\'s current faculty assignment status at a glance.' },
     { label: 'Assign', icon: 'open', detail: 'Assign faculty per section, or per Lab/Clinical batch via Manage Batches.' },
-    { label: 'Ready for Timetabling', icon: 'send', detail: 'Once assigned, Skeleton Builder and Staffing can build against it.' },
+    { label: 'Ready for Timetabling', icon: 'send', detail: 'Once assigned, Timetable Builder and Staffing can build against it.' },
   ],
 };

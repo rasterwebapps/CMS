@@ -8,22 +8,53 @@
          <cms-tour-button tourKey="fee-explorer" [iconOnly]="true" iconVariant="info-circle" />
        </div>
        <p class="sfx-sub">View fee allocations and payment status across all students</p>
-       @if (!loading()) {
-         <div class="sfx-meta">
-           <span class="sfx-stat">
-             <span class="sfx-stat-dot sfx-stat-dot--blue"></span>
-             {{ dataSource.data.length }} Total
-           </span>
-         </div>
-       }
      </div>
-     @if (canExport()) {
+     @if (canExport() || canExportSemWise()) {
        <div class="mlp-hdr-actions">
-         <cms-export-button
-           [disabled]="exporting() || totalElements === 0"
-           (export)="onExport($event)"
-           tooltip="Export fee explorer data as Excel or PDF"
-         />
+         <button mat-stroked-button [matMenuTriggerFor]="sfxExportMenu" class="sfx-export-btn"
+                 [disabled]="exporting() || totalElements === 0"
+                 matTooltip="Export fee explorer data">
+           <mat-icon>download</mat-icon>
+           <span>Export</span>
+           <mat-icon class="sfx-export-chevron">arrow_drop_down</mat-icon>
+         </button>
+
+         <mat-menu #sfxExportMenu="matMenu">
+           @if (canExport()) {
+             <button mat-menu-item [matMenuTriggerFor]="sfxWholeMenu">
+               <mat-icon>table_view</mat-icon>
+               <span>Whole</span>
+             </button>
+           }
+           @if (canExportSemWise()) {
+             <button mat-menu-item [matMenuTriggerFor]="sfxSemWiseMenu">
+               <mat-icon>calendar_view_month</mat-icon>
+               <span>Sem-wise</span>
+             </button>
+           }
+         </mat-menu>
+
+         <mat-menu #sfxWholeMenu="matMenu">
+           <button mat-menu-item (click)="onExport('excel')">
+             <mat-icon>table_view</mat-icon>
+             <span>Excel (.xlsx)</span>
+           </button>
+           <button mat-menu-item (click)="onExport('pdf')">
+             <mat-icon>picture_as_pdf</mat-icon>
+             <span>PDF</span>
+           </button>
+         </mat-menu>
+
+         <mat-menu #sfxSemWiseMenu="matMenu">
+           <button mat-menu-item (click)="onExportSemWise('excel')">
+             <mat-icon>table_view</mat-icon>
+             <span>Excel (.xlsx)</span>
+           </button>
+           <button mat-menu-item (click)="onExportSemWise('pdf')">
+             <mat-icon>picture_as_pdf</mat-icon>
+             <span>PDF</span>
+           </button>
+         </mat-menu>
        </div>
      }
    </div>
@@ -48,33 +79,29 @@
       }
     </div>
 
-    <select class="mlp-filter-select" [value]="filterProgram()" (change)="filterProgram.set($any($event.target).value); onFilterChange()" aria-label="Filter by program">
-      <option value="ALL">All Programs</option>
-      @for (p of programs(); track p) {
-        <option [value]="p">{{ p }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+      [fetchPage]="programFetchPage"
+      [selectedValue]="filterProgram() === 'ALL' ? null : filterProgram()" (selectedValueChange)="onProgramChange($event)"
+    />
 
-    <select class="mlp-filter-select" [value]="filterAcademicYear()" (change)="filterAcademicYear.set($any($event.target).value); onFilterChange()" aria-label="Filter by academic year">
-      <option value="ALL">All Batches</option>
-      @for (ay of academicYears(); track ay) {
-        <option [value]="ay">{{ ay }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Batches" ariaLabel="Filter by academic year" searchPlaceholder="Search batches…"
+      [fetchPage]="academicYearFetchPage"
+      [selectedValue]="filterAcademicYear() === 'ALL' ? null : filterAcademicYear()" (selectedValueChange)="onAcademicYearChange($event)"
+    />
 
-    <select class="mlp-filter-select" [value]="filterYearOfStudy()" (change)="filterYearOfStudy.set($any($event.target).value); onFilterChange()" aria-label="Filter by year of study">
-      <option value="ALL">All Years</option>
-      @for (y of yearsOfStudy(); track y) {
-        <option [value]="y">Year {{ y }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Years" ariaLabel="Filter by year of study" searchPlaceholder="Search years…"
+      [fetchPage]="yearOfStudyFetchPage"
+      [selectedValue]="filterYearOfStudy() === 'ALL' ? null : filterYearOfStudy()" (selectedValueChange)="onYearOfStudyChange($event)"
+    />
 
-    <select class="mlp-filter-select" [value]="filterAllocStatus()" (change)="filterAllocStatus.set($any($event.target).value); onFilterChange()" aria-label="Filter by allocation status">
-      <option value="ALL">All Statuses</option>
-      @for (s of ALLOC_STATUSES; track s.value) {
-        <option [value]="s.value">{{ s.label }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Statuses" ariaLabel="Filter by allocation status" searchPlaceholder="Search statuses…"
+      [fetchPage]="allocStatusFetchPage"
+      [selectedValue]="filterAllocStatus() === 'ALL' ? null : filterAllocStatus()" (selectedValueChange)="onAllocStatusChange($event)"
+    />
 
     @if (hasActiveFilters()) {
       <button class="btn-clear-filters btn-toolbar--icon-only" (click)="clearAllFilters()" aria-label="Clear all filters" title="Clear all filters">
@@ -222,13 +249,9 @@
         </table>
       </div>
 
-      @if (dataSource.data.length > 0) {
+      @if (totalElements > 0) {
         <div class="table-footer">
-          <span class="row-count">
-            {{ dataSource.filteredData.length }}
-            @if (dataSource.filteredData.length !== dataSource.data.length) { of {{ dataSource.data.length }} }
-            students
-          </span>
+          <span class="row-count">{{ totalElements }} students</span>
           <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
         </div>
       }

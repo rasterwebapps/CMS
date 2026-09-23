@@ -31,15 +31,20 @@ public class CategoryService {
     @Transactional
     public CategoryResponse create(CategoryRequest request) {
         String name = requireTrimmed(request.name(), "Category name is required");
+        String shortCode = requireValidShortCode(request.shortCode());
         Category parent = resolveParent(request.parentCategoryId());
 
         if (nameTaken(name, parent, null)) {
             throw new IllegalArgumentException(
                 "A category with the name '" + name + "' already exists" + (parent == null ? " at the top level" : " under '" + parent.getName() + "'"));
         }
+        if (categoryRepository.existsByShortCodeIgnoreCase(shortCode)) {
+            throw new IllegalArgumentException("A category with the short code '" + shortCode + "' already exists");
+        }
 
         Category category = new Category();
         category.setName(name);
+        category.setShortCode(shortCode);
         category.setParentCategory(parent);
         category.setDescription(trim(request.description()));
         if (request.isActive() != null) category.setIsActive(request.isActive());
@@ -76,6 +81,7 @@ public class CategoryService {
     public CategoryResponse update(Long id, CategoryRequest request) {
         Category category = findOrThrow(id);
         String name = requireTrimmed(request.name(), "Category name is required");
+        String shortCode = requireValidShortCode(request.shortCode());
         Category parent = resolveParent(request.parentCategoryId());
 
         if (parent != null && parent.getId().equals(id)) {
@@ -88,8 +94,12 @@ public class CategoryService {
             throw new IllegalArgumentException(
                 "A category with the name '" + name + "' already exists" + (parent == null ? " at the top level" : " under '" + parent.getName() + "'"));
         }
+        if (categoryRepository.existsByShortCodeIgnoreCaseAndIdNot(shortCode, id)) {
+            throw new IllegalArgumentException("A category with the short code '" + shortCode + "' already exists");
+        }
 
         category.setName(name);
+        category.setShortCode(shortCode);
         category.setParentCategory(parent);
         category.setDescription(trim(request.description()));
         if (request.isActive() != null) category.setIsActive(request.isActive());
@@ -119,6 +129,14 @@ public class CategoryService {
         String trimmed = name == null ? "" : name.trim();
         Category parent = parentCategoryId == null ? null : categoryRepository.findById(parentCategoryId).orElse(null);
         return nameTaken(trimmed, parent, excludeId);
+    }
+
+    public boolean shortCodeExists(String shortCode, Long excludeId) {
+        String trimmed = shortCode == null ? "" : shortCode.trim();
+        if (trimmed.isEmpty()) return false;
+        return excludeId != null
+            ? categoryRepository.existsByShortCodeIgnoreCaseAndIdNot(trimmed, excludeId)
+            : categoryRepository.existsByShortCodeIgnoreCase(trimmed);
     }
 
     Category findOrThrow(Long id) {
@@ -159,8 +177,20 @@ public class CategoryService {
 
     private CategoryResponse toResponse(Category c) {
         Category parent = c.getParentCategory();
-        return new CategoryResponse(c.getId(), c.getName(), parent == null ? null : parent.getId(),
+        return new CategoryResponse(c.getId(), c.getName(), c.getShortCode(), parent == null ? null : parent.getId(),
             parent == null ? null : parent.getName(), c.getDescription(), c.getIsActive(), c.getCreatedAt(), c.getUpdatedAt());
+    }
+
+    /** Trims, uppercases, and validates the short code shape (2-10 uppercase letters/digits) —
+     *  matches the leniency of Product's own productCode field (client always sends it already
+     *  uppercased; this is a server-side backstop for any other caller). */
+    private static String requireValidShortCode(String shortCode) {
+        String trimmed = requireTrimmed(shortCode, "Short code is required");
+        String upper = trimmed.toUpperCase();
+        if (!upper.matches("[A-Z0-9]{2,10}")) {
+            throw new IllegalArgumentException("Short code must be 2-10 letters/digits, e.g. 'STA'");
+        }
+        return upper;
     }
 
     private static String trim(String s) {

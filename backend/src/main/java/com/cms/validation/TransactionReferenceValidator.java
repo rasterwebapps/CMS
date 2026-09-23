@@ -48,7 +48,8 @@ public class TransactionReferenceValidator
         return mode == PaymentMode.UPI
             || mode == PaymentMode.BANK_TRANSFER
             || mode == PaymentMode.CHEQUE
-            || mode == PaymentMode.DEMAND_DRAFT;
+            || mode == PaymentMode.DEMAND_DRAFT
+            || mode == PaymentMode.ONLINE_RAZORPAY;
     }
 }
 

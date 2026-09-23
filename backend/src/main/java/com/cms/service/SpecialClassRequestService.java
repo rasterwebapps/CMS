@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.DayRepeatRequest;
 import com.cms.dto.DayRepeatResult;
+import com.cms.dto.RecurringSpecialClassRequest;
+import com.cms.dto.RecurringSpecialClassResult;
 import com.cms.dto.SpecialClassOccurrenceDto;
 import com.cms.dto.SpecialClassRequest;
 import com.cms.exception.LifecycleConflictException;
@@ -65,7 +67,7 @@ import com.cms.service.SessionOccurrenceVenue.VenueResolution;
 public class SpecialClassRequestService {
 
     private static final List<OccurrenceSource> SPECIAL_SOURCES =
-        List.of(OccurrenceSource.SPECIAL_CLASS, OccurrenceSource.DAY_REPEAT);
+        List.of(OccurrenceSource.SPECIAL_CLASS, OccurrenceSource.DAY_REPEAT, OccurrenceSource.RECURRING_SPECIAL_CLASS);
     private static final List<SpecialClassApprovalStatus> LIVE_STATUSES =
         List.of(SpecialClassApprovalStatus.PENDING, SpecialClassApprovalStatus.APPROVED);
 
@@ -241,6 +243,98 @@ public class SpecialClassRequestService {
                 + " (" + skippedCount + " skipped, cohort unresolved)");
 
         return new DayRepeatResult(saved.stream().map(this::toDto).toList(), skippedCount);
+    }
+
+    /** Weekly-recurring counterpart to {@link #requestSingleSubject} — the same single-subject
+     *  shape (subject/venue/faculty/periods), repeated every week on {@code startDate}'s weekday
+     *  through {@code endDate} inclusive. A candidate week whose date isn't itself a non-instruction
+     *  day (see {@link #requireNonInstructionDay}) is skipped rather than requested — the common
+     *  case is a Saturday-cadence recurrence where only some Saturdays in the term are actually
+     *  non-working, exactly like {@link #requestDayRepeat}'s skip-and-report convention for
+     *  unresolved cohort ownership. Any real scheduling conflict on an otherwise-eligible week still
+     *  fails the whole batch — a partially-created recurring series would be a confusing half-series
+     *  to review/approve, same all-or-nothing rule {@link #requestDayRepeat} already applies. */
+    @Transactional
+    public RecurringSpecialClassResult requestRecurringSpecialClass(RecurringSpecialClassRequest request,
+                                                                      Long requestingFacultyId, String actor) {
+        if (request.endDate().isBefore(request.startDate())) {
+            throw new IllegalArgumentException("End date must be on or after the start date.");
+        }
+        Subject subject = subjectRepository.findById(request.subjectId())
+            .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + request.subjectId()));
+        CourseOffering courseOffering = courseOfferingRepository.findById(request.courseOfferingId())
+            .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + request.courseOfferingId()));
+        CohortSection cohortSection = request.cohortSectionId() != null
+            ? cohortSectionRepository.findById(request.cohortSectionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cohort section not found with id: " + request.cohortSectionId()))
+            : null;
+        List<Period> periods = resolveConsecutivePeriods(request.periodIds());
+        Faculty requestedFaculty = facultyRepository.findById(request.requestedFacultyId())
+            .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + request.requestedFacultyId()));
+        Faculty requestingFaculty = facultyRepository.findById(requestingFacultyId)
+            .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + requestingFacultyId));
+
+        TermInstance term = courseOffering.getTermInstance();
+        requireNotLocked(term);
+        requireWithinTermAndFutureDate(request.startDate(), term);
+        requireWithinTermAndFutureDate(request.endDate(), term);
+
+        VenueResolution venue = resolveVenue(request.sessionType(), request.classroomId(), request.labId(), request.clinicalVenueId());
+
+        List<LocalDate> eligibleDates = new ArrayList<>();
+        int skippedCount = 0;
+        for (LocalDate date = request.startDate(); !date.isAfter(request.endDate()); date = date.plusWeeks(1)) {
+            try {
+                requireNonInstructionDay(date, term);
+                eligibleDates.add(date);
+            } catch (IllegalArgumentException notEligible) {
+                skippedCount++;
+            }
+        }
+        if (eligibleDates.isEmpty()) {
+            throw new IllegalArgumentException("No non-instruction date falls on this weekday between "
+                + request.startDate() + " and " + request.endDate() + " — special classes can only run on a "
+                + "Sunday, a non-working Saturday, or a declared holiday.");
+        }
+
+        List<ConstraintViolation> allViolations = new ArrayList<>();
+        for (LocalDate date : eligibleDates) {
+            DayOfWeek day = dayOfWeekOrNullForSunday(date);
+            for (Period period : periods) {
+                List<ConstraintViolation> dateViolations = new ArrayList<>();
+                checkConflicts(dateViolations, term, day, period, requestedFaculty.getId(), request.sessionType(),
+                    venue.venueId(), venue.physicalRoom(), venue.capacity(), venue.classroom(), courseOffering.getId(),
+                    date, subject.getId(), cohortSection != null ? cohortSection.getId() : null, null);
+                allViolations.addAll(dateViolations.stream()
+                    .map(v -> new ConstraintViolation(v.code(), date + ": " + v.message()))
+                    .toList());
+            }
+        }
+        if (!allViolations.isEmpty()) {
+            throw new TimetableConstraintViolationException(allViolations);
+        }
+
+        UUID requestBatchId = UUID.randomUUID();
+        List<SessionOccurrence> toSave = new ArrayList<>();
+        for (LocalDate date : eligibleDates) {
+            for (Period period : periods) {
+                SessionOccurrence occurrence = SessionOccurrence.forSpecialClass(OccurrenceSource.RECURRING_SPECIAL_CLASS,
+                    date, subject, courseOffering, cohortSection, period, request.sessionType(),
+                    requestedFaculty, requestingFaculty, request.reason());
+                occurrence.setRequestBatchId(requestBatchId);
+                applyVenue(occurrence, request.sessionType(), venue);
+                toSave.add(occurrence);
+            }
+        }
+        List<SessionOccurrence> saved = sessionOccurrenceRepository.saveAll(toSave);
+
+        String periodNames = periods.stream().map(Period::getName).reduce((a, b) -> a + ", " + b).orElse("");
+        auditLogService.record(actor, "SPECIAL_CLASS_RECURRING_REQUESTED", "SessionOccurrence", requestBatchId.toString(),
+            "Requested recurring special class: " + subject.getName() + " (" + periodNames + ") weekly from "
+                + request.startDate() + " to " + request.endDate() + " (" + saved.size() + " occurrences, "
+                + skippedCount + " skipped)");
+
+        return new RecurringSpecialClassResult(saved.stream().map(this::toDto).toList(), skippedCount);
     }
 
     /** Never guesses: a source row only belongs to the target cohort section if it (or, for

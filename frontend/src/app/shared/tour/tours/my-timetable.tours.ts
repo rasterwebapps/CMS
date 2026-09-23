@@ -17,7 +17,7 @@ export const MY_TIMETABLE_TOUR: TourDefinition = {
       element: '#tour-mytt-toolbar',
       popover: {
         title: 'Term & View',
-        description: 'Pick a term, then switch between Week / Month / Day views to see your schedule at different levels of detail.',
+        description: 'Pick a term, then switch between Generic / Date-wise / Day views to see your schedule at different levels of detail.',
         side: 'bottom',
         align: 'start',
       },
@@ -40,7 +40,7 @@ export const MY_TIMETABLE_FLOW_MAP: TourFlowMap = {
   ],
   currentIndex: 0,
   steps: [
-    { label: 'Pick Term & View', icon: 'search', detail: 'Choose the term, then Week / Month / Day view.' },
+    { label: 'Pick Term & View', icon: 'search', detail: 'Choose the term, then Generic / Date-wise / Day view.' },
     { label: 'Browse Sessions', icon: 'checklist', detail: 'See your own theory and lab sessions for the period.' },
     { label: 'Log Progress', icon: 'open', detail: 'Click a session to log progress against it, where permitted.' },
   ],

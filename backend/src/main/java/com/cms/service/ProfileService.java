@@ -104,9 +104,6 @@ public class ProfileService {
             byte[] data = storageService.downloadBytes(user.getProfilePhotoKey());
             return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(data);
         }
-        if (user.getProfilePhoto() != null && user.getProfilePhoto().length > 0) {
-            return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(user.getProfilePhoto());
-        }
         return ResponseEntity.noContent().build();
     }
 
@@ -139,7 +136,6 @@ public class ProfileService {
             storageService.delete(user.getProfilePhotoKey());
             user.setProfilePhotoKey(null);
         }
-        user.setProfilePhoto(null);
         user.setProfilePhotoType(null);
         appUserRepository.save(user);
     }
@@ -154,9 +150,6 @@ public class ProfileService {
         if (user.getCoverPhotoKey() != null && !user.getCoverPhotoKey().isBlank()) {
             byte[] data = storageService.downloadBytes(user.getCoverPhotoKey());
             return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(data);
-        }
-        if (user.getCoverPhoto() != null && user.getCoverPhoto().length > 0) {
-            return ResponseEntity.ok().contentType(MediaType.parseMediaType(contentType)).body(user.getCoverPhoto());
         }
         return ResponseEntity.noContent().build();
     }
@@ -190,7 +183,6 @@ public class ProfileService {
             storageService.delete(user.getCoverPhotoKey());
             user.setCoverPhotoKey(null);
         }
-        user.setCoverPhoto(null);
         user.setCoverPhotoType(null);
         appUserRepository.save(user);
     }

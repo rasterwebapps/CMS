@@ -502,7 +502,7 @@ class AcademicYearServiceTest {
         com.cms.dto.TermInstanceDto oddTerm = new com.cms.dto.TermInstanceDto(
             10L, 1L, "2024-2025", com.cms.model.enums.TermType.ODD,
             LocalDate.of(2024, 8, 1), LocalDate.of(2025, 1, 31),
-            com.cms.model.enums.TermInstanceStatus.PLANNED, Instant.now(), Instant.now());
+            com.cms.model.enums.TermInstanceStatus.PLANNED, Instant.now(), Instant.now(), 0L);
 
         when(academicYearRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(termInstanceService.getTermInstancesByAcademicYear(1L)).thenReturn(List.of(oddTerm));

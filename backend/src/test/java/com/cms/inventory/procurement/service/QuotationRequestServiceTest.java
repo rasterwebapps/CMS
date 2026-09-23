@@ -55,6 +55,7 @@ class QuotationRequestServiceTest {
     @Mock private SupplierRepository supplierRepository;
     @Mock private InventoryLocationRepository locationRepository;
     @Mock private PurchaseOrderService purchaseOrderService;
+    @Mock private com.cms.service.ApplicationNumberSequenceService numberSequenceService;
     private QuotationRequestService service;
 
     private final InventoryLocation location = location(1L, "Main Store");
@@ -64,7 +65,8 @@ class QuotationRequestServiceTest {
     @BeforeEach
     void setUp() {
         service = new QuotationRequestService(requestRepository, lineRepository, supplierLinkRepository,
-            responseRepository, requisitionItemRepository, supplierRepository, locationRepository, purchaseOrderService);
+            responseRepository, requisitionItemRepository, supplierRepository, locationRepository, purchaseOrderService,
+            numberSequenceService);
         lenient().when(requestRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         lenient().when(lineRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         lenient().when(supplierLinkRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -278,9 +280,9 @@ class QuotationRequestServiceTest {
         when(requestRepository.findById(1L)).thenReturn(Optional.of(request));
         when(lineRepository.findAwardedNotYetOrdered(1L)).thenReturn(List.of(lineA, lineB));
         when(purchaseOrderService.create(any(), any())).thenAnswer(inv ->
-            new PurchaseOrderResponse(900L, null, null, null, null, "PENDING", null, null, null, null, null, null, null, null, null, null, null, null, 0, null, null));
+            new PurchaseOrderResponse(900L, null, null, null, null, null, "PENDING", null, null, null, null, null, null, null, null, null, null, null, null, 0, null, null));
         when(purchaseOrderService.findById(900L)).thenReturn(
-            new PurchaseOrderResponse(900L, null, null, null, null, "PENDING", null, null, null, null, null, null, null, null, null, null, null, null, 1, null, null));
+            new PurchaseOrderResponse(900L, null, null, null, null, null, "PENDING", null, null, null, null, null, null, null, null, null, null, null, null, 1, null, null));
         when(lineRepository.existsByQuotationRequestIdAndStatus(anyLong(), any())).thenReturn(false);
 
         var created = service.convertAwardedLines(1L, "buyer");

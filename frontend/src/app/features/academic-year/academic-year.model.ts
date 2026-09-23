@@ -200,6 +200,10 @@ export interface TermInstance {
   status: TermInstanceStatus;
   createdAt: string;
   updatedAt: string;
+  /** The term's real working-Saturday count -- 0 means the term hasn't opted in to Saturday
+   *  scheduling at all (Mon-Fri only). Drives the published timetable's Generic week grid's
+   *  Saturday column visibility (see CmsWeekGridComponent.workingSaturdayCount). */
+  workingSaturdayCount: number;
 }
 
 export interface TermInstanceUpdateRequest {
@@ -352,7 +356,7 @@ export interface CourseOffering {
 }
 
 /** Deactivating (isActive: false) is blocked server-side when the offering already has sessions
- *  placed in Skeleton Builder or batches with students rostered — reactivating has no such guard. */
+ *  placed in Timetable Builder or batches with students rostered — reactivating has no such guard. */
 export interface CourseOfferingStatusUpdateRequest {
   isActive: boolean;
   reason?: string;

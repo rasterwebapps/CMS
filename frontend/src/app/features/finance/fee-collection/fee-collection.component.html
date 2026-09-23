@@ -40,26 +40,17 @@
         }
       </div>
 
-      <select
-        class="mlp-filter-select"
-        [value]="filterType()"
-        (change)="setFilterType($any($event.target).value)"
-        aria-label="Filter by type"
-      >
-        <option value="ALL">All Types</option>
-        <option value="ENQUIRY">Pre-enrollment</option>
-        <option value="STUDENT">Students</option>
-      </select>
+      <cms-infinite-select
+        label="All Types" ariaLabel="Filter by type" searchPlaceholder="Search types…"
+        [fetchPage]="filterTypeFetchPage"
+        [selectedValue]="filterType() === 'ALL' ? null : filterType()" (selectedValueChange)="setFilterType($event)"
+      />
 
-      <select
-        class="mlp-filter-select"
-        [value]="filterStatus()"
-        (change)="setFilterStatus($any($event.target).value)"
-        aria-label="Filter by status"
-      >
-        <option value="ALL">Any Status</option>
-        <option value="OUTSTANDING">Has Outstanding</option>
-      </select>
+      <cms-infinite-select
+        label="Any Status" ariaLabel="Filter by status" searchPlaceholder="Search statuses…"
+        [fetchPage]="filterStatusFetchPage"
+        [selectedValue]="filterStatus() === 'ALL' ? null : filterStatus()" (selectedValueChange)="setFilterStatus($event)"
+      />
 
       @if (hasActiveFilters) {
         <button class="btn-clear-filters btn-toolbar--icon-only" (click)="clearFilters()" aria-label="Clear filters" title="Clear filters">
@@ -188,10 +179,12 @@
          </svg>
        </button>
        <div class="payment-topbar__text">
-         <h2>Collect <em>Balance</em></h2>
+         <div class="page-title-row">
+           <h1>Collect <em>Balance</em></h1>
+           <cms-tour-button tourKey="collect-balance" [iconOnly]="true" iconVariant="info-circle" />
+         </div>
          <p>Review installment status and record the payment details.</p>
        </div>
-       <cms-tour-button tourKey="collect-balance" [iconOnly]="true" iconVariant="info-circle" />
      </div>
 
     <div class="payment-layout anim-rise anim-rise--d1">

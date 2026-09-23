@@ -18,7 +18,7 @@ export const TIMETABLE_VIEW_TOUR: TourDefinition = {
       popover: {
         title: 'Term, View, and Filters',
         description:
-          'Pick a term, switch between Week / Month / Day views, and filter by faculty, room, or batch to focus on what matters.',
+          'Pick a term, switch between Generic / Date-wise / Day views, and filter by faculty, room, or batch to focus on what matters.',
         side: 'bottom',
         align: 'start',
       },
@@ -28,7 +28,7 @@ export const TIMETABLE_VIEW_TOUR: TourDefinition = {
       popover: {
         title: 'The Timetable',
         description:
-          'Week shows a real weekly grid, Month shows a calendar of session-days, and Day shows a full agenda for one date — with room relocation available where permitted.',
+          'Generic shows the recurring weekly pattern, Date-wise shows one real calendar week at a time with any per-date changes, and Day shows a full agenda for one date — with room relocation available where permitted.',
         side: 'top',
         align: 'start',
       },
@@ -46,9 +46,9 @@ export const TIMETABLE_VIEW_TOUR: TourDefinition = {
 
 export const TIMETABLE_VIEW_FLOW_MAP: TourFlowMap = {
   funnel: [
-    { label: 'Faculty Availability', description: 'Record which faculty are unavailable for which periods before building the timetable.' },
+    { label: 'Recurring Unavailability', description: 'Record which faculty have standing weekly commitments before building the timetable.' },
     { label: 'Faculty Workload Rules', description: 'Set weekly/daily/continuous teaching-load caps used to validate staffing.' },
-    { label: 'Skeleton Builder', description: 'Place Theory/Lab/Clinical sessions into periods for each subject across a cohort\'s term.' },
+    { label: 'Timetable Builder', description: 'Place Theory/Lab/Clinical sessions into periods for each subject across a cohort\'s term.' },
     { label: 'Staffing', description: 'Assign faculty to each placed session and pick theory rooms.' },
     { label: 'Capacity Planner', description: 'Work out how many classrooms and lab/clinical batches a cohort needs, and commit the physical rooms.' },
     { label: 'Conflict Inspector', description: 'Scan the whole term for room, faculty, and workload conflicts before publishing.' },
@@ -57,8 +57,8 @@ export const TIMETABLE_VIEW_FLOW_MAP: TourFlowMap = {
   ],
   currentIndex: 7,
   steps: [
-    { label: 'Term, View & Filters', icon: 'search', detail: 'Pick a term, switch Week/Month/Day views, and filter by faculty, room, or batch.' },
-    { label: 'Browse the Grid', icon: 'checklist', detail: 'Week/Month/Day views of the published, approved schedule.' },
+    { label: 'Term, View & Filters', icon: 'search', detail: 'Pick a term, switch Generic/Date-wise/Day views, and filter by faculty, room, or batch.' },
+    { label: 'Browse the Grid', icon: 'checklist', detail: 'Generic/Date-wise/Day views of the published, approved schedule.' },
     { label: 'Relocate a Room', icon: 'open', detail: 'Where permitted, relocate a session\'s room directly from the Day view.' },
     { label: 'Always Current', icon: 'send', detail: 'Reflects whatever was last approved in Timetable Draft Review, automatically.' },
   ],

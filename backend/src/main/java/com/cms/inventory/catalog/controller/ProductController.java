@@ -23,9 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.ActiveStatusUpdateRequest;
 import com.cms.dto.ActiveStatusUpdateResponse;
+import com.cms.inventory.catalog.dto.NextProductCodeResponse;
+import com.cms.inventory.catalog.dto.ProductCodeRegenerationResult;
 import com.cms.inventory.catalog.dto.ProductRequest;
 import com.cms.inventory.catalog.dto.ProductResponse;
 import com.cms.inventory.catalog.service.InventoryBarcodeService;
+import com.cms.inventory.catalog.service.ProductCodeGeneratorService;
 import com.cms.inventory.catalog.service.ProductService;
 
 import jakarta.validation.Valid;
@@ -38,10 +41,13 @@ public class ProductController {
 
     private final ProductService productService;
     private final InventoryBarcodeService barcodeService;
+    private final ProductCodeGeneratorService codeGeneratorService;
 
-    public ProductController(ProductService productService, InventoryBarcodeService barcodeService) {
+    public ProductController(ProductService productService, InventoryBarcodeService barcodeService,
+                              ProductCodeGeneratorService codeGeneratorService) {
         this.productService = productService;
         this.barcodeService = barcodeService;
+        this.codeGeneratorService = codeGeneratorService;
     }
 
     @PostMapping
@@ -94,6 +100,32 @@ public class ProductController {
             @RequestParam String value,
             @RequestParam(required = false) Long excludeId) {
         return ResponseEntity.ok(productService.codeExists(value, excludeId));
+    }
+
+    /** Live preview for the Add Product form — the code a save will actually be assigned, without
+     *  committing the category's counter. */
+    @GetMapping("/next-code")
+    @PreAuthorize("@perm.has('INVENTORY_PRODUCT_MANAGE')")
+    public ResponseEntity<NextProductCodeResponse> nextCode(@RequestParam Long categoryId) {
+        return ResponseEntity.ok(new NextProductCodeResponse(codeGeneratorService.previewNextCode(categoryId)));
+    }
+
+    /** Preview of the "Regenerate Product Codes" admin action — computes the full before/after
+     *  mapping without writing anything, for a confirm dialog. */
+    @GetMapping("/regenerate-codes/preview")
+    @PreAuthorize("@perm.has('INVENTORY_PRODUCT_REGENERATE_CODES')")
+    public ResponseEntity<ProductCodeRegenerationResult> previewRegenerateCodes() {
+        return ResponseEntity.ok(codeGeneratorService.regenerateAllCodes(true));
+    }
+
+    /** Executes the "Regenerate Product Codes" admin action — bulk-reassigns every product's code
+     *  to a fresh, gap-free per-category sequence. See ProductCodeGeneratorService for the
+     *  transactional-safety design; this is a mass rewrite of production data and should only be
+     *  run after a backup, per the project's production-data-safety policy. */
+    @PostMapping("/regenerate-codes")
+    @PreAuthorize("@perm.has('INVENTORY_PRODUCT_REGENERATE_CODES')")
+    public ResponseEntity<ProductCodeRegenerationResult> regenerateCodes() {
+        return ResponseEntity.ok(codeGeneratorService.regenerateAllCodes(false));
     }
 
     @GetMapping("/name-exists")

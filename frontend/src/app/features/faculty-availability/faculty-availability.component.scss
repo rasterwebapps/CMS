@@ -1,7 +1,60 @@
+// Compact inline notice banners -- matches the established app pattern (see
+// academic-year-form's .ayf-locked-banner): flex row + icon + tinted
+// background, not a .content-card (that class carries shadow/hover-lift/
+// accent-bar chrome meant for full sections, and flex:1 which stretches to
+// fill the page's flex column alongside the grid card below).
+//
+// No margin-bottom: both are direct children of .mlp-page, whose own flex
+// `gap: 16px` already spaces them from whatever comes next -- a margin here
+// would stack on top of that gap and double it (see CLAUDE.md's "Shared
+// mlp-* list-page spacing system" hard gate; same mistake independently
+// fixed the same day in timetable-builder.component.scss's
+// .skeleton-hours-summary).
+.availability-info-banner,
 .availability-readonly-banner {
-  padding: 12px 18px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--cms-radius-md);
   font-size: var(--cms-text-sm);
-  color: var(--cms-text-secondary);
+  font-weight: 500;
+
+  svg { flex-shrink: 0; }
+}
+
+.availability-info-banner {
+  border: 1px solid var(--cms-info);
+  background: var(--cms-info-light);
+  color: var(--cms-info);
+
+  span { color: var(--cms-text-secondary); }
+
+  a {
+    color: var(--cms-info);
+    font-weight: 700;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.availability-readonly-banner {
+  border: 1px solid var(--cms-warning);
+  background: var(--cms-warning-light);
+  color: var(--cms-warning);
+
+  span { color: var(--cms-text-secondary); }
+}
+
+// .content-card carries no padding of its own (see student-promotion.component.scss's
+// .sp-select-card/.sp-result-card for the same convention) -- without this, the title and
+// grid sit flush against the card's edges.
+.availability-grid-card {
+  padding: 20px;
 }
 
 .availability-grid-card__title {

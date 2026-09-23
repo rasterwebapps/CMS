@@ -1,7 +1,9 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, computed, inject, signal } from '@angular/core';
 import { CampusInfrastructureService } from '../../features/hostel/campus-infrastructure/campus-infrastructure.service';
 import { Room } from '../../features/hostel/campus-infrastructure/campus-infrastructure.model';
+import { CmsInfiniteSelectComponent } from '../infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../infinite-select/infinite-select.utils';
 
 /**
  * Selectable, campus-wide Room search filtered by purpose (and optionally sub-type/min-capacity) —
@@ -16,7 +18,7 @@ import { Room } from '../../features/hostel/campus-infrastructure/campus-infrast
 @Component({
   selector: 'cms-room-picker',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CmsInfiniteSelectComponent],
   templateUrl: './room-picker.component.html',
 })
 export class CmsRoomPickerComponent implements OnChanges {
@@ -47,6 +49,15 @@ export class CmsRoomPickerComponent implements OnChanges {
   protected readonly rooms = signal<Room[]>([]);
   protected readonly loading = signal(false);
 
+  protected readonly pickerLabel = computed(() => {
+    if (this.purposeCategoryId == null) return 'Select a purpose category first';
+    if (this.rooms().length === 0) return this.loading() ? 'Loading rooms…' : 'No matching rooms';
+    return 'Select a room';
+  });
+
+  protected readonly roomFetchPage = staticOptionsFetchPage(() =>
+    this.rooms().map(r => ({ id: r.id, name: this.roomLabel(r) })));
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['purposeCategoryId'] || changes['subTypeId'] || changes['minCapacity'] || changes['keepRoomId'] || changes['venueType']) {
       this.loadRooms();
@@ -75,7 +86,8 @@ export class CmsRoomPickerComponent implements OnChanges {
       });
   }
 
-  protected onSelectionChange(): void {
+  protected onSelectionChange(value: InfiniteSelectValue | null): void {
+    this.selectedRoomId = value != null ? Number(value) : null;
     this.selectedRoomIdChange.emit(this.selectedRoomId);
     this.emitSelectedRoom();
   }

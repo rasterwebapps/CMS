@@ -28,17 +28,9 @@ export const LAB_SCHEDULE_LIST_TOUR: TourDefinition = {
       popover: {
         title: 'Schedule Records',
         description:
-          'Each row is one lab session — day, session type, room, subject, faculty, batch, and start/end time.',
+          'Each row is one lab session — day, session type, room, subject, faculty, batch, and start/end time. New sessions come from Timetable Builder or the Special Class Scheduler; edit an existing row here to correct it.',
         side: 'top',
         align: 'start',
-      },
-    },
-    {
-      popover: {
-        title: '✅ Add a schedule',
-        description: 'Use Add Schedule to plan a new lab session — day, time, room, subject, and the faculty/batch teaching it.',
-        side: 'over',
-        align: 'center',
       },
     },
   ],
@@ -52,7 +44,5 @@ export const LAB_SCHEDULE_LIST_FLOW_MAP: TourFlowMap = {
   steps: [
     { label: 'Search', icon: 'search', detail: 'Search schedules by subject, room, or faculty name.' },
     { label: 'Schedule Records', icon: 'checklist', detail: 'Each row is one lab session with its day, time, room, subject, faculty, and batch.' },
-    { label: 'Add a Schedule', icon: 'open', detail: 'Plan a new lab session, picking the day, time, room, subject, and teaching faculty/batch.' },
-    { label: 'Save', icon: 'send', detail: 'Save the schedule so it appears on the lab\'s timetable.' },
   ],
 };

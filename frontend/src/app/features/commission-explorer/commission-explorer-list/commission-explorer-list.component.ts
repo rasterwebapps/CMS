@@ -27,6 +27,9 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { CommissionExplorerService } from '../commission-explorer.service';
 import {
   CommissionRecord,
@@ -57,7 +60,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, MatProgressSpinnerModule,
-    CmsTourButtonComponent,
+    CmsTourButtonComponent, CmsInfiniteSelectComponent,
   ],
   templateUrl: './commission-explorer-list.component.html',
   styleUrl:    './commission-explorer-list.component.scss',
@@ -110,6 +113,10 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
   protected readonly dataSource    = new MatTableDataSource<CommissionRecord>([]);
   protected readonly statusOptions = COMMISSION_STATUS_OPTIONS;
   protected readonly sourceOptions = COMMISSION_SOURCE_OPTIONS;
+  protected readonly statusFetchPage = staticOptionsFetchPage(() =>
+    this.statusOptions.map(o => ({ id: o.value, name: o.label })));
+  protected readonly sourceFetchPage = staticOptionsFetchPage(() =>
+    this.sourceOptions.map(o => ({ id: o.value, name: o.label })));
   protected readonly paymentModes  = PAYMENT_MODES;
 
   // ── OneBook config ────────────────────────────────────────────────────────────
@@ -290,6 +297,14 @@ export class CommissionExplorerListComponent implements OnInit, OnDestroy {
       Object.entries(merged).filter(([, v]) => v !== null && v !== undefined && v !== ''),
     );
     void this.router.navigate([], { relativeTo: this.route, queryParams });
+  }
+
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.navigate({ status: value != null ? String(value) : null, page: 0 });
+  }
+
+  protected onSourceFilterChange(value: InfiniteSelectValue | null): void {
+    this.navigate({ source: value != null ? String(value) : null, page: 0 });
   }
 
   protected onExport(format: ExportFormat): void {

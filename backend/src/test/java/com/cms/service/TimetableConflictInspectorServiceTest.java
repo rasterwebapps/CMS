@@ -69,6 +69,8 @@ class TimetableConflictInspectorServiceTest {
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private FacultyAbsenceRepository facultyAbsenceRepository;
     @Mock private SystemConfigurationService systemConfigurationService;
+    @Mock private TimetableSkeletonService timetableSkeletonService;
+    @Mock private com.cms.repository.CohortConflictAcknowledgmentRepository cohortConflictAcknowledgmentRepository;
 
     private TimetableConflictInspectorService service;
 
@@ -87,7 +89,8 @@ class TimetableConflictInspectorServiceTest {
             facultyAbsenceRepository, systemConfigurationService);
         service = new TimetableConflictInspectorService(classScheduleRepository, termInstanceRepository,
             staffingService, blockedPeriodChecker, clinicalShiftChecker,
-            courseOfferingService, studentTermEnrollmentRepository);
+            courseOfferingService, studentTermEnrollmentRepository,
+            timetableSkeletonService, cohortConflictAcknowledgmentRepository);
 
         AcademicYear ay = new AcademicYear("2024-2025", LocalDate.of(2024, 6, 1), LocalDate.of(2025, 5, 31), false);
         ay.setId(1L);
@@ -111,7 +114,7 @@ class TimetableConflictInspectorServiceTest {
         classroom = new Classroom("Room 101", "Main Block", "101", 60);
         classroom.setId(1L);
 
-        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        lenient().when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
         lenient().when(blockedPeriodChecker.blockReason(any(), any(), any(), any())).thenReturn(Optional.empty());
         lenient().when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
@@ -120,6 +123,7 @@ class TimetableConflictInspectorServiceTest {
     private ClassSchedule staffedCell(long id) {
         ClassSchedule cs = new ClassSchedule();
         cs.setId(id);
+        cs.setIsActive(true);
         cs.setSessionType(ClassSessionType.THEORY);
         cs.setStatus(ClassScheduleStatus.PUBLISHED);
         cs.setSubject(subject);
@@ -140,7 +144,7 @@ class TimetableConflictInspectorServiceTest {
     @Test
     void shouldReportNoViolationsForAConflictFreeTerm() {
         ClassSchedule cell = staffedCell(100L);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cell));
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cell));
 
         ConflictScanResponse result = service.scanTerm(10L);
 
@@ -153,7 +157,7 @@ class TimetableConflictInspectorServiceTest {
     @Test
     void shouldFlagACellSittingInABlockedPeriod() {
         ClassSchedule cell = staffedCell(100L);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cell));
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cell));
         when(blockedPeriodChecker.blockReason(DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
 
@@ -172,11 +176,11 @@ class TimetableConflictInspectorServiceTest {
         ClassSchedule cellA = staffedCell(100L);
         ClassSchedule cellB = staffedCell(200L);
 
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(cellA, cellB));
-        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
-            ClassScheduleStatus.PUBLISHED, 100L)).thenReturn(List.of(cellB));
-        when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(), period.getEndTime(),
-            ClassScheduleStatus.PUBLISHED, 200L)).thenReturn(List.of(cellA));
+        // scanTerm always binds an AutoScheduleRunCache now, so checkFacultyFree resolves overlap
+        // in-memory from this same findByTermInstanceId snapshot (AutoScheduleRunCache#overlapping)
+        // rather than calling classScheduleRepository.findOverlapping at all -- no separate stub
+        // for it needed here.
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(cellA, cellB));
 
         ConflictScanResponse result = service.scanTerm(10L);
 
@@ -194,7 +198,7 @@ class TimetableConflictInspectorServiceTest {
         unstaffed.setFaculty(null);
         unstaffed.setClassroom(null);
         unstaffed.setStatus(ClassScheduleStatus.DRAFT);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(unstaffed));
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(unstaffed));
 
         ConflictScanResponse result = service.scanTerm(10L);
 
@@ -211,8 +215,11 @@ class TimetableConflictInspectorServiceTest {
         ClassSchedule leftover = staffedCell(100L);
         leftover.setStatus(ClassScheduleStatus.DRAFT);
         leftover.setIsActive(false);
-        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(replacement));
-        lenient().when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(leftover, replacement));
+        // AutoScheduleRunCache.run loads via the unfiltered findByTermInstanceId and does its own
+        // isActive filtering in Java (see AutoScheduleRunCache#run) -- scanTerm always binds one,
+        // so this is the only stub needed; leftover (isActive=false) must end up excluded by that
+        // filter on its own, which is exactly what this test is asserting.
+        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(leftover, replacement));
         // findOverlapping only ever returns active rows, so the replacement sees nobody else.
         lenient().when(classScheduleRepository.findOverlapping(DayOfWeek.MONDAY, 10L, period.getStartTime(),
             period.getEndTime(), ClassScheduleStatus.DRAFT, 100L)).thenReturn(List.of(replacement));
@@ -223,4 +230,5 @@ class TimetableConflictInspectorServiceTest {
         assertThat(result.violationCount()).isZero();
         assertThat(result.rows()).isEmpty();
     }
+
 }

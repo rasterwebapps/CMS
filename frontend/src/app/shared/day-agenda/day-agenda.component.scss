@@ -1,7 +1,8 @@
 .day-agenda-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  padding: 16px;
 }
 
 .day-agenda__date {
@@ -11,50 +12,89 @@
   margin: 0;
 }
 
-.day-agenda__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.day-agenda__rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
+}
+
+// One row per period (or, without a periods list, per distinct start/end time) -- the time/label
+// column stays a fixed width so every row's sections column lines up underneath it.
+.day-agenda__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.day-agenda__row-time {
+  display: flex;
+  flex-direction: column;
+  min-width: 92px;
+  padding-top: 10px;
+}
+
+.day-agenda__row-label {
+  font-size: var(--cms-text-xs);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.day-agenda__row-range {
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+  white-space: nowrap;
+}
+
+// Concurrent sessions in the same period sit side by side as columns within the one row, rather
+// than stacked into extra rows -- each takes an equal share of the row's width and wraps onto a
+// second line only if too many to fit.
+.day-agenda__row-sections {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.day-agenda__free {
+  flex: 1;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px dashed var(--cms-border-default);
+  color: var(--cms-text-muted);
+  font-size: var(--cms-text-xs);
+  font-style: italic;
 }
 
 .day-agenda__item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 16px;
   border-radius: 8px;
   border: 1px solid var(--cms-border-default);
-  background: var(--cms-bg-card);
-
-  &--theory {
-    border-left: 3px solid rgba(59, 130, 246, 0.6);
-  }
-
-  &--lab {
-    border-left: 3px solid rgba(16, 185, 129, 0.6);
-  }
+  // Same recipe every timetable-shaped screen uses -- see session-color.util.ts and
+  // week-grid.component.scss's identical rule. --subject-color is set inline per item from the
+  // session's sessionType (sessionColor()), so this rule never hardcodes a session-type color
+  // itself. Previously this only had the accent bar with a flat, untinted card background, which
+  // read as visibly plainer than Timetable Builder/Week Grid's light background tint.
+  background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
+  border-left: 3px solid var(--subject-color, var(--cms-border-default));
 
   // A session that doesn't happen on this date (holiday-blocked) -- muted + struck through
   // instead of just vanishing from the day's agenda.
   &--cancelled {
     opacity: 0.65;
+    background: var(--cms-bg-muted);
     border-left-color: var(--cms-border-default);
 
     .day-agenda__subject {
       text-decoration: line-through;
     }
   }
-}
-
-.day-agenda__time {
-  font-size: var(--cms-text-xs);
-  font-weight: 700;
-  color: var(--cms-text-secondary);
-  white-space: nowrap;
-  min-width: 92px;
 }
 
 .day-agenda__body {

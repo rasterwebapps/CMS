@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -38,4 +40,25 @@ public interface StudentTermEnrollmentRepository extends JpaRepository<StudentTe
     @Query("select distinct e.cohort.id from StudentTermEnrollment e "
         + "where e.termInstance.id = :termInstanceId and e.status = :status")
     Set<Long> findDistinctCohortIdsByTermInstanceId(@Param("termInstanceId") Long termInstanceId, @Param("status") EnrollmentStatus status);
+
+    /** Paginated counterpart of {@link #findDistinctCohortIdsByTermInstanceId} for Timetable
+     *  Builder's "All cohorts" summary table (OC-262) -- ordered by cohort name so paging is
+     *  stable/alphabetical, and optionally narrowed to one cohort so the single-cohort filter goes
+     *  through the same paginated path rather than a separate client-side-filtered fetch.
+     *
+     *  <p>{@code group by} rather than {@code select distinct} -- Postgres refuses {@code order by}
+     *  on a column not in the select list under {@code SELECT DISTINCT} ("ORDER BY expressions must
+     *  appear in select list"), but that restriction doesn't apply to {@code GROUP BY}, which still
+     *  collapses to one row per cohort here since every enrollment for the same cohort shares the
+     *  same {@code cohort.displayName}. */
+    @Query(value = "select e.cohort.id from StudentTermEnrollment e "
+            + "where e.termInstance.id = :termInstanceId and e.status = :status "
+            + "and (:cohortId is null or e.cohort.id = :cohortId) "
+            + "group by e.cohort.id, e.cohort.displayName "
+            + "order by e.cohort.displayName",
+        countQuery = "select count(distinct e.cohort.id) from StudentTermEnrollment e "
+            + "where e.termInstance.id = :termInstanceId and e.status = :status "
+            + "and (:cohortId is null or e.cohort.id = :cohortId)")
+    Page<Long> findDistinctCohortIdsByTermInstanceIdPaged(@Param("termInstanceId") Long termInstanceId,
+        @Param("status") EnrollmentStatus status, @Param("cohortId") Long cohortId, Pageable pageable);
 }

@@ -62,6 +62,19 @@
 
             <div class="sup-form-grid">
               <div class="field-group">
+                <label for="sup-state" class="field-label">State <span class="required-star">*</span></label>
+                <input id="sup-state" class="field-input" formControlName="state" placeholder="e.g., Tamil Nadu"
+                  autocomplete="off" [class.field-input--error]="form.get('state')?.invalid && form.get('state')?.touched" />
+                @if (form.get('state')?.invalid && form.get('state')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('state') }}</p>
+                } @else {
+                  <p class="field-hint">Used for GST place-of-supply determination</p>
+                }
+              </div>
+            </div>
+
+            <div class="sup-form-grid">
+              <div class="field-group">
                 <label for="sup-contact" class="field-label">Contact Person</label>
                 <input id="sup-contact" class="field-input" formControlName="contactPerson" placeholder="Optional" autocomplete="off" />
               </div>

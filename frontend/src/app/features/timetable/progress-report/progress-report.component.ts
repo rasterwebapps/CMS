@@ -14,11 +14,14 @@ import { UnitVariance } from '../portion-blueprint.model';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { PROGRESS_REPORT_TOUR, PROGRESS_REPORT_FLOW_MAP } from '../../../shared/tour/tours/progress-report.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-progress-report',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, DecimalPipe, CmsTourButtonComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, DecimalPipe, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './progress-report.component.html',
   styleUrl: './progress-report.component.scss',
 })
@@ -73,13 +76,20 @@ export class ProgressReportComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.summary.set(null);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     this.load();
   }
 

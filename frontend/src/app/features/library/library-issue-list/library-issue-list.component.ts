@@ -23,6 +23,9 @@ import { ExportButtonComponent, ExportFormat } from '../../../shared/export-butt
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { LIBRARY_ISSUE_LIST_TOUR, LIBRARY_ISSUE_LIST_FLOW_MAP } from '../../../shared/tour/tours/library-circulation.tours';
@@ -36,6 +39,7 @@ import { LIBRARY_ISSUE_LIST_TOUR, LIBRARY_ISSUE_LIST_FLOW_MAP } from '../../../s
     MatDialogModule, MatButtonModule, MatIconModule, MatTooltipModule,
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent, ExportButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './library-issue-list.component.html',
   styleUrl: './library-issue-list.component.scss',
@@ -92,6 +96,31 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   protected readonly memberFilter  = signal<LibraryMemberType | null>(null);
   protected readonly itemTypeFilter = signal<LibraryItemType | null>(null);
   protected readonly statusOptions = ISSUE_STATUS_OPTIONS;
+  protected readonly statusFetchPage = staticOptionsFetchPage(() =>
+    this.statusOptions.map(o => ({ id: o.value, name: o.label })));
+  protected readonly itemTypeFetchPage = staticOptionsFetchPage(() => [
+    { id: 'BOOK', name: 'Books only' },
+    { id: 'JOURNAL', name: 'Journals only' },
+  ]);
+  protected readonly memberFetchPage = staticOptionsFetchPage(() => [
+    { id: 'STUDENT', name: 'Students only' },
+    { id: 'FACULTY', name: 'Faculty only' },
+  ]);
+
+  protected onItemTypeFilterChange(value: InfiniteSelectValue | null): void {
+    this.itemTypeFilter.set(value != null ? (String(value) as LibraryItemType) : null);
+    this.onFilterChange();
+  }
+
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.statusFilter.set(value != null ? (String(value) as IssueStatus) : null);
+    this.onFilterChange();
+  }
+
+  protected onMemberFilterChange(value: InfiniteSelectValue | null): void {
+    this.memberFilter.set(value != null ? (String(value) as LibraryMemberType) : null);
+    this.onFilterChange();
+  }
   protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_EXPORT'));
   protected readonly canManageIssues = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_MANAGE'));
   protected readonly hasActiveFilters = computed(() =>

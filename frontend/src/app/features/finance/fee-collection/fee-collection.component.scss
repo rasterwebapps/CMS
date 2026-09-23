@@ -128,7 +128,13 @@
 .payment-topbar__text {
   min-width: 0;
 
-  h2 {
+  .page-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h1 {
     margin: 0;
     font-family: var(--cms-font-display), serif;
     font-size: var(--cms-text-2xl);
@@ -452,7 +458,7 @@
 }
 
 @media (max-width: 640px) {
-  .payment-topbar__text h2 { font-size: var(--cms-text-xl); }
+  .payment-topbar__text h1 { font-size: var(--cms-text-xl); }
 
   .form-row { grid-template-columns: 1fr; }
 

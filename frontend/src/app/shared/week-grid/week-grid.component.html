@@ -22,11 +22,13 @@
         }
         @if (!isEmpty() && allowManage) {
           <button type="button" class="btn-secondary" [disabled]="saving" (click)="discardClick.emit()">Discard</button>
-          <button type="button" class="btn-primary" [disabled]="saving" (click)="approveClick.emit()">
+          <button type="button" class="btn-primary" [disabled]="saving || !!publishDisabledReason"
+            [matTooltip]="publishDisabledReason ?? ''" [matTooltipDisabled]="!publishDisabledReason"
+            (click)="approveClick.emit()">
             @if (saving) {
               <span class="btn-spinner btn-spinner--dark"></span>
             }
-            Approve
+            Publish
           </button>
         }
       }
@@ -46,7 +48,7 @@
         <div class="week-grid__period-hdr">{{ row.label }}</div>
       }
 
-      @for (day of days; track day; let i = $index) {
+      @for (day of days(); track day; let i = $index) {
         <div class="week-grid__day-cell" [class.week-grid__day-cell--holiday]="isHoliday()(i)">
           {{ dayLabels[day] }}
           @if (dateLabelFor(i); as dateLabel) {
@@ -67,19 +69,34 @@
             @for (session of cell(day, row); track session.id) {
               <button type="button"
                 class="session-chip"
-                [class.session-chip--theory]="session.sessionType === 'THEORY'"
-                [class.session-chip--lab]="session.sessionType === 'LAB'"
-                [class.session-chip--clinical]="session.sessionType === 'CLINICAL'"
+                [style.--subject-color]="sessionColor(session.sessionType)"
                 [class.session-chip--draft]="session.status === 'DRAFT'"
-                [class.session-chip--unstaffed]="!session.facultyName"
+                [class.session-chip--unstaffed]="!session.facultyName && session.sessionType !== 'LIBRARY'"
                 [class.session-chip--swap-source]="swapMode && session.id === swapSourceSessionId"
+                [class.session-chip--readonly]="isSynthetic(session)"
+                [class.session-chip--cancelled]="session.occurrenceStatus === 'CANCELLED'"
+                [class.session-chip--substituted]="session.occurrenceStatus === 'SUBSTITUTED'"
+                [matTooltip]="session.occurrenceStatus === 'CANCELLED' ? 'Cancelled — ' + session.cancelReason
+                  : session.occurrenceStatus === 'SUBSTITUTED' ? session.subjectName + ' — substituted by ' + session.facultyName
+                  : ''"
+                [matTooltipDisabled]="!session.occurrenceStatus || session.occurrenceStatus === 'HELD'"
                 (click)="onSessionClick(session, day, row, $event)">
                 <span class="session-chip__subject">{{ session.subjectName }}</span>
-                <span class="session-chip__room">{{ session.roomName || 'No room yet' }}</span>
-                @if (session.batchName) {
-                  <span class="session-chip__batch">{{ session.batchName }}</span>
+                @if (session.occurrenceStatus === 'CANCELLED') {
+                  <span class="session-chip__cancelled-label">Cancelled — {{ session.cancelReason }}</span>
+                } @else {
+                  <span class="session-chip__room">{{ session.roomName || 'No room yet' }}</span>
+                  @if (session.batchName) {
+                    <span class="session-chip__batch">{{ session.batchName }}</span>
+                  }
+                  <!-- LIBRARY rows are deliberately never staffed (see TimetableGenerationService's
+                       own unstaffedCount gate) -- showing "needs staffing" here is a false alarm
+                       with no fix available anywhere in the app, since Library genuinely has no
+                       faculty concept. -->
+                  @if (session.sessionType !== 'LIBRARY') {
+                    <span class="session-chip__faculty">{{ session.facultyName || 'Unstaffed — needs staffing' }}</span>
+                  }
                 }
-                <span class="session-chip__faculty">{{ session.facultyName || 'Unstaffed — needs staffing' }}</span>
               </button>
             }
           </div>

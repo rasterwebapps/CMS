@@ -31,52 +31,29 @@
         }
       </div>
 
-      <select
-        class="mlp-filter-select"
-        [value]="selectedProgramId() ?? ''"
-        (change)="onProgramFilter(+$any($event.target).value || null)"
-        aria-label="Filter by program"
-      >
-        <option value="">All Programs</option>
-        @for (p of programs(); track p.id) {
-          <option [value]="p.id">{{ p.name }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+        [fetchPage]="programFetchPage"
+        [selectedValue]="selectedProgramId()" (selectedValueChange)="onProgramFilter($event)"
+      />
 
-      <select
-        class="mlp-filter-select"
-        [value]="selectedQuota() ?? ''"
-        (change)="onQuotaFilter($any($event.target).value)"
-        aria-label="Filter by quota"
-      >
-        <option value="">All Quotas</option>
-        <option value="MANAGEMENT">Management</option>
-        <option value="COUNSELLING">Counselling</option>
-      </select>
+      <cms-infinite-select
+        label="All Quotas" ariaLabel="Filter by quota" searchPlaceholder="Search quotas…"
+        [fetchPage]="quotaFetchPage"
+        [selectedValue]="selectedQuota()" (selectedValueChange)="onQuotaFilter($event)"
+      />
 
-      <select
-        class="mlp-filter-select"
-        [value]="selectedAcademicYearId() ?? ''"
-        (change)="onAcademicYearFilter(+$any($event.target).value || null)"
-        aria-label="Filter by academic year"
-      >
-        <option value="">All Years</option>
-        @for (y of academicYears(); track y.id) {
-          <option [value]="y.id">{{ y.name }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Years" ariaLabel="Filter by academic year" searchPlaceholder="Search years…"
+        [fetchPage]="academicYearFilterFetchPage"
+        [selectedValue]="selectedAcademicYearId()" (selectedValueChange)="onAcademicYearFilter($event)"
+      />
 
-      <select
-        class="mlp-filter-select"
-        [value]="selectedCourseId() ?? ''"
-        (change)="onCourseFilter(+$any($event.target).value || null)"
-        aria-label="Filter by course"
-      >
-        <option value="">All Courses</option>
-        @for (c of courses(); track c.id) {
-          <option [value]="c.id">{{ c.name }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Courses" ariaLabel="Filter by course" searchPlaceholder="Search courses…"
+        [fetchPage]="courseFetchPage"
+        [selectedValue]="selectedCourseId()" (selectedValueChange)="onCourseFilter($event)"
+      />
 
       @if (hasActiveFilters) {
         <button class="btn-clear-filters btn-toolbar--icon-only" (click)="clearFilters()" aria-label="Clear filters" title="Clear filters">
@@ -180,6 +157,22 @@
 
   } @else {
     <!-- ──────────────────── Finalization form ──────────────────── -->
+    <div class="payment-topbar anim-rise">
+      <button type="button" class="entry-form-back-btn" (click)="backToList()" aria-label="Back to fee finalization list">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <div class="payment-topbar__text">
+        <div class="page-title-row">
+          <h1>Finalize <em>Fee</em></h1>
+          <cms-tour-button tourKey="fee-finalization" [iconOnly]="true" iconVariant="info-circle" />
+        </div>
+        <p>Set year-wise fees and apply discounts before converting {{ selectedEnquiry()!.name }} to a student.</p>
+      </div>
+    </div>
+
     <div class="finalize-grid">
 
       <!-- LEFT: Student/enquiry info -->

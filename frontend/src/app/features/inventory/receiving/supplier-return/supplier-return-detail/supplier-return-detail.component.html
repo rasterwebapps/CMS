@@ -10,7 +10,7 @@
     </a>
     <div class="entry-form-hdr-text">
       <div class="page-title-row">
-        <h1 class="page-title">Supplier Return <em>#{{ r.id }}</em></h1>
+        <h1 class="page-title">Supplier Return <em>{{ r.returnNumber || ('#' + r.id) }}</em></h1>
         <cms-status-badge [status]="r.status" />
       </div>
       <p class="page-subtitle">Receipt #{{ r.goodsReceiptId }} · {{ r.supplierName }} · {{ r.locationVirtualName }} — {{ r.returnDate | date: 'mediumDate' }}</p>

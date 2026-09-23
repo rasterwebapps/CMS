@@ -11,6 +11,9 @@ export interface Page<T> {
 export interface Category {
   id: number;
   name: string;
+  /** Prefix half of an auto-generated Product code, e.g. "STA" -> "STA-000001". Null for
+   *  categories created before this feature, until an admin sets one. */
+  shortCode: string | null;
   parentCategoryId: number | null;
   parentCategoryName: string | null;
   description?: string;
@@ -21,6 +24,7 @@ export interface Category {
 
 export interface CategoryRequest {
   name: string;
+  shortCode: string;
   parentCategoryId?: number | null;
   description?: string;
   isActive?: boolean;

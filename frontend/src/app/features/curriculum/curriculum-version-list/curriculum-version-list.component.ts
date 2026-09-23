@@ -23,6 +23,9 @@ import { CURRICULUM_VERSION_LIST_TOUR, CURRICULUM_VERSION_LIST_FLOW_MAP } from '
 import { CmsIconEditComponent, CmsIconDeleteComponent, CmsIconViewComponent } from '../../../shared/icons';
 import { CurriculumVersionCloneDialogComponent, CurriculumVersionCloneDialogData } from '../curriculum-version-clone-dialog/curriculum-version-clone-dialog.component';
 import { PermissionService } from '../../../core/permissions/permission.service';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-curriculum-version-list',
@@ -42,6 +45,7 @@ import { PermissionService } from '../../../core/permissions/permission.service'
     CmsIconDeleteComponent,
     CmsIconViewComponent,
     CurriculumVersionCloneDialogComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './curriculum-version-list.component.html',
   styleUrl: './curriculum-version-list.component.scss',
@@ -141,14 +145,21 @@ export class CurriculumVersionListComponent implements OnInit, OnDestroy {
     this.searchSubject.next('');
   }
 
-  protected onProgramFilterChange(programIdStr: string): void {
-    this.selectedProgramId.set(programIdStr ? +programIdStr : null);
+  protected readonly programFetchPage = staticOptionsFetchPage(() =>
+    this.programs().map(p => ({ id: p.id, name: p.name })));
+  protected readonly statusFetchPage = staticOptionsFetchPage(() => [
+    { id: 'ACTIVE', name: 'Active' },
+    { id: 'INACTIVE', name: 'Inactive' },
+  ]);
+
+  protected onProgramFilterChange(value: InfiniteSelectValue | null): void {
+    this.selectedProgramId.set(value != null ? Number(value) : null);
     this.currentPage = 0;
     this.loadPage();
   }
 
-  protected onStatusFilterChange(value: string): void {
-    this.statusFilter.set(value as 'ALL' | 'ACTIVE' | 'INACTIVE');
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.statusFilter.set((value != null ? String(value) : 'ALL') as 'ALL' | 'ACTIVE' | 'INACTIVE');
     this.currentPage = 0;
     this.loadPage();
   }

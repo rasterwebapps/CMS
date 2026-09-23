@@ -4,8 +4,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +15,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.DocumentNumberChange;
+import com.cms.dto.DocumentNumberRegenerationResult;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductUomLevel;
@@ -38,6 +42,7 @@ import com.cms.inventory.stock.model.InventoryBin;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.repository.InventoryBinRepository;
 import com.cms.inventory.stock.service.StockMovementService;
+import com.cms.service.ApplicationNumberSequenceService;
 
 /**
  * Owns the Goods Receipt workflow — Phase 3's ("Receiving & Stock Movement") first slice. A
@@ -58,6 +63,8 @@ public class GoodsReceiptService {
     private static final List<PurchaseOrderStatus> RECEIVABLE_ORDER_STATUSES =
         List.of(PurchaseOrderStatus.ORDERED, PurchaseOrderStatus.IN_PROGRESS, PurchaseOrderStatus.PARTIALLY_COMPLETED);
 
+    private static final String RECEIPT_NUMBER_SERIES = "GOODS_RECEIPT_NUMBER";
+
     private final GoodsReceiptRepository receiptRepository;
     private final GoodsReceiptLineRepository lineRepository;
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
@@ -65,6 +72,7 @@ public class GoodsReceiptService {
     private final StockMovementService stockMovementService;
     private final ProductUomChainService uomChainService;
     private final InventoryBinRepository binRepository;
+    private final ApplicationNumberSequenceService numberSequenceService;
 
     public GoodsReceiptService(GoodsReceiptRepository receiptRepository,
                                 GoodsReceiptLineRepository lineRepository,
@@ -72,7 +80,8 @@ public class GoodsReceiptService {
                                 PurchaseOrderService purchaseOrderService,
                                 StockMovementService stockMovementService,
                                 ProductUomChainService uomChainService,
-                                InventoryBinRepository binRepository) {
+                                InventoryBinRepository binRepository,
+                                ApplicationNumberSequenceService numberSequenceService) {
         this.receiptRepository = receiptRepository;
         this.lineRepository = lineRepository;
         this.purchaseOrderItemRepository = purchaseOrderItemRepository;
@@ -80,6 +89,7 @@ public class GoodsReceiptService {
         this.stockMovementService = stockMovementService;
         this.uomChainService = uomChainService;
         this.binRepository = binRepository;
+        this.numberSequenceService = numberSequenceService;
     }
 
     @Transactional
@@ -98,17 +108,46 @@ public class GoodsReceiptService {
         receipt.setCreatedBy(createdBy);
         receipt.setCreatedAt(Instant.now());
         receipt.setUpdatedAt(Instant.now());
+        receipt.setReceiptNumber(numberSequenceService.nextNumberForDate(RECEIPT_NUMBER_SERIES, receipt.getReceiptDate()));
         return toResponse(receiptRepository.save(receipt));
     }
 
-    public Page<GoodsReceiptResponse> findPage(Long purchaseOrderId, String status, Pageable pageable) {
+    public Page<GoodsReceiptResponse> findPage(Long purchaseOrderId, String status, String search, Pageable pageable) {
         Specification<GoodsReceipt> spec = (root, query, cb) -> {
             var predicate = cb.conjunction();
             if (purchaseOrderId != null) predicate = cb.and(predicate, cb.equal(root.get("purchaseOrder").get("id"), purchaseOrderId));
             if (status != null && !status.isBlank()) predicate = cb.and(predicate, cb.equal(root.get("status"), parseStatus(status)));
+            if (search != null && !search.isBlank()) {
+                predicate = cb.and(predicate, cb.like(cb.lower(root.get("receiptNumber")), "%" + search.trim().toLowerCase(Locale.ROOT) + "%"));
+            }
             return predicate;
         };
         return receiptRepository.findAll(spec, pageable).map(r -> toResponse(r, false));
+    }
+
+    /** Bulk-reassigns every goods receipt's number to a fresh, gap-free sequence within each
+     *  scope period, oldest receipt_date first — see ApplicationNumberSequenceService.
+     *  regenerateNumbers for the transactional-safety design. */
+    @Transactional
+    public DocumentNumberRegenerationResult regenerateReceiptNumbers(boolean dryRun) {
+        List<GoodsReceipt> receipts = receiptRepository.findAllByOrderByReceiptDateAscIdAsc();
+        List<Map.Entry<Long, LocalDate>> dates = receipts.stream()
+            .map(r -> Map.entry(r.getId(), r.getReceiptDate()))
+            .toList();
+        Map<Long, String> newNumbers = numberSequenceService.regenerateNumbers(RECEIPT_NUMBER_SERIES, dates, dryRun);
+
+        List<DocumentNumberChange> changes = new ArrayList<>();
+        for (GoodsReceipt receipt : receipts) {
+            String newNumber = newNumbers.get(receipt.getId());
+            if (!newNumber.equals(receipt.getReceiptNumber())) {
+                changes.add(new DocumentNumberChange(receipt.getId(),
+                    "Receipt for PO " + (receipt.getPurchaseOrder().getPoNumber() != null ? receipt.getPurchaseOrder().getPoNumber() : "#" + receipt.getPurchaseOrder().getId()),
+                    receipt.getReceiptNumber(), newNumber));
+                if (!dryRun) receipt.setReceiptNumber(newNumber);
+            }
+        }
+        if (!dryRun) receiptRepository.saveAll(receipts);
+        return new DocumentNumberRegenerationResult(changes.size(), changes);
     }
 
     public GoodsReceiptResponse findById(Long id) {
@@ -294,7 +333,7 @@ public class GoodsReceiptService {
         PurchaseOrder order = receipt.getPurchaseOrder();
         InventoryLocation location = order.getLocation();
         return new GoodsReceiptResponse(
-            receipt.getId(), order.getId(), order.getSupplier().getSupplierName(),
+            receipt.getId(), receipt.getReceiptNumber(), order.getId(), order.getSupplier().getSupplierName(),
             location.getId(), location.getVirtualName(),
             receipt.getStatus().name(), receipt.getReceiptDate(), receipt.getNotes(),
             receipt.getCreatedBy(), receipt.getCreatedAt(), receipt.getConfirmedBy(), receipt.getConfirmedAt(),

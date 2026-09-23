@@ -25,12 +25,18 @@ import com.cms.model.ClinicalVenue;
 import com.cms.model.Faculty;
 import com.cms.model.RotationSlot;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ClassScheduleResponse;
+import com.cms.dto.ClinicalShiftSummaryItem;
 import com.cms.dto.ClinicalShiftWindow;
 import com.cms.dto.CohortSectionResponse;
+import com.cms.dto.CohortTermStatusSummary;
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
 import com.cms.dto.ElectiveGroupMemberPlacement;
@@ -67,6 +73,8 @@ import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.SubjectType;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClinicalShiftGroupRepository;
@@ -76,6 +84,7 @@ import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
 
 /**
@@ -126,6 +135,7 @@ public class TimetableSkeletonService {
     private final ClinicalShiftGroupService clinicalShiftGroupService;
     private final TimetableClinicalShiftChecker clinicalShiftChecker;
     private final FacultyRepository facultyRepository;
+    private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
@@ -145,7 +155,8 @@ public class TimetableSkeletonService {
                                      ClinicalShiftGroupRepository clinicalShiftGroupRepository,
                                      ClinicalShiftGroupService clinicalShiftGroupService,
                                     TimetableClinicalShiftChecker clinicalShiftChecker,
-                                     FacultyRepository facultyRepository) {
+                                     FacultyRepository facultyRepository,
+                                     StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
@@ -165,6 +176,7 @@ public class TimetableSkeletonService {
         this.clinicalShiftGroupService = clinicalShiftGroupService;
         this.clinicalShiftChecker = clinicalShiftChecker;
         this.facultyRepository = facultyRepository;
+        this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
     }
 
     public SkeletonBuilderResponse getCohortSkeleton(Long termInstanceId, Long cohortId) {
@@ -178,25 +190,21 @@ public class TimetableSkeletonService {
         List<CohortSectionResponse> sectionResponses = activeSections.stream().map(this::toSectionResponse).toList();
         List<ClinicalShiftWindow> shiftWindows = clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, termInstanceId);
 
-        // LIBRARY and SPORTS cells have no CourseOffering (see TimetableGlobalAutoScheduleService
-        // #fillLibraryGaps/#fillSportsGaps), so the offering-based query below never finds them --
-        // resolved separately by this cohort's own active CohortSections, same source
-        // cohortCellsAtSlot/isSlotFreeForCohort already use.
-        List<Long> sectionIds = activeSections.stream().map(CohortSection::getId).toList();
-        List<ClassSchedule> libraryCells = sectionIds.isEmpty() ? List.of()
-            : classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(sectionIds).stream()
-                .filter(cs -> cs.getSessionType() == ClassSessionType.LIBRARY || cs.getSessionType() == ClassSessionType.SPORTS)
-                .toList();
-
-        boolean termTimetablePublished = classScheduleRepository
-            .existsByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
+        // Scoped to THIS cohort, not existsByTermInstanceIdAndStatus's old term-wide exists check --
+        // OC-258/OC-260 made Approve cohort-scoped, so cohorts sharing one termInstanceId (e.g. every
+        // year-group of the same program running concurrently) can independently be
+        // published/Pending. A term-wide check would wrongly lock out a still-Pending cohort's own
+        // Skeleton Builder the moment any other cohort in the term got approved.
+        boolean termTimetablePublished =
+            !getCohortActiveClassSchedules(termInstanceId, cohortId, ClassScheduleStatus.PUBLISHED).isEmpty();
 
         List<Long> offeringIds = new ArrayList<>(nonElectiveOfferingIds(termInstanceId, cohortId));
         offeringIds.addAll(electiveOfferingIds(termInstanceId, cohortId));
+        List<ClassSchedule> libraryCells = resolveLibraryAndSportsCells(activeSections);
         if (offeringIds.isEmpty()) {
             List<SkeletonCellResponse> libraryOnlyCells = libraryCells.stream().map(this::toCellResponse).toList();
             return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, List.of(), libraryOnlyCells, List.of(), sectionResponses,
-                CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.workingSaturdayCount(termInstance), List.of(),
+                CurriculumHoursCalculator.weeksInTerm(termInstance), WorkingSaturdayCalculator.enabledWorkingSaturdayCount(termInstance), List.of(),
                 termTimetablePublished, shiftWindows);
         }
 
@@ -210,15 +218,7 @@ public class TimetableSkeletonService {
         double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
             periods.stream().map(Period::getDurationMinutes).toList());
 
-        // isActive=false filters out cells orphaned by a since-reverted CohortRoomAllocation --
-        // riding on a batch/section that no longer exists in the currently-active plan; without
-        // this they'd render as ghost cells in the grid and double up against freshly-placed ones.
-        List<ClassSchedule> allCells = Stream.concat(
-                classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, offeringIds).stream(),
-                libraryCells.stream())
-            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
-            .distinct()
-            .toList();
+        List<ClassSchedule> allCells = resolveOfferingCells(termInstanceId, offeringIds, libraryCells);
         Map<Long, List<ClassSchedule>> cellsByOffering = allCells.stream()
             .filter(cs -> cs.getCourseOffering() != null)
             .collect(java.util.stream.Collectors.groupingBy(cs -> cs.getCourseOffering().getId(), LinkedHashMap::new, java.util.stream.Collectors.toList()));
@@ -277,7 +277,245 @@ public class TimetableSkeletonService {
             .toList();
 
         return new SkeletonBuilderResponse(cohortId, cohort.getDisplayName(), termInstanceLabel, subjects, cells, batches, sectionResponses,
-            weeksInTerm, WorkingSaturdayCalculator.workingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished, shiftWindows);
+            weeksInTerm, WorkingSaturdayCalculator.enabledWorkingSaturdayCount(termInstance), clinicalShiftHours, termTimetablePublished, shiftWindows);
+    }
+
+    /** OC-260: the exact set of active {@link ClassSchedule} rows that make up one cohort's
+     *  timetable for a term -- offering-scoped (Theory/Lab/Clinical/electives) plus
+     *  cohortSection-scoped (Library/Sports, which carry no {@code CourseOffering} at all). Reuses
+     *  the same resolution {@link #getCohortSkeleton} itself builds internally, just without also
+     *  computing subject budgets/clinical-shift-hours, so a cohort-scoped Approve/Revert/Discard or
+     *  conflict check can never see a different row set than what Skeleton Builder's own grid shows
+     *  that cohort. */
+    public List<ClassSchedule> getCohortActiveClassSchedules(Long termInstanceId, Long cohortId) {
+        List<CohortSection> activeSections = resolveActiveSections(cohortId, termInstanceId);
+        List<Long> offeringIds = new ArrayList<>(nonElectiveOfferingIds(termInstanceId, cohortId));
+        offeringIds.addAll(electiveOfferingIds(termInstanceId, cohortId));
+        List<ClassSchedule> libraryCells = resolveLibraryAndSportsCells(activeSections);
+        return offeringIds.isEmpty() ? libraryCells : resolveOfferingCells(termInstanceId, offeringIds, libraryCells);
+    }
+
+    /** Same resolution as above, narrowed to one DRAFT/PUBLISHED status -- lets a single-cohort
+     *  timetable view (e.g. the published Timetable browse screen's Cohort filter) reuse the exact
+     *  same "which rows belong to this cohort" logic Approve/Revert/Discard already rely on, instead
+     *  of re-deriving cohort membership from scratch. */
+    public List<ClassSchedule> getCohortActiveClassSchedules(Long termInstanceId, Long cohortId, ClassScheduleStatus status) {
+        return getCohortActiveClassSchedules(termInstanceId, cohortId).stream()
+            .filter(cs -> cs.getStatus() == status)
+            .toList();
+    }
+
+    // LIBRARY and SPORTS cells have no CourseOffering (see TimetableGlobalAutoScheduleService
+    // #fillLibraryGaps/#fillSportsGaps), so the offering-based query below never finds them --
+    // resolved separately by this cohort's own active CohortSections, same source
+    // cohortCellsAtSlot/isSlotFreeForCohort already use.
+    private List<ClassSchedule> resolveLibraryAndSportsCells(List<CohortSection> activeSections) {
+        List<Long> sectionIds = activeSections.stream().map(CohortSection::getId).toList();
+        return sectionIds.isEmpty() ? List.of()
+            : classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(sectionIds).stream()
+                .filter(cs -> cs.getSessionType() == ClassSessionType.LIBRARY || cs.getSessionType() == ClassSessionType.SPORTS)
+                .toList();
+    }
+
+    // isActive=false filters out cells orphaned by a since-reverted CohortRoomAllocation -- riding
+    // on a batch/section that no longer exists in the currently-active plan; without this they'd
+    // render as ghost cells in the grid and double up against freshly-placed ones.
+    private List<ClassSchedule> resolveOfferingCells(Long termInstanceId, List<Long> offeringIds, List<ClassSchedule> libraryCells) {
+        return Stream.concat(
+                classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(termInstanceId, offeringIds).stream(),
+                libraryCells.stream())
+            .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
+            .distinct()
+            .toList();
+    }
+
+    /** One row per cohort enrolled in this term instance (source: {@link
+     *  StudentTermEnrollmentRepository}, the same "which cohorts are really here" precedent {@link
+     *  TimetableCoverageService#findGaps} uses -- a cohort with zero placed sessions still shows up,
+     *  bucketed as {@code DRAFT}, rather than being invisible in a ClassSchedule-only query),
+     *  reducing each cohort's active ClassSchedule rows to a single DRAFT/PUBLISHED/
+     *  PARTIALLY_PUBLISHED status for Timetable Builder's landing summary table -- see {@link
+     *  CohortTermStatusSummary}'s own javadoc for why this status is synthesized, never persisted.
+     *
+     *  <p>Paginated at the cohort-id level (OC-262) rather than computing every cohort's row and
+     *  slicing after the fact -- each row costs a full {@link #getCohortSkeleton} call, so paging
+     *  the id query first means a term with many cohorts only pays that cost for the cohorts
+     *  actually shown on the current page. {@code cohortId} narrows to one cohort (still through
+     *  this same paginated path) for the screen's single-cohort filter. */
+    @Transactional(readOnly = true)
+    public Page<CohortTermStatusSummary> getCohortTermStatusSummary(Long termInstanceId, Long cohortId, Pageable pageable) {
+        Page<Long> cohortIdsPage = studentTermEnrollmentRepository
+            .findDistinctCohortIdsByTermInstanceIdPaged(termInstanceId, EnrollmentStatus.ENROLLED, cohortId, pageable);
+        List<CohortTermStatusSummary> rows = cohortIdsPage.getContent().stream()
+            .map(id -> buildCohortTermStatusSummaryRow(termInstanceId, id))
+            .filter(Objects::nonNull)
+            .toList();
+        return new PageImpl<>(rows, pageable, cohortIdsPage.getTotalElements());
+    }
+
+    private CohortTermStatusSummary buildCohortTermStatusSummaryRow(Long termInstanceId, Long cohortId) {
+        Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
+        if (cohort == null) return null;
+
+        // Reuses getCohortSkeleton (not the lighter resolveCohortCells alone) so the same call
+        // also yields TimetableCoverageCalculator's coverage breakdown below -- the identical
+        // per-cohort cost TimetableCoverageService#findGaps already pays for the Publish gate.
+        SkeletonBuilderResponse skeleton = getCohortSkeleton(termInstanceId, cohortId);
+        long draft = skeleton.cells().stream().filter(c -> c.status() == ClassScheduleStatus.DRAFT).count();
+        long published = skeleton.cells().stream().filter(c -> c.status() == ClassScheduleStatus.PUBLISHED).count();
+        String status = published == 0 ? "DRAFT" : draft == 0 ? "PUBLISHED" : "PARTIALLY_PUBLISHED";
+
+        double unassignedHours = TimetableCoverageCalculator.computeCoverage(skeleton).values().stream()
+            .mapToDouble(TimetableCoverageCalculator.HoursBreakdown::unassigned)
+            .sum();
+
+        return new CohortTermStatusSummary(
+            cohortId, cohort.getDisplayName(),
+            cohort.getCourse() != null ? cohort.getCourse().getName() : null,
+            cohort.getAdmissionAcademicYear() != null ? cohort.getAdmissionAcademicYear().getName() : null,
+            // This interim status (never PENDING yet) and attendanceRecorded=false are both
+            // placeholders -- this class has no visibility into the Conflict Inspector/coverage/
+            // staffing gates or the attendance repository needed to compute the real values (see
+            // TimetableGenerationService#getCohortTermStatusSummaryWithReadiness, the only
+            // caller that should ever surface this DTO to a client).
+            status, (int) draft, (int) published, unassignedHours, false);
+    }
+
+    /** Term-wide Clinical Shift Group summary for Timetable Draft Review's duty-roster banner --
+     *  one row per {@link CohortSection} with hours/week summed across however many active shift
+     *  groups that section has, so a reviewer sees Clinical hours exist even though they never show
+     *  up as grid cells (see the {@link #toClinicalShiftHours} comment above). Groups with no
+     *  {@code cohortSection} (not yet room-sectioned via Capacity Auto-Plan) are skipped -- Draft
+     *  Review has nothing scoped to show them against either. */
+    public List<ClinicalShiftSummaryItem> findClinicalShiftSummaryForTerm(Long termInstanceId) {
+        record SectionHours(CohortSection section, double hours) {}
+
+        List<ClinicalShiftGroup> activeGroups = clinicalShiftGroupRepository
+            .findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+            .filter(g -> g.getCourseOffering() != null)
+            .toList();
+
+        Map<Long, List<SectionHours>> bySectionId = activeGroups.stream()
+            .filter(g -> g.getCohortSection() != null)
+            .map(g -> {
+                Integer durationMinutes = g.getCourseOffering().getClinicalShiftDurationMinutes();
+                return new SectionHours(g.getCohortSection(), durationMinutes != null ? durationMinutes / 60.0 : 0.0);
+            })
+            .filter(sh -> sh.hours() > 0)
+            .collect(Collectors.groupingBy(sh -> sh.section().getId(), LinkedHashMap::new, Collectors.toList()));
+
+        Map<Long, String> cohortNameBySectionId = new LinkedHashMap<>();
+        Map<Long, String> sectionLabelBySectionId = new LinkedHashMap<>();
+        Map<Long, Double> hoursBySectionId = new LinkedHashMap<>();
+        for (var entry : bySectionId.entrySet()) {
+            CohortSection section = entry.getValue().get(0).section();
+            cohortNameBySectionId.put(entry.getKey(), section.getCohortRoomAllocation().getCohort().getDisplayName());
+            sectionLabelBySectionId.put(entry.getKey(), section.getSectionLabel());
+            hoursBySectionId.put(entry.getKey(), entry.getValue().stream().mapToDouble(SectionHours::hours).sum());
+        }
+
+        // Disambiguate sections sharing the same cohort display name by appending the section label.
+        Map<String, Long> cohortNameCounts = cohortNameBySectionId.values().stream()
+            .collect(Collectors.groupingBy(n -> n, Collectors.counting()));
+
+        Stream<ClinicalShiftSummaryItem> sectioned = cohortNameBySectionId.entrySet().stream()
+            .map(e -> {
+                String cohortName = e.getValue();
+                String label = cohortNameCounts.get(cohortName) > 1
+                    ? cohortName + " – " + sectionLabelBySectionId.get(e.getKey())
+                    : cohortName;
+                return new ClinicalShiftSummaryItem(e.getKey(), label, hoursBySectionId.get(e.getKey()));
+            });
+
+        // A ClinicalShiftGroup can be created/activated before Capacity Auto-Plan ever room-sections
+        // its cohort (cohortSection stays null until then) -- without this fallback those groups'
+        // real, already-delivered hours silently vanished from the banner even though they were
+        // actively crediting the grid's CLINICAL budget (see creditClinicalShiftHours), making the
+        // cohort's Clinical component look entirely unaccounted for. Resolved via the offering's own
+        // (curriculumVersion, semesterNumber) instead, same reverse-lookup CourseOfferingService
+        // already uses to report an offering's cohort(s). Summed per cohort name (matching the
+        // per-section granularity above) using a negative synthetic id, since no real CohortSection
+        // exists yet -- same synthetic-id convention as ResourceGridCell's off-campus shift cells.
+        Map<String, Double> hoursByFallbackCohortName = new LinkedHashMap<>();
+        for (ClinicalShiftGroup g : activeGroups) {
+            if (g.getCohortSection() != null) continue;
+            Integer durationMinutes = g.getCourseOffering().getClinicalShiftDurationMinutes();
+            double hours = durationMinutes != null ? durationMinutes / 60.0 : 0.0;
+            if (hours <= 0) continue;
+            for (String cohortName : courseOfferingService.resolveCohortNames(g.getCourseOffering())) {
+                hoursByFallbackCohortName.merge(cohortName, hours, Double::sum);
+            }
+        }
+        long[] syntheticId = {-1};
+        Stream<ClinicalShiftSummaryItem> unsectioned = hoursByFallbackCohortName.entrySet().stream()
+            .map(e -> new ClinicalShiftSummaryItem(syntheticId[0]--, e.getKey(), e.getValue()));
+
+        return Stream.concat(sectioned, unsectioned)
+            .sorted(Comparator.comparing(ClinicalShiftSummaryItem::cohortLabel))
+            .toList();
+    }
+
+    private static final long CLINICAL_SHIFT_GRID_ENTRY_ID_BASE = -1_000_000L;
+
+    /** Synthetic Draft Review grid entries for every active {@link ClinicalShiftGroup}'s Batch --
+     *  these never produce a real {@code ClassSchedule} row (see this class's other Clinical Shift
+     *  methods), so without this the review grid looked incomplete: a cohort's whole Clinical
+     *  component was only hinted at via the duty-roster banner instead of actually shown alongside
+     *  its Theory/Lab sessions before an admin approves/publishes. Mirrors {@code
+     *  ResourceGridService#toShiftCell} exactly -- same id-base convention, same bus-inclusive
+     *  window (start/end include travel buffer, matching how the resource grid already shows this
+     *  same block occupying faculty/venue), same venue/coordinator-faculty resolution via Batch --
+     *  so the two renderings of one shift never disagree. Negative ids (never colliding with a real
+     *  ClassSchedule id) double as a "non-interactive" signal the frontend uses to disable click/
+     *  swap on these rows, the same convention {@code ResourceGridCellResponse}'s own synthetic
+     *  cells already use. {@code status} is stamped with whatever the caller is displaying
+     *  (DRAFT/PUBLISHED) purely for consistent chip styling -- these rows aren't actually gated by
+     *  that lifecycle themselves. */
+    public List<ClassScheduleResponse> findClinicalShiftGridEntries(Long termInstanceId, ClassScheduleStatus status) {
+        return findClinicalShiftGridEntries(termInstanceId, status, null);
+    }
+
+    /** {@code cohortId} narrows to one cohort's own batches, via the commit-time
+     *  {@code Batch#getCohortRoomAllocation} link (see {@link #matchesCohort}); null keeps every
+     *  cohort's entries, as before. */
+    public List<ClassScheduleResponse> findClinicalShiftGridEntries(Long termInstanceId, ClassScheduleStatus status, Long cohortId) {
+        List<ClassScheduleResponse> entries = new ArrayList<>();
+        for (ClinicalShiftGroup group : clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId)) {
+            if (group.getCourseOffering() == null) continue;
+            ClinicalShiftWindow window = ClinicalShiftWindow.from(group);
+            if (window.busDepart() == null || window.busReturn() == null) continue;
+            for (Batch batch : batchRepository.findByClinicalShiftGroupId(group.getId())) {
+                if (!Boolean.TRUE.equals(batch.getIsActive())) continue;
+                if (cohortId != null && !matchesCohort(batch, cohortId)) continue;
+                entries.add(toClinicalShiftGridEntry(group, window, batch, termInstanceId, status));
+            }
+        }
+        return entries;
+    }
+
+    private boolean matchesCohort(Batch batch, Long cohortId) {
+        return batch.getCohortRoomAllocation() != null
+            && batch.getCohortRoomAllocation().getCohort() != null
+            && cohortId.equals(batch.getCohortRoomAllocation().getCohort().getId());
+    }
+
+    private ClassScheduleResponse toClinicalShiftGridEntry(ClinicalShiftGroup group, ClinicalShiftWindow window,
+                                                             Batch batch, Long termInstanceId, ClassScheduleStatus status) {
+        CourseOffering offering = group.getCourseOffering();
+        Faculty coordinator = batch.getCoordinatorFaculty();
+        return new ClassScheduleResponse(
+            CLINICAL_SHIFT_GRID_ENTRY_ID_BASE - batch.getId(),
+            ClassSessionType.CLINICAL,
+            status,
+            null, null,
+            offering.getSubject().getId(), offering.getSubject().getName() + " — Off-campus Clinical Shift", offering.getSubject().getCode(),
+            coordinator != null ? coordinator.getId() : null, coordinator != null ? coordinator.getFullName() : null,
+            null, group.getLabel(), window.busDepart(), window.busReturn(),
+            batch.getName(), batch.getId(),
+            null, batch.getClinicalVenue() != null ? batch.getClinicalVenue().getId() : null,
+            batch.getClinicalVenue() != null ? batch.getClinicalVenue().getName() : null,
+            offering.getId(),
+            group.getDayOfWeek(), termInstanceId, null, true, null, null);
     }
 
     /** One active {@link ClinicalShiftGroup} occurs once/week on its own {@code dayOfWeek}, so its
@@ -739,7 +977,9 @@ public class TimetableSkeletonService {
             electiveGroup != null ? electiveGroup.getGroupName() : null,
             cs.getSessionGroupId(),
             cs.isPinned(),
-            cs.getCourseOffering() != null && isCommonCohortElective(cs.getCourseOffering())
+            cs.getCourseOffering() != null && isCommonCohortElective(cs.getCourseOffering()),
+            cs.getCourseOffering() != null && cs.getCourseOffering().getCurriculumSemesterCourse() != null
+                && cs.getCourseOffering().getCurriculumSemesterCourse().getSubjectType() == SubjectType.CO_CURRICULAR
         );
     }
 
@@ -772,12 +1012,21 @@ public class TimetableSkeletonService {
      *  quota, the chosen faculty must be eligible for it, free at this time, and within their
      *  workload caps. Nothing is written until all of them pass.
      *
-     *  <p>THEORY only, deliberately. A LAB/CLINICAL row's audience is a {@link Batch}, and a Batch
-     *  belongs to exactly one CourseOffering — so "replace the subject" there really means "swap in
-     *  a different batch with its own committed venue", which is a Capacity Planner decision rather
-     *  than a per-session edit. Electives are excluded for the same class of reason: every member of
-     *  an elective group must share one slot, so changing one member's subject in place would break
-     *  that invariant.
+     *  <p>The incoming subject is THEORY only, deliberately — a LAB/CLINICAL row's audience is a
+     *  {@link Batch}, and a Batch belongs to exactly one CourseOffering, so "replace the subject"
+     *  there really means "swap in a different batch with its own committed venue", which is a
+     *  Capacity Planner decision rather than a per-session edit. Electives are excluded for the same
+     *  class of reason: every member of an elective group must share one slot, so changing one
+     *  member's subject in place would break that invariant.
+     *
+     *  <p>The OUTGOING side may be a real Theory subject, or a LIBRARY/SPORTS filler cell — both
+     *  share the same classroom-backed venue as Theory (see {@code TimetableStaffingService#venueIdOf}),
+     *  so converting one into a staffed Theory course needs no room logic of its own. Unlike a
+     *  Theory-to-Theory replace, this is NOT hour-neutral: a filler cell carried no curriculum hours,
+     *  so the incoming subject gains a genuinely new delivered hour rather than one handed over by an
+     *  outgoing subject — the admin sees the incoming subject's current assigned/required hours in
+     *  the picker and decides, same as {@link #describeDisplacedShortfall} already returning null for
+     *  a filler source (nothing was displaced).
      *
      *  <p>The room is deliberately NOT a parameter: it is re-derived from the section's committed
      *  allocation, exactly as {@code TimetableStaffingService#staffCell} does. */
@@ -790,10 +1039,12 @@ public class TimetableSkeletonService {
                 "Only a draft skeleton cell can be replaced — a published session is immutable.",
                 "SKELETON_CELL_NOT_DRAFT", "ClassSchedule", classScheduleId, null);
         }
-        if (cs.getSessionType() != ClassSessionType.THEORY) {
+        if (cs.getSessionType() != ClassSessionType.THEORY && cs.getSessionType() != ClassSessionType.LIBRARY
+                && cs.getSessionType() != ClassSessionType.SPORTS) {
             throw new IllegalArgumentException(
-                "Only a Theory session can have its subject replaced here — a Lab/Clinical session's audience is a "
-                    + "batch tied to one offering, so changing its subject means changing the batch in Capacity Planner.");
+                "Only a Theory, Library, or Sports session can have its subject replaced here — a Lab/Clinical "
+                    + "session's audience is a batch tied to one offering, so changing its subject means changing "
+                    + "the batch in Capacity Planner.");
         }
         CourseOffering newOffering = courseOfferingRepository.findById(request.courseOfferingId())
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + request.courseOfferingId()));
@@ -818,10 +1069,10 @@ public class TimetableSkeletonService {
         checkAlreadyPlaced(newOffering, asPlacementRequest, cs.getId()).ifPresent(violations::add);
 
         // NO budget-cap check here, deliberately -- unlike placement, which adds a session to the
-        // week, a replace is hour-neutral: one existing slot changes hands, so the incoming subject
-        // gains exactly what the outgoing one loses and the term's total delivered hours do not
-        // move. The over-delivery `checkBudgetNotExceeded` exists to prevent is therefore not
-        // something this operation can cause.
+        // week, a Theory-to-Theory replace is hour-neutral: one existing slot changes hands, so the
+        // incoming subject gains exactly what the outgoing one loses and the term's total delivered
+        // hours do not move. The over-delivery `checkBudgetNotExceeded` exists to prevent is
+        // therefore not something that case can cause.
         //
         // Enforcing it here also made the feature unusable in practice. The Global Auto-Schedule
         // extra-hours filler deliberately packs the grid by pushing every Theory offering PAST its
@@ -829,6 +1080,12 @@ public class TimetableSkeletonService {
         // a packed grid every candidate subject is already over quota and every replace was
         // rejected -- the cap was rejecting replacements on the grounds of a surplus the scheduler
         // had itself created on purpose.
+        //
+        // A LIBRARY/SPORTS source genuinely isn't hour-neutral -- the incoming subject gains a new
+        // delivered hour with nothing handed over in exchange. A hard cap here was deliberately
+        // rejected in favor of a warning: the picker (SkeletonCellReplaceDialogComponent) already
+        // shows each candidate's current assigned/required hours, so the admin sees the same
+        // over-quota signal before choosing rather than being blocked from an intentional top-up.
 
         // Eligibility is reported as a violation alongside the rest rather than thrown on its own, so
         // the admin sees every reason the replacement was refused in one response instead of
@@ -843,9 +1100,13 @@ public class TimetableSkeletonService {
         // can have been changed or re-committed since this cell was placed, and the incoming faculty
         // is new to this slot regardless. Room spec mirrors validateMoveTarget's, so replace and
         // move/swap judge occupancy by exactly the same rule rather than two drifting copies.
+        // ClassSessionType.THEORY, not cs.getSessionType() -- the room check must reflect what this
+        // cell is becoming, not what it currently is, since a LIBRARY/SPORTS source is about to
+        // convert to THEORY. venueIdOf/physicalRoomOf resolve identically for THEORY/LIBRARY/SPORTS
+        // (all read cs.getClassroom()), so only the TYPE passed to the conflict check needs this care.
         Long venueId = TimetableStaffingService.venueIdOf(cs);
         TimetableStaffingService.RoomCheckSpec roomCheck = venueId != null
-            ? new TimetableStaffingService.RoomCheckSpec(cs.getSessionType(), venueId,
+            ? new TimetableStaffingService.RoomCheckSpec(ClassSessionType.THEORY, venueId,
                 TimetableStaffingService.physicalRoomOf(cs), TimetableStaffingService.RoomMode.STRICT)
             : null;
         violations.addAll(timetableStaffingService.validateAssignment(
@@ -877,6 +1138,10 @@ public class TimetableSkeletonService {
             row.setCourseOffering(newOffering);
             row.setSubject(newOffering.getSubject());
             row.setFaculty(newFaculty);
+            // A no-op when the source was already THEORY; flips a LIBRARY/SPORTS filler cell into a
+            // real staffed Theory session -- everything else about the row (day/period/classroom/
+            // cohort section) is untouched, matching the "same slot, different content" contract.
+            row.setSessionType(ClassSessionType.THEORY);
             // Replacing is a deliberate human decision, so it pins for the same reason a drag-move
             // does -- otherwise the next automation run would simply undo it.
             row.setPinned(true);
@@ -1353,7 +1618,12 @@ public class TimetableSkeletonService {
             throw new IllegalArgumentException("A multi-period session can't be moved here yet — remove and re-place it instead");
         }
 
-        List<ConstraintViolation> violations = validateMoveTarget(cs, request.dayOfWeek(), targetPeriod, request.cohortId(), null);
+        // validateRelocatedCell, not validateMoveTarget directly: a LIBRARY/SPORTS cell has no
+        // CourseOffering by construction (see #saveLibraryBlockCells/#saveSportsBlockCells), and
+        // validateMoveTargetExcluding unconditionally dereferences cs.getCourseOffering().getId() --
+        // NPE'd on every attempt to drag-move one of those cells here before this used the same
+        // null-safe branch #relocate already established.
+        List<ConstraintViolation> violations = validateRelocatedCell(cs, request.dayOfWeek(), targetPeriod, request.cohortId(), Set.of());
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
@@ -1403,7 +1673,9 @@ public class TimetableSkeletonService {
                 if (isCurrentSlot) {
                     continue;
                 }
-                List<ConstraintViolation> violations = validateMoveTarget(cs, day, period, cohortId, null);
+                // validateRelocatedCell: same null-CourseOffering NPE risk as #moveCell for a
+                // LIBRARY/SPORTS cell — see that call site's comment.
+                List<ConstraintViolation> violations = validateRelocatedCell(cs, day, period, cohortId, Set.of());
                 results.add(new SkeletonSlotPreviewResponse(day, period.getId(), violations.isEmpty(),
                     violations.isEmpty() ? null : violations.get(0).message()));
             }
@@ -1444,9 +1716,11 @@ public class TimetableSkeletonService {
         DayOfWeek dayB = csB.getDayOfWeek();
         Period periodB = csB.getPeriod();
 
+        // validateRelocatedCell: same null-CourseOffering NPE risk as #moveCell for a LIBRARY/SPORTS
+        // cell — see that call site's comment.
         List<ConstraintViolation> violations = new ArrayList<>();
-        violations.addAll(validateMoveTarget(csA, dayB, periodB, request.cohortId(), csB.getId()));
-        violations.addAll(validateMoveTarget(csB, dayA, periodA, request.cohortId(), csA.getId()));
+        violations.addAll(validateRelocatedCell(csA, dayB, periodB, request.cohortId(), Set.of(csB.getId())));
+        violations.addAll(validateRelocatedCell(csB, dayA, periodA, request.cohortId(), Set.of(csA.getId())));
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
@@ -2095,15 +2369,12 @@ public class TimetableSkeletonService {
         return byId.values().stream().sorted(Comparator.comparing(Period::getPeriodOrder)).toList();
     }
 
-    /** Every check a placed cell moving to (day, targetPeriod) must pass — shared by {@link
-     *  #moveCell} (excludeCellId null) and {@link #swapCells} (excludeCellId = the swap partner's
-     *  id, so its about-to-vacate row is never mistaken for a blocker). Room/capacity/faculty-
-     *  eligibility are deliberately NOT rechecked: none of them change on a pure day/period move
-     *  (the room, audience, and faculty all stay exactly what they already were). */
-    private List<ConstraintViolation> validateMoveTarget(ClassSchedule cs, DayOfWeek day, Period targetPeriod, Long cohortId, Long excludeCellId) {
-        return validateMoveTargetExcluding(cs, day, targetPeriod, cohortId, excludeCellId == null ? Set.of() : Set.of(excludeCellId));
-    }
-
+    /** Every check a placed cell moving to (day, targetPeriod) must pass, for a cell that has a
+     *  CourseOffering — called only via {@link #validateRelocatedCell}, which routes a
+     *  no-CourseOffering LIBRARY/SPORTS cell to {@link #validateAudienceBlockTarget} instead, since
+     *  this method unconditionally dereferences {@code cs.getCourseOffering()}. Room/capacity/
+     *  faculty-eligibility are deliberately NOT rechecked here: none of them change on a pure
+     *  day/period move (the room, audience, and faculty all stay exactly what they already were). */
     private List<ConstraintViolation> validateMoveTargetExcluding(ClassSchedule cs, DayOfWeek day, Period targetPeriod, Long cohortId,
                                                                   Set<Long> excludeCellIds) {
         CourseOffering offering = cs.getCourseOffering();

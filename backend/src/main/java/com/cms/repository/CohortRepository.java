@@ -16,10 +16,12 @@ public interface CohortRepository extends JpaRepository<Cohort, Long> {
     List<Cohort> findByAdmissionAcademicYearId(Long academicYearId);
     List<Cohort> findByAdmissionAcademicYearIdAndCounsellingClosedTrue(Long academicYearId);
 
-    @Query("SELECT c FROM Cohort c LEFT JOIN FETCH c.course WHERE c.admissionAcademicYear.id = :academicYearId")
+    @Query("SELECT c FROM Cohort c LEFT JOIN FETCH c.course WHERE c.admissionAcademicYear.id = :academicYearId "
+        + "ORDER BY c.course.name, c.displayName")
     List<Cohort> findByAdmissionAcademicYearIdWithCourse(Long academicYearId);
 
-    @Query("SELECT c FROM Cohort c LEFT JOIN FETCH c.course")
+    @Query("SELECT c FROM Cohort c LEFT JOIN FETCH c.course LEFT JOIN c.admissionAcademicYear ay "
+        + "ORDER BY ay.startDate, c.displayName")
     List<Cohort> findAllWithCourse();
 
     @Query("SELECT c FROM Cohort c LEFT JOIN FETCH c.course WHERE c.id = :id")

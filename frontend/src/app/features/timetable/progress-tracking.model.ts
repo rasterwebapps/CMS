@@ -44,6 +44,14 @@ export interface LogProgressRequest {
   remarks?: string | null;
 }
 
+/** BR-55: logs coverage against a SPECIAL_CLASS/DAY_REPEAT/RECURRING_SPECIAL_CLASS occurrence
+ *  directly by its own id -- these have no ClassSchedule and exactly one fixed date already set
+ *  at request time, unlike a regular session's (classScheduleId, date) pair. */
+export interface OccurrenceCoverageRequest {
+  units: UnitCoverageEntry[];
+  remarks?: string | null;
+}
+
 export interface UnitProgress {
   unitId: number;
   unitNumber: number;

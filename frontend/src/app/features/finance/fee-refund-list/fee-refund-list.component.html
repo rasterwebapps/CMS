@@ -397,24 +397,17 @@
       }
     </div>
 
-    <select class="mlp-filter-select" [value]="statusFilter()"
-            (change)="navigate({status: $any($event.target).value || null, page: 0})"
-            aria-label="Filter by status">
-      <option value="">All Statuses</option>
-      <option value="PENDING">Pending</option>
-      <option value="APPROVED">Approved</option>
-      <option value="REJECTED">Rejected</option>
-      <option value="TRANSMITTED">Transmitted</option>
-      <option value="PAYMENT_FAILED">Payment Failed</option>
-    </select>
+    <cms-infinite-select
+      label="All Statuses" ariaLabel="Filter by status" searchPlaceholder="Search statuses…"
+      [fetchPage]="statusFetchPage"
+      [selectedValue]="statusFilter() || null" (selectedValueChange)="onStatusFilterChange($event)"
+    />
 
-    <select class="mlp-filter-select" [value]="filterEntityType()"
-            (change)="navigate({entityType: $any($event.target).value || null, page: 0})"
-            aria-label="Filter by payer type">
-      <option value="">All Types</option>
-      <option value="STUDENT">Student</option>
-      <option value="ENQUIRY">Pre-enrollment</option>
-    </select>
+    <cms-infinite-select
+      label="All Types" ariaLabel="Filter by payer type" searchPlaceholder="Search types…"
+      [fetchPage]="entityTypeFetchPage"
+      [selectedValue]="filterEntityType() || null" (selectedValueChange)="onEntityTypeFilterChange($event)"
+    />
 
     <div class="date-range-group">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"

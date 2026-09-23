@@ -1,12 +1,23 @@
-# Parent Portal — Design Proposal (documentation-only, not built)
+# Parent Portal — Design Proposal
 
-**Status:** Scoping only. No migration, entity, or code changes accompany this
-document. Written during the 2026-09-15/16 overnight autonomous session (item
-16 of `docs/ACADEMICS_PORTAL_AUTONOMOUS_SESSION_LOG.md`) as a substitute for a
-specialist-review round the session couldn't hold live — a human must actually
-sign off on the decisions below (particularly cardinality and the login-linking
-mechanism) before any of this is implemented. Do not treat anything here as
-final.
+**Status:** First slice implemented (OC-243, commit `b97b30a8`, merged to
+`main` 2026-09-16) — `Guardian`/`student_guardians` schema, `PARENT` role,
+and self-service ward Attendance/Exam Results. Written during the
+2026-09-15/16 overnight autonomous session (item 16 of
+`docs/ACADEMICS_PORTAL_AUTONOMOUS_SESSION_LOG.md`) as a substitute for a
+specialist-review round the session couldn't hold live; OC-243 was
+implemented on top of it the same day, ahead of a verifiable human sign-off.
+The data model and cardinality below were retroactively reviewed and
+approved by a human 2026-09-17 (see OC-241/OC-243 Jira comments) — the
+decisions held up, but the review happened after the code shipped, not
+before. Full round now shipped 2026-09-17: OC-254 (ward fee self-service +
+Razorpay online payment, hosted Checkout.js), OC-255 (institution-wide
+Announcements module), OC-256 (frontend — ward switcher, Guardian admin
+tab, parent dashboard, ward fees/payment, announcements widget). All three
+went through a live specialist-review round with a human before any code
+was written, unlike OC-243. Live browser verification of OC-256 against
+this codebase's Component Touch Rule (light/dark, every role) is still
+outstanding — see OC-256's Jira comments.
 
 ## Why this needed a design doc instead of a build attempt
 

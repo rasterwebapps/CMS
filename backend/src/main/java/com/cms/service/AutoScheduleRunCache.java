@@ -136,6 +136,18 @@ public final class AutoScheduleRunCache {
         return shiftWindowMemo.computeIfAbsent(key, k -> compute.get());
     }
 
+    /** Every active cell in this run's term, exactly as loaded at {@link #run} time plus this
+     *  run's own {@link #recordPlacement}/{@link #recordRemoval} writes -- for a caller (e.g.
+     *  {@link TimetableConflictInspectorService#scanTerm}) that needs the whole-term cell list
+     *  itself rather than one of the narrower mirror queries below. Avoids that caller running its
+     *  own separate {@code findByTermInstanceIdAndIsActiveTrue} on top of the fetch this cache
+     *  already did -- on a term with several past Global Auto-Schedule reruns, a second *unfiltered*
+     *  {@code findByTermInstanceId} (what {@link #run} itself loads from) would otherwise be the
+     *  larger of the two queries, not a cheap extra. */
+    public List<ClassSchedule> allCells() {
+        return List.copyOf(cells);
+    }
+
     /** Mirrors {@code ClassScheduleRepository#findByCourseOfferingId}. */
     public List<ClassSchedule> byCourseOfferingId(Long courseOfferingId) {
         return cells.stream()

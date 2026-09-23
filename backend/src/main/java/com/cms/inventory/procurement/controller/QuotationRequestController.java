@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.DocumentNumberRegenerationResult;
 import com.cms.inventory.procurement.dto.PurchaseOrderResponse;
 import com.cms.inventory.procurement.dto.PurchaseRequisitionItemResponse;
 import com.cms.inventory.procurement.dto.QuotationRequestAddLineRequest;
@@ -59,8 +60,21 @@ public class QuotationRequestController {
     public ResponseEntity<Page<QuotationRequestResponse>> findPage(
             @RequestParam(required = false) Long locationId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
             @PageableDefault(size = 25, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(requestService.findPage(locationId, status, pageable));
+        return ResponseEntity.ok(requestService.findPage(locationId, status, search, pageable));
+    }
+
+    @GetMapping("/regenerate-numbers/preview")
+    @PreAuthorize("@perm.has('INVENTORY_QUOTATION_REGENERATE_NUMBERS')")
+    public ResponseEntity<DocumentNumberRegenerationResult> previewRegenerateNumbers() {
+        return ResponseEntity.ok(requestService.regenerateQuotationNumbers(true));
+    }
+
+    @PostMapping("/regenerate-numbers")
+    @PreAuthorize("@perm.has('INVENTORY_QUOTATION_REGENERATE_NUMBERS')")
+    public ResponseEntity<DocumentNumberRegenerationResult> regenerateNumbers() {
+        return ResponseEntity.ok(requestService.regenerateQuotationNumbers(false));
     }
 
     @GetMapping("/{id}")

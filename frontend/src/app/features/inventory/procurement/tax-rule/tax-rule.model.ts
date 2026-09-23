@@ -10,6 +10,8 @@ export interface Page<T> {
 
 export interface TaxRule {
   id: number;
+  taxTypeId: number;
+  taxTypeName: string;
   name: string;
   ratePercent: number;
   isActive: boolean;
@@ -18,6 +20,7 @@ export interface TaxRule {
 }
 
 export interface TaxRuleRequest {
+  taxTypeId: number;
   name: string;
   ratePercent: number;
   isActive?: boolean;

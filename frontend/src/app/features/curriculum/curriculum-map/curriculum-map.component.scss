@@ -196,6 +196,11 @@
     border-color: #8b5cf6;
     color: #8b5cf6;
   }
+
+  &--co-curricular {
+    border-color: var(--cms-info);
+    color: var(--cms-info);
+  }
 }
 
 .locked-icon {

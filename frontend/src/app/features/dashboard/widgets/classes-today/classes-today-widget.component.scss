@@ -47,11 +47,13 @@ $indigo: #6366F1;
   display: flex; gap: 4px;
   :host-context(html:not(.dark-theme)) & { color: var(--cms-text-muted); }
 }
+// Same accent every timetable-shaped screen uses (Timetable Builder's own left accent bar, Week
+// Grid's chip, Day Agenda's border-left, Resource Timetable's chip) -- see session-color.util.ts.
+// --subject-color is set inline per item from the session's sessionType
+// (component.ts#sessionTypeColor), so this rule never hardcodes a session-type color itself.
 .ct-type {
   font-weight: 600;
-  &[data-type='THEORY']   { color: var(--cms-primary); }
-  &[data-type='LAB']      { color: #22C55E; }
-  &[data-type='CLINICAL'] { color: #F59E0B; }
+  color: var(--subject-color, var(--cms-text-secondary));
 }
 
 .all-clear {

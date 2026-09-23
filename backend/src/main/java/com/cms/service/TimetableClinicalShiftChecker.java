@@ -65,15 +65,36 @@ public class TimetableClinicalShiftChecker {
             || !Boolean.TRUE.equals(cohort.getProgram().getUsesClinicalShiftScheduling())) {
             return Optional.empty();
         }
-        List<ClinicalShiftWindow> windows = batchId == null
-            ? clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, termInstance.getId())
-            : clinicalShiftGroupService.resolveActiveWindowsForBatch(batchId, cohortId, termInstance.getId());
+        List<ClinicalShiftWindow> windows = resolveWindows(cohortId, batchId, termInstance.getId());
         return windows.stream()
             .filter(w -> w.dayOfWeek() == dayOfWeek && w.overlaps(period.getStartTime(), period.getEndTime()))
             .findFirst()
             .map(w -> new ConstraintViolation("SKELETON_CELL_CLINICAL_SHIFT_BLOCKED",
                 "This day and period falls within this cohort's Clinical Shift window (" + w.label() + ", "
                     + w.busDepart() + "–" + w.busReturn() + " incl. travel)"));
+    }
+
+    /** Memoized via {@link AutoScheduleRunCache} when one is active on this thread -- same idiom
+     *  {@code TimetableGlobalAutoScheduleService#resolveShiftWindowsByDay} already uses, extended
+     *  here to also cover the batch-scoped variant. A cohort/batch's shift-window assignment never
+     *  changes mid-request, so the same key always resolves the same way within one scan/run.
+     *  {@link TimetableConflictInspectorService#scanTerm} calls {@link #blockReasonForCell} once
+     *  per active cell in the term -- without this, every one of a shift-scheduled cohort's ~30
+     *  weekly sessions re-ran the full window resolution (offering lookup, room-allocation lookup,
+     *  section lookup, shift-group lookup) from scratch. */
+    private List<ClinicalShiftWindow> resolveWindows(Long cohortId, Long batchId, Long termInstanceId) {
+        if (batchId == null) {
+            String key = "cohort|" + cohortId + "|" + termInstanceId;
+            return AutoScheduleRunCache.current()
+                .map(cache -> cache.memoizedShiftWindows(key,
+                    () -> clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, termInstanceId)))
+                .orElseGet(() -> clinicalShiftGroupService.resolveActiveWindowsForCohort(cohortId, termInstanceId));
+        }
+        String key = "batch|" + batchId + "|" + cohortId + "|" + termInstanceId;
+        return AutoScheduleRunCache.current()
+            .map(cache -> cache.memoizedShiftWindows(key,
+                () -> clinicalShiftGroupService.resolveActiveWindowsForBatch(batchId, cohortId, termInstanceId)))
+            .orElseGet(() -> clinicalShiftGroupService.resolveActiveWindowsForBatch(batchId, cohortId, termInstanceId));
     }
 
     /** Row-oriented convenience for callers that hold a placed cell rather than a (cohort, day,

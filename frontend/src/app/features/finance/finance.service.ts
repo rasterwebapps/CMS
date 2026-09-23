@@ -125,6 +125,24 @@ export class FinanceService {
     return this.http.get<PenaltyResponse>(`${this.studentFeeUrl}/${studentId}/penalties`);
   }
 
+  /** Current authenticated student's own semester-wise fee breakdown (self-service portal) --
+   *  never a client-supplied studentId. `null` (204) when unlinked or not yet finalized, both
+   *  real non-error states for a newly admitted student. */
+  getMyFeeSummary(): Observable<StudentFeeAllocation | null> {
+    return this.http.get<StudentFeeAllocation | null>(`${this.studentFeeUrl}/my/summary`);
+  }
+
+  /** Current authenticated student's own payment receipts. */
+  getMyReceipts(): Observable<Receipt[]> {
+    return this.http.get<Receipt[]>(`${this.studentFeeUrl}/my/receipts`);
+  }
+
+  /** Current authenticated student's own outstanding late-fee penalties. `null` (204) when
+   *  unlinked or not yet finalized. */
+  getMyPenalties(): Observable<PenaltyResponse | null> {
+    return this.http.get<PenaltyResponse | null>(`${this.studentFeeUrl}/my/penalties`);
+  }
+
   searchStudentFees(search?: string): Observable<FeeExplorerResult> {
     const params = search ? `?search=${encodeURIComponent(search)}&legacy=true` : '?legacy=true';
     return this.http.get<FeeExplorerResult>(`${this.studentFeeUrl}/explorer${params}`);
@@ -136,7 +154,18 @@ export class FinanceService {
       .set('size', p.size ?? 25);
     if (p.sort)   params = params.set('sort', p.sort);
     if (p.search && p.search.length >= 2) params = params.set('search', p.search);
+    if (p.program && p.program !== 'ALL')             params = params.set('program', p.program);
+    if (p.academicYear && p.academicYear !== 'ALL')   params = params.set('academicYear', p.academicYear);
+    if (p.yearOfStudy != null)                        params = params.set('yearOfStudy', p.yearOfStudy);
+    if (p.allocationStatus && p.allocationStatus !== 'ALL') params = params.set('allocationStatus', p.allocationStatus);
     return this.http.get<Page<StudentFeeSummary>>(`${this.studentFeeUrl}/explorer`, { params });
+  }
+
+  /** Distinct Program/Academic Year/Year-of-study dropdown values across every student — not
+   *  scoped to whatever page of results happens to be loaded. */
+  getFeeExplorerFilterOptions(): Observable<{ programs: string[]; academicYears: string[]; yearsOfStudy: number[] }> {
+    return this.http.get<{ programs: string[]; academicYears: string[]; yearsOfStudy: number[] }>(
+      `${this.studentFeeUrl}/explorer/filter-options`);
   }
 
   exportFeeExplorer(
@@ -160,6 +189,31 @@ export class FinanceService {
     if (filters.sort)      params = params.set('sort', filters.sort);
     if (filters.direction) params = params.set('direction', filters.direction);
     return this.http.get(`${this.studentFeeUrl}/explorer/export`, { params, responseType: 'blob' });
+  }
+
+  /** Semester-wise variant — one row per student per semester (Fee/Paid/Pending), so pending
+   *  balances can be found at the semester level instead of only the per-student total. */
+  exportFeeExplorerSemesterWise(
+    format: 'excel' | 'pdf',
+    filters: {
+      search?: string | null;
+      program?: string | null;
+      academicYear?: string | null;
+      yearOfStudy?: number | null;
+      allocationStatus?: string | null;
+      sort?: string | null;
+      direction?: string | null;
+    } = {},
+  ): Observable<Blob> {
+    let params = new HttpParams().set('format', format);
+    if (filters.search && filters.search.length >= 2) params = params.set('search', filters.search);
+    if (filters.program && filters.program !== 'ALL')         params = params.set('program', filters.program);
+    if (filters.academicYear && filters.academicYear !== 'ALL') params = params.set('academicYear', filters.academicYear);
+    if (filters.yearOfStudy != null)                           params = params.set('yearOfStudy', filters.yearOfStudy);
+    if (filters.allocationStatus && filters.allocationStatus !== 'ALL') params = params.set('allocationStatus', filters.allocationStatus);
+    if (filters.sort)      params = params.set('sort', filters.sort);
+    if (filters.direction) params = params.set('direction', filters.direction);
+    return this.http.get(`${this.studentFeeUrl}/explorer/export/semester-wise`, { params, responseType: 'blob' });
   }
 
   getReceipts(studentId: number): Observable<Receipt[]> {

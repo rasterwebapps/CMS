@@ -30,6 +30,9 @@ import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from 
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
 import { LIBRARY_BOOK_LIST_TOUR, LIBRARY_BOOK_LIST_FLOW_MAP } from '../../../shared/tour/tours/library.tours';
@@ -46,6 +49,7 @@ import { LIBRARY_BOOK_LIST_TOUR, LIBRARY_BOOK_LIST_FLOW_MAP } from '../../../sha
     CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent, LibraryBookTransferDialogComponent,
     CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './library-book-list.component.html',
   styleUrl: './library-book-list.component.scss',
@@ -117,6 +121,14 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   protected readonly shelves       = signal<LibraryShelf[]>([]);
   protected readonly statusOptions  = BOOK_STATUS_OPTIONS;
   protected readonly categoryOptions = SUBJECT_CATEGORY_OPTIONS;
+  protected readonly statusFetchPage = staticOptionsFetchPage(() =>
+    this.statusOptions.map(o => ({ id: o.value, name: o.label })));
+  protected readonly categoryFetchPage = staticOptionsFetchPage(() =>
+    this.categoryOptions.map(cat => ({ id: cat, name: cat })));
+  protected readonly rackFetchPage = staticOptionsFetchPage(() =>
+    this.racks().map(r => ({ id: r.id, name: r.name })));
+  protected readonly shelfFetchPage = staticOptionsFetchPage(() =>
+    this.shelves().map(s => ({ id: s.id, name: s.name })));
   protected readonly canManage      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_MANAGE'));
   protected readonly canImport      = computed(() => this.permissions.hasAny('LIBRARY_IMPORT'));
   protected readonly canExport      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_EXPORT'));
@@ -163,6 +175,26 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   }
 
   protected onFilterChange(): void { this.currentPage = 0; this.loadPage(); }
+
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.statusFilter.set(value != null ? (String(value) as BookStatus) : null);
+    this.onFilterChange();
+  }
+
+  protected onCategoryFilterChange(value: InfiniteSelectValue | null): void {
+    this.categoryFilter.set(value != null ? String(value) : null);
+    this.onFilterChange();
+  }
+
+  protected onRackFilterSelectChange(value: InfiniteSelectValue | null): void {
+    this.rackFilter.set(value != null ? Number(value) : null);
+    this.onRackFilterChange();
+  }
+
+  protected onShelfFilterChange(value: InfiniteSelectValue | null): void {
+    this.shelfFilter.set(value != null ? Number(value) : null);
+    this.onFilterChange();
+  }
 
   protected onRackFilterChange(): void {
     this.shelfFilter.set(null);

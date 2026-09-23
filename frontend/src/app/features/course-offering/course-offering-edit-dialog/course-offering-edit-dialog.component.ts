@@ -23,7 +23,7 @@ export interface FacultyOption {
 
 export interface CourseOfferingEditDialogData {
   offering: CourseOffering;
-  /** Set when opened via a "reassign this offering" deep link (e.g. Skeleton Builder's Global
+  /** Set when opened via a "reassign this offering" deep link (e.g. Timetable Builder's Global
    *  Auto-Schedule capacity report) — shown as an informational hint once the suggested faculty's
    *  name resolves; the admin still has to pick them from the right row themselves and save. */
   suggestedFacultyId?: number | null;

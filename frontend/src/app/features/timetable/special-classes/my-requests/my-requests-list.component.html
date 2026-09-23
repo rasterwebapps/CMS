@@ -29,6 +29,8 @@
               <span class="mono">{{ r.occurrenceDate }}</span>
               @if (r.occurrenceSource === 'DAY_REPEAT') {
                 <span class="mrl-batch-tag" title="Part of a whole-day-repeat batch">Day Repeat</span>
+              } @else if (r.occurrenceSource === 'RECURRING_SPECIAL_CLASS') {
+                <span class="mrl-batch-tag" title="Part of a weekly-recurring special class batch">Recurring</span>
               } @else if (r.requestBatchId) {
                 <span class="mrl-batch-tag" title="Part of a multi-period special class request">Multi-period</span>
               }
@@ -69,6 +71,11 @@
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let r">
               <div class="row-actions">
+                @if (canLogProgress(r)) {
+                  <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="Log Progress" ariaLabel="Log syllabus progress for this special class" (clicked)="openLogProgress(r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  </cms-row-action-btn>
+                }
                 @if (canCancel(r)) {
                   <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Cancel" ariaLabel="Cancel special class" (clicked)="confirmCancel(r)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

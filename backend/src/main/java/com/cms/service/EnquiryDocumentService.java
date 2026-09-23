@@ -287,28 +287,21 @@ public class EnquiryDocumentService {
         return toResponse(saved);
     }
 
-    /**
-     * Streams the stored document. Tries MinIO first (storageKey); falls back
-     * to DB bytes for records that predate the MinIO migration.
-     */
+    /** Streams the stored document from MinIO. */
     public DocumentFileDownload getFileForDownload(Long documentId) {
         EnquiryDocument document = documentRepository.findById(documentId)
             .orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
+
+        if (document.getStorageKey() == null || document.getStorageKey().isBlank()) {
+            throw new ResourceNotFoundException("No file uploaded for document id: " + documentId);
+        }
 
         String fileName = document.getFileName() != null
             ? document.getFileName() : document.getDocumentType().name();
         String contentType = document.getContentType() != null
             ? document.getContentType() : "application/octet-stream";
 
-        if (document.getStorageKey() != null && !document.getStorageKey().isBlank()) {
-            byte[] data = storageService.downloadBytes(document.getStorageKey());
-            return new DocumentFileDownload(fileName, contentType, data);
-        }
-
-        byte[] data = document.getFileData();
-        if (data == null || data.length == 0) {
-            throw new ResourceNotFoundException("No file uploaded for document id: " + documentId);
-        }
+        byte[] data = storageService.downloadBytes(document.getStorageKey());
         return new DocumentFileDownload(fileName, contentType, data);
     }
 

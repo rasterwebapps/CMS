@@ -35,6 +35,13 @@ public class Notification {
     @Column(name = "source_id")
     private Long sourceId;
 
+    /** Null means broadcast-to-category (every user who can see the category, unchanged existing
+     *  behavior). Non-null scopes this row to exactly one faculty member -- e.g. the
+     *  holidayDisruption alert notifying just the affected faculty and their HOD/coordinator
+     *  instead of everyone. See {@code HolidayDisruptionNotificationService}. */
+    @Column(name = "recipient_faculty_id")
+    private Long recipientFacultyId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -45,12 +52,18 @@ public class Notification {
 
     public Notification(String categoryKey, String title, String message, String link,
                          String sourceType, Long sourceId) {
+        this(categoryKey, title, message, link, sourceType, sourceId, null);
+    }
+
+    public Notification(String categoryKey, String title, String message, String link,
+                         String sourceType, Long sourceId, Long recipientFacultyId) {
         this.categoryKey = categoryKey;
         this.title = title;
         this.message = message;
         this.link = link;
         this.sourceType = sourceType;
         this.sourceId = sourceId;
+        this.recipientFacultyId = recipientFacultyId;
     }
 
     public Long getId() { return id; }
@@ -61,6 +74,7 @@ public class Notification {
     public String getLink() { return link; }
     public String getSourceType() { return sourceType; }
     public Long getSourceId() { return sourceId; }
+    public Long getRecipientFacultyId() { return recipientFacultyId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getResolvedAt() { return resolvedAt; }
     public void setResolvedAt(Instant resolvedAt) { this.resolvedAt = resolvedAt; }

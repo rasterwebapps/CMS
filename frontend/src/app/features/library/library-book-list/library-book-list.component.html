@@ -50,54 +50,30 @@
       }
     </div>
 
-    <select
-      class="mlp-filter-select"
-      [value]="statusFilter() ?? ''"
-      (change)="statusFilter.set($any($event.target).value || null); onFilterChange()"
-      aria-label="Filter by status"
-    >
-      <option value="">All Statuses</option>
-      @for (opt of statusOptions; track opt.value) {
-        <option [value]="opt.value">{{ opt.label }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Statuses" ariaLabel="Filter by status" searchPlaceholder="Search statuses…"
+      [fetchPage]="statusFetchPage"
+      [selectedValue]="statusFilter()" (selectedValueChange)="onStatusFilterChange($event)"
+    />
 
-    <select
-      class="mlp-filter-select"
-      [value]="categoryFilter() ?? ''"
-      (change)="categoryFilter.set($any($event.target).value || null); onFilterChange()"
-      aria-label="Filter by subject"
-    >
-      <option value="">All Subjects</option>
-      @for (cat of categoryOptions; track cat) {
-        <option [value]="cat">{{ cat }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Subjects" ariaLabel="Filter by subject" searchPlaceholder="Search subjects…"
+      [fetchPage]="categoryFetchPage"
+      [selectedValue]="categoryFilter()" (selectedValueChange)="onCategoryFilterChange($event)"
+    />
 
-    <select
-      class="mlp-filter-select"
-      [value]="rackFilter() ?? ''"
-      (change)="rackFilter.set($any($event.target).value ? +$any($event.target).value : null); onRackFilterChange()"
-      aria-label="Filter by rack"
-    >
-      <option value="">All Racks</option>
-      @for (rack of racks(); track rack.id) {
-        <option [value]="rack.id">{{ rack.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Racks" ariaLabel="Filter by rack" searchPlaceholder="Search racks…"
+      [fetchPage]="rackFetchPage"
+      [selectedValue]="rackFilter()" (selectedValueChange)="onRackFilterSelectChange($event)"
+    />
 
-    <select
-      class="mlp-filter-select"
-      [value]="shelfFilter() ?? ''"
-      (change)="shelfFilter.set($any($event.target).value ? +$any($event.target).value : null); onFilterChange()"
-      aria-label="Filter by shelf"
+    <cms-infinite-select
+      label="All Shelves" ariaLabel="Filter by shelf" searchPlaceholder="Search shelves…"
+      [fetchPage]="shelfFetchPage" [reloadKey]="rackFilter()"
+      [selectedValue]="shelfFilter()" (selectedValueChange)="onShelfFilterChange($event)"
       [disabled]="!rackFilter()"
-    >
-      <option value="">All Shelves</option>
-      @for (shelf of shelves(); track shelf.id) {
-        <option [value]="shelf.id">{{ shelf.name }}</option>
-      }
-    </select>
+    />
 
     @if (hasActiveFilters()) {
       <button class="btn-ghost btn-sm" (click)="clearFilters()">

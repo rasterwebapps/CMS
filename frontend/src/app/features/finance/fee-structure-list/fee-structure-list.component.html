@@ -34,30 +34,18 @@
       }
     </div>
 
-    <select
+    <cms-infinite-select
       id="tour-fs-filters"
-      class="mlp-filter-select"
-      [value]="selectedAcademicYearId() ?? ''"
-      (change)="onAcademicYearChange(+$any($event.target).value || null)"
-      aria-label="Filter by academic year"
-    >
-      <option value="">All Academic Years</option>
-      @for (ay of academicYears(); track ay.id) {
-        <option [value]="ay.id">{{ ay.name }}</option>
-      }
-    </select>
+      label="All Academic Years" ariaLabel="Filter by academic year" searchPlaceholder="Search years…"
+      [fetchPage]="academicYearFilterFetchPage"
+      [selectedValue]="selectedAcademicYearId()" (selectedValueChange)="onAcademicYearChange($event)"
+    />
 
-    <select
-      class="mlp-filter-select"
-      [value]="selectedProgramId() ?? ''"
-      (change)="onProgramFilterChange(+$any($event.target).value || null)"
-      aria-label="Filter by program"
-    >
-      <option value="">All Programs</option>
-      @for (p of programs(); track p.id) {
-        <option [value]="p.id">{{ p.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+      [fetchPage]="programFetchPage"
+      [selectedValue]="selectedProgramId()" (selectedValueChange)="onProgramFilterChange($event)"
+    />
 
     <button
       class="btn-toolbar"
@@ -96,51 +84,28 @@
   @if (moreFiltersOpen) {
     <div class="more-filters-bar" (click)="$event.stopPropagation()">
       @if (courses().length > 0) {
-        <select
-          class="mlp-filter-select"
-          [value]="selectedCourseId() ?? ''"
-          (change)="onCourseChange(+$any($event.target).value || null)"
-          aria-label="Filter by course"
-        >
-          <option value="">All Courses</option>
-          @for (c of courses(); track c.id) {
-            <option [value]="c.id">{{ c.name }}</option>
-          }
-        </select>
+        <cms-infinite-select
+          label="All Courses" ariaLabel="Filter by course" searchPlaceholder="Search courses…"
+          [fetchPage]="courseFetchPage"
+          [selectedValue]="selectedCourseId()" (selectedValueChange)="onCourseChange($event)"
+        />
       }
-      <select
-        class="mlp-filter-select"
-        [value]="selectedQuota() ?? ''"
-        (change)="onQuotaChange($any($event.target).value || null)"
-        aria-label="Filter by quota"
-      >
-        <option value="">All Quotas</option>
-        <option value="MANAGEMENT">Management</option>
-        <option value="COUNSELLING">Counselling</option>
-      </select>
-      <select
-        class="mlp-filter-select"
-        [value]="selectedGender() ?? ''"
-        (change)="onGenderChange($any($event.target).value || null)"
-        aria-label="Filter by gender"
-      >
-        <option value="">All Genders</option>
-        <option value="FEMALE">Female</option>
-        <option value="MALE">Male</option>
-        <option value="OTHER">Other</option>
-      </select>
+      <cms-infinite-select
+        label="All Quotas" ariaLabel="Filter by quota" searchPlaceholder="Search quotas…"
+        [fetchPage]="quotaFetchPage"
+        [selectedValue]="selectedQuota()" (selectedValueChange)="onQuotaChange($event)"
+      />
+      <cms-infinite-select
+        label="All Genders" ariaLabel="Filter by gender" searchPlaceholder="Search genders…"
+        [fetchPage]="genderFetchPage"
+        [selectedValue]="selectedGender()" (selectedValueChange)="onGenderChange($event)"
+      />
       @if (feeStates().length > 0) {
-        <select
-          class="mlp-filter-select"
-          [value]="selectedFeeStateId() ?? ''"
-          (change)="onFeeStateChange(+$any($event.target).value || null)"
-          aria-label="Filter by fee state"
-        >
-          <option value="">All States</option>
-          @for (s of feeStates(); track s.id) {
-            <option [value]="s.id">{{ s.name }}</option>
-          }
-        </select>
+        <cms-infinite-select
+          label="All States" ariaLabel="Filter by fee state" searchPlaceholder="Search states…"
+          [fetchPage]="feeStateFetchPage"
+          [selectedValue]="selectedFeeStateId()" (selectedValueChange)="onFeeStateChange($event)"
+        />
       }
     </div>
   }

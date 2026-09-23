@@ -10,7 +10,7 @@
     </a>
     <div class="entry-form-hdr-text">
       <div class="page-title-row">
-        <h1 class="page-title">Purchase Order <em>#{{ o.id }}</em></h1>
+        <h1 class="page-title">Purchase Order <em>{{ o.poNumber || ('#' + o.id) }}</em></h1>
         <cms-status-badge [status]="o.status" />
       </div>
       <p class="page-subtitle">{{ o.supplierName }} · {{ o.locationVirtualName }} — {{ o.poDate | date: 'mediumDate' }}</p>

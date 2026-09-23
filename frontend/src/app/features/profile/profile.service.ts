@@ -91,6 +91,10 @@ export class ProfileService {
     return this.http.put<void>(`${this.baseUrl}/me/self-info`, request);
   }
 
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/me/change-password`, { currentPassword, newPassword });
+  }
+
   // ── Cover photo ─────────────────────────────────────────────────────────────
   private readonly _coverDataUrl = signal<string | null>(null);
   readonly coverDataUrl = this._coverDataUrl.asReadonly();

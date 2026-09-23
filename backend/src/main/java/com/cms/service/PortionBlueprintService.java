@@ -25,6 +25,8 @@ import com.cms.model.SyllabusUnit;
 import com.cms.model.SyllabusUnitPlan;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.OccurrenceSource;
+import com.cms.model.enums.SpecialClassApprovalStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.SessionOccurrenceRepository;
@@ -51,6 +53,11 @@ public class PortionBlueprintService {
     private final ClassScheduleRepository classScheduleRepository;
     private final ClassScheduleOccurrenceService occurrenceService;
     private final SessionOccurrenceRepository sessionOccurrenceRepository;
+
+    /** Mirrors {@code ProgressTrackingService.COUNTABLE_SPECIAL_SOURCES} -- the BR-55 sources whose
+     *  logged coverage should count as real completion here too. */
+    private static final List<OccurrenceSource> COUNTABLE_SPECIAL_SOURCES =
+        List.of(OccurrenceSource.SPECIAL_CLASS, OccurrenceSource.DAY_REPEAT, OccurrenceSource.RECURRING_SPECIAL_CLASS);
 
     public PortionBlueprintService(SyllabusUnitPlanRepository syllabusUnitPlanRepository,
                                     SyllabusUnitRepository syllabusUnitRepository,
@@ -153,9 +160,20 @@ public class PortionBlueprintService {
         return unit.getPlannedHours() != null ? unit.getPlannedHours() : 0;
     }
 
+    /** Earliest date each unit was marked complete, across REGULAR occurrences (via their
+     *  ClassSchedule) and approved BR-55 special-class occurrences (via their own direct {@code
+     *  courseOffering} -- they have no ClassSchedule at all). See {@code
+     *  ProgressTrackingService#aggregateByUnit} for the identical disjoint-queries rationale. */
     private Map<Long, LocalDate> actualCompletionDates(Long courseOfferingId) {
+        List<SessionOccurrence> occurrences = new ArrayList<>(
+            sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(courseOfferingId));
+        sessionOccurrenceRepository.findByCourseOffering_Id(courseOfferingId).stream()
+            .filter(o -> COUNTABLE_SPECIAL_SOURCES.contains(o.getOccurrenceSource())
+                && o.getApprovalStatus() == SpecialClassApprovalStatus.APPROVED)
+            .forEach(occurrences::add);
+
         Map<Long, LocalDate> result = new HashMap<>();
-        for (SessionOccurrence occurrence : sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(courseOfferingId)) {
+        for (SessionOccurrence occurrence : occurrences) {
             occurrence.getUnitCoverages().stream()
                 .filter(c -> Boolean.TRUE.equals(c.getMarkedComplete()))
                 .forEach(c -> result.merge(c.getSyllabusUnit().getId(), occurrence.getOccurrenceDate(),

@@ -1,5 +1,7 @@
 package com.cms.service;
 
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,12 +32,15 @@ public class ApplicationNumberSequenceService {
 
     private final NumberSeriesDefinitionRepository definitionRepository;
     private final NumberSequenceCounterRepository  counterRepository;
+    private final ScopeKeyResolver                 scopeKeyResolver;
 
     public ApplicationNumberSequenceService(
             NumberSeriesDefinitionRepository definitionRepository,
-            NumberSequenceCounterRepository counterRepository) {
+            NumberSequenceCounterRepository counterRepository,
+            ScopeKeyResolver scopeKeyResolver) {
         this.definitionRepository = definitionRepository;
         this.counterRepository    = counterRepository;
+        this.scopeKeyResolver     = scopeKeyResolver;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -118,6 +123,69 @@ public class ApplicationNumberSequenceService {
                                           String scopeKey, String prefix, int sequencePadding,
                                           String description) {
         return generateNumber(seriesCode, scopeKey);
+    }
+
+    /**
+     * Generates the next number for a series scoped to an arbitrary business date rather than
+     * today — the series' own scope_type decides how {@code date} maps to a scope_key (e.g.
+     * FINANCIAL_YEAR turns any date into its containing financial year), so a document keeps the
+     * scope period it actually happened in. Used both for a document created right now (date =
+     * its own date field, which the user may have backdated) and for retroactively backfilling
+     * numbers onto pre-existing documents in their original chronological order.
+     */
+    @Transactional
+    public String nextNumberForDate(String seriesCode, LocalDate date) {
+        NumberSeriesDefinition def = definitionRepository.findBySeriesCode(seriesCode)
+            .orElseThrow(() -> new IllegalStateException(
+                "No series definition found for '" + seriesCode + "'. "
+                + "Create it via Settings → Number Sequences before generating numbers."));
+        String scopeKey = scopeKeyResolver.resolvePeriod(def.getScopeType(), date);
+        return generateNumber(seriesCode, scopeKey);
+    }
+
+    /**
+     * The shared "regenerate numbers" primitive backing every document type's own "Regenerate
+     * Numbers" admin action (e.g. ProductOrderService.regeneratePoNumbers): given every entity's
+     * id and its own business date, already sorted into the chronological order they should be
+     * renumbered in, resets every scope period's counter to zero and reassigns fresh, gap-free
+     * numbers within each period — not just filling blanks, so a document already numbered by
+     * live creation is also safely reflowed rather than risking a collision with it. Callers
+     * write the returned numbers onto their own entities and save them; this method only touches
+     * {@code number_sequence_counters}, never the caller's own table. {@code dryRun=true} computes
+     * the same mapping without touching any counter, for a preview/confirm-dialog flow.
+     */
+    @Transactional
+    public Map<Long, String> regenerateNumbers(String seriesCode, List<Map.Entry<Long, LocalDate>> datesInOrder, boolean dryRun) {
+        NumberSeriesDefinition def = definitionRepository.findBySeriesCode(seriesCode)
+            .orElseThrow(() -> new IllegalStateException(
+                "No series definition found for '" + seriesCode + "'. "
+                + "Create it via Settings → Number Sequences before generating numbers."));
+
+        Map<String, Integer> runningSequence = new LinkedHashMap<>();
+        Map<Long, String> result = new LinkedHashMap<>();
+        for (Map.Entry<Long, LocalDate> entry : datesInOrder) {
+            String scopeKey = scopeKeyResolver.resolvePeriod(def.getScopeType(), entry.getValue());
+            int next = runningSequence.merge(scopeKey, 1, Integer::sum);
+            result.put(entry.getKey(), format(def, scopeKey, next));
+        }
+
+        if (!dryRun) {
+            for (Map.Entry<String, Integer> scopeEntry : runningSequence.entrySet()) {
+                NumberSequenceCounter counter = counterRepository
+                    .findBySeriesCodeAndScopeKeyForUpdate(seriesCode, scopeEntry.getKey())
+                    .orElseGet(() -> {
+                        NumberSequenceCounter c = new NumberSequenceCounter();
+                        c.setSeriesCode(seriesCode);
+                        c.setScopeKey(scopeEntry.getKey());
+                        c.setLastSequence(0);
+                        return c;
+                    });
+                counter.setLastSequence(scopeEntry.getValue());
+                counterRepository.save(counter);
+            }
+        }
+
+        return result;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -1,15 +1,15 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Faculty Availability
+// Recurring Unavailability (formerly "Faculty Availability")
 // ─────────────────────────────────────────────────────────────────────────────
 export const FACULTY_AVAILABILITY_TOUR: TourDefinition = {
   steps: [
     {
       popover: {
-        title: '🚫 Faculty Availability',
+        title: '🚫 Recurring Unavailability',
         description:
-          'Mark when a faculty member is unavailable — recurring or one-off — so the timetable engine steers around it when generating, regenerating, or swapping sessions.',
+          'Block a faculty member\'s standing weekly commitments (e.g. external duty every Tuesday afternoon) so the timetable engine steers around them when generating, regenerating, or swapping sessions. For one-off leave on a specific date, use Faculty Absence instead.',
         side: 'over',
         align: 'center',
       },
@@ -37,7 +37,7 @@ export const FACULTY_AVAILABILITY_TOUR: TourDefinition = {
       popover: {
         title: '✅ Keep it current',
         description:
-          'Update this whenever a faculty member\'s regular availability changes — Skeleton Builder, Staffing, and Swap all respect these blocks.',
+          'Update this whenever a faculty member\'s regular availability changes — Timetable Builder, Staffing, and Swap all respect these blocks.',
         side: 'over',
         align: 'center',
       },
@@ -47,9 +47,9 @@ export const FACULTY_AVAILABILITY_TOUR: TourDefinition = {
 
 export const FACULTY_AVAILABILITY_FLOW_MAP: TourFlowMap = {
   funnel: [
-    { label: 'Faculty Availability', description: 'Record which faculty are unavailable for which periods before building the timetable.' },
+    { label: 'Recurring Unavailability', description: 'Record which faculty have standing weekly commitments before building the timetable.' },
     { label: 'Faculty Workload Rules', description: 'Set weekly/daily/continuous teaching-load caps used to validate staffing.' },
-    { label: 'Skeleton Builder', description: 'Place Theory/Lab/Clinical sessions into periods for each subject across a cohort\'s term.' },
+    { label: 'Timetable Builder', description: 'Place Theory/Lab/Clinical sessions into periods for each subject across a cohort\'s term.' },
     { label: 'Staffing', description: 'Assign faculty to each placed session and pick theory rooms.' },
     { label: 'Capacity Planner', description: 'Work out how many classrooms and lab/clinical batches a cohort needs, and commit the physical rooms.' },
     { label: 'Conflict Inspector', description: 'Scan the whole term for room, faculty, and workload conflicts before publishing.' },
@@ -60,6 +60,6 @@ export const FACULTY_AVAILABILITY_FLOW_MAP: TourFlowMap = {
   steps: [
     { label: 'Pick a Faculty Member', icon: 'search', detail: 'Select the faculty member whose availability you want to view or edit.' },
     { label: 'Toggle Cells', icon: 'checklist', detail: 'Click any day/period cell to mark it Free or Blocked.' },
-    { label: 'Auto-Respected', icon: 'send', detail: 'Blocked cells are excluded automatically by Skeleton Builder, Staffing, and Swap.' },
+    { label: 'Auto-Respected', icon: 'send', detail: 'Blocked cells are excluded automatically by Timetable Builder, Staffing, and Swap.' },
   ],
 };

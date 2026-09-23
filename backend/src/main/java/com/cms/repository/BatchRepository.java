@@ -51,4 +51,12 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
     @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END " +
            "FROM Batch b JOIN b.students s WHERE b.courseOffering.subject.id = :subjectId")
     boolean existsAnyStudentInBatchesForSubject(@Param("subjectId") Long subjectId);
+
+    /** Every active cohort_section this student currently belongs to, resolved via the
+     *  batch_students roster -- cohort_sections itself carries no direct student membership
+     *  (it's room/capacity metadata only), so SECTION-targeted Announcements matching goes
+     *  through this same batch roster path. */
+    @Query("SELECT DISTINCT b.cohortSection.id FROM Batch b JOIN b.students s " +
+           "WHERE s.id = :studentId AND b.cohortSection IS NOT NULL AND b.isActive = true")
+    List<Long> findActiveSectionIdsByStudentId(@Param("studentId") Long studentId);
 }

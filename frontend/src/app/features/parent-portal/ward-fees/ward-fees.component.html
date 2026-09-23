@@ -1,0 +1,169 @@
+<div class="mlp-page">
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">Ward <em>Fees</em></h1>
+      @if (wardContext.selectedWard(); as ward) {
+        <p class="page-subtitle">{{ ward.fullName }}'s fee ledger, payment history, and penalties.</p>
+      } @else {
+        <p class="page-subtitle">Your ward's fee ledger, payment history, and penalties.</p>
+      }
+    </div>
+  </div>
+
+  @if (wardContext.wards().length > 0) {
+    <div class="content-card">
+      <div class="std-card-inner">
+        <div class="std-card-hdr">
+          <h2>Pay Now</h2>
+        </div>
+        <div class="pay-now-row">
+          <div class="field-group pay-now-field">
+            <label class="field-label" for="wf-amount">Amount (₹)</label>
+            <input id="wf-amount" class="field-input" type="number" min="1" step="0.01"
+                   [ngModel]="paymentAmount()" (ngModelChange)="paymentAmount.set($event)"
+                   [placeholder]="totalPending() > 0 ? ('Up to ' + (totalPending() | number: '1.2-2')) : 'Enter amount'" />
+            <p class="field-hint">Pay any amount towards outstanding dues — partial payments are allowed.</p>
+          </div>
+          <button class="btn-submit pay-now-btn" type="button"
+                  [disabled]="payingNow() || !paymentAmount() || paymentAmount()! <= 0"
+                  (click)="payNow()">
+            @if (payingNow()) { Starting… } @else { Pay via Razorpay }
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-card">
+      <div class="std-card-inner">
+        <div class="std-card-hdr">
+          <h2>Semester-wise Fee Status</h2>
+          @if (summary(); as s) {
+            <span class="std-summary">Total {{ s.netFee | inr }} — {{ s.status }}</span>
+          }
+        </div>
+
+        @if (summaryLoading()) {
+          <p class="std-empty">Loading…</p>
+        } @else if (!summary()) {
+          <p class="std-empty">No fee allocation finalized yet.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="std-table">
+              <thead>
+                <tr>
+                  <th>Installment</th>
+                  <th>Due Date</th>
+                  <th>Amount</th>
+                  <th>Paid</th>
+                  <th>Pending</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of summary()!.installmentFees; track row.id) {
+                  <tr>
+                    <td>{{ row.installmentLabel }}</td>
+                    <td>{{ row.dueDate | date: 'mediumDate' }}</td>
+                    <td>{{ row.amount | inr }}</td>
+                    <td>{{ row.amountPaid | inr }}</td>
+                    <td>{{ row.pendingAmount | inr }}</td>
+                    <td><cms-status-badge [status]="row.paymentStatus"></cms-status-badge></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="content-card">
+      <div class="std-card-inner">
+        <div class="std-card-hdr">
+          <h2>Payment History</h2>
+        </div>
+
+        @if (receiptsLoading()) {
+          <p class="std-empty">Loading…</p>
+        } @else if (receipts().length === 0) {
+          <p class="std-empty">No payments recorded yet.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="std-table">
+              <thead>
+                <tr>
+                  <th>Receipt No.</th>
+                  <th>Date</th>
+                  <th>Installment</th>
+                  <th>Amount</th>
+                  <th>Mode</th>
+                  <th>Reference</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of receipts(); track row.id) {
+                  <tr>
+                    <td>{{ row.receiptNumber }}</td>
+                    <td>{{ row.paymentDate | date: 'mediumDate' }}</td>
+                    <td>{{ row.installmentLabel ?? '—' }}</td>
+                    <td>{{ row.amountPaid | inr }}</td>
+                    <td>{{ row.paymentMode | paymentModeLabel }}</td>
+                    <td>{{ row.transactionReference ?? '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="content-card">
+      <div class="std-card-inner">
+        <div class="std-card-hdr">
+          <h2>Outstanding Penalties</h2>
+          @if (penalties(); as p) {
+            <span class="std-summary">Total {{ p.totalPenalty | inr }}</span>
+          }
+        </div>
+
+        @if (penaltiesLoading()) {
+          <p class="std-empty">Loading…</p>
+        } @else if (!penalties() || penalties()!.penalties.length === 0) {
+          <p class="std-empty">No outstanding penalties.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="std-table">
+              <thead>
+                <tr>
+                  <th>Installment</th>
+                  <th>Overdue Since</th>
+                  <th>Overdue Days</th>
+                  <th>Penalty</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of penalties()!.penalties; track row.id) {
+                  <tr>
+                    <td>{{ row.installmentLabel }}</td>
+                    <td>{{ row.penaltyStartDate | date: 'mediumDate' }}</td>
+                    <td>{{ row.overdueDays }}</td>
+                    <td>{{ row.totalPenalty | inr }}</td>
+                    <td><cms-status-badge [status]="row.isPaid ? 'PAID' : 'PENDING'"></cms-status-badge></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="content-card">
+      <div class="ward-empty-state">
+        <p>No wards are linked to your account yet. Contact the college office to get linked to your child's record.</p>
+      </div>
+    </div>
+  }
+</div>

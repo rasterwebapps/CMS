@@ -84,3 +84,39 @@ Management module (`docs/inventory-management/`): "Receiving & Stock Movement" �
 - Only matching returns are shown.
 
 **Status:** NOT TESTED
+
+## TC-INV-RECV-016: Return number is auto-generated and immutable
+
+**Preconditions:**
+- A `SUPPLIER_RETURN_NUMBER` series is configured under Settings → Number Sequences (seeded by
+  default: prefix "SR", scope None/never resets, e.g. `SR-00001`).
+
+**Steps:**
+1. Raise a new return and note its number in the list/detail header.
+2. Raise a second return.
+
+**Expected Result:**
+- Step 1: the number matches the configured series format and is shown as the return's primary
+  identifier (list column "Number", detail page header) — never `#{id}` unless the row predates
+  this feature.
+- Step 2: its number is the next sequence value, never a repeat, and never resets across time
+  periods (this series has scope None).
+
+**Status:** NOT TESTED
+
+## TC-INV-RECV-017: Regenerate Supplier Return Numbers (admin action)
+
+**Preconditions:**
+- Logged in as a user holding `INVENTORY_SUPPLIER_RETURN_REGENERATE_NUMBERS`.
+- At least one return predates this feature (no number).
+- **This mutates production data — take a database backup first** outside a local/throwaway
+  environment, per the project's production-data-safety policy.
+
+**Steps:**
+1. From the Supplier Returns list, click "Regenerate Numbers", review the confirmation summary, confirm.
+
+**Expected Result:**
+- Every affected return's number updates to a fresh, gap-free sequence (oldest `return_date`
+  first); a user without the permission never sees the button.
+
+**Status:** NOT TESTED

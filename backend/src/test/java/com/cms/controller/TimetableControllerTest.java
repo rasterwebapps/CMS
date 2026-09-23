@@ -3,10 +3,10 @@ package com.cms.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,10 +19,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.CohortTermStatusSummary;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.dto.SwapCandidateResponse;
@@ -34,8 +39,10 @@ import com.cms.service.ClassScheduleService;
 import com.cms.service.PersonalTimetableService;
 import com.cms.service.ProfileService;
 import com.cms.service.ResourceGridService;
+import com.cms.service.TimetableConflictInspectorService;
 import com.cms.service.TimetableGenerationService;
 import com.cms.service.TimetableOccurrenceService;
+import com.cms.service.TimetableSkeletonService;
 import com.cms.service.TimetableSwapService;
 
 @WebMvcTest(controllers = TimetableController.class)
@@ -66,6 +73,12 @@ class TimetableControllerTest {
     @MockitoBean
     private ResourceGridService resourceGridService;
 
+    @MockitoBean
+    private TimetableSkeletonService timetableSkeletonService;
+
+    @MockitoBean
+    private TimetableConflictInspectorService timetableConflictInspectorService;
+
     @Test
     void shouldFindDraftRows() throws Exception {
         when(classScheduleService.findByTermInstanceIdAndStatus(eq(10L), any())).thenReturn(List.of());
@@ -74,6 +87,55 @@ class TimetableControllerTest {
             .andExpect(status().isOk());
 
         verify(classScheduleService).findByTermInstanceIdAndStatus(eq(10L), any());
+    }
+
+    @Test
+    void shouldFindCohortStatusSummary() throws Exception {
+        // OC-260: Timetable Builder's "All cohorts" list now calls this via
+        // TimetableGenerationService#getCohortTermStatusSummaryWithReadiness, not
+        // TimetableSkeletonService directly, since only that service can compute the readiness
+        // (Pending -> Drafted -> Conflicts Resolved -> Published) status and attendanceRecorded.
+        // OC-262: paginated -- Spring's own Page<> is serialized directly, so content sits under
+        // "content" alongside paging metadata (totalElements etc.), not a bare top-level array.
+        Page<CohortTermStatusSummary> page = new PageImpl<>(
+            List.of(new CohortTermStatusSummary(5L, "BSc Nursing 2024", "BSc Nursing", "2024-2025",
+                "PARTIALLY_PUBLISHED", 1, 2, 12.5, true)),
+            PageRequest.of(0, 25), 1);
+        when(timetableGenerationService.getCohortTermStatusSummaryWithReadiness(eq(10L), isNull(), any(Pageable.class)))
+            .thenReturn(page);
+
+        mockMvc.perform(get("/timetables/draft/cohort-status-summary").param("termInstanceId", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].cohortId").value(5))
+            .andExpect(jsonPath("$.content[0].status").value("PARTIALLY_PUBLISHED"))
+            .andExpect(jsonPath("$.content[0].draftCount").value(1))
+            .andExpect(jsonPath("$.content[0].publishedCount").value(2))
+            .andExpect(jsonPath("$.content[0].courseName").value("BSc Nursing"))
+            .andExpect(jsonPath("$.content[0].admissionYearName").value("2024-2025"))
+            .andExpect(jsonPath("$.content[0].unassignedHours").value(12.5))
+            .andExpect(jsonPath("$.content[0].attendanceRecorded").value(true))
+            .andExpect(jsonPath("$.totalElements").value(1));
+
+        verify(timetableGenerationService).getCohortTermStatusSummaryWithReadiness(eq(10L), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void shouldMergeClinicalShiftGridEntriesIntoDraftRows() throws Exception {
+        when(classScheduleService.findByTermInstanceIdAndStatus(eq(10L), any())).thenReturn(List.of());
+        com.cms.dto.ClassScheduleResponse shiftEntry = new com.cms.dto.ClassScheduleResponse(
+            -1_000_001L, com.cms.model.enums.ClassSessionType.CLINICAL, com.cms.model.enums.ClassScheduleStatus.DRAFT,
+            null, null, 1L, "Anatomy — Off-campus Clinical Shift", "ANAT101", 9L, "Dr. Rao",
+            null, "Shift A", java.time.LocalTime.of(6, 30), java.time.LocalTime.of(13, 30),
+            "Batch A", 400L, null, 50L, "City Hospital", 100L,
+            com.cms.model.enums.DayOfWeek.MONDAY, 10L, null, true, null, null);
+        when(timetableSkeletonService.findClinicalShiftGridEntries(10L, com.cms.model.enums.ClassScheduleStatus.DRAFT, null))
+            .thenReturn(List.of(shiftEntry));
+
+        mockMvc.perform(get("/timetables/draft").param("termInstanceId", "10"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value(-1000001))
+            .andExpect(jsonPath("$[0].sessionType").value("CLINICAL"))
+            .andExpect(jsonPath("$[0].roomName").value("City Hospital"));
     }
 
     @Test
@@ -88,58 +150,107 @@ class TimetableControllerTest {
 
     @Test
     void shouldApproveDraftTimetable() throws Exception {
-        when(timetableGenerationService.approve(eq(10L), anyString())).thenReturn(new TimetableActionResponse(5));
+        // OC-260: approve() is now cohort-scoped -- cohortIds is a required part of the body.
+        when(timetableGenerationService.approve(eq(10L), eq(List.of(5L)), anyString(), eq(false), isNull()))
+            .thenReturn(new TimetableActionResponse(5));
 
         // The security filter chain is disabled in this WebMvcTest slice (addFilters = false), so
         // @AuthenticationPrincipal Jwt resolves null regardless of .with(jwt()...) here -- same
         // established limitation as ImportControllerTest, hence anyString() above/below rather
         // than asserting a specific actor value.
-        mockMvc.perform(post("/timetables/10/approve").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+        mockMvc.perform(post("/timetables/10/approve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cohortIds\":[5]}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.affectedCount").value(5));
 
-        verify(timetableGenerationService).approve(eq(10L), anyString());
+        verify(timetableGenerationService).approve(eq(10L), eq(List.of(5L)), anyString(), eq(false), isNull());
     }
 
     @Test
     void shouldReturnNotFoundWhenApprovingWithNoDrafts() throws Exception {
-        when(timetableGenerationService.approve(eq(999L), anyString()))
-            .thenThrow(new ResourceNotFoundException("No draft timetable found for term instance id: 999"));
+        when(timetableGenerationService.approve(eq(999L), eq(List.of(5L)), anyString(), eq(false), isNull()))
+            .thenThrow(new ResourceNotFoundException("No draft timetable found for the selected cohort(s) in term instance id: 999"));
 
-        mockMvc.perform(post("/timetables/999/approve").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+        mockMvc.perform(post("/timetables/999/approve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cohortIds\":[5]}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldClearTimetable() throws Exception {
-        when(timetableGenerationService.clear(eq(10L), anyString())).thenReturn(new TimetableActionResponse(7));
+    void shouldReturnConflictWithGapsWhenCoverageIsIncomplete() throws Exception {
+        when(timetableGenerationService.approve(eq(10L), eq(List.of(5L)), anyString(), eq(false), isNull()))
+            .thenThrow(new com.cms.exception.TimetableCoverageGapException(List.of(
+                new com.cms.dto.TimetableCoverageGap(5L, "BSc Nursing", com.cms.model.enums.ClassSessionType.THEORY, 340, 0, 340))));
 
-        mockMvc.perform(delete("/timetables/10").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+        mockMvc.perform(post("/timetables/10/approve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cohortIds\":[5]}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.gaps[0].cohortName").value("BSc Nursing"))
+            .andExpect(jsonPath("$.gaps[0].sessionType").value("THEORY"));
+    }
+
+    @Test
+    void shouldApproveWithOverrideFlagAndReasonInRequestBody() throws Exception {
+        when(timetableGenerationService.approve(eq(10L), eq(List.of(5L)), anyString(), eq(true), eq("Phased rollout")))
+            .thenReturn(new TimetableActionResponse(3));
+
+        mockMvc.perform(post("/timetables/10/approve")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cohortIds\":[5],\"overrideIncompleteCoverage\":true,\"overrideReason\":\"Phased rollout\"}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.affectedCount").value(3));
+
+        verify(timetableGenerationService).approve(eq(10L), eq(List.of(5L)), anyString(), eq(true), eq("Phased rollout"));
+    }
+
+    @Test
+    void shouldClearTimetable() throws Exception {
+        // OC-260: Discard Draft moved from a bodyless DELETE to a body-bearing POST so it can carry
+        // the cohort selection, matching revert-to-draft's own shape.
+        when(timetableGenerationService.clear(eq(10L), eq(List.of(5L)), anyString())).thenReturn(new TimetableActionResponse(7));
+
+        mockMvc.perform(post("/timetables/10/discard-draft")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cohortIds\":[5]}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.affectedCount").value(7));
 
-        verify(timetableGenerationService).clear(eq(10L), anyString());
+        verify(timetableGenerationService).clear(eq(10L), eq(List.of(5L)), anyString());
     }
 
     @Test
     void shouldRevertPublishedTimetableToDraft() throws Exception {
-        when(timetableGenerationService.revertToDraft(eq(10L), anyString())).thenReturn(new TimetableActionResponse(4));
+        when(timetableGenerationService.revertToDraft(eq(10L), eq(List.of(5L)), anyString())).thenReturn(new TimetableActionResponse(4));
 
-        mockMvc.perform(post("/timetables/10/revert-to-draft").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+        mockMvc.perform(post("/timetables/10/revert-to-draft")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cohortIds\":[5]}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.affectedCount").value(4));
 
-        verify(timetableGenerationService).revertToDraft(eq(10L), anyString());
+        verify(timetableGenerationService).revertToDraft(eq(10L), eq(List.of(5L)), anyString());
     }
 
     @Test
     void shouldReturnConflictWhenRevertingWithAttendanceRecorded() throws Exception {
-        when(timetableGenerationService.revertToDraft(eq(10L), anyString()))
+        when(timetableGenerationService.revertToDraft(eq(10L), eq(List.of(5L)), anyString()))
             .thenThrow(new LifecycleConflictException(
-                "Attendance has already been recorded against this term's timetable. It can no longer be reverted to draft.",
+                "Attendance has already been recorded against this cohort's timetable. It can no longer be reverted to draft.",
                 "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", 10L, null));
 
-        mockMvc.perform(post("/timetables/10/revert-to-draft").with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+        mockMvc.perform(post("/timetables/10/revert-to-draft")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cohortIds\":[5]}")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isConflict());
     }
 

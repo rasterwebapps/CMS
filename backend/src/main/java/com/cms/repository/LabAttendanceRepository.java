@@ -40,4 +40,9 @@ public interface LabAttendanceRepository extends JpaRepository<LabAttendance, Lo
     boolean existsByStudentIdAndSubjectIdAndDate(Long studentId, Long subjectId, LocalDate date);
 
     boolean existsByLabScheduleTermInstanceId(Long termInstanceId);
+
+    /** OC-260: cohort-scoped sibling of {@link #existsByLabScheduleTermInstanceId} — Revert-to-Draft
+     *  and Discard-Draft becoming cohort-scoped means attendance recorded for one cohort's sessions
+     *  must no longer block reverting/discarding a different, unrelated cohort's draft. */
+    boolean existsByLabScheduleIdIn(List<Long> classScheduleIds);
 }

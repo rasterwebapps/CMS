@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.LogProgressRequest;
+import com.cms.dto.OccurrenceCoverageRequest;
 import com.cms.dto.OfferingProgressResponse;
 import com.cms.dto.SessionOccurrenceDto;
 import com.cms.dto.TermProgressSummaryResponse;
@@ -30,6 +31,8 @@ import com.cms.model.SessionOccurrenceUnit;
 import com.cms.model.Subject;
 import com.cms.model.SyllabusUnit;
 import com.cms.model.enums.AttendanceType;
+import com.cms.model.enums.OccurrenceSource;
+import com.cms.model.enums.SpecialClassApprovalStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyRepository;
@@ -296,5 +299,91 @@ class ProgressTrackingServiceTest {
         assertThat(response.subjects()).hasSize(1);
         assertThat(response.subjects().get(0).courseOfferingId()).isEqualTo(200L);
         assertThat(response.overallPercentComplete()).isEqualTo(100.0);
+    }
+
+    // ── BR-55 special-class coverage counting ──
+
+    private SessionOccurrence specialClassOccurrence(Long id, LocalDate date, SpecialClassApprovalStatus status) {
+        SessionOccurrence occurrence = SessionOccurrence.forSpecialClass(
+            OccurrenceSource.SPECIAL_CLASS, date, offering.getSubject(), offering, null, null,
+            com.cms.model.enums.ClassSessionType.THEORY, null, null, "Catching up on missed portions");
+        occurrence.setId(id);
+        occurrence.setApprovalStatus(status);
+        return occurrence;
+    }
+
+    @Test
+    void shouldCountApprovedSpecialClassCoverageTowardOfferingProgress() {
+        SyllabusUnit unit1 = unitOf(1L, 1, csc);
+        SessionOccurrence specialClass = specialClassOccurrence(500L, LocalDate.of(2024, 9, 1), SpecialClassApprovalStatus.APPROVED);
+        specialClass.getUnitCoverages().add(new SessionOccurrenceUnit(specialClass, unit1, new BigDecimal("2"), true));
+
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(offering));
+        when(syllabusUnitRepository.findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(50L))
+            .thenReturn(List.of(unit1));
+        when(sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(200L)).thenReturn(List.of());
+        when(sessionOccurrenceRepository.findByCourseOffering_Id(200L)).thenReturn(List.of(specialClass));
+
+        OfferingProgressResponse response = service.getProgressForOffering(200L);
+
+        assertThat(response.coveredUnitCount()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldNotCountAPendingSpecialClassCoverage() {
+        SyllabusUnit unit1 = unitOf(1L, 1, csc);
+        SessionOccurrence pending = specialClassOccurrence(501L, LocalDate.of(2024, 9, 1), SpecialClassApprovalStatus.PENDING);
+        pending.getUnitCoverages().add(new SessionOccurrenceUnit(pending, unit1, new BigDecimal("2"), true));
+
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(offering));
+        when(syllabusUnitRepository.findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(50L))
+            .thenReturn(List.of(unit1));
+        when(sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(200L)).thenReturn(List.of());
+        when(sessionOccurrenceRepository.findByCourseOffering_Id(200L)).thenReturn(List.of(pending));
+
+        OfferingProgressResponse response = service.getProgressForOffering(200L);
+
+        assertThat(response.coveredUnitCount()).isEqualTo(0);
+    }
+
+    @Test
+    void shouldLogCoverageForAnApprovedSpecialClassOccurrence() {
+        SyllabusUnit unit = unitOf(1L, 1, csc);
+        SessionOccurrence occurrence = specialClassOccurrence(500L, LocalDate.of(2024, 8, 5), SpecialClassApprovalStatus.APPROVED);
+        OccurrenceCoverageRequest request = new OccurrenceCoverageRequest(
+            List.of(new UnitCoverageRequest(1L, new BigDecimal("1"), true)), "Make-up session");
+
+        when(sessionOccurrenceRepository.findById(500L)).thenReturn(Optional.of(occurrence));
+        when(syllabusUnitRepository.findById(1L)).thenReturn(Optional.of(unit));
+        when(sessionOccurrenceRepository.save(any(SessionOccurrence.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SessionOccurrenceDto response = service.logCoverageForOccurrence(500L, request, null);
+
+        assertThat(response.classScheduleId()).isNull();
+        assertThat(response.unitCoverages()).hasSize(1);
+        assertThat(response.unitCoverages().get(0).markedComplete()).isTrue();
+    }
+
+    @Test
+    void shouldRejectOccurrenceEndpointForARegularSession() {
+        SessionOccurrence regular = new SessionOccurrence(schedule, LocalDate.of(2024, 8, 5));
+        regular.setId(600L);
+        when(sessionOccurrenceRepository.findById(600L)).thenReturn(Optional.of(regular));
+
+        assertThatThrownBy(() -> service.logCoverageForOccurrence(
+                600L, new OccurrenceCoverageRequest(List.of(), null), null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("class-schedule-based endpoint");
+    }
+
+    @Test
+    void shouldRejectLoggingAgainstAPendingSpecialClass() {
+        SessionOccurrence pending = specialClassOccurrence(501L, LocalDate.of(2024, 8, 5), SpecialClassApprovalStatus.PENDING);
+        when(sessionOccurrenceRepository.findById(501L)).thenReturn(Optional.of(pending));
+
+        assertThatThrownBy(() -> service.logCoverageForOccurrence(
+                501L, new OccurrenceCoverageRequest(List.of(), null), null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("approved");
     }
 }

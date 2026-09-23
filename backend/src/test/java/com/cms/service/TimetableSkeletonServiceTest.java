@@ -26,6 +26,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.cms.dto.ConstraintViolation;
 import com.cms.dto.CourseOfferingDto;
@@ -68,7 +72,10 @@ import com.cms.repository.CohortRoomAllocationRepository;
 import com.cms.repository.CohortSectionRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.PeriodRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.TermInstanceRepository;
+import com.cms.dto.CohortTermStatusSummary;
+import com.cms.model.enums.EnrollmentStatus;
 
 @ExtendWith(MockitoExtension.class)
 class TimetableSkeletonServiceTest {
@@ -92,6 +99,7 @@ class TimetableSkeletonServiceTest {
     @Mock private ClinicalShiftGroupService clinicalShiftGroupService;
     @Mock private TimetableClinicalShiftChecker clinicalShiftChecker;
     @Mock private com.cms.repository.FacultyRepository facultyRepository;
+    @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
 
     private TimetableSkeletonService service;
 
@@ -109,7 +117,8 @@ class TimetableSkeletonServiceTest {
             periodRepository, batchRepository, batchService, blockedPeriodChecker,
             rotationSlotRepository, rotationMemberAssignmentRepository, rotationResolverService, courseOfferingService,
             cohortRepository, termInstanceRepository, cohortRoomAllocationRepository, cohortSectionRepository,
-            timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService, clinicalShiftChecker, facultyRepository);
+            timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService, clinicalShiftChecker, facultyRepository,
+            studentTermEnrollmentRepository);
         lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(anyLong())).thenReturn(List.of());
         lenient().when(clinicalShiftGroupService.resolveActiveWindowsForCohort(anyLong(), anyLong())).thenReturn(List.of());
 
@@ -556,6 +565,359 @@ class TimetableSkeletonServiceTest {
         assertThat(response.cells()).hasSize(1);
         assertThat(response.cells().get(0).electiveGroupId()).isEqualTo(950L);
         assertThat(response.cells().get(0).electiveGroupName()).isEqualTo("Nursing Electives");
+    }
+
+    // ── findClinicalShiftGridEntries ────────────────────────────────────
+
+    /** Real user-reported gap: an admin reviewing a DRAFT timetable before Publish couldn't see
+     *  Clinical sessions anywhere in the grid -- they're delivered entirely off-grid via a duty
+     *  roster and only ever hinted at in a separate summary banner. This synthesizes a real,
+     *  visible grid entry per (group, batch) instead, mirroring ResourceGridService#toShiftCell. */
+    @Test
+    void shouldSynthesizeAGridEntryForEachActiveBatchOfAnActiveShiftGroup() {
+        offering.setClinicalShiftDurationMinutes(360); // 6h shift
+        offering.setClinicalTravelBufferMinutes(30);
+
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setLabel("Shift A — Morning");
+        group.setCourseOffering(offering);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        com.cms.model.ClinicalVenue venue = new com.cms.model.ClinicalVenue("City Hospital", "City Hospital", "General");
+        venue.setId(50L);
+        com.cms.model.Faculty coordinator = new com.cms.model.Faculty();
+        coordinator.setId(9L);
+        Batch batch = new Batch();
+        batch.setId(400L);
+        batch.setName("Batch A");
+        batch.setClinicalVenue(venue);
+        batch.setCoordinatorFaculty(coordinator);
+        batch.setIsActive(true);
+        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(batch));
+
+        List<com.cms.dto.ClassScheduleResponse> entries =
+            service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT);
+
+        assertThat(entries).hasSize(1);
+        com.cms.dto.ClassScheduleResponse entry = entries.get(0);
+        assertThat(entry.id()).isLessThan(0); // synthetic -- never a real ClassSchedule id
+        assertThat(entry.sessionType()).isEqualTo(ClassSessionType.CLINICAL);
+        assertThat(entry.status()).isEqualTo(ClassScheduleStatus.DRAFT);
+        assertThat(entry.dayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
+        assertThat(entry.startTime()).isEqualTo(LocalTime.of(6, 30)); // busDepart = 7:00 - 30min buffer
+        assertThat(entry.endTime()).isEqualTo(LocalTime.of(13, 30));  // busReturn = 7:00 + 6h + 30min buffer
+        assertThat(entry.roomName()).isEqualTo("City Hospital");
+        assertThat(entry.facultyId()).isEqualTo(9L);
+        assertThat(entry.batchName()).isEqualTo("Batch A");
+        assertThat(entry.subjectName()).contains("Anatomy").contains("Off-campus Clinical Shift");
+    }
+
+    @Test
+    void shouldSkipAGroupWithNoShiftDurationConfiguredYet() {
+        // No clinicalShiftDurationMinutes set on `offering` -- busDepart/busReturn resolve null.
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setCourseOffering(offering);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        List<com.cms.dto.ClassScheduleResponse> entries =
+            service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT);
+
+        assertThat(entries).isEmpty();
+    }
+
+    @Test
+    void shouldSkipAnInactiveBatchOfAnActiveShiftGroup() {
+        offering.setClinicalShiftDurationMinutes(360);
+        offering.setClinicalTravelBufferMinutes(30);
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setCourseOffering(offering);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        Batch inactiveBatch = new Batch();
+        inactiveBatch.setId(401L);
+        inactiveBatch.setIsActive(false);
+        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(inactiveBatch));
+
+        List<com.cms.dto.ClassScheduleResponse> entries =
+            service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT);
+
+        assertThat(entries).isEmpty();
+    }
+
+    @Test
+    void shouldProduceOneEntryPerBatchWhenAShiftGroupRunsInParallelAtMultipleVenues() {
+        offering.setClinicalShiftDurationMinutes(360);
+        offering.setClinicalTravelBufferMinutes(30);
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setId(1L);
+        group.setCourseOffering(offering);
+        group.setDayOfWeek(DayOfWeek.MONDAY);
+        group.setClinicalStartTime(LocalTime.of(7, 0));
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        Batch batchA = new Batch();
+        batchA.setId(400L);
+        batchA.setName("Batch A");
+        batchA.setIsActive(true);
+        Batch batchB = new Batch();
+        batchB.setId(401L);
+        batchB.setName("Batch B");
+        batchB.setIsActive(true);
+        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(batchA, batchB));
+
+        List<com.cms.dto.ClassScheduleResponse> entries =
+            service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT);
+
+        assertThat(entries).hasSize(2);
+        assertThat(entries).extracting(com.cms.dto.ClassScheduleResponse::batchName)
+            .containsExactlyInAnyOrder("Batch A", "Batch B");
+    }
+
+    // ── getCohortTermStatusSummary (paginated, OC-262) ──────────────────
+
+    private static final Pageable ANY_PAGE = PageRequest.of(0, 25);
+
+    /** Stubs the paginated cohort-id query for a page whose content is exactly {@code ids}, in the
+     *  order given -- ordering is the DB query's job now ({@code order by e.cohort.displayName}),
+     *  not the service's, so callers here must pass ids pre-sorted the way the real query would. */
+    private void stubCohortIdsPage(List<Long> ids) {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceIdPaged(
+            eq(10L), eq(EnrollmentStatus.ENROLLED), isNull(), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(ids, ANY_PAGE, ids.size()));
+    }
+
+    @Test
+    void shouldReturnEmptySummaryWhenNoCohortsEnrolledForTerm() {
+        stubCohortIdsPage(List.of());
+
+        Page<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE);
+
+        assertThat(rows.getContent()).isEmpty();
+    }
+
+    @Test
+    void shouldReportDraftStatusForCohortWithNoPlacedSessionsYet() {
+        stubCohortIdsPage(List.of(5L));
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows).hasSize(1);
+        CohortTermStatusSummary row = rows.get(0);
+        assertThat(row.cohortId()).isEqualTo(5L);
+        assertThat(row.cohortName()).isEqualTo("BSc Nursing 2024");
+        assertThat(row.status()).isEqualTo("DRAFT");
+        assertThat(row.draftCount()).isZero();
+        assertThat(row.publishedCount()).isZero();
+        assertThat(row.unassignedHours()).isZero();
+    }
+
+    @Test
+    void shouldReportDraftStatusWhenAllCellsAreDraft() {
+        stubCohortIdsPage(List.of(5L));
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
+            .thenReturn(List.of(existingRow(ClassSessionType.THEORY, null, false), existingRow(ClassSessionType.THEORY, null, false)));
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).status()).isEqualTo("DRAFT");
+        assertThat(rows.get(0).draftCount()).isEqualTo(2);
+        assertThat(rows.get(0).publishedCount()).isZero();
+        assertThat(rows.get(0).courseName()).isNull(); // shared `cohort` fixture sets no Course
+    }
+
+    @Test
+    void shouldReportPublishedStatusWhenAllCellsArePublished() {
+        stubCohortIdsPage(List.of(5L));
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
+            .thenReturn(List.of(existingRow(ClassSessionType.THEORY, null, true)));
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).status()).isEqualTo("PUBLISHED");
+        assertThat(rows.get(0).publishedCount()).isEqualTo(1);
+        assertThat(rows.get(0).draftCount()).isZero();
+    }
+
+    /** Real scenario, not hypothetical: a post-publish Staff Session Swap or a fresh Skeleton
+     *  Builder placement adds a new DRAFT row alongside already-PUBLISHED rows for the same
+     *  cohort/term -- Draft Review's summary must surface this distinctly from a clean draft. */
+    @Test
+    void shouldReportPartiallyPublishedStatusWhenCellsAreMixed() {
+        stubCohortIdsPage(List.of(5L));
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
+            .thenReturn(List.of(existingRow(ClassSessionType.THEORY, null, true), existingRow(ClassSessionType.THEORY, null, false)));
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).status()).isEqualTo("PARTIALLY_PUBLISHED");
+        assertThat(rows.get(0).draftCount()).isEqualTo(1);
+        assertThat(rows.get(0).publishedCount()).isEqualTo(1);
+    }
+
+    /** LAB/CLINICAL rows carry no direct {@code cohortSection} (only THEORY rows ever do) -- they
+     *  resolve purely via the offering-based join, same as THEORY. Regression guard for that join
+     *  shape, since a status summary naively derived from ClassSchedule.cohortSection alone would
+     *  miss these entirely. */
+    @Test
+    void shouldResolveLabAndClinicalOnlyCohortCellsCorrectly() {
+        Batch batch = new Batch();
+        batch.setId(400L);
+        stubCohortIdsPage(List.of(5L));
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
+            .thenReturn(List.of(existingRow(ClassSessionType.LAB, batch, true)));
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).status()).isEqualTo("PUBLISHED");
+        assertThat(rows.get(0).publishedCount()).isEqualTo(1);
+    }
+
+    /** Sorting itself now happens in the repository's {@code order by e.cohort.displayName} (not
+     *  covered by this mock-based unit test); this guards that the service preserves whatever order
+     *  the page's content already arrives in, rather than re-sorting or reordering it. */
+    @Test
+    void shouldPreserveCohortOrderFromPagedQuery() {
+        Cohort otherCohort = new Cohort();
+        otherCohort.setId(6L);
+        otherCohort.setDisplayName("Ayurveda 2024");
+
+        stubCohortIdsPage(List.of(6L, 5L)); // pre-sorted by name, as the real query would return
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(cohortRepository.findById(6L)).thenReturn(Optional.of(otherCohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of());
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 6L)).thenReturn(List.of());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows).extracting(CohortTermStatusSummary::cohortName)
+            .containsExactly("Ayurveda 2024", "BSc Nursing 2024");
+    }
+
+    /** Unassigned hours must reflect real uncovered curriculum demand, reusing the same
+     *  TimetableCoverageCalculator the Publish gate itself relies on -- not re-derived math. */
+    @Test
+    void shouldReportUnassignedHoursFromCoverageCalculator() {
+        stubCohortIdsPage(List.of(5L));
+        when(cohortRepository.findById(5L)).thenReturn(Optional.of(cohort));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
+        // csc.theoryHours=54 needs 3 weekly sessions (see setUp comment) -- none placed, so THEORY
+        // is fully unassigned; labHours=27 needs 2/week, also unplaced.
+        when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L))).thenReturn(Collections.emptyList());
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(batchService.getBatchesForOffering(100L)).thenReturn(List.of());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummary(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).unassignedHours()).isGreaterThan(0);
+    }
+
+    // ── findClinicalShiftSummaryForTerm ─────────────────────────────────
+
+    @Test
+    void shouldSummarizeHoursForASectionedClinicalShiftGroup() {
+        CohortSection section = section(700L, "Section A");
+        section.getCohortRoomAllocation().setCohort(cohort);
+        offering.setClinicalShiftDurationMinutes(360); // 6h shift
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setCourseOffering(offering);
+        group.setCohortSection(section);
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+
+        List<com.cms.dto.ClinicalShiftSummaryItem> summary = service.findClinicalShiftSummaryForTerm(10L);
+
+        assertThat(summary).hasSize(1);
+        assertThat(summary.get(0).cohortSectionId()).isEqualTo(700L);
+        assertThat(summary.get(0).hoursPerWeek()).isEqualTo(6.0);
+    }
+
+    /** Regression: a ClinicalShiftGroup can be active before Capacity Auto-Plan ever room-sections
+     *  its cohort, so `cohortSection` stays null -- without the fallback, real already-delivered
+     *  hours vanished from Draft Review's duty-roster banner entirely (found via a live dev-DB
+     *  check: 9 active groups, all with null cohort_section_id). */
+    @Test
+    void shouldFallBackToOfferingResolvedCohortNameWhenGroupHasNoCohortSectionYet() {
+        offering.setClinicalShiftDurationMinutes(360); // 6h shift
+        com.cms.model.ClinicalShiftGroup group = new com.cms.model.ClinicalShiftGroup();
+        group.setCourseOffering(offering);
+        group.setCohortSection(null);
+        group.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
+        when(courseOfferingService.resolveCohortNames(offering)).thenReturn(List.of("BSc Nursing 2024"));
+
+        List<com.cms.dto.ClinicalShiftSummaryItem> summary = service.findClinicalShiftSummaryForTerm(10L);
+
+        assertThat(summary).hasSize(1);
+        assertThat(summary.get(0).cohortSectionId()).isLessThan(0); // synthetic id -- no real section exists
+        assertThat(summary.get(0).cohortLabel()).isEqualTo("BSc Nursing 2024");
+        assertThat(summary.get(0).hoursPerWeek()).isEqualTo(6.0);
+    }
+
+    @Test
+    void shouldSumFallbackHoursAcrossMultipleUnsectionedGroupsForTheSameCohort() {
+        offering.setClinicalShiftDurationMinutes(360); // 6h shift
+        com.cms.model.ClinicalShiftGroup group1 = new com.cms.model.ClinicalShiftGroup();
+        group1.setCourseOffering(offering);
+        group1.setIsActive(true);
+        com.cms.model.ClinicalShiftGroup group2 = new com.cms.model.ClinicalShiftGroup();
+        group2.setCourseOffering(offering);
+        group2.setIsActive(true);
+        when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group1, group2));
+        when(courseOfferingService.resolveCohortNames(offering)).thenReturn(List.of("BSc Nursing 2024"));
+
+        List<com.cms.dto.ClinicalShiftSummaryItem> summary = service.findClinicalShiftSummaryForTerm(10L);
+
+        assertThat(summary).hasSize(1);
+        assertThat(summary.get(0).hoursPerWeek()).isEqualTo(12.0);
     }
 
     // ── placeCell ──────────────────────────────────────────────────────
@@ -1449,9 +1811,88 @@ class TimetableSkeletonServiceTest {
 
         assertThatThrownBy(() -> service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L)))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Only a Theory session");
+            .hasMessageContaining("Only a Theory, Library, or Sports session");
 
         verify(classScheduleRepository, never()).save(any());
+    }
+
+    /** A LIBRARY filler cell has no course offering to displace -- replacing it converts the row
+     *  into a real staffed Theory session in place, rather than being blocked the way a LAB/CLINICAL
+     *  cell is. This is the "fill an empty period left by removing Library" path. */
+    @Test
+    void shouldReplaceALibraryCellWithATheoryOffering_convertingItsSessionType() {
+        ClassSchedule cs = new ClassSchedule();
+        cs.setId(100L);
+        cs.setSessionType(ClassSessionType.LIBRARY);
+        cs.setPeriod(period);
+        cs.setDayOfWeek(DayOfWeek.MONDAY);
+        cs.setStatus(ClassScheduleStatus.DRAFT);
+        cs.setCourseOffering(null);
+        cs.setIsActive(true);
+        cs.setTermInstance(termInstance);
+        Classroom room = new Classroom("A-101", null, null, 60);
+        room.setId(70L);
+        cs.setClassroom(room);
+
+        Faculty newFaculty = new Faculty();
+        newFaculty.setId(42L);
+
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
+        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of());
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L));
+
+        assertThat(cs.getSessionType()).isEqualTo(ClassSessionType.THEORY);
+        assertThat(cs.getCourseOffering()).isSameAs(otherOffering);
+        assertThat(cs.getFaculty()).isSameAs(newFaculty);
+        assertThat(cs.isPinned()).isTrue();
+        // Nothing was displaced -- a filler cell carried no curriculum hours to lose.
+        assertThat(response.displaced()).isNull();
+
+        // The room check must be built against the TARGET type (THEORY), not the cell's original
+        // LIBRARY type, or it would compare against the wrong set of same-room occupants.
+        ArgumentCaptor<TimetableStaffingService.RoomCheckSpec> roomCaptor =
+            ArgumentCaptor.forClass(TimetableStaffingService.RoomCheckSpec.class);
+        verify(timetableStaffingService).validateAssignment(any(), any(), any(), any(), any(),
+            any(), roomCaptor.capture(), any(), any());
+        assertThat(roomCaptor.getValue().type()).isEqualTo(ClassSessionType.THEORY);
+    }
+
+    /** SPORTS is the other filler type sharing LIBRARY's classroom-backed venue and lack of a
+     *  course offering -- same conversion path, spot-checked separately since it's a distinct enum
+     *  branch in the guard. */
+    @Test
+    void shouldReplaceASportsCellWithATheoryOffering() {
+        ClassSchedule cs = new ClassSchedule();
+        cs.setId(101L);
+        cs.setSessionType(ClassSessionType.SPORTS);
+        cs.setPeriod(period);
+        cs.setDayOfWeek(DayOfWeek.MONDAY);
+        cs.setStatus(ClassScheduleStatus.DRAFT);
+        cs.setCourseOffering(null);
+        cs.setIsActive(true);
+        cs.setTermInstance(termInstance);
+
+        Faculty newFaculty = new Faculty();
+        newFaculty.setId(42L);
+
+        when(classScheduleRepository.findById(101L)).thenReturn(Optional.of(cs));
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
+        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of());
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.replaceCellSubject(101L, new SkeletonCellReplaceRequest(200L, 42L));
+
+        assertThat(cs.getSessionType()).isEqualTo(ClassSessionType.THEORY);
+        assertThat(cs.getCourseOffering()).isSameAs(otherOffering);
     }
 
     private CurriculumElectiveGroup electiveGroup(Long id, com.cms.model.enums.ElectiveSelectionMode mode) {

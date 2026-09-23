@@ -1,5 +1,6 @@
 package com.cms.inventory.catalog.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +23,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     /** Used by the barcode-scan lookup workflow — see ProductService.findByBarcode. */
     Optional<Product> findByBarcodeIgnoreCase(String barcode);
+
+    /** Oldest-first per category — the deterministic order ProductCodeGeneratorService.
+     *  regenerateAllCodes renumbers by, so the longest-standing product in a category keeps the
+     *  lowest sequence number. */
+    List<Product> findAllByOrderByCategoryIdAscCreatedAtAscIdAsc();
 }

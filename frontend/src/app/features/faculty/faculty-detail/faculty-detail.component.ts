@@ -28,6 +28,9 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { FACULTY_DETAIL_TOUR, FACULTY_DETAIL_FLOW_MAP } from '../../../shared/tour/tours/faculty-detail.tours';
 
 @Component({
@@ -48,7 +51,8 @@ import { FACULTY_DETAIL_TOUR, FACULTY_DETAIL_FLOW_MAP } from '../../../shared/to
     CmsTypeBadgeComponent,
     RaiseCapFlyoutComponent,
     ProfileDocumentsComponent,
-    CmsTourButtonComponent],
+    CmsTourButtonComponent,
+    CmsInfiniteSelectComponent],
   templateUrl: './faculty-detail.component.html',
   styleUrl: './faculty-detail.component.scss',
 })
@@ -80,7 +84,7 @@ export class FacultyDetailComponent implements OnInit {
   protected readonly labSchedulesLoading = signal(false);
   protected readonly dayLabels = WEEK_GRID_DAY_LABELS;
   /** Day chip display order — real placements can land on Saturday as an overflow day (see the
-   *  Skeleton Builder automation's own Mon-Fri-first/Saturday-fallback rule), so it's included. */
+   *  Timetable Builder automation's own Mon-Fri-first/Saturday-fallback rule), so it's included. */
   protected readonly weekDays = WEEK_GRID_DAYS;
 
   protected readonly showRaiseCap = signal(false);
@@ -226,7 +230,13 @@ export class FacultyDetailComponent implements OnInit {
     this.loadWorkload();
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly workloadAcademicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly workloadTermFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.workload.set(null);
     this.scheduleWorkload.set(null);
@@ -234,7 +244,8 @@ export class FacultyDetailComponent implements OnInit {
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     this.loadWorkload();
     this.loadScheduleWorkload();
     this.loadLabSchedules();

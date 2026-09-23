@@ -67,6 +67,9 @@ export class CmsStatusBadgeComponent {
 
       // ── In-progress / warning states ────────────────────────────────────
       case 'PARTIALLY_PAID':
+      case 'PARTIALLY_PUBLISHED':
+      case 'DRAFTED':
+      case 'PARTIAL':
       case 'IN_USE':
       case 'UNDER_REPAIR':
       case 'LATE':
@@ -82,6 +85,7 @@ export class CmsStatusBadgeComponent {
       case 'PARTIALLY_COMPLETED':
       case 'GATE_VERIFIED':
       case 'EXCUSED':
+      case 'PO_RAISED':
         return 'status-warning';
 
       // ── Neutral / pending states ─────────────────────────────────────────
@@ -110,6 +114,7 @@ export class CmsStatusBadgeComponent {
       case 'NOT_INTERESTED':
       case 'CLOSED':
       case 'REJECTED':
+      case 'DENIED':
       case 'WITHDRAWN':
       case 'NOT_UPLOADED':
       case 'NOT_ALLOCATED':
@@ -147,6 +152,7 @@ export class CmsStatusBadgeComponent {
       case 'ONGOING':
       case 'OPEN':
       case 'ISSUED':
+      case 'CONFLICTS_RESOLVED':
         return 'status-current';
 
       // ── Past / closed-cycle states ────────────────────────────────────────

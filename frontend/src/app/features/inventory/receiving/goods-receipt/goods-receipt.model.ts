@@ -60,6 +60,9 @@ export interface GoodsReceiptLine {
 
 export interface GoodsReceipt {
   id: number;
+  /** Sequential, e.g. "GRN-202609-00001" — null only for rows that predate this feature and
+   *  haven't been through the "Regenerate Numbers" admin action yet. */
+  receiptNumber: string | null;
   purchaseOrderId: number;
   supplierName: string;
   locationId: number;

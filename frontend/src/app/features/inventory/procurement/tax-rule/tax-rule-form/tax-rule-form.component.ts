@@ -7,6 +7,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TaxRuleService } from '../tax-rule.service';
 import { TaxRuleRequest } from '../tax-rule.model';
+import { TaxTypeService } from '../../tax-type/tax-type.service';
+import { TaxType } from '../../tax-type/tax-type.model';
 import { ToastService } from '../../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, trimmedMinLength, cmsFieldError } from '../../../../../shared/validators/cms-validators';
@@ -30,6 +32,7 @@ export class TaxRuleFormComponent implements OnInit {
   private readonly route        = inject(ActivatedRoute);
   private readonly router       = inject(Router);
   private readonly taxRuleService = inject(TaxRuleService);
+  private readonly taxTypeService = inject(TaxTypeService);
   private readonly toast        = inject(ToastService);
   private readonly destroyRef   = inject(DestroyRef);
   private readonly http         = inject(HttpClient);
@@ -38,15 +41,19 @@ export class TaxRuleFormComponent implements OnInit {
   protected readonly saving     = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle  = signal('Add Tax Rule');
+  protected readonly taxTypes   = signal<TaxType[]>([]);
 
   private taxRuleId: number | null = null;
 
   protected readonly form: FormGroup = this.fb.group({
+    taxTypeId:   [null as number | null, [Validators.required]],
     name:        ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(100), noConsecutiveSpaces()]],
     ratePercent: [null as number | null, [Validators.required, Validators.min(0)]],
   });
 
   ngOnInit(): void {
+    this.taxTypeService.getAll(true).subscribe({ next: (t) => this.taxTypes.set(t) });
+
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.taxRuleId = Number(idParam);
@@ -68,6 +75,7 @@ export class TaxRuleFormComponent implements OnInit {
     }
 
     const request: TaxRuleRequest = {
+      taxTypeId: this.form.value.taxTypeId,
       name: (this.form.value.name ?? '').trim(),
       ratePercent: this.form.value.ratePercent,
     };
@@ -91,7 +99,7 @@ export class TaxRuleFormComponent implements OnInit {
   }
 
   private static readonly FIELD_LABELS: Record<string, string> = {
-    name: 'Name', ratePercent: 'Rate',
+    taxTypeId: 'Tax type', name: 'Name', ratePercent: 'Rate',
   };
 
   protected getErrorMessage(fieldName: string): string {
@@ -103,7 +111,7 @@ export class TaxRuleFormComponent implements OnInit {
     this.loading.set(true);
     this.taxRuleService.getById(this.taxRuleId).subscribe({
       next: (t) => {
-        this.form.patchValue({ name: t.name, ratePercent: t.ratePercent });
+        this.form.patchValue({ taxTypeId: t.taxTypeId, name: t.name, ratePercent: t.ratePercent });
         this.loading.set(false);
       },
       error: () => {

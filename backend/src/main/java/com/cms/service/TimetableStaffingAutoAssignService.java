@@ -211,7 +211,7 @@ public class TimetableStaffingAutoAssignService {
         }
         Optional<CourseOfferingSectionFaculty> override = courseOfferingSectionFacultyRepository
             .findByCourseOfferingIdAndCohortSectionId(offering.getId(), cell.cohortSectionId());
-        if (override.isEmpty()) {
+        if (override.isEmpty() || override.get().getFaculty().getStatus() != FacultyStatus.ACTIVE) {
             return false;
         }
         Long preferredId = override.get().getFaculty().getId();

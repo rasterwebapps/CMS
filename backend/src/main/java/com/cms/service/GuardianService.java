@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.GuardianRequest;
 import com.cms.dto.GuardianResponse;
+import com.cms.dto.StudentGuardianResponse;
 import com.cms.dto.WardSummaryResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Guardian;
@@ -81,6 +82,29 @@ public class GuardianService {
         studentGuardianRepository.save(link);
     }
 
+    /** Guardians linked to a specific student (ward) -- the reverse of {@link #findMyWards},
+     *  used by the Student Detail screen's admin-facing Guardians tab. */
+    public List<StudentGuardianResponse> findByStudentId(Long studentId) {
+        return studentGuardianRepository.findByStudentId(studentId).stream()
+            .map(link -> {
+                Guardian g = link.getGuardian();
+                return new StudentGuardianResponse(g.getId(), g.getFirstName(), g.getLastName(),
+                    g.getEmail(), g.getPhone(), g.getRelationshipHint(), link.isPrimary(), g.getCreatedAt());
+            })
+            .toList();
+    }
+
+    /** Removes an existing guardian-ward link (e.g. an admin correcting a mistaken link).
+     *  Deletes only the join row -- never the {@link Guardian} or {@link Student} themselves. */
+    @Transactional
+    public void unlinkFromStudent(Long guardianId, Long studentId) {
+        if (!studentGuardianRepository.existsByGuardianIdAndStudentId(guardianId, studentId)) {
+            throw new ResourceNotFoundException(
+                "No link found between guardian " + guardianId + " and student " + studentId);
+        }
+        studentGuardianRepository.deleteByGuardianIdAndStudentId(guardianId, studentId);
+    }
+
     /** Current authenticated guardian's own wards (parent self-service portal). Resolves the
      *  caller's linked {@code Guardian} via the {@code app_users} FK, the same shape
      *  {@code AttendanceService#findMyAttendance} and {@code LibraryIssueService#findMyIssues}
@@ -105,12 +129,18 @@ public class GuardianService {
      *  not a silent empty result, so a guardian probing another family's student id gets a
      *  clear denial rather than data that merely looks accidentally empty. */
     public void assertIsMyWard(String keycloakUsername, Long studentId) {
-        Long guardianId = appUserRepository.findByKeycloakUsername(keycloakUsername)
-            .map(user -> user.getLinkedGuardian() != null ? user.getLinkedGuardian().getId() : null)
-            .orElse(null);
+        Long guardianId = currentGuardianId(keycloakUsername);
         if (guardianId == null || !studentGuardianRepository.existsByGuardianIdAndStudentId(guardianId, studentId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student " + studentId + " is not one of your wards");
         }
+    }
+
+    /** The caller's own guardianId (via the {@code app_users} FK), or {@code null} if the caller
+     *  has no linked guardian account. */
+    public Long currentGuardianId(String keycloakUsername) {
+        return appUserRepository.findByKeycloakUsername(keycloakUsername)
+            .map(user -> user.getLinkedGuardian() != null ? user.getLinkedGuardian().getId() : null)
+            .orElse(null);
     }
 
     private GuardianResponse toResponse(Guardian g) {

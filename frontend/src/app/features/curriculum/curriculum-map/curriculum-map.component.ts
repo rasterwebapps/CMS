@@ -64,7 +64,7 @@ export class CurriculumMapComponent implements OnInit {
   protected readonly thresholds = signal<AttendanceThreshold[]>([]);
   protected readonly savingThresholds = signal(false);
 
-  protected readonly subjectTypes: SubjectType[] = ['CORE', 'FOUNDATIONAL', 'ELECTIVE'];
+  protected readonly subjectTypes: SubjectType[] = ['CORE', 'FOUNDATIONAL', 'ELECTIVE', 'CO_CURRICULAR'];
 
   protected readonly addCourseForm: FormGroup = this.fb.group({
     subjectId: [null, Validators.required],
@@ -426,9 +426,11 @@ export class CurriculumMapComponent implements OnInit {
   }
 
   /** Display order for subject-type groups — CORE (the profession-defining subjects) first,
-   *  then FOUNDATIONAL. There is no manual sort-order field in the UI; order is always derived
-   *  from type + name so it stays predictable without an extra field to fill in. */
-  private static readonly SUBJECT_TYPE_RANK: Record<SubjectType, number> = { CORE: 0, FOUNDATIONAL: 1, ELECTIVE: 2 };
+   *  then FOUNDATIONAL, then advisory CO_CURRICULAR last. There is no manual sort-order field in
+   *  the UI; order is always derived from type + name so it stays predictable without an extra
+   *  field to fill in. */
+  private static readonly SUBJECT_TYPE_RANK: Record<SubjectType, number> =
+    { CORE: 0, FOUNDATIONAL: 1, ELECTIVE: 2, CO_CURRICULAR: 3 };
 
   /** Non-elective subjects for a term — each rendered as its own row, CORE subjects before
    *  FOUNDATIONAL, alphabetical by name within each type. */

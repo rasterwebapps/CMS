@@ -35,6 +35,7 @@ class TimetableOccurrenceServiceTest {
     @Mock private ClassScheduleOccurrenceService occurrenceService;
     @Mock private PersonalTimetableService personalTimetableService;
     @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
+    @Mock private TimetableSkeletonService timetableSkeletonService;
 
     private TimetableOccurrenceService service;
     private ClassSchedule schedule;
@@ -43,7 +44,7 @@ class TimetableOccurrenceServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableOccurrenceService(classScheduleRepository, classScheduleService,
-            occurrenceService, personalTimetableService, sessionOccurrenceRepository);
+            occurrenceService, personalTimetableService, sessionOccurrenceRepository, timetableSkeletonService);
 
         schedule = new ClassSchedule();
         schedule.setId(100L);
@@ -134,5 +135,52 @@ class TimetableOccurrenceServiceTest {
         // Non-faculty fields must pass through unchanged from the original response.
         assertThat(result.get(1).session().subjectName()).isEqualTo("Anatomy");
         assertThat(result.get(1).session().roomName()).isEqualTo("Room 101");
+    }
+
+    /** CLINICAL hours are delivered off-grid via ClinicalShiftGroup/Batch and never produce a real
+     *  ClassSchedule row -- without exploding TimetableSkeletonService's synthetic weekly template
+     *  onto real calendar dates too, this endpoint (unlike the published/draft list) silently drops
+     *  every CLINICAL session from the Date-wise/Day calendar views. */
+    @Test
+    void shouldExplodeClinicalShiftTemplatesOntoMatchingCalendarDates() {
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of());
+        when(occurrenceService.occurrenceDatesForSchedules(List.of(), LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 6)))
+            .thenReturn(Map.of());
+        when(occurrenceService.cancelledDatesForSchedules(List.of(), LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 6)))
+            .thenReturn(Map.of());
+        when(classScheduleService.toResponseList(List.of())).thenReturn(List.of());
+
+        ClassScheduleResponse clinicalTemplate = new ClassScheduleResponse(-1000068L, ClassSessionType.CLINICAL,
+            ClassScheduleStatus.PUBLISHED, null, null, 39L, "Adult Health Nursing I — Off-campus Clinical Shift",
+            "N-AHN-I-215", 37L, "Sneha Rao", null, "Shift A - AHN", LocalTime.of(6, 0), LocalTime.of(14, 10),
+            "Clinical - Section 1", 68L, null, 1L, "Ward 1 - Medical", 68L, DayOfWeek.MONDAY, 10L, null, true, null, null);
+        when(timetableSkeletonService.findClinicalShiftGridEntries(10L, ClassScheduleStatus.PUBLISHED, null))
+            .thenReturn(List.of(clinicalTemplate));
+
+        // 2026-10-01 is a Thursday; the only Monday in this Mon-Sat window is 2026-10-05.
+        List<ClassScheduleOccurrenceResponse> result = service.findOccurrences(
+            null, 10L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 6), "browse");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).date()).isEqualTo(LocalDate.of(2026, 10, 5));
+        assertThat(result.get(0).occurrenceStatus()).isEqualTo(OccurrenceStatus.HELD);
+        assertThat(result.get(0).session().sessionType()).isEqualTo(ClassSessionType.CLINICAL);
+        assertThat(result.get(0).session().id()).isEqualTo(-1000068L);
+    }
+
+    @Test
+    void shouldNotExplodeClinicalShiftTemplatesForPersonalScope() {
+        when(personalTimetableService.findPublishedSchedules(null, 10L)).thenReturn(List.of());
+        when(occurrenceService.occurrenceDatesForSchedules(List.of(), LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 6)))
+            .thenReturn(Map.of());
+        when(occurrenceService.cancelledDatesForSchedules(List.of(), LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 6)))
+            .thenReturn(Map.of());
+        when(classScheduleService.toResponseList(List.of())).thenReturn(List.of());
+
+        List<ClassScheduleOccurrenceResponse> result = service.findOccurrences(
+            null, 10L, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 6), "personal");
+
+        assertThat(result).isEmpty();
     }
 }

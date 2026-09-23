@@ -57,6 +57,30 @@
               }
             </div>
 
+            <!-- Short Code -->
+            <div class="field-group">
+              <label for="cat-short-code" class="field-label">
+                Short Code <span class="required-star">*</span>
+              </label>
+              <input
+                id="cat-short-code"
+                class="field-input"
+                formControlName="shortCode"
+                placeholder="e.g., STA"
+                autocomplete="off"
+                maxlength="10"
+                (input)="onShortCodeInput($event)"
+                [class.field-input--error]="form.get('shortCode')?.invalid && form.get('shortCode')?.touched"
+              />
+              @if (form.get('shortCode')?.pending) {
+                <p class="field-hint">Checking…</p>
+              } @else if (form.get('shortCode')?.invalid && form.get('shortCode')?.touched) {
+                <p class="field-error">{{ getErrorMessage('shortCode') }}</p>
+              } @else {
+                <p class="field-hint">Prefix for every product code in this category, e.g. "STA" → STA-000001</p>
+              }
+            </div>
+
             <!-- Parent Category -->
             <div class="field-group">
               <label for="cat-parent" class="field-label">Parent Category</label>
@@ -192,8 +216,14 @@
             {{ previewName() || 'Category will appear here' }}
           </div>
           <div class="prev-meta-row">
+            @if (previewShortCode()) {
+              <span class="prev-pill prev-pill--blue">{{ previewShortCode() }}</span>
+            }
             <span class="prev-pill prev-pill--primary">{{ previewParentName() || 'Top level' }}</span>
           </div>
+          @if (previewShortCode()) {
+            <p class="field-hint">Products here get codes like {{ previewShortCode() }}-000001</p>
+          }
         </cms-preview-card>
       </aside>
 

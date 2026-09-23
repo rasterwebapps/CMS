@@ -32,7 +32,7 @@ import { UomConversionTemplateService } from '../../uom-conversion-template/uom-
 import { UomConversionTemplate } from '../../uom-conversion-template/uom-conversion-template.model';
 import { ToastService } from '../../../../core/toast/toast.service';
 import { scrollToFirstInvalid } from '../../../../shared/utils/scroll-to-invalid';
-import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../../shared/validators/cms-validators';
+import { noConsecutiveSpaces, trimmedMinLength, cmsFieldError } from '../../../../shared/validators/cms-validators';
 import { environment } from '../../../../../environments';
 import { uniqueFieldValidator } from '../../../../shared/validators/unique-field.validator';
 
@@ -89,9 +89,15 @@ export class ProductFormComponent implements OnInit {
   protected readonly showVersionHistory = signal(false);
   protected readonly uomLevels: FormArray = this.fb.array([] as FormGroup[]);
 
-  protected readonly previewCode = signal('');
   protected readonly previewName = signal('');
   protected readonly previewCategoryName = signal('');
+
+  // ── Auto-generated product code (<CategoryShortCode>-<sequence>, e.g. STA-000001) — create mode
+  // previews the code a save will actually be assigned; edit mode just displays the immutable
+  // code the product already has (changing category afterward never regenerates it).
+  protected readonly generatedCode = signal<string | null>(null);
+  protected readonly generatedCodeLoading = signal(false);
+  protected readonly codeUnavailableReason = signal<string | null>(null);
 
   private productId: number | null = null;
   // Exposed only so the template can pass it to <app-product-images> in edit mode — a product
@@ -102,7 +108,6 @@ export class ProductFormComponent implements OnInit {
   private knownAttributeValues = new Map<number, string>();
 
   protected readonly form: FormGroup = this.fb.group({
-    productCode:  ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
     productName:  ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(200), noConsecutiveSpaces()]],
     barcode:      ['', [Validators.maxLength(64)]],
     categoryId:   [null as number | null, [Validators.required]],
@@ -142,7 +147,6 @@ export class ProductFormComponent implements OnInit {
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
-        this.previewCode.set((v.productCode ?? '').toUpperCase().trim());
         this.previewName.set((v.productName ?? '').trim());
         const category = this.categories().find(c => c.id === v.categoryId);
         this.previewCategoryName.set(category?.name ?? '');
@@ -172,16 +176,35 @@ export class ProductFormComponent implements OnInit {
 
     this.form.get('categoryId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((categoryId) => {
       this.rebuildAttributeRows(categoryId);
+      if (!this.isEditMode()) this.refreshGeneratedCode(categoryId);
+    });
+  }
+
+  /** Create-mode-only preview of the code a save will actually be assigned — does not commit the
+   *  category's counter. Surfaces a friendly warning if the category has no short code yet. */
+  private refreshGeneratedCode(categoryId: number | null): void {
+    this.codeUnavailableReason.set(null);
+    if (categoryId == null) {
+      this.generatedCode.set(null);
+      return;
+    }
+    this.generatedCodeLoading.set(true);
+    this.productService.getNextCode(categoryId).subscribe({
+      next: (res) => {
+        this.generatedCode.set(res.nextCode);
+        this.generatedCodeLoading.set(false);
+      },
+      error: (err) => {
+        this.generatedCode.set(null);
+        this.generatedCodeLoading.set(false);
+        this.codeUnavailableReason.set(
+          err?.error?.message ?? 'This category has no short code yet — set one in Manage Categories before adding products here.',
+        );
+      },
     });
   }
 
   private setupUniquenessValidators(): void {
-    const codeCtrl = this.form.get('productCode');
-    codeCtrl?.setAsyncValidators(
-      uniqueFieldValidator(this.http, `${environment.apiUrl}/inventory/products/code-exists`, () => this.productId),
-    );
-    codeCtrl?.updateValueAndValidity({ emitEvent: false });
-
     const nameCtrl = this.form.get('productName');
     nameCtrl?.setAsyncValidators(
       uniqueFieldValidator(
@@ -207,17 +230,6 @@ export class ProductFormComponent implements OnInit {
     this.form.get('categoryId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       nameCtrl?.updateValueAndValidity({ emitEvent: false });
     });
-  }
-
-  protected onCodeInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const start = input.selectionStart ?? 0;
-    const end   = input.selectionEnd ?? 0;
-    const cleaned = stripSpaces(input.value).toUpperCase();
-    if (cleaned !== input.value) {
-      this.form.get('productCode')?.setValue(cleaned, { emitEvent: true });
-      setTimeout(() => input.setSelectionRange(start, end), 0);
-    }
   }
 
   // ── Aliases ──────────────────────────────────────────────────────────────
@@ -393,7 +405,6 @@ export class ProductFormComponent implements OnInit {
       .map((r: { attributeId: number; value: string }) => ({ attributeId: r.attributeId, value: r.value.trim() }));
 
     const request: ProductRequest = {
-      productCode:  (v.productCode ?? '').trim().toUpperCase(),
       productName:  (v.productName ?? '').trim(),
       barcode:      v.barcode?.trim() || undefined,
       categoryId:   v.categoryId,
@@ -440,7 +451,7 @@ export class ProductFormComponent implements OnInit {
   }
 
   private static readonly FIELD_LABELS: Record<string, string> = {
-    productCode: 'Product code', productName: 'Product name', barcode: 'Barcode', categoryId: 'Category', baseUomId: 'Base unit of measure',
+    productName: 'Product name', barcode: 'Barcode', categoryId: 'Category', baseUomId: 'Base unit of measure',
     description: 'Description',
   };
 
@@ -456,8 +467,8 @@ export class ProductFormComponent implements OnInit {
         for (const av of p.attributeValues) {
           if (av.value) this.knownAttributeValues.set(av.attributeId, av.value);
         }
+        this.generatedCode.set(p.productCode);
         this.form.patchValue({
-          productCode: p.productCode,
           productName: p.productName,
           barcode: p.barcode || '',
           categoryId: p.categoryId,

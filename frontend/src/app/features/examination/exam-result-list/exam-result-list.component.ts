@@ -12,6 +12,9 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { EXAM_RESULT_LIST_TOUR, EXAM_RESULT_LIST_FLOW_MAP } from '../../../shared/tour/tours/examination.tours';
@@ -22,7 +25,8 @@ import { EXAM_RESULT_LIST_TOUR, EXAM_RESULT_LIST_FLOW_MAP } from '../../../share
   imports: [
     MatTableModule, MatPaginatorModule, MatSortModule,
     MatIconModule, MatProgressSpinnerModule, CmsStatusBadgeComponent, CmsEmptyStateComponent,
-    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent
+    CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './exam-result-list.component.html',
   styleUrl: './exam-result-list.component.scss',
@@ -65,7 +69,11 @@ export class ExamResultListComponent implements OnInit {
     this.loadExaminations();
   }
 
-  protected onExaminationChange(examId: number | null): void {
+  protected readonly examinationFetchPage = staticOptionsFetchPage(() =>
+    this.examinations().map(e => ({ id: e.id, name: `${e.name} (${e.courseName})` })));
+
+  protected onExaminationChange(value: InfiniteSelectValue | null): void {
+    const examId = value != null ? Number(value) : null;
     this.selectedExamId.set(examId);
     if (examId) {
       this.loadResults(examId);

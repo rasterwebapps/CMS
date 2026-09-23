@@ -17,8 +17,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.config.PermSecurityBean;
 import com.cms.dto.NotificationResponse;
+import com.cms.model.AppUser;
+import com.cms.model.Faculty;
 import com.cms.model.Notification;
 import com.cms.model.UserNotificationPreference;
+import com.cms.repository.AppUserRepository;
 import com.cms.repository.NotificationDismissalRepository;
 import com.cms.repository.NotificationRepository;
 import com.cms.repository.UserNotificationPreferenceRepository;
@@ -34,6 +37,8 @@ class NotificationServiceTest {
     @Mock
     private UserNotificationPreferenceRepository preferenceRepository;
     @Mock
+    private AppUserRepository appUserRepository;
+    @Mock
     private CurrentUserResolver currentUserResolver;
     @Mock
     private PermSecurityBean permSecurityBean;
@@ -43,12 +48,19 @@ class NotificationServiceTest {
     @BeforeEach
     void setUp() {
         service = new NotificationService(notificationRepository, dismissalRepository, preferenceRepository,
-            currentUserResolver, permSecurityBean);
+            appUserRepository, currentUserResolver, permSecurityBean);
         when(currentUserResolver.resolve()).thenReturn("devadmin");
     }
 
     private Notification notification(Long id, String categoryKey) {
         Notification n = new Notification(categoryKey, "title", "message", "/link", "TERM_INSTANCE", 1L);
+        n.setId(id);
+        return n;
+    }
+
+    private Notification recipientNotification(Long id, Long recipientFacultyId) {
+        Notification n = new Notification("holidayDisruption", "title", "message", "/link",
+            "BLOCKED_PERIOD", 1L, recipientFacultyId);
         n.setId(id);
         return n;
     }
@@ -98,6 +110,41 @@ class NotificationServiceTest {
         when(preferenceRepository.findByUserIdAndCategoryKey("devadmin", "systemAnnouncements"))
             .thenReturn(Optional.empty());
         when(dismissalRepository.existsByNotificationIdAndUserId(n.getId(), "devadmin")).thenReturn(true);
+
+        List<NotificationResponse> feed = service.getFeed();
+
+        assertThat(feed).isEmpty();
+    }
+
+    @Test
+    void feed_includesRecipientTargetedNotification_forItsOwnRecipient() {
+        Notification n = recipientNotification(1L, 42L);
+        Faculty faculty = new Faculty();
+        faculty.setId(42L);
+        AppUser me = new AppUser("devadmin", "me@example.com", "Me", null, true, "system");
+        me.setLinkedFaculty(faculty);
+
+        when(notificationRepository.findByResolvedAtIsNullOrderByCreatedAtDesc()).thenReturn(List.of(n));
+        when(appUserRepository.findByKeycloakUsername("devadmin")).thenReturn(Optional.of(me));
+        when(preferenceRepository.findByUserIdAndCategoryKey("devadmin", "holidayDisruption"))
+            .thenReturn(Optional.empty());
+        when(dismissalRepository.existsByNotificationIdAndUserId(any(), any())).thenReturn(false);
+
+        List<NotificationResponse> feed = service.getFeed();
+
+        assertThat(feed).hasSize(1);
+    }
+
+    @Test
+    void feed_excludesRecipientTargetedNotification_forADifferentRecipient() {
+        Notification n = recipientNotification(1L, 42L);
+        Faculty faculty = new Faculty();
+        faculty.setId(99L);
+        AppUser me = new AppUser("devadmin", "me@example.com", "Me", null, true, "system");
+        me.setLinkedFaculty(faculty);
+
+        when(notificationRepository.findByResolvedAtIsNullOrderByCreatedAtDesc()).thenReturn(List.of(n));
+        when(appUserRepository.findByKeycloakUsername("devadmin")).thenReturn(Optional.of(me));
 
         List<NotificationResponse> feed = service.getFeed();
 

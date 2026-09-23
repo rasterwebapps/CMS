@@ -2,6 +2,7 @@ import { Component, Input, OnInit, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { environment } from '../../../../../environments';
+import { colorForSessionType, SessionTypeForColor } from '../../../../shared/util/session-color.util';
 
 interface ClassesTodayItem {
   classScheduleId: number;
@@ -50,5 +51,11 @@ export class ClassesTodayWidgetComponent implements OnInit {
 
   protected sessionTypeLabel(type: ClassesTodayItem['sessionType']): string {
     return type === 'THEORY' ? 'Theory' : type === 'LAB' ? 'Lab' : type === 'LIBRARY' ? 'Library' : type === 'SPORTS' ? 'Sports' : 'Clinical';
+  }
+
+  /** Same primary-color-tint accent Timetable Builder/Week Grid/Day Agenda/Resource Timetable use
+   *  for every session type — see {@link colorForSessionType}. */
+  protected sessionTypeColor(type: SessionTypeForColor): string {
+    return colorForSessionType(type);
   }
 }

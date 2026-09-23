@@ -20,6 +20,7 @@ import { LayoutService } from './core/layout/layout.service';
 import { ResponsiveService } from './core/layout/responsive.service';
 import { KeyboardShortcutsService } from './core/shortcuts/keyboard-shortcuts.service';
 import { GlobalSearchComponent } from './shared/global-search/global-search.component';
+import { WardSwitcherComponent } from './shared/ward-switcher/ward-switcher.component';
 import { BreadcrumbBarComponent } from './shared/breadcrumb-bar/breadcrumb-bar.component';
 import { ToastHostComponent } from './core/toast/toast-host.component';
 import { TourService, ONBOARDING_TOUR_STEPS } from './core/tour';
@@ -52,6 +53,7 @@ function stripQueryAndFragment(url: string): string {
     MatDivider,
     MatBadgeModule,
     GlobalSearchComponent,
+    WardSwitcherComponent,
     BreadcrumbBarComponent,
     ToastHostComponent,
   ],

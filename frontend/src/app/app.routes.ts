@@ -691,6 +691,32 @@ export const routes: Routes = [
         (m) => m.StockTransferDetailComponent
       ),
   },
+  // Phase B of the Stock Indent auto-indent feature — per-(product, location) Reorder Configuration
+  // (see docs/inventory-management/DECISION_LOG.md's 2026-09-21 "OC-206 reopened" entry).
+  {
+    path: 'inventory/stock/reorder-configs',
+    canActivate: withPermission('INVENTORY_REORDER_CONFIG_VIEW', 'INVENTORY_REORDER_CONFIG_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reorder-config/reorder-config-list/reorder-config-list.component').then(
+        (m) => m.ReorderConfigListComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/reorder-configs/new',
+    canActivate: withPermission('INVENTORY_REORDER_CONFIG_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reorder-config/reorder-config-form/reorder-config-form.component').then(
+        (m) => m.ReorderConfigFormComponent
+      ),
+  },
+  {
+    path: 'inventory/stock/reorder-configs/:id/edit',
+    canActivate: withPermission('INVENTORY_REORDER_CONFIG_MANAGE'),
+    loadComponent: () =>
+      import('./features/inventory/reorder-config/reorder-config-form/reorder-config-form.component').then(
+        (m) => m.ReorderConfigFormComponent
+      ),
+  },
   // Phase 3 "Receiving & Stock Movement" — Return to Supplier (third and final slice, closes Phase 3).
   {
     path: 'inventory/receiving/supplier-returns',
@@ -716,29 +742,29 @@ export const routes: Routes = [
         (m) => m.SupplierReturnDetailComponent
       ),
   },
-  // Phase 4 "Requests, Issues & Returns" — Stock Issue Request (first slice).
+  // Phase 4 "Requests, Issues & Returns" — Stock Indent (first slice; renamed from Stock Issue Request).
   {
-    path: 'inventory/issue/stock-issue-requests',
-    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'),
+    path: 'inventory/indent/stock-indents',
+    canActivate: withPermission('INVENTORY_STOCK_INDENT_VIEW', 'INVENTORY_STOCK_INDENT_MANAGE', 'INVENTORY_STOCK_INDENT_APPROVE'),
     loadComponent: () =>
-      import('./features/inventory/issue/stock-issue-request/stock-issue-request-list/stock-issue-request-list.component').then(
-        (m) => m.StockIssueRequestListComponent
+      import('./features/inventory/indent/stock-indent/stock-indent-list/stock-indent-list.component').then(
+        (m) => m.StockIndentListComponent
       ),
   },
   {
-    path: 'inventory/issue/stock-issue-requests/new',
-    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_MANAGE'),
+    path: 'inventory/indent/stock-indents/new',
+    canActivate: withPermission('INVENTORY_STOCK_INDENT_MANAGE'),
     loadComponent: () =>
-      import('./features/inventory/issue/stock-issue-request/stock-issue-request-new/stock-issue-request-new.component').then(
-        (m) => m.StockIssueRequestNewComponent
+      import('./features/inventory/indent/stock-indent/stock-indent-new/stock-indent-new.component').then(
+        (m) => m.StockIndentNewComponent
       ),
   },
   {
-    path: 'inventory/issue/stock-issue-requests/:id',
-    canActivate: withPermission('INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'),
+    path: 'inventory/indent/stock-indents/:id',
+    canActivate: withPermission('INVENTORY_STOCK_INDENT_VIEW', 'INVENTORY_STOCK_INDENT_MANAGE', 'INVENTORY_STOCK_INDENT_APPROVE'),
     loadComponent: () =>
-      import('./features/inventory/issue/stock-issue-request/stock-issue-request-detail/stock-issue-request-detail.component').then(
-        (m) => m.StockIssueRequestDetailComponent
+      import('./features/inventory/indent/stock-indent/stock-indent-detail/stock-indent-detail.component').then(
+        (m) => m.StockIndentDetailComponent
       ),
   },
   // Phase 4 "Requests, Issues & Returns" — Loanable Item Issue (fourth and final slice, closes Phase 4).
@@ -818,7 +844,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory/asset/service-contracts',
-    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    canActivate: withPermission('INVENTORY_ASSET_SERVICE_CONTRACT_VIEW', 'INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/asset/service-contract/service-contract-list/service-contract-list.component').then(
         (m) => m.ServiceContractListComponent
@@ -826,7 +852,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory/asset/service-contracts/new',
-    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    canActivate: withPermission('INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/asset/service-contract/service-contract-form/service-contract-form.component').then(
         (m) => m.ServiceContractFormComponent
@@ -834,7 +860,7 @@ export const routes: Routes = [
   },
   {
     path: 'inventory/asset/service-contracts/:id/edit',
-    canActivate: withPermission('INVENTORY_ASSET_MAINTENANCE_MANAGE'),
+    canActivate: withPermission('INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE'),
     loadComponent: () =>
       import('./features/inventory/asset/service-contract/service-contract-form/service-contract-form.component').then(
         (m) => m.ServiceContractFormComponent
@@ -1779,8 +1805,18 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'my-timetable',
-    canActivate: withPermission('TIMETABLE_VIEW'),
+    path: 'my-timetable/student',
+    canActivate: withPermission('MY_TIMETABLE_VIEW_STUDENT', 'TIMETABLE_VIEW'),
+    data: { audience: 'STUDENT' },
+    loadComponent: () =>
+      import('./features/timetable/my-timetable/my-timetable.component').then(
+        (m) => m.MyTimetableComponent
+      ),
+  },
+  {
+    path: 'my-timetable/staff',
+    canActivate: withPermission('MY_TIMETABLE_VIEW_STAFF', 'TIMETABLE_VIEW'),
+    data: { audience: 'STAFF' },
     loadComponent: () =>
       import('./features/timetable/my-timetable/my-timetable.component').then(
         (m) => m.MyTimetableComponent
@@ -1795,19 +1831,35 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'timetable/draft-review',
-    canActivate: withPermission('TIMETABLE_MANAGE'),
+    path: 'student/my-fees',
+    canActivate: withPermission('MY_FEE_VIEW'),
     loadComponent: () =>
-      import('./features/timetable/timetable-draft-review/timetable-draft-review.component').then(
-        (m) => m.TimetableDraftReviewComponent
+      import('./features/student-portal/my-fees/my-fees.component').then(
+        (m) => m.MyFeesComponent
       ),
   },
   {
-    path: 'timetable/skeleton-builder',
+    path: 'parent/my-wards',
+    canActivate: withPermission('MY_WARD_ATTENDANCE_VIEW', 'MY_WARD_EXAM_RESULT_VIEW'),
+    loadComponent: () =>
+      import('./features/parent-portal/parent-dashboard/parent-dashboard.component').then(
+        (m) => m.ParentDashboardComponent
+      ),
+  },
+  {
+    path: 'parent/my-wards/fees',
+    canActivate: withPermission('MY_WARD_FEE_VIEW'),
+    loadComponent: () =>
+      import('./features/parent-portal/ward-fees/ward-fees.component').then(
+        (m) => m.WardFeesComponent
+      ),
+  },
+  {
+    path: 'timetable/timetable-builder',
     canActivate: withPermission('TIMETABLE_VIEW'),
     loadComponent: () =>
-      import('./features/timetable/skeleton-builder/skeleton-builder.component').then(
-        (m) => m.SkeletonBuilderComponent
+      import('./features/timetable/timetable-builder/timetable-builder.component').then(
+        (m) => m.TimetableBuilderComponent
       ),
   },
   {
@@ -1824,14 +1876,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/timetable/capacity-auto-plan/capacity-auto-plan.component').then(
         (m) => m.CapacityAutoPlanComponent
-      ),
-  },
-  {
-    path: 'timetable/conflict-inspector',
-    canActivate: withPermission('TIMETABLE_CONFLICT_INSPECTOR_VIEW'),
-    loadComponent: () =>
-      import('./features/timetable/conflict-inspector/conflict-inspector.component').then(
-        (m) => m.ConflictInspectorComponent
       ),
   },
   {
@@ -1928,14 +1972,6 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/lab-schedule/lab-schedule-list/lab-schedule-list.component').then(
         (m) => m.LabScheduleListComponent
-      ),
-  },
-  {
-    path: 'lab-schedules/new',
-    canActivate: withPermission('LAB_SCHEDULE_MANAGE'),
-    loadComponent: () =>
-      import('./features/lab-schedule/lab-schedule-form/lab-schedule-form.component').then(
-        (m) => m.LabScheduleFormComponent
       ),
   },
   {

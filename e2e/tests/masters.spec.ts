@@ -20,7 +20,11 @@ interface MasterConfig {
   listRoute: string;
   addButtonName: string;
   nameFieldId: string;
-  codeFieldId: string;
+  /** Absent for masters with no separate code field/uniqueness (e.g. Agent — name-only). */
+  codeFieldId?: string;
+  /** Extra required fields beyond name/code that already carry no usable default
+   *  (e.g. Program's durationYears) — filled in before submit. */
+  fillExtra?: (page: import('@playwright/test').Page) => Promise<void>;
 }
 
 const MASTERS: MasterConfig[] = [
@@ -28,10 +32,37 @@ const MASTERS: MasterConfig[] = [
   { label: 'Speciality', listRoute: '/specialities', addButtonName: 'Add Speciality', nameFieldId: 'sp-name', codeFieldId: 'sp-code' },
   { label: 'Community', listRoute: '/communities', addButtonName: 'Add Community', nameFieldId: 'community-name', codeFieldId: 'community-code' },
   { label: 'Referral Type', listRoute: '/referral-types', addButtonName: 'Add Referral Type', nameFieldId: 'rt-name', codeFieldId: 'rt-code' },
+  { label: 'Designation', listRoute: '/designations', addButtonName: 'Add Designation', nameFieldId: 'dsg-name', codeFieldId: 'dsg-code' },
+  { label: 'Institution', listRoute: '/institutions', addButtonName: 'Add Institution', nameFieldId: 'inst-name', codeFieldId: 'inst-code' },
+  {
+    label: 'Program', listRoute: '/programs', addButtonName: 'Add Program', nameFieldId: 'program-name', codeFieldId: 'program-code',
+    // durationYears is the only required field without a form-default (status/assessmentPattern/
+    // minimumAgeYears/ageCutoff* all carry one already) — program-form.component.ts:137/141.
+    fillExtra: async (page) => { await page.locator('#program-duration').fill('4'); },
+  },
+  // Agent: name-only uniqueness, no code field at all (agent-form.component.ts:78).
+  { label: 'Agent', listRoute: '/agents', addButtonName: 'Add Agent', nameFieldId: 'agent-name' },
+  {
+    label: 'Course', listRoute: '/courses', addButtonName: 'Add Course', nameFieldId: 'course-name', codeFieldId: 'course-code',
+    // rollNumberCode (exactly 2 chars) and programId are both required with no default
+    // (course-form.component.ts:78-82) — pick whatever program the environment already has
+    // rather than depending on the Program master spec above having run first.
+    fillExtra: async (page) => {
+      await page.locator('#course-roll-number-code').fill('E2');
+      const programSelect = page.locator('#course-program');
+      const firstProgram = await programSelect.locator('option:not([disabled])').first().getAttribute('value');
+      await programSelect.selectOption(firstProgram!);
+    },
+  },
 ];
 
-for (const master of MASTERS) {
-  const stamp = Date.now();
+for (const [i, master] of MASTERS.entries()) {
+  // Date.now() alone collided across adjacent iterations of this loop -- it runs fast enough
+  // (pure JS, no I/O between entries) that two masters landed in the same millisecond, so
+  // Program and Course both ended up named "E2E Master <identical stamp>". A course-list
+  // screen's own "Filter by program" dropdown then legitimately showed that Program's name,
+  // making getByText(name) ambiguous against the ALSO-just-created Course of the same name.
+  const stamp = `${Date.now()}${i}`;
   const name = `E2E Master ${stamp}`;
   const code = `E2E${stamp}`;
 
@@ -47,8 +78,11 @@ for (const master of MASTERS) {
       await page.getByRole('button').filter({ hasText: master.addButtonName }).click();
 
       await page.locator(`#${master.nameFieldId}`).fill(name);
-      await page.locator(`#${master.codeFieldId}`).fill(code);
-      await page.locator('.btn-submit').click();
+      if (master.codeFieldId) await page.locator(`#${master.codeFieldId}`).fill(code);
+      if (master.fillExtra) await master.fillExtra(page);
+      // button[type="submit"], not .btn-submit — Designation's form uses .btn-primary for its
+      // submit button instead, an inconsistency with every other master form's class naming.
+      await page.locator('button[type="submit"]').click();
 
       // Uniform success signal across masters (toast wording varies / is sometimes absent —
       // see referral-type "Created" vs community "Community created" vs speciality no toast at

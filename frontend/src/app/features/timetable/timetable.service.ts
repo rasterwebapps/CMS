@@ -5,7 +5,11 @@ import { environment } from '../../../environments';
 import {
   ClassSchedule,
   ClassScheduleOccurrence,
+  ClinicalShiftSummaryItem,
+  CohortTermStatusSummary,
+  ConflictAcknowledgmentStatus,
   MyTimetableResponse,
+  Page,
   ResourceGridRow,
   ResourceGridType,
   StaffSwapCandidate,
@@ -25,28 +29,68 @@ export class TimetableService {
     return this.http.get<ClassSchedule[]>(`${this.baseUrl}/draft`, { params });
   }
 
-  getPublished(termInstanceId: number): Observable<ClassSchedule[]> {
-    const params = new HttpParams().set('termInstanceId', termInstanceId);
+  /** `cohortId` narrows the grid to one cohort at a time, matching Timetable Builder/Draft Review --
+   *  omitted, every published cohort's sessions merge into one grid (the pre-existing behavior). */
+  getPublished(termInstanceId: number, cohortId?: number | null): Observable<ClassSchedule[]> {
+    let params = new HttpParams().set('termInstanceId', termInstanceId);
+    if (cohortId != null) params = params.set('cohortId', cohortId);
     return this.http.get<ClassSchedule[]>(this.baseUrl, { params });
   }
 
-  approve(termInstanceId: number): Observable<TimetableActionResponse> {
-    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/approve`, null);
+  getClinicalShiftSummary(termInstanceId: number): Observable<ClinicalShiftSummaryItem[]> {
+    const params = new HttpParams().set('termInstanceId', termInstanceId);
+    return this.http.get<ClinicalShiftSummaryItem[]>(`${this.baseUrl}/draft/clinical-shift-summary`, { params });
   }
 
-  clear(termInstanceId: number): Observable<TimetableActionResponse> {
-    return this.http.delete<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}`);
+  /** OC-262: paginated, matching the OneCMS server-side list-screen standard -- `cohortId` narrows
+   *  to one cohort through this same paginated path rather than a separate unpaginated fetch, so
+   *  Timetable Builder's single-cohort filter and its "All cohorts" table share one data path. */
+  getCohortStatusSummary(termInstanceId: number, cohortId: number | null, page: number, size: number): Observable<Page<CohortTermStatusSummary>> {
+    let params = new HttpParams().set('termInstanceId', termInstanceId).set('page', page).set('size', size);
+    if (cohortId != null) {
+      params = params.set('cohortId', cohortId);
+    }
+    return this.http.get<Page<CohortTermStatusSummary>>(`${this.baseUrl}/draft/cohort-status-summary`, { params });
   }
 
-  revertToDraft(termInstanceId: number): Observable<TimetableActionResponse> {
-    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/revert-to-draft`, null);
+  /** OC-260: `cohortIds` is required -- Approve is cohort-scoped now, publishing the chosen subset
+   *  without touching any other cohort's draft. `overrideIncompleteCoverage`/`overrideReason` are
+   *  only ever sent on a resubmission after the plain first attempt came back with a coverage-gap
+   *  conflict (see {@link TimetableCoverageGap}) and an authorized reviewer
+   *  (TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE) accepted it with a reason — see
+   *  TimetableController#approve's `@PreAuthorize`, the actual enforcement point. */
+  approve(termInstanceId: number, cohortIds: number[], overrideIncompleteCoverage = false, overrideReason?: string): Observable<TimetableActionResponse> {
+    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/approve`, { cohortIds, overrideIncompleteCoverage, overrideReason });
+  }
+
+  /** OC-260: moved from a bodyless DELETE to a body-bearing POST so it can carry the cohort
+   *  selection, matching {@link revertToDraft}'s own shape. */
+  clear(termInstanceId: number, cohortIds: number[]): Observable<TimetableActionResponse> {
+    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/discard-draft`, { cohortIds });
+  }
+
+  revertToDraft(termInstanceId: number, cohortIds: number[]): Observable<TimetableActionResponse> {
+    return this.http.post<TimetableActionResponse>(`${this.baseUrl}/${termInstanceId}/revert-to-draft`, { cohortIds });
+  }
+
+  /** OC-260: per-cohort counterpart of {@link ConflictInspectorService#getAcknowledgmentStatus} --
+   *  whether this cohort's own row can show "Conflicts Resolved" right now. */
+  getCohortConflictStatus(termInstanceId: number, cohortId: number): Observable<ConflictAcknowledgmentStatus> {
+    return this.http.get<ConflictAcknowledgmentStatus>(`${this.baseUrl}/${termInstanceId}/cohorts/${cohortId}/conflict-status`);
+  }
+
+  /** Rejects (409, same shape as a conflict scan's violations) if this cohort isn't actually clean
+   *  at the moment of calling — the backend always re-scans rather than trusting a stale result. */
+  acknowledgeCohortConflicts(termInstanceId: number, cohortId: number): Observable<ConflictAcknowledgmentStatus> {
+    return this.http.post<ConflictAcknowledgmentStatus>(`${this.baseUrl}/${termInstanceId}/cohorts/${cohortId}/acknowledge-conflicts`, null);
   }
 
   getOccurrences(
-    termInstanceId: number, from: string, to: string, scope: TimetableOccurrenceScope,
+    termInstanceId: number, from: string, to: string, scope: TimetableOccurrenceScope, cohortId?: number | null,
   ): Observable<ClassScheduleOccurrence[]> {
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('termInstanceId', termInstanceId).set('from', from).set('to', to).set('scope', scope);
+    if (cohortId != null) params = params.set('cohortId', cohortId);
     return this.http.get<ClassScheduleOccurrence[]>(`${this.baseUrl}/occurrences`, { params });
   }
 

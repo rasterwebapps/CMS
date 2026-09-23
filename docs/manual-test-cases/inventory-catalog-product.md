@@ -34,20 +34,35 @@ Builds on `inventory-catalog-category-uom.md` — Categories and Units of Measur
 
 **Status:** NOT TESTED
 
-## TC-INV-PROD-001: Create a product with basic fields only
+## TC-INV-PROD-001: Product code is auto-generated from the category's short code
 
 **Preconditions:**
 - Logged in as a user holding `INVENTORY_PRODUCT_MANAGE`.
-- At least one Category and one Uom exist.
+- Category "Chemicals" exists with Short Code "CHM" (see `inventory-catalog-category-uom.md`) and at least one Uom exists.
 
 **Steps:**
 1. Navigate to Stock Management → Products → Add Product.
-2. Enter Code "TST-001" (lowercase, with spaces — should auto-uppercase/strip), Name "Test Item".
-3. Select any Category and Base UOM.
-4. Save.
+2. Before selecting a Category, confirm the (read-only) Product Code field shows a placeholder like "Select a category to generate a code".
+3. Select Category "Chemicals" and confirm the Product Code field updates to a live preview, e.g. "CHM-000001" (or the next free sequence number for that category).
+4. Enter Name "Test Item", select any Base UOM.
+5. Save.
 
 **Expected Result:**
-- Product is created; code shown uppercased with no spaces; appears in the Products list with its category and UOM code shown.
+- Product is created with the previewed code exactly as shown; the Code field is not editable at any point.
+- The Products list shows the new product with that code, its category, and UOM code.
+
+**Status:** NOT TESTED
+
+## TC-INV-PROD-001b: Category with no short code blocks product creation with a clear message
+
+**Preconditions:**
+- A category exists that predates this feature and has no Short Code set (or temporarily clear an existing category's short code via Edit Category, then Cancel to restore it afterward).
+
+**Steps:**
+1. Add Product, select that category.
+
+**Expected Result:**
+- The Product Code field shows an inline error naming the category and pointing to Manage Categories to set one — no code is generated, and Save is effectively blocked (the backend rejects it the same way if attempted).
 
 **Status:** NOT TESTED
 
@@ -92,19 +107,54 @@ Builds on `inventory-catalog-category-uom.md` — Categories and Units of Measur
 
 **Status:** NOT TESTED
 
-## TC-INV-PROD-005: Product code is globally unique; name is unique per category
+## TC-INV-PROD-005: Product code is unique by construction; name is unique per category
 
 **Preconditions:**
-- A product "TST-001" exists under category "Chemicals" (TC-INV-PROD-001), named "Test Item".
+- A product exists under category "Chemicals" (TC-INV-PROD-001), named "Test Item", with code e.g. "CHM-000001".
 
 **Steps:**
-1. Add another product with code "TST-001" under any category.
+1. Add a second product under "Chemicals" and confirm its previewed/assigned code is the next sequence number (e.g. "CHM-000002") — never a repeat.
 2. Add another product named "Test Item" under "Chemicals".
 3. Add another product named "Test Item" under a *different* category.
 
 **Expected Result:**
-- Steps 1 and 2 are blocked by the respective async uniqueness check.
+- Step 1: codes never collide — each new product under the same category gets the next number, since the server owns generation end to end.
+- Step 2 is blocked by the async name-uniqueness check.
 - Step 3 succeeds — name uniqueness is scoped to category, not global.
+
+**Status:** NOT TESTED
+
+## TC-INV-PROD-005b: Editing a product never changes its code, even across a category move
+
+**Preconditions:**
+- A product exists under "Chemicals" with code "CHM-000001".
+
+**Steps:**
+1. Edit the product, confirm the Product Code field shows "CHM-000001" as read-only with the hint "Assigned automatically when the product was created — never changes".
+2. Change its Category to a different one (e.g. "Lab Consumables" / short code "LAB") and Save.
+3. Reopen the product for edit.
+
+**Expected Result:**
+- The product keeps code "CHM-000001" throughout — moving categories never regenerates or reformats it.
+
+**Status:** NOT TESTED
+
+## TC-INV-PROD-005c: Regenerate Product Codes (admin action)
+
+**Preconditions:**
+- Logged in as a user holding `INVENTORY_PRODUCT_REGENERATE_CODES` (defaults to the same tier as `INVENTORY_PRODUCT_MANAGE`).
+- At least one product exists whose code doesn't match the current `<ShortCode>-<sequence>` pattern for its category (e.g. left over from before this feature, or after TC-INV-PROD-005b's category move).
+- **This mutates every product's code — take a database backup first if running against anything beyond a local/throwaway dataset**, per the project's production-data-safety policy.
+
+**Steps:**
+1. From the Products list, click "Regenerate Codes" (only visible with the permission above).
+2. Review the confirmation dialog's summary (count of products/categories affected).
+3. Confirm.
+4. If any category referenced by an existing product has no Short Code set, instead expect a blocking error before any confirmation dialog appears.
+
+**Expected Result:**
+- Step 3: every affected product's code updates to a fresh, gap-free per-category sequence (oldest product first), a success toast reports the count, and the list refreshes to show the new codes. Codes assigned to products going forward continue from the new highest number per category.
+- Step 4: a clear error names every category still missing a short code — nothing is changed until every category with products has one set (Manage Categories).
 
 **Status:** NOT TESTED
 

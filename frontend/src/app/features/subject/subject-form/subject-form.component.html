@@ -116,12 +116,12 @@
 
             <div class="field-group">
               <label for="subj-speciality" class="field-label">Speciality</label>
-              <select id="subj-speciality" class="field-select" formControlName="specialityId">
-                <option [ngValue]="null">— None —</option>
-                @for (speciality of specialities(); track speciality.id) {
-                  <option [ngValue]="speciality.id">{{ speciality.name }}</option>
-                }
-              </select>
+              <cms-infinite-select
+                id="subj-speciality"
+                label="— None —" ariaLabel="Speciality" searchPlaceholder="Search specialities…"
+                formControlName="specialityId"
+                [fetchPage]="specialityFetchPage" [resolveLabel]="specialityResolveLabel"
+              />
               <p class="field-hint">Optional — which speciality teaches this subject</p>
             </div>
 

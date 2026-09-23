@@ -15,11 +15,18 @@ package com.cms.model.enums;
  *       or a shared THEORY block (one row, {@code cohortSection}-scoped — the reconvened full
  *       roster). No backing ClassSchedule row and no {@code period} — the shift's real clock times
  *       carry directly on {@code blockStartTime}/{@code blockEndTime} instead.</li>
+ *   <li>{@code RECURRING_SPECIAL_CLASS} — one row of a weekly-recurring special-class batch (same
+ *       {@code requestBatchId} grouping as {@code DAY_REPEAT}): the same subject/venue/faculty
+ *       request repeated every week, same weekday, between a start and end date, skipping any week
+ *       whose date isn't itself a non-instruction day (see {@code
+ *       SpecialClassRequestService#requireNonInstructionDay}). Otherwise shaped exactly like
+ *       {@code SPECIAL_CLASS}.</li>
  * </ul>
  */
 public enum OccurrenceSource {
     REGULAR,
     SPECIAL_CLASS,
     DAY_REPEAT,
-    CLINICAL_SHIFT
+    CLINICAL_SHIFT,
+    RECURRING_SPECIAL_CLASS
 }

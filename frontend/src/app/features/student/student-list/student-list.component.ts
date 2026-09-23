@@ -10,9 +10,8 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { TitleCasePipe } from '@angular/common';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
+import { of, Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, map, takeUntil } from 'rxjs/operators';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -23,8 +22,6 @@ import { Student, StudentExplorerParams } from '../student.model';
 import { ProgramService } from '../../program/program.service';
 import { CourseService } from '../../course/course.service';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { Program } from '../../program/program.model';
-import { Course } from '../../course/course.model';
 import { AcademicYear } from '../../academic-year/academic-year.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
@@ -42,6 +39,8 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_MIN_LENGTH = 3;
 const SORT_FIELD_MAP: Record<string, string> = {
@@ -62,7 +61,6 @@ const SORT_FIELD_MAP: Record<string, string> = {
   standalone: true,
   imports: [
     FormsModule,
-    TitleCasePipe,
     AppDatePipe,
     RouterLink,
     CmsEmptyStateComponent,
@@ -79,6 +77,7 @@ const SORT_FIELD_MAP: Record<string, string> = {
     CmsIconEditComponent,
     CmsIconViewComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.scss',
@@ -144,14 +143,29 @@ export class StudentListComponent implements OnInit, OnDestroy {
   protected readonly canExport = computed(() => this.permissionService.has('STUDENT_EXPORT'));
   protected readonly canDelete = computed(() => this.permissionService.has('STUDENT_DELETE'));
 
-  // ── Master data for filter dropdowns ────────────────────────
-  protected programs: Program[]           = [];
-  protected allCourses: Course[]          = [];
+  // ── Filter dropdown data sources — search/paginate against the backend rather than
+  // loading (or capping) the full master list; see CmsInfiniteSelectComponent. Program stays
+  // restricted to active-only, matching this screen's prior client-side ACTIVE filter. ──────────
+  protected readonly programFetchPage = (search: string, page: number, size: number) =>
+    this.programService.getPage({ search, page, size, activeOnly: true });
+  protected readonly programResolveLabel = (id: InfiniteSelectValue) =>
+    this.programService.getById(Number(id)).pipe(map(p => p.name));
+
+  // Re-scoped to the selected program server-side; reloadKey forces the picker to drop its
+  // cached page whenever the program changes so it never shows another program's courses.
+  protected readonly courseFetchPage = (search: string, page: number, size: number) =>
+    this.courseService.getPage({ search, page, size, programId: this.filterProgramId() ?? undefined });
+  protected readonly courseResolveLabel = (id: InfiniteSelectValue) =>
+    this.courseService.getById(Number(id)).pipe(map(c => c.name));
+
+  // AcademicYearService has no per-record getById; academicYears stays loaded (a college has at
+  // most a few dozen ever, so this was never the truncation risk Program/Course had) purely to
+  // resolve the selected year's name for the filter button label.
   protected academicYears: AcademicYear[] = [];
-  protected readonly filteredCourses = computed(() => {
-    const pid = this.filterProgramId();
-    return pid ? this.allCourses.filter(c => c.program?.id === pid) : this.allCourses;
-  });
+  protected readonly academicYearFetchPage = (search: string, page: number, size: number) =>
+    this.academicYearService.getPage({ search, page, size });
+  protected readonly academicYearResolveLabel = (id: InfiniteSelectValue) =>
+    of(this.academicYears.find(y => y.id === Number(id))?.name ?? '');
 
   // ── Filter state ─────────────────────────────────────────────
   protected readonly filterProgramId      = signal<number | null>(null);
@@ -168,6 +182,25 @@ export class StudentListComponent implements OnInit, OnDestroy {
     { value: 'DAY_SCHOLAR', label: 'Day Scholar' },
     { value: 'HOSTELER',    label: 'Hosteler' },
   ];
+
+  // Fixed small enums — no backend paging needed, but cms-infinite-select is still the right fit
+  // over a native <select>: keeps these filters visually/behaviourally uniform with Program/
+  // Course/Batch above (same pill, same panel, same outside-click-closes-siblings handling)
+  // instead of mixing in browser-native <select> chrome that can't be restyled.
+  protected readonly statusFetchPage = () =>
+    of({
+      content: this.STUDENT_STATUSES.map(s => ({
+        id: s,
+        name: s.toLowerCase().split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' '),
+      })),
+      totalElements: this.STUDENT_STATUSES.length,
+    });
+
+  protected readonly studentTypeFetchPage = () =>
+    of({
+      content: this.STUDENT_TYPES.map(t => ({ id: t.value, name: t.label })),
+      totalElements: this.STUDENT_TYPES.length,
+    });
 
   protected readonly hasActiveFilters = computed(() =>
     !!this.filterProgramId() ||
@@ -260,31 +293,33 @@ export class StudentListComponent implements OnInit, OnDestroy {
   }
 
   // ── Filter change handlers ────────────────────────────────────
-  protected onProgramChange(val: string): void {
-    const pid = val ? +val : null;
+  protected onProgramChange(value: InfiniteSelectValue | null): void {
+    const pid = value != null ? Number(value) : null;
     this.filterProgramId.set(pid);
     this.filterCourseId.set(null);
     this.navigate({ programId: pid, courseId: null, page: 0 });
   }
 
-  protected onCourseChange(val: string): void {
-    const cid = val ? +val : null;
+  protected onCourseChange(value: InfiniteSelectValue | null): void {
+    const cid = value != null ? Number(value) : null;
     this.filterCourseId.set(cid);
     this.navigate({ courseId: cid, page: 0 });
   }
 
-  protected onAcademicYearChange(val: string): void {
-    const ayId = val ? +val : null;
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    const ayId = value != null ? Number(value) : null;
     this.filterAcademicYearId.set(ayId);
     this.navigate({ academicYearId: ayId, page: 0 });
   }
 
-  protected onStatusChange(val: string): void {
+  protected onStatusChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : '';
     this.filterStatus.set(val);
     this.navigate({ status: val || null, page: 0 });
   }
 
-  protected onStudentTypeChange(val: string): void {
+  protected onStudentTypeChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : '';
     this.filterStudentType.set(val);
     this.navigate({ studentType: val || null, page: 0 });
   }
@@ -341,10 +376,6 @@ export class StudentListComponent implements OnInit, OnDestroy {
 
   // ── Data loading ──────────────────────────────────────────────
   private loadMasterData(): void {
-    this.programService.getAll().subscribe(list => {
-      this.programs = list.filter(p => (p.status as string) === 'ACTIVE');
-    });
-    this.courseService.getAll().subscribe(list => { this.allCourses = list; });
     this.academicYearService.getAllAcademicYears().subscribe(list => { this.academicYears = list; });
   }
 

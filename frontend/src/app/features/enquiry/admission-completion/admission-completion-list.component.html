@@ -32,30 +32,25 @@
     </div>
 
     <!-- Program filter -->
-    <select class="mlp-filter-select" [value]="filterProgramId() ?? ''"
-            (change)="onProgramChange($any($event.target).value)" aria-label="Filter by program">
-      <option value="">All Programs</option>
-      @for (p of programs; track p.id) {
-        <option [value]="p.id">{{ p.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+      [fetchPage]="programFetchPage" [resolveLabel]="programResolveLabel"
+      [selectedValue]="filterProgramId()" (selectedValueChange)="onProgramChange($event)"
+    />
 
     <!-- Course filter -->
-    <select class="mlp-filter-select" [value]="filterCourseId() ?? ''"
-            (change)="onCourseChange($any($event.target).value)" aria-label="Filter by course">
-      <option value="">All Courses</option>
-      @for (c of filteredCourses(); track c.id) {
-        <option [value]="c.id">{{ c.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Courses" ariaLabel="Filter by course" searchPlaceholder="Search courses…"
+      [fetchPage]="courseFetchPage" [resolveLabel]="courseResolveLabel" [reloadKey]="filterProgramId()"
+      [selectedValue]="filterCourseId()" (selectedValueChange)="onCourseChange($event)"
+    />
 
     <!-- Student Type filter -->
-    <select class="mlp-filter-select" [value]="filterStudentType()"
-            (change)="onStudentTypeChange($any($event.target).value)" aria-label="Filter by student type">
-      <option value="">All Types</option>
-      <option value="DAY_SCHOLAR">Day Scholar</option>
-      <option value="HOSTELER">Hosteler</option>
-    </select>
+    <cms-infinite-select
+      label="All Types" ariaLabel="Filter by student type" searchPlaceholder="Search types…"
+      [fetchPage]="studentTypeFetchPage"
+      [selectedValue]="filterStudentType() || null" (selectedValueChange)="onStudentTypeChange($event)"
+    />
 
     <!-- Clear Filters -->
     @if (hasActiveFilters()) {

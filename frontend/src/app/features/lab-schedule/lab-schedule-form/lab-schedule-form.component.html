@@ -5,12 +5,10 @@
     </a>
     <div class="entry-form-hdr-text">
       <div class="page-title-row">
-        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Class Schedule</em></h1>
+        <h1 class="page-title">Edit <em>Class Schedule</em></h1>
         <cms-tour-button tourKey="lab-schedule-form" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="page-subtitle">
-        {{ isEditMode() ? 'Update the class schedule details below.' : 'Fill in the details to create a new theory or lab schedule.' }}
-      </p>
+      <p class="page-subtitle">Update the class schedule details below.</p>
     </div>
   </div>
 
@@ -222,7 +220,7 @@
               @if (saving()) {
                 <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
               } @else {
-                {{ isEditMode() ? 'Update Schedule' : 'Create Schedule' }}
+                Update Schedule
               }
             </button>
           </div>

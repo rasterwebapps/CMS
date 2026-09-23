@@ -12,6 +12,10 @@ import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { RESOURCE_TIMETABLE_GRID_TOUR, RESOURCE_TIMETABLE_GRID_FLOW_MAP } from '../../../shared/tour/tours/resource-timetable-grid.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
+import { colorForSessionType, SessionTypeForColor } from '../../../shared/util/session-color.util';
 
 interface TimeColumn {
   key: string;
@@ -23,7 +27,7 @@ interface TimeColumn {
 @Component({
   selector: 'app-resource-timetable-grid',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsTourButtonComponent],
+  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './resource-timetable-grid.component.html',
   styleUrl: './resource-timetable-grid.component.scss',
 })
@@ -93,13 +97,22 @@ export class ResourceTimetableGridComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+  protected readonly dayFetchPage = staticOptionsFetchPage(() =>
+    this.days.map(day => ({ id: day, name: this.dayLabels[day] })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.rows.set([]);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     this.load();
   }
 
@@ -108,8 +121,9 @@ export class ResourceTimetableGridComponent implements OnInit {
     this.load();
   }
 
-  protected onDayChange(day: string): void {
-    this.dayOfWeek.set(day);
+  protected onDayChange(value: InfiniteSelectValue | null): void {
+    if (value == null) return;
+    this.dayOfWeek.set(String(value));
     this.load();
   }
 
@@ -125,6 +139,13 @@ export class ResourceTimetableGridComponent implements OnInit {
 
   protected cellsFor(row: ResourceGridRow, column: TimeColumn) {
     return row.sessions.filter((s) => s.startTime === column.startTime && s.endTime === column.endTime);
+  }
+
+  /** Same primary-color-tint accent Timetable Builder/Week Grid/Day Agenda use for every session
+   *  type — see {@link colorForSessionType}. ResourceGridCell carries no coCurricular flag, so
+   *  this always colors by session type alone. */
+  protected cellColor(sessionType: SessionTypeForColor): string {
+    return colorForSessionType(sessionType);
   }
 
   private loadTermInstances(academicYearId: number): void {

@@ -53,6 +53,15 @@ public class InventoryLocation {
     @Column(length = 500)
     private String description;
 
+    /** The store this location normally draws stock from, for auto-generated Stock Indents
+     *  (Phase B of the Stock Indent auto-indent feature) — explicit per location rather than
+     *  inferred from the campus Branch/Block hierarchy. Only meaningful on a REQUESTING_POINT/
+     *  BOTH location; enforced in {@code InventoryLocationService} to itself be a STORE/BOTH
+     *  location, never itself. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "default_supplying_location_id")
+    private InventoryLocation defaultSupplyingLocation;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
@@ -78,6 +87,9 @@ public class InventoryLocation {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public InventoryLocation getDefaultSupplyingLocation() { return defaultSupplyingLocation; }
+    public void setDefaultSupplyingLocation(InventoryLocation defaultSupplyingLocation) { this.defaultSupplyingLocation = defaultSupplyingLocation; }
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }

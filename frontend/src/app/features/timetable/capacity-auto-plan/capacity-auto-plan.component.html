@@ -12,20 +12,17 @@
   </div>
 
   <div id="tour-cap-auto-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
-    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
-      @for (ay of academicYears(); track ay.id) {
-        <option [ngValue]="ay.id">{{ ay.name }}</option>
-      }
-    </select>
-    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
-      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
-      @if (termInstances().length === 0) {
-        <option [ngValue]="null">No terms yet</option>
-      }
-      @for (term of termInstances(); track term.id) {
-        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
+      [fetchPage]="academicYearFetchPage"
+      [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+    />
+    <cms-infinite-select
+      label="Term" ariaLabel="Term" searchPlaceholder="Search terms…"
+      [fetchPage]="termFetchPage"
+      [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
+      [disabled]="termsLoading() || termInstances().length === 0"
+    />
     <div class="toolbar-right">
       <button type="button" class="btn-primary" [disabled]="loading() || !selectedTermInstanceId || notPlannedCount() === 0"
         [title]="notPlannedCount() === 0 && selectedTermInstanceId ? 'Every cohort this term is already committed — nothing left to plan.' : ''"

@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.DashboardSummaryResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.exception.ResourceNotFoundException;
@@ -117,6 +119,42 @@ public class WidgetDataController {
     private final ProfileService                    profileService;
     private final DayMappingOverrideRepository      dayMappingOverrideRepository;
     private final SessionOccurrenceRepository       sessionOccurrenceRepository;
+    private final PermSecurityBean                  perm;
+
+    /**
+     * Permission gate for {@code /stat/{key}} — mirrors the {@code @PreAuthorize} set already
+     * declared on the closest sibling widget endpoint for that same data (e.g. {@code fee-collected}
+     * mirrors {@code fee-overview}'s STUDENT_FEE_VIEW/FEE_COLLECT). A key absent from this map
+     * (currently just {@code specialities}) is left ungated, matching {@code SpecialityController}'s
+     * own GET endpoints, which have no view-permission requirement either.
+     */
+    private static final Map<String, String[]> STAT_KEY_PERMISSIONS = Map.ofEntries(
+        Map.entry("students",                new String[]{"STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("male-students",           new String[]{"STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("female-students",         new String[]{"STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("management-quota",        new String[]{"STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("counselling-quota",       new String[]{"STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("govt-lapsed-seats",       new String[]{"STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("counselling-seats-fill",  new String[]{"STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("management-seats-fill",   new String[]{"STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("faculty",                 new String[]{"FACULTY_VIEW", "REPORT_VIEW"}),
+        Map.entry("labs",                    new String[]{"LAB_VIEW", "REPORT_VIEW"}),
+        Map.entry("fee-collected",           new String[]{"STUDENT_FEE_VIEW", "FEE_COLLECT", "REPORT_VIEW"}),
+        Map.entry("outstanding",             new String[]{"STUDENT_FEE_VIEW", "FEE_COLLECT", "REPORT_VIEW"}),
+        Map.entry("enquiries",               new String[]{"ENQUIRY_VIEW", "REPORT_VIEW"}),
+        Map.entry("admissions",              new String[]{"ADMISSION_VIEW", "STUDENT_VIEW", "REPORT_VIEW"}),
+        Map.entry("programs",                new String[]{"PROGRAM_VIEW", "REPORT_VIEW"}),
+        Map.entry("equipment",               new String[]{"EQUIPMENT_MANAGE", "REPORT_VIEW"})
+    );
+
+    private void requireAnyPermission(String... codes) {
+        for (String code : codes) {
+            if (perm.has(code)) {
+                return;
+            }
+        }
+        throw new AccessDeniedException("Missing required permission (one of: " + String.join(", ", codes) + ")");
+    }
 
     public WidgetDataController(DashboardService dashboardService,
                                 AppUserRepository appUserRepository,
@@ -141,7 +179,8 @@ public class WidgetDataController {
                                 AcademicYearRepository academicYearRepository,
                                 ProfileService profileService,
                                 DayMappingOverrideRepository dayMappingOverrideRepository,
-                                SessionOccurrenceRepository sessionOccurrenceRepository) {
+                                SessionOccurrenceRepository sessionOccurrenceRepository,
+                                PermSecurityBean perm) {
         this.dashboardService    = dashboardService;
         this.appUserRepository   = appUserRepository;
         this.admissionRepository = admissionRepository;
@@ -166,6 +205,7 @@ public class WidgetDataController {
         this.profileService                   = profileService;
         this.dayMappingOverrideRepository     = dayMappingOverrideRepository;
         this.sessionOccurrenceRepository      = sessionOccurrenceRepository;
+        this.perm                             = perm;
     }
 
     // ─── Response records ────────────────────────────────────────────────────
@@ -428,7 +468,7 @@ public class WidgetDataController {
         String  roleLabel  = role != null ? role.getDisplayName() : "User";
         String  acadYear   = computeAcademicYear();
 
-        List<QuickStat> quickStats = buildHeroQuickStats(role);
+        List<QuickStat> quickStats = buildHeroQuickStats(user, role);
 
         return ResponseEntity.ok(new HeroWidgetData(username, roleLabel, acadYear, quickStats));
     }
@@ -440,6 +480,10 @@ public class WidgetDataController {
      */
     @GetMapping("/stat/{key}")
     public ResponseEntity<StatCardData> getStat(@PathVariable String key) {
+        String[] requiredPerms = STAT_KEY_PERMISSIONS.get(key);
+        if (requiredPerms != null) {
+            requireAnyPermission(requiredPerms);
+        }
         DashboardSummaryResponse s = dashboardService.getSummary();
         YearMonth now = YearMonth.now();
 
@@ -609,51 +653,98 @@ public class WidgetDataController {
         String   username = jwt.getClaimAsString("preferred_username");
         AppUser  user     = appUserRepository.findByKeycloakUsernameWithRole(username)
             .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-        AppRole  role     = user.getAppRole();
-        String   roleName = role != null ? role.getName().toLowerCase() : "";
 
-        List<QuickActionItem> actions;
+        return ResponseEntity.ok(resolveQuickActions(user, user.getAppRole()));
+    }
 
-        if (roleName.contains("admin") || roleName.contains("devadmin")) {
-            actions = List.of(
+    /**
+     * Resolves quick-action tiles from structured, DB-backed signals rather than the role's
+     * free-text name — a role's name is arbitrary text anyone can type in Role Management, so
+     * matching on substrings (the pre-2026-09 approach) silently breaks for every custom role
+     * whose name doesn't happen to match a hardcoded string (e.g. "SKSCON_ACCOUNTS_SKSH" matched
+     * none of "cashier"/"accountant" and fell through to the generic 2-tile fallback).
+     *
+     * <p>Resolution order:
+     * <ol>
+     *   <li>{@link AppRole#isSystemRole()} — a real DB boolean, true only for the platform
+     *       DEV_ADMIN/SUPPORT_ADMIN roles — replaces matching on "admin"/"devadmin".</li>
+     *   <li>{@link AppUser#getLinkedFaculty()}/{@link AppUser#getLinkedStudent()} — the same FK
+     *       signal {@link com.cms.service.ProfileService#resolveCurrentUser} already uses to tell
+     *       faculty/student portals apart, independent of whatever their role happens to be named.</li>
+     *   <li>Otherwise, the role's actual granted permissions (checked live via {@link #perm}) are
+     *       matched against {@link #QUICK_ACTION_CANDIDATES} in priority order. Permission codes are
+     *       a fixed, migration-reviewed vocabulary — unlike role names, hardcoding against them is
+     *       safe and is exactly how every other widget's data endpoint is already gated.</li>
+     *   <li>A role matching none of the candidates (e.g. scoped to an unrelated module) still gets
+     *       the generic Dashboard/My Profile fallback rather than an empty widget.</li>
+     * </ol>
+     */
+    private List<QuickActionItem> resolveQuickActions(AppUser user, AppRole role) {
+        if (role != null && role.isSystemRole()) {
+            return List.of(
                 new QuickActionItem("Enrol Student",  "/students/new",      "person_add",      "Register a new student"),
                 new QuickActionItem("View Reports",   "/reports",           "assessment",      "Academic & financial reports"),
                 new QuickActionItem("Fee Waiver",     "/student-fees",      "payments",        "Manage fee waivers"),
                 new QuickActionItem("Settings",       "/settings",          "settings",        "System configuration"),
                 new QuickActionItem("Agents",         "/agents",            "support_agent",   "Manage referral agents")
             );
-        } else if (roleName.contains("faculty")) {
-            actions = List.of(
+        }
+        if (user.getLinkedFaculty() != null) {
+            return List.of(
                 new QuickActionItem("Mark Attendance", "/attendance/mark",   "fact_check",      "Record today's attendance"),
                 new QuickActionItem("Lab Schedule",    "/lab-schedules",     "science",         "View lab timetable"),
                 new QuickActionItem("My Documents",    "/profile",           "folder_open",     "Manage my documents")
             );
-        } else if (roleName.contains("student")) {
-            actions = List.of(
+        }
+        if (user.getLinkedStudent() != null) {
+            return List.of(
                 new QuickActionItem("My Documents",    "/profile",           "folder_open",     "Upload & view documents"),
                 new QuickActionItem("My Fees",         "/student-fees",      "payments",        "View fee details"),
                 new QuickActionItem("Attendance",      "/attendance",        "fact_check",      "View my attendance")
             );
-        } else if (roleName.contains("cashier") || roleName.contains("accountant")) {
-            actions = List.of(
-                new QuickActionItem("Fee Collection",  "/fee-collection",    "point_of_sale",   "Record a new payment"),
-                new QuickActionItem("Receipts",        "/receipts",          "receipt_long",    "Print or view receipts"),
-                new QuickActionItem("Outstanding",     "/student-fees",      "warning_amber",   "View outstanding fees")
-            );
-        } else if (roleName.contains("frontoffice") || roleName.contains("front_office")) {
-            actions = List.of(
-                new QuickActionItem("New Enquiry",     "/enquiries",         "contact_mail",    "Register a new enquiry"),
-                new QuickActionItem("Admission Explorer", "/admissions",      "how_to_reg",      "View admissions pipeline"),
-                new QuickActionItem("Student Explorer",  "/students",        "school",          "Student directory")
-            );
-        } else {
-            actions = List.of(
-                new QuickActionItem("Dashboard",       "/dashboard",         "dashboard",       "Back to dashboard"),
-                new QuickActionItem("My Profile",      "/profile",           "account_circle",  "View my profile")
-            );
         }
 
-        return ResponseEntity.ok(actions);
+        List<QuickActionItem> matched = QUICK_ACTION_CANDIDATES.stream()
+            .filter(c -> hasAnyPermission(c.permissions()))
+            .limit(5)
+            .map(c -> new QuickActionItem(c.label(), c.route(), c.icon(), c.description()))
+            .toList();
+
+        if (!matched.isEmpty()) {
+            return matched;
+        }
+
+        return List.of(
+            new QuickActionItem("Dashboard",       "/dashboard",         "dashboard",       "Back to dashboard"),
+            new QuickActionItem("My Profile",      "/profile",           "account_circle",  "View my profile")
+        );
+    }
+
+    private record QuickActionCandidate(String label, String route, String icon, String description, String... permissions) {}
+
+    /** Priority-ordered candidates for any non-system, non-faculty, non-student role — see {@link #resolveQuickActions}. */
+    private static final List<QuickActionCandidate> QUICK_ACTION_CANDIDATES = List.of(
+        new QuickActionCandidate("Fee Collection",    "/fee-collection", "point_of_sale", "Record a new payment",         "FEE_COLLECT"),
+        new QuickActionCandidate("Receipts",          "/receipts",       "receipt_long",  "Print or view receipts",       "RECEIPT_VIEW"),
+        new QuickActionCandidate("Outstanding",       "/student-fees",  "warning_amber",  "View outstanding fees",        "STUDENT_FEE_VIEW"),
+        new QuickActionCandidate("New Enquiry",       "/enquiries",      "contact_mail",  "Register a new enquiry",       "ENQUIRY_EDIT"),
+        new QuickActionCandidate("Admission Explorer", "/admissions",    "how_to_reg",    "View admissions pipeline",     "ADMISSION_VIEW"),
+        new QuickActionCandidate("Enrol Student",     "/students/new",   "person_add",    "Register a new student",       "STUDENT_CREATE"),
+        new QuickActionCandidate("Student Explorer",  "/students",       "school",        "Student directory",            "STUDENT_VIEW"),
+        new QuickActionCandidate("Fee Waiver",        "/student-fees",  "payments",       "Manage fee waivers",           "STUDENT_FEE_MANAGE"),
+        new QuickActionCandidate("Mark Attendance",   "/attendance/mark", "fact_check",   "Record today's attendance",    "ATTENDANCE_MANAGE"),
+        new QuickActionCandidate("View Reports",      "/reports",        "assessment",    "Academic & financial reports", "REPORT_VIEW"),
+        new QuickActionCandidate("Agents",            "/agents",         "support_agent", "Manage referral agents",       "AGENT_MANAGE"),
+        new QuickActionCandidate("Settings",          "/settings",       "settings",      "System configuration",         "SETTINGS_MANAGE")
+    );
+
+    private boolean hasAnyPermission(String... codes) {
+        for (String code : codes) {
+            if (perm.has(code)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1417,6 +1508,7 @@ public class WidgetDataController {
      * the entity-type + action verb, formatted for display.
      */
     @GetMapping("/activity")
+    @PreAuthorize("@perm.hasAny('USER_VIEW','SETTINGS_MANAGE','REPORT_VIEW')")
     public ResponseEntity<List<ActivityFeedItem>> getActivity() {
         List<ActivityFeedItem> items = auditLogRepository.findAll().stream()
             .filter(a -> a.getOccurredAt() != null)
@@ -1549,27 +1641,32 @@ public class WidgetDataController {
         return v == null ? 0 : v;
     }
 
-    private List<QuickStat> buildHeroQuickStats(AppRole role) {
+    /** Same rationale and resolution order as {@link #resolveQuickActions} — see its javadoc. */
+    private List<QuickStat> buildHeroQuickStats(AppUser user, AppRole role) {
         if (role == null) return List.of();
 
-        DashboardSummaryResponse s = dashboardService.getSummary();
-        String roleName = role.getName().toLowerCase();
-
-        if (roleName.contains("admin") || roleName.contains("devadmin")) {
+        if (role.isSystemRole()) {
+            DashboardSummaryResponse s = dashboardService.getSummary();
             return List.of(
                 new QuickStat("Student Explorer", String.valueOf(s.totalStudents())),
                 new QuickStat("Faculty",  String.valueOf(s.totalFaculty())),
                 new QuickStat("Labs",     String.valueOf(s.totalLabs()))
             );
         }
-        if (roleName.contains("cashier") || roleName.contains("accountant")) {
+        // Faculty and Student hero stats are built by their own widget components.
+        if (user.getLinkedFaculty() != null || user.getLinkedStudent() != null) {
+            return List.of();
+        }
+        if (hasAnyPermission("STUDENT_FEE_VIEW", "FEE_COLLECT")) {
+            DashboardSummaryResponse s = dashboardService.getSummary();
             return List.of(
                 new QuickStat("Collected", formatAmount(s.feeCollectedThisMonth())),
                 new QuickStat("Outstanding", formatAmount(s.feeOutstanding())),
                 new QuickStat("Payments",  String.valueOf(s.totalFeePayments()))
             );
         }
-        if (roleName.contains("frontoffice") || roleName.contains("front_office")) {
+        if (hasAnyPermission("ENQUIRY_VIEW", "ADMISSION_VIEW")) {
+            DashboardSummaryResponse s = dashboardService.getSummary();
             long newEnq = Optional.ofNullable(s.enquiryFunnel())
                 .map(m -> m.getOrDefault("ENQUIRED", 0L)).orElse(0L);
             return List.of(
@@ -1578,7 +1675,6 @@ public class WidgetDataController {
                 new QuickStat("Specialities", String.valueOf(s.totalSpecialities()))
             );
         }
-        // Faculty and Student hero stats are built by their own widget components
         return List.of();
     }
 

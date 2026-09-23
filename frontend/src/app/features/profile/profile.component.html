@@ -435,11 +435,11 @@
             <div class="info-row">
               <div class="info-row__icon"><mat-icon>lock_reset</mat-icon></div>
               <div class="info-row__body"><span class="info-row__label">Change Password</span></div>
-              <a class="pref-link-btn pref-control"
-                 [href]="changePasswordUrl()" target="_blank" rel="noopener noreferrer"
-                 matTooltip="Opens in Keycloak">
-                <mat-icon>open_in_new</mat-icon>
-              </a>
+              <button class="pref-link-btn pref-control" type="button"
+                      (click)="openChangePassword()"
+                      matTooltip="Change your password">
+                <mat-icon>chevron_right</mat-icon>
+              </button>
             </div>
 
           </div>

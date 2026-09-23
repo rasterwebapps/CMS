@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource, MatTable } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
@@ -33,7 +33,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     CmsEmptyStateComponent,
     CmsRowActionButtonComponent,
     CmsTypeBadgeComponent,
-    RouterLink, FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
+    FormsModule, MatTableModule, MatPaginatorModule, MatSortModule,
     MatProgressSpinnerModule, MatDialogModule, MatTooltipModule,
     CmsIconDeleteComponent,
     CmsIconEditComponent,

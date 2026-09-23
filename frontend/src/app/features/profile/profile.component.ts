@@ -9,7 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
-import { environment } from '../../../environments';
 import { PermissionService } from '../../core/permissions/permission.service';
 import { BloodGroupService } from '../blood-group/blood-group.service';
 import { BloodGroup } from '../blood-group/blood-group.model';
@@ -30,6 +29,7 @@ import {
   PhotoCropDialogData,
   PhotoCropDialogResult,
 } from '../../shared/photo-crop-dialog/photo-crop-dialog.component';
+import { ChangePasswordDialogComponent } from '../../shared/change-password-dialog/change-password-dialog.component';
 import { TourService } from '../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
 import { PROFILE_TOUR, PROFILE_FLOW_MAP } from '../../shared/tour/tours/profile.tours';
@@ -143,10 +143,13 @@ export class ProfileComponent implements OnInit, OnDestroy {
   @HostListener('document:click')
   protected closeThemePicker(): void { this.themePickerOpen.set(false); }
 
-  protected readonly changePasswordUrl = computed(() => {
-    const { url, realm } = environment.keycloak;
-    return `${url}/realms/${realm}/account/#/security/signingin`;
-  });
+  protected openChangePassword(): void {
+    this.dialog.open(ChangePasswordDialogComponent, {
+      panelClass: 'cpd-dialog-panel',
+      maxWidth: '96vw',
+      autoFocus: 'input',
+    });
+  }
 
   // ── Accessibility preferences (localStorage + CSS class on <html>) ─────────
   private readonly A11Y_KEY = 'cms_a11y_prefs';

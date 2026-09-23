@@ -89,16 +89,18 @@ public class ProgramService {
             .toList();
     }
 
-    public Page<ProgramResponse> findPage(String search, Pageable pageable) {
-        if (search == null || search.isBlank()) {
-            return programRepository.findAll(pageable).map(this::toResponse);
-        }
-        String pattern = "%" + search.trim().toLowerCase() + "%";
-        Specification<Program> spec = (root, query, cb) ->
-            cb.or(
+    public Page<ProgramResponse> findPage(String search, boolean activeOnly, Pageable pageable) {
+        Specification<Program> spec = Specification.where(null);
+        if (search != null && !search.isBlank()) {
+            String pattern = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
                 cb.like(cb.lower(root.get("name")), pattern),
                 cb.like(cb.lower(root.get("code")), pattern)
-            );
+            ));
+        }
+        if (activeOnly) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), ProgramStatus.ACTIVE));
+        }
         return programRepository.findAll(spec, pageable).map(this::toResponse);
     }
 

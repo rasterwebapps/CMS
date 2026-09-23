@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../../environments';
+import { DocumentNumberRegenerationResult } from '../../../../shared/models/document-number.model';
 import {
   AvailableRequisitionLine,
   Page,
@@ -17,12 +18,21 @@ export class PurchaseOrderService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/inventory/procurement/purchase-orders`;
 
-  getPage(p: { supplierId?: number | null; locationId?: number | null; status?: string | null; page?: number; size?: number }): Observable<Page<PurchaseOrder>> {
+  getPage(p: { supplierId?: number | null; locationId?: number | null; status?: string | null; search?: string; page?: number; size?: number }): Observable<Page<PurchaseOrder>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.supplierId != null) params = params.set('supplierId', p.supplierId);
     if (p.locationId != null) params = params.set('locationId', p.locationId);
     if (p.status) params = params.set('status', p.status);
+    if (p.search) params = params.set('search', p.search);
     return this.http.get<Page<PurchaseOrder>>(`${this.baseUrl}/page`, { params });
+  }
+
+  previewRegenerateNumbers(): Observable<DocumentNumberRegenerationResult> {
+    return this.http.get<DocumentNumberRegenerationResult>(`${this.baseUrl}/regenerate-numbers/preview`);
+  }
+
+  regenerateNumbers(): Observable<DocumentNumberRegenerationResult> {
+    return this.http.post<DocumentNumberRegenerationResult>(`${this.baseUrl}/regenerate-numbers`, {});
   }
 
   getById(id: number): Observable<PurchaseOrder> {

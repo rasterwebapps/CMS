@@ -9,7 +9,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
 
-import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -64,10 +63,6 @@ public class EnquiryDocument {
 
     @Column(name = "file_size")
     private Long fileSize;
-
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "file_data", columnDefinition = "bytea")
-    private byte[] fileData;
 
     @Column(name = "uploaded_at")
     private Instant uploadedAt;
@@ -197,14 +192,6 @@ public class EnquiryDocument {
 
     public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
-    }
-
-    public byte[] getFileData() {
-        return fileData;
-    }
-
-    public void setFileData(byte[] fileData) {
-        this.fileData = fileData;
     }
 
     public Instant getUploadedAt() {

@@ -44,6 +44,11 @@ export class ExaminationService {
     return this.http.get<ExamResult[]>(`${this.resultUrl}/my`);
   }
 
+  /** A guardian's linked ward's exam results -- backend re-validates ward ownership server-side. */
+  getWardResults(studentId: number): Observable<ExamResult[]> {
+    return this.http.get<ExamResult[]>(`${this.resultUrl}/my-wards?studentId=${studentId}`);
+  }
+
   createResult(request: ExamResultRequest): Observable<ExamResult> {
     return this.http.post<ExamResult>(this.resultUrl, request);
   }

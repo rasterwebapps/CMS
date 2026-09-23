@@ -6,7 +6,7 @@ import com.cms.model.enums.DayOfWeek;
  *  cell there — powers Skeleton Builder's drag highlight so an admin sees which slots would
  *  actually accept the drop before releasing it, instead of finding out only after a rejected
  *  drop. {@code reason} is the first violation's human-readable message when {@code valid} is
- *  false (matching {@code TimetableSkeletonService#validateMoveTarget}'s own violation order),
+ *  false (matching {@code TimetableSkeletonService#validateRelocatedCell}'s own violation order),
  *  null when valid. Read-only and non-reserving — a slot reported valid here can still fail a
  *  moment later if another admin places something into it first; the real move endpoint remains
  *  the source of truth. */

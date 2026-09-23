@@ -42,63 +42,41 @@
       }
     </div>
 
-    <select
+    <cms-infinite-select
       id="tour-fac-filters"
-      class="mlp-filter-select"
-      [value]="selectedSpecialityId() ?? ''"
-      (change)="onSpecialityChange(+$any($event.target).value || null)"
-      aria-label="Filter by speciality"
-    >
-      <option value="">All Specialities</option>
-      @for (dept of specialities(); track dept.id) {
-        <option [value]="dept.id">{{ dept.name }}</option>
-      }
-    </select>
+      label="All Specialities" ariaLabel="Filter by speciality" searchPlaceholder="Search specialities…"
+      [fetchPage]="specialityFetchPage"
+      [selectedValue]="selectedSpecialityId()" (selectedValueChange)="onSpecialityChange($event)"
+    />
 
-    <select
-      class="mlp-filter-select"
-      [value]="selectedStatus() ?? ''"
-      (change)="onStatusChange($any($event.target).value || null)"
-      aria-label="Filter by status"
-    >
-      <option value="">All Statuses</option>
-      @for (status of statusOptions; track status.value) {
-        <option [value]="status.value">{{ status.label }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Statuses" ariaLabel="Filter by status" searchPlaceholder="Search statuses…"
+      [fetchPage]="statusFetchPage"
+      [selectedValue]="selectedStatus()" (selectedValueChange)="onStatusChange($event)"
+    />
 
-    <select
-      class="mlp-filter-select"
-      [value]="selectedDocumentReview()"
-      (change)="onDocumentReviewChange($any($event.target).value)"
-      aria-label="Filter by document review state"
-    >
-      @for (option of documentReviewOptions; track option.value) {
-        <option [value]="option.value">{{ option.label }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Document States" ariaLabel="Filter by document review state" searchPlaceholder="Search…"
+      [fetchPage]="documentReviewFetchPage"
+      [selectedValue]="selectedDocumentReview() === 'ALL' ? null : selectedDocumentReview()" (selectedValueChange)="onDocumentReviewChange($event)"
+    />
 
     @if (hasActiveFilters()) {
       <button class="btn-ghost" (click)="clearFilters()" aria-label="Clear all filters">Clear Filters</button>
     }
 
     @if (canViewWorkload()) {
-      <select class="mlp-filter-select" [value]="selectedAcademicYearId ?? ''"
-        (change)="onAcademicYearChange(+$any($event.target).value || null)" aria-label="Academic year (workload term)">
-        @for (ay of academicYears(); track ay.id) {
-          <option [value]="ay.id">{{ ay.name }}</option>
-        }
-      </select>
-      <select class="mlp-filter-select" [value]="selectedTermInstanceId ?? ''"
-        (change)="onTermChange(+$any($event.target).value || null)"
-        [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term (workload)">
-        @if (termInstances().length === 0) {
-          <option value="">No terms yet</option>
-        }
-        @for (term of termInstances(); track term.id) {
-          <option [value]="term.id">{{ term.termType }} · {{ term.status }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="Academic year" ariaLabel="Academic year (workload term)" searchPlaceholder="Search years…"
+        [fetchPage]="workloadAcademicYearFetchPage"
+        [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+      />
+      <cms-infinite-select
+        label="Term" ariaLabel="Term (workload)" searchPlaceholder="Search terms…"
+        [fetchPage]="workloadTermFetchPage"
+        [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
+        [disabled]="termsLoading() || termInstances().length === 0"
+      />
     }
 
     <div class="toolbar-right">

@@ -1,0 +1,122 @@
+<div class="mlp-page">
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">My <em>Wards</em></h1>
+      @if (wardContext.selectedWard(); as ward) {
+        <p class="page-subtitle">Viewing {{ ward.fullName }}'s attendance and exam results.</p>
+      } @else {
+        <p class="page-subtitle">Your linked wards' attendance and exam results.</p>
+      }
+    </div>
+  </div>
+
+  @if (wardContext.wards().length === 0) {
+    <div class="content-card">
+      <div class="ward-empty-state">
+        <mat-icon>family_restroom</mat-icon>
+        <p>No wards are linked to your account yet. Contact the college office to get linked to your child's record.</p>
+      </div>
+    </div>
+  } @else {
+    <div class="content-card">
+      <div class="std-card-inner">
+        <div class="std-card-hdr">
+          <h2>Attendance</h2>
+          @if (attendancePercent() !== null) {
+            <span class="std-summary">{{ presentCount() }} / {{ attendance().length }} present ({{ attendancePercent() }}%)</span>
+          }
+        </div>
+
+        @if (attendanceLoading()) {
+          <p class="std-empty">Loading…</p>
+        } @else if (attendance().length === 0) {
+          <p class="std-empty">No attendance records yet.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="std-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Subject</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of attendance(); track row.id) {
+                  <tr>
+                    <td>{{ row.date | date: 'mediumDate' }}</td>
+                    <td>{{ row.subjectName }}</td>
+                    <td>{{ row.type }}</td>
+                    <td><cms-status-badge [status]="row.status"></cms-status-badge></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (permissionService.has('MY_WARD_FEE_VIEW')) {
+      <div class="content-card">
+        <div class="std-card-inner">
+          <div class="std-card-hdr">
+            <h2>Fees</h2>
+          </div>
+
+          @if (feeDuesLoading()) {
+            <p class="std-empty">Loading…</p>
+          } @else if (!feeDuesLoaded() || feeDuesTotal() === null) {
+            <p class="std-empty">No fee allocation finalized yet.</p>
+          } @else {
+            <div class="std-fee-dues">
+              <span class="std-fee-dues-label">Current dues</span>
+              <span class="std-fee-dues-amount">{{ feeDuesTotal() | inr }}</span>
+              <a class="std-fee-dues-link" routerLink="/parent/my-wards/fees">View full ledger & pay →</a>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="content-card">
+      <div class="std-card-inner">
+        <div class="std-card-hdr">
+          <h2>Exam Results</h2>
+        </div>
+
+        @if (resultsLoading()) {
+          <p class="std-empty">Loading…</p>
+        } @else if (results().length === 0) {
+          <p class="std-empty">No exam results published yet.</p>
+        } @else {
+          <div class="table-wrapper">
+            <table class="std-table">
+              <thead>
+                <tr>
+                  <th>Examination</th>
+                  <th>Marks</th>
+                  <th>Grade</th>
+                  <th>Outcome</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of results(); track row.id) {
+                  <tr>
+                    <td>{{ row.examinationName }}</td>
+                    <td>{{ row.marksObtained ?? '—' }}</td>
+                    <td>{{ row.grade ?? '—' }}</td>
+                    <td>{{ row.outcome ?? '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    <app-announcement-widget />
+  }
+</div>

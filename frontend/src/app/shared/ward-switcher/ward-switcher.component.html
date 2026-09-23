@@ -1,0 +1,20 @@
+@if (wardContext.wards().length > 0) {
+  <button mat-icon-button [matMenuTriggerFor]="wardMenu" matTooltip="Switch ward" class="toolbar-action-btn ward-switcher-btn">
+    <mat-icon>family_restroom</mat-icon>
+  </button>
+  <mat-menu #wardMenu="matMenu" class="ward-switcher-menu">
+    <div class="ward-switcher-header" (click)="$event.stopPropagation()">
+      <span>Viewing</span>
+    </div>
+    @for (ward of wardContext.wards(); track ward.studentId) {
+      <button mat-menu-item
+              class="ward-switcher-item"
+              [class.ward-switcher-item--active]="ward.studentId === wardContext.selectedWardId()"
+              (click)="selectWard(ward.studentId)">
+        <mat-icon>{{ ward.studentId === wardContext.selectedWardId() ? 'radio_button_checked' : 'radio_button_unchecked' }}</mat-icon>
+        <span class="ward-switcher-name">{{ ward.fullName }}</span>
+        <span class="ward-switcher-roll">{{ ward.rollNumber }}</span>
+      </button>
+    }
+  </mat-menu>
+}

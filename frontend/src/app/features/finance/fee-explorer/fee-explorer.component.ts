@@ -19,7 +19,13 @@ import { computeInitials } from '../../../shared/utils/initials';
 import { CmsIconViewComponent } from '../../../shared/icons';
 import { CmsColumnPickerComponent, ColumnPickerState } from '../../../shared/column-picker';
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
-import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
+import { ExportFormat } from '../../../shared/export-button';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { PermissionService } from '../../../core/permissions/permission.service';
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -42,8 +48,10 @@ const SORT_FIELD_MAP: Record<string, string> = {
   imports: [
     InrPipe, MatTableModule, MatPaginatorModule, MatSortModule,
     MatTooltipModule, CmsEmptyStateComponent, CmsStatusBadgeComponent, CmsTourButtonComponent,
-    CmsRowActionButtonComponent, CmsIconViewComponent, ExportButtonComponent,
+    CmsRowActionButtonComponent, CmsIconViewComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    MatMenuModule, MatButtonModule, MatIconModule,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './fee-explorer.component.html',
   styleUrl: './fee-explorer.component.scss',
@@ -95,30 +103,32 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
   protected totalElements          = 0;
 
   protected readonly canExport = computed(() => this.permissionService.has('STUDENT_FEE_EXPORT'));
+  protected readonly canExportSemWise = computed(() => this.permissionService.has('STUDENT_FEE_EXPORT_SEMESTER_WISE'));
 
-  // ── Client-side within-page filters ─────────────────────────────────────
+  // ── Server-side filters — sent to the backend and reflected in the URL ───
   protected filterProgram      = signal<string>('ALL');
   protected filterAcademicYear = signal<string>('ALL');
   protected filterYearOfStudy  = signal<string>('ALL');
   protected filterAllocStatus  = signal<string>('ALL');
 
-  private readonly _pageData = signal<StudentFeeSummary[]>([]);
+  // Dropdown option lists span every student, not just whatever page is currently loaded.
+  protected readonly programs      = signal<string[]>([]);
+  protected readonly academicYears = signal<string[]>([]);
+  protected readonly yearsOfStudy  = signal<number[]>([]);
 
-  protected readonly programs = computed(() =>
-    [...new Set(this._pageData().map(r => r.programName).filter(Boolean))].sort() as string[]
-  );
-  protected readonly academicYears = computed(() =>
-    [...new Set(this._pageData().map(r => r.academicYearName).filter(Boolean))].sort() as string[]
-  );
-  protected readonly yearsOfStudy = computed(() =>
-    [...new Set(this._pageData().map(r => r.yearOfStudy).filter((v): v is number => v != null))]
-      .sort((a, b) => a - b)
-  );
   protected readonly ALLOC_STATUSES = [
     { value: 'DRAFT',         label: 'Draft' },
     { value: 'FINALIZED',     label: 'Finalized' },
     { value: 'NOT_ALLOCATED', label: 'Not Allocated' },
   ];
+  protected readonly programFetchPage = staticOptionsFetchPage(() =>
+    this.programs().map(p => ({ id: p, name: p })));
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay, name: ay })));
+  protected readonly yearOfStudyFetchPage = staticOptionsFetchPage(() =>
+    this.yearsOfStudy().map(y => ({ id: String(y), name: `Year ${y}` })));
+  protected readonly allocStatusFetchPage = staticOptionsFetchPage(() =>
+    this.ALLOC_STATUSES.map(s => ({ id: s.value, name: s.label })));
   protected readonly hasActiveFilters = computed(() =>
     this.searchValue()        !== '' ||
     this.filterProgram()      !== 'ALL' ||
@@ -169,15 +179,52 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     });
   }
 
+  protected onExportSemWise(format: ExportFormat): void {
+    if (this.exporting()) return;
+    if (this.totalElements === 0) {
+      this.toast.error('No data available to export.');
+      return;
+    }
+    this.exporting.set(true);
+    this.financeService.exportFeeExplorerSemesterWise(format, {
+      search:           this.searchValue() || null,
+      program:          this.filterProgram() !== 'ALL' ? this.filterProgram() : null,
+      academicYear:     this.filterAcademicYear() !== 'ALL' ? this.filterAcademicYear() : null,
+      yearOfStudy:      this.filterYearOfStudy() !== 'ALL' ? Number(this.filterYearOfStudy()) : null,
+      allocationStatus: this.filterAllocStatus() !== 'ALL' ? this.filterAllocStatus() : null,
+      sort:             SORT_FIELD_MAP[this.sortActive] ?? this.sortActive,
+      direction:        this.sortDirection,
+    }).subscribe({
+      next: (blob) => {
+        const ext = format === 'pdf' ? 'pdf' : 'xlsx';
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href     = url;
+        a.download = `fee-explorer-semester-wise.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.toast.error('Export failed. Please try again.');
+        this.exporting.set(false);
+      },
+    });
+  }
 
   protected onPinChange(): void { this._matTable?.updateStickyColumnStyles(); }
   ngOnInit(): void {
     this.tourService.register('fee-explorer', FEE_EXPLORER_TOUR);
     this.tourService.registerFlowMap('fee-explorer', FEE_EXPLORER_FLOW_MAP);
+    this.loadFilterOptions();
 
     // URL params drive state — initial load + back-nav restore
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       this.searchValue.set(params['search'] ?? '');
+      this.filterProgram.set(params['program'] ?? 'ALL');
+      this.filterAcademicYear.set(params['academicYear'] ?? 'ALL');
+      this.filterYearOfStudy.set(params['yearOfStudy'] ?? 'ALL');
+      this.filterAllocStatus.set(params['allocationStatus'] ?? 'ALL');
       this.currentPage      = params['page']      ? +params['page']     : 0;
       this.currentPageSize  = params['size']      ? +params['size']     : DEFAULT_PAGE_SIZE;
       this.sortActive    = params['sortField'] ?? DEFAULT_SORT_FIELD;
@@ -219,15 +266,35 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     this.navigate({ search: null, page: 0 });
   }
 
-  protected onFilterChange(): void { this._applyClientFilters(); }
+  protected onProgramChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : 'ALL';
+    this.filterProgram.set(val);
+    this.navigate({ program: val === 'ALL' ? null : val, page: 0 });
+  }
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : 'ALL';
+    this.filterAcademicYear.set(val);
+    this.navigate({ academicYear: val === 'ALL' ? null : val, page: 0 });
+  }
+
+  protected onYearOfStudyChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : 'ALL';
+    this.filterYearOfStudy.set(val);
+    this.navigate({ yearOfStudy: val === 'ALL' ? null : val, page: 0 });
+  }
+
+  protected onAllocStatusChange(value: InfiniteSelectValue | null): void {
+    const val = value != null ? String(value) : 'ALL';
+    this.filterAllocStatus.set(val);
+    this.navigate({ allocationStatus: val === 'ALL' ? null : val, page: 0 });
+  }
 
   protected clearAllFilters(): void {
-    this.filterProgram.set('ALL');
-    this.filterAcademicYear.set('ALL');
-    this.filterYearOfStudy.set('ALL');
-    this.filterAllocStatus.set('ALL');
     this.searchValue.set('');
-    this.navigate({ search: null, page: 0 });
+    this.navigate({
+      search: null, program: null, academicYear: null, yearOfStudy: null, allocationStatus: null, page: 0,
+    });
   }
 
   protected viewDetails(student: StudentFeeSummary): void {
@@ -236,17 +303,29 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     });
   }
 
-  private navigate(patch: Partial<{ search: string | null; page: number; size: number; sortField: string; sortDir: string }>): void {
+  private navigate(patch: Partial<{
+    search: string | null; program: string | null; academicYear: string | null;
+    yearOfStudy: string | null; allocationStatus: string | null;
+    page: number; size: number; sortField: string; sortDir: string;
+  }>): void {
     const cur = this.route.snapshot.queryParams;
     const p: Record<string, string | number | null> = {
-      search:    'search'    in patch ? patch.search ?? null : this.searchValue() || null,
+      search:           'search'           in patch ? patch.search ?? null           : this.searchValue() || null,
+      program:          'program'          in patch ? patch.program ?? null          : (cur['program'] ?? null),
+      academicYear:     'academicYear'     in patch ? patch.academicYear ?? null     : (cur['academicYear'] ?? null),
+      yearOfStudy:      'yearOfStudy'      in patch ? patch.yearOfStudy ?? null      : (cur['yearOfStudy'] ?? null),
+      allocationStatus: 'allocationStatus' in patch ? patch.allocationStatus ?? null : (cur['allocationStatus'] ?? null),
       page:      'page'      in patch ? patch.page!          : this.currentPage,
       size:      'size'      in patch ? patch.size!          : this.currentPageSize,
       sortField: 'sortField' in patch ? (patch.sortField ?? null) : (cur['sortField'] ?? null),
       sortDir:   'sortDir'   in patch ? (patch.sortDir ?? null)   : (cur['sortDir'] ?? null),
     };
     const qp: Record<string, string | number> = {};
-    if (p['search'])   qp['search']   = p['search'] as string;
+    if (p['search'])           qp['search']           = p['search'] as string;
+    if (p['program'])          qp['program']          = p['program'] as string;
+    if (p['academicYear'])     qp['academicYear']     = p['academicYear'] as string;
+    if (p['yearOfStudy'])      qp['yearOfStudy']      = p['yearOfStudy'] as string;
+    if (p['allocationStatus']) qp['allocationStatus'] = p['allocationStatus'] as string;
     if ((p['page'] as number) > 0)    qp['page']   = p['page'] as number;
     if ((p['size'] as number) !== DEFAULT_PAGE_SIZE) qp['size'] = p['size'] as number;
     if (p['sortField']) qp['sortField'] = p['sortField'] as string;
@@ -254,22 +333,36 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     void this.router.navigate([], { relativeTo: this.route, queryParams: qp });
   }
 
+  private loadFilterOptions(): void {
+    this.financeService.getFeeExplorerFilterOptions().subscribe(opts => {
+      this.programs.set(opts.programs);
+      this.academicYears.set(opts.academicYears);
+      this.yearsOfStudy.set(opts.yearsOfStudy);
+    });
+  }
+
   private loadPage(): void {
     this.loading.set(true);
+    const program      = this.filterProgram();
+    const academicYear = this.filterAcademicYear();
+    const yearOfStudy  = this.filterYearOfStudy();
+    const allocStatus  = this.filterAllocStatus();
     this.financeService.searchStudentFeesPage({
-      search:  this.searchValue() || undefined,
-      page:    this.currentPage,
-      size:    this.currentPageSize,
-      sort:    `${SORT_FIELD_MAP[this.sortActive] ?? this.sortActive},${this.sortDirection}`,
+      search:           this.searchValue() || undefined,
+      page:             this.currentPage,
+      size:             this.currentPageSize,
+      sort:             `${SORT_FIELD_MAP[this.sortActive] ?? this.sortActive},${this.sortDirection}`,
+      program:          program      !== 'ALL' ? program : null,
+      academicYear:     academicYear !== 'ALL' ? academicYear : null,
+      yearOfStudy:      yearOfStudy  !== 'ALL' ? Number(yearOfStudy) : null,
+      allocationStatus: allocStatus  !== 'ALL' ? allocStatus : null,
     }).subscribe({
       next: (page) => {
-        this._pageData.set(page.content);
         this.dataSource.data  = page.content;
         this.totalElements    = page.totalElements;
         this.currentPage      = page.number;
         this.currentPageSize  = page.size;
         this.syncPaginatorState();
-        this._applyClientFilters();
         this.loading.set(false);
       },
       error: () => {
@@ -284,27 +377,5 @@ export class FeeExplorerComponent implements OnInit, OnDestroy {
     this._paginator.length    = this.totalElements;
     this._paginator.pageIndex = this.currentPage;
     this._paginator.pageSize  = this.currentPageSize;
-  }
-
-  private _applyClientFilters(): void {
-    const program = this.filterProgram();
-    const ay      = this.filterAcademicYear();
-    const yos     = this.filterYearOfStudy();
-    const status  = this.filterAllocStatus();
-
-    const anyDropdown = program !== 'ALL' || ay !== 'ALL' || yos !== 'ALL' || status !== 'ALL';
-    if (!anyDropdown) {
-      this.dataSource.filter = '';
-      return;
-    }
-
-    this.dataSource.filterPredicate = (row: StudentFeeSummary) => {
-      if (program !== 'ALL' && (row.programName ?? '') !== program)   return false;
-      if (ay      !== 'ALL' && (row.academicYearName ?? '') !== ay)   return false;
-      if (yos     !== 'ALL' && String(row.yearOfStudy ?? '') !== yos) return false;
-      if (status  !== 'ALL' && row.allocationStatus !== status)       return false;
-      return true;
-    };
-    this.dataSource.filter = program + ay + yos + status;
   }
 }

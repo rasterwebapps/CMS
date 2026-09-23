@@ -6,11 +6,10 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 import { CourseService } from '../course.service';
 import { Course } from '../course.model';
 import { ProgramService } from '../../program/program.service';
-import { Program } from '../../program/program.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsViewToggleComponent } from '../../../shared/view-toggle/view-toggle.component';
@@ -21,6 +20,8 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { COURSE_LIST_TOUR, COURSE_LIST_FLOW_MAP } from '../../../shared/tour/tours/course.tours';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconToggleStatusComponent } from '../../../shared/icons';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 
 @Component({
   selector: 'app-course-list',
@@ -40,6 +41,7 @@ import { CmsIconDeleteComponent, CmsIconEditComponent, CmsIconToggleStatusCompon
     CmsIconDeleteComponent,
     CmsIconEditComponent,
     CmsIconToggleStatusComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './course-list.component.html',
   styleUrl: './course-list.component.scss',
@@ -76,7 +78,13 @@ export class CourseListComponent implements OnInit, OnDestroy {
   protected readonly loading = signal(false);
   protected readonly searchValue = signal('');
   protected readonly selectedProgramId = signal<number | null>(null);
-  protected readonly programs = signal<Program[]>([]);
+
+  // ── Filter dropdown data source — search/paginate against the backend rather than
+  // loading the full master list; see CmsInfiniteSelectComponent. ──────────────────
+  protected readonly programFetchPage = (search: string, page: number, size: number) =>
+    this.programService.getPage({ search, page, size });
+  protected readonly programResolveLabel = (id: InfiniteSelectValue) =>
+    this.programService.getById(Number(id)).pipe(map(p => p.name));
   protected readonly viewMode = signal<'card' | 'table'>(this.loadViewMode());
 
   protected totalElements = 0;
@@ -96,7 +104,6 @@ export class CourseListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.tourService.register('course-list', COURSE_LIST_TOUR);
     this.tourService.registerFlowMap('course-list', COURSE_LIST_FLOW_MAP);
-    this.loadPrograms();
     this.searchSubject.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();
@@ -124,8 +131,8 @@ export class CourseListComponent implements OnInit, OnDestroy {
     this.searchSubject.next('');
   }
 
-  protected onProgramFilterChange(programIdStr: string): void {
-    this.selectedProgramId.set(programIdStr ? +programIdStr : null);
+  protected onProgramFilterChange(value: InfiniteSelectValue | null): void {
+    this.selectedProgramId.set(value != null ? Number(value) : null);
     this.currentPage = 0;
     this.loadPage();
   }
@@ -237,10 +244,4 @@ export class CourseListComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadPrograms(): void {
-    this.programService.getAll().subscribe({
-      next: (programs) => this.programs.set(programs),
-      error: () => this.toast.error('Failed to load programs'),
-    });
-  }
 }

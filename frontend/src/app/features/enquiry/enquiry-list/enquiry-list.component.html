@@ -58,32 +58,18 @@
     </div>
 
     <!-- Program filter -->
-    <select
-      class="enq-filter-select"
-      [value]="selectedProgramId() ?? ''"
-      (change)="onProgramChange($any($event.target).value)"
-      aria-label="Filter by program"
-      [class.enq-filter-select--active]="selectedProgramId() !== null"
-    >
-      <option value="">All Programs</option>
-      @for (p of programs; track p.id) {
-        <option [value]="p.id">{{ p.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+      [fetchPage]="programFetchPage" [resolveLabel]="programResolveLabel"
+      [selectedValue]="selectedProgramId()" (selectedValueChange)="onProgramChange($event)"
+    />
 
     <!-- Course filter -->
-    <select
-      class="enq-filter-select"
-      [value]="selectedCourseId() ?? ''"
-      (change)="onCourseChange($any($event.target).value)"
-      aria-label="Filter by course"
-      [class.enq-filter-select--active]="selectedCourseId() !== null"
-    >
-      <option value="">All Courses</option>
-      @for (c of courseOptions(); track c.id) {
-        <option [value]="c.id">{{ c.name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Courses" ariaLabel="Filter by course" searchPlaceholder="Search courses…"
+      [fetchPage]="courseFetchPage" [resolveLabel]="courseResolveLabel" [reloadKey]="selectedProgramId()"
+      [selectedValue]="selectedCourseId()" (selectedValueChange)="onCourseChange($event)"
+    />
 
     <!-- Status multiselect dropdown -->
     <div class="status-drop-wrap">
@@ -128,47 +114,12 @@
     </div>
 
     <!-- Academic year multiselect dropdown -->
-    <div class="status-drop-wrap">
-      <button
-        class="status-drop-btn"
-        [class.status-drop-btn--active]="selectedAcademicYearIds().size > 0"
-        (click)="academicYearMenuOpen = !academicYearMenuOpen"
-        aria-haspopup="listbox"
-        [attr.aria-expanded]="academicYearMenuOpen"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        {{ academicYearFilterLabel() }}
-        @if (selectedAcademicYearIds().size > 0) {
-          <span class="status-drop-count">{{ selectedAcademicYearIds().size }}</span>
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-        }
-      </button>
-
-      @if (academicYearMenuOpen) {
-        <div class="status-drop-panel" role="listbox" (click)="$event.stopPropagation()">
-          <div class="status-drop-list">
-            @for (ay of academicYearOptions(); track ay.id) {
-              <label class="status-drop-item" role="option" [attr.aria-selected]="isAcademicYearSelected(ay.id)">
-                <span class="status-check" [class.status-check--on]="isAcademicYearSelected(ay.id)">
-                  @if (isAcademicYearSelected(ay.id)) {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                  }
-                </span>
-                <input type="checkbox" class="sr-only" [checked]="isAcademicYearSelected(ay.id)" (change)="toggleAcademicYear(ay.id)" />
-                <span>{{ ay.name }}</span>
-                @if (ay.isCurrent) { <span class="status-drop-cnt">Current</span> }
-              </label>
-            }
-          </div>
-          @if (selectedAcademicYearIds().size > 0) {
-            <div class="status-drop-footer">
-              <button class="status-drop-clear" (click)="clearAcademicYears()">Show all years</button>
-            </div>
-          }
-        </div>
-      }
-    </div>
+    <cms-infinite-select
+      [multiple]="true" [label]="academicYearFilterLabel()" ariaLabel="Filter by academic year" searchPlaceholder="Search years…"
+      [fetchPage]="academicYearFetchPage"
+      [selectedValues]="selectedAcademicYearIds()" (selectedValuesChange)="onAcademicYearsChange($event)"
+      [showClear]="selectedAcademicYearIds().size > 0" clearLabel="Show all years" (cleared)="clearAcademicYears()"
+    />
 
     <!-- More Filters toggle -->
     <button class="btn-toolbar"
@@ -200,52 +151,35 @@
   <!-- ── More Filters row (collapsible) ──────────────────────────────────── -->
   @if (moreFiltersOpen) {
     <div class="more-filters-bar">
-      <select class="enq-filter-select" [value]="selectedStudentType() ?? ''"
-              (change)="onStudentTypeChange($any($event.target).value)"
-              [class.enq-filter-select--active]="selectedStudentType() !== null"
-              aria-label="Filter by student type">
-        <option value="">All Types</option>
-        <option value="DAY_SCHOLAR">Day Scholar</option>
-        <option value="HOSTELER">Hosteler</option>
-      </select>
+      <cms-infinite-select
+        label="All Types" ariaLabel="Filter by student type" searchPlaceholder="Search types…"
+        [fetchPage]="studentTypeFetchPage"
+        [selectedValue]="selectedStudentType()" (selectedValueChange)="onStudentTypeChange($event)"
+      />
 
-      <select class="enq-filter-select" [value]="selectedReferralType() ?? ''"
-              (change)="onReferralTypeChange($any($event.target).value)"
-              [class.enq-filter-select--active]="selectedReferralType() !== null"
-              aria-label="Filter by referral type">
-        <option value="">All Referrals</option>
-        @for (r of referralTypeNames; track r) {
-          <option [value]="r">{{ r }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Referrals" ariaLabel="Filter by referral type" searchPlaceholder="Search referral types…"
+        valueKey="name" [fetchPage]="referralTypeFetchPage"
+        [selectedValue]="selectedReferralType()" (selectedValueChange)="onReferralTypeChange($event)"
+      />
 
-      <select class="enq-filter-select" [value]="selectedAdmissionQuota() ?? ''"
-              (change)="onAdmissionQuotaChange($any($event.target).value)"
-              [class.enq-filter-select--active]="selectedAdmissionQuota() !== null"
-              aria-label="Filter by admission quota">
-        <option value="">All Quotas</option>
-        <option value="MANAGEMENT">Management</option>
-        <option value="COUNSELLING">Counselling</option>
-      </select>
+      <cms-infinite-select
+        label="All Quotas" ariaLabel="Filter by admission quota" searchPlaceholder="Search quotas…"
+        [fetchPage]="admissionQuotaFetchPage"
+        [selectedValue]="selectedAdmissionQuota()" (selectedValueChange)="onAdmissionQuotaChange($event)"
+      />
 
-      <select class="enq-filter-select" [value]="selectedAgent() ?? ''"
-              (change)="onAgentChange($any($event.target).value)"
-              [class.enq-filter-select--active]="selectedAgent() !== null"
-              aria-label="Filter by agent">
-        <option value="">All Agents</option>
-        @for (a of agentNames; track a) {
-          <option [value]="a">{{ a }}</option>
-        }
-      </select>
+      <cms-infinite-select
+        label="All Agents" ariaLabel="Filter by agent" searchPlaceholder="Search agents…"
+        valueKey="name" [fetchPage]="agentFetchPage"
+        [selectedValue]="selectedAgent()" (selectedValueChange)="onAgentChange($event)"
+      />
 
-      <select class="enq-filter-select" [value]="selectedAdmissionSource() ?? ''"
-              (change)="onAdmissionSourceChange($any($event.target).value)"
-              [class.enq-filter-select--active]="selectedAdmissionSource() !== null"
-              aria-label="Filter by admission source">
-        <option value="">All Sources</option>
-        <option value="ENQUIRY_FLOW">Enquiry Flow</option>
-        <option value="DIRECT_ADMIT">Direct Admit</option>
-      </select>
+      <cms-infinite-select
+        label="All Sources" ariaLabel="Filter by admission source" searchPlaceholder="Search sources…"
+        [fetchPage]="admissionSourceFetchPage"
+        [selectedValue]="selectedAdmissionSource()" (selectedValueChange)="onAdmissionSourceChange($event)"
+      />
     </div>
   }
 

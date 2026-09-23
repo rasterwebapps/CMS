@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.cms.dto.DayRepeatRequest;
 import com.cms.dto.DayRepeatResult;
+import com.cms.dto.RecurringSpecialClassRequest;
+import com.cms.dto.RecurringSpecialClassResult;
 import com.cms.dto.SpecialClassRequest;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Classroom;
@@ -37,6 +40,7 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.OccurrenceSource;
 import com.cms.model.enums.RegistrationStatus;
+import com.cms.model.enums.WeekOfMonth;
 import com.cms.repository.CalendarEventRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
@@ -449,5 +453,78 @@ class SpecialClassRequestServiceTest {
         assertThatThrownBy(() -> service.requestDayRepeat(dayRepeatRequestOn(monday), 100L, "faculty"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("no regular instruction");
+    }
+
+    // ── Recurring special class: weekly, start/end date, skip-ineligible-weeks ──────────
+
+    private RecurringSpecialClassRequest recurringRequestOn(LocalDate startDate, LocalDate endDate) {
+        return new RecurringSpecialClassRequest(startDate, endDate, List.of(10L), 1L, 201L, null,
+            ClassSessionType.THEORY, 1L, null, null, 100L, "Weekly revision session");
+    }
+
+    @Test
+    void requestRecurringSpecialClass_createsOneOccurrencePerEligibleSundayInRange() {
+        stubOfferingAndSubject();
+        stubSaveAllAssignsIds();
+        LocalDate endDate = SUNDAY.plusWeeks(3);
+
+        RecurringSpecialClassResult result = service.requestRecurringSpecialClass(
+            recurringRequestOn(SUNDAY, endDate), 100L, "faculty");
+
+        assertThat(result.created()).hasSize(4);
+        assertThat(result.skippedCount()).isZero();
+        assertThat(result.created()).extracting("occurrenceDate")
+            .containsExactly(SUNDAY, SUNDAY.plusWeeks(1), SUNDAY.plusWeeks(2), SUNDAY.plusWeeks(3));
+        assertThat(result.created()).extracting("requestBatchId").doesNotContainNull();
+    }
+
+    @Test
+    void requestRecurringSpecialClass_skipsWeeksThatAreDesignatedWorkingSaturdays() {
+        // Only the 1st Saturday of the month is a real working day under this pattern -- the other
+        // Saturdays in range are non-working and therefore eligible for a recurring special class.
+        term.setWorkingSaturdayWeeks(Set.of(WeekOfMonth.FIRST));
+        com.cms.model.AcademicYear academicYear = new com.cms.model.AcademicYear();
+        academicYear.setId(5L);
+        term.setAcademicYear(academicYear);
+        lenient().when(calendarEventRepository.findOverlapping(eq(5L), eq(com.cms.model.enums.CalendarEventType.HOLIDAY), any(), any()))
+            .thenReturn(List.of());
+        stubOfferingAndSubject();
+        stubSaveAllAssignsIds();
+
+        LocalDate firstSaturday = LocalDate.of(2026, 10, 3); // the month's 1st Saturday -- working, must be skipped
+        LocalDate endDate = firstSaturday.plusWeeks(3); // covers 1st, 2nd, 3rd, 4th Saturdays
+
+        RecurringSpecialClassResult result = service.requestRecurringSpecialClass(
+            recurringRequestOn(firstSaturday, endDate), 100L, "faculty");
+
+        assertThat(result.skippedCount()).isEqualTo(1);
+        assertThat(result.created()).hasSize(3);
+        assertThat(result.created()).extracting("occurrenceDate")
+            .containsExactly(firstSaturday.plusWeeks(1), firstSaturday.plusWeeks(2), firstSaturday.plusWeeks(3));
+    }
+
+    @Test
+    void requestRecurringSpecialClass_rejectsAnEndDateBeforeTheStartDate() {
+        assertThatThrownBy(() -> service.requestRecurringSpecialClass(
+            recurringRequestOn(SUNDAY, SUNDAY.minusWeeks(1)), 100L, "faculty"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("End date must be on or after");
+    }
+
+    @Test
+    void requestRecurringSpecialClass_aConflictOnOneEligibleWeekFailsTheWholeBatch() {
+        stubOfferingAndSubject();
+        CourseOffering otherOffering = offering(999L, term);
+        LocalDate conflictingWeek = SUNDAY.plusWeeks(1);
+        // Override the general "no conflicts anywhere" stub from stubOfferingAndSubject() for just
+        // the second week -- Mockito resolves an overlapping stub to whichever was registered last.
+        when(sessionOccurrenceRepository.findByOccurrenceSourceInAndOccurrenceDateAndPeriod_Id(any(), eq(conflictingWeek), any()))
+            .thenReturn(List.of(liveOtherOccurrence(otherOffering, hall)));
+
+        assertThatThrownBy(() -> service.requestRecurringSpecialClass(
+            recurringRequestOn(SUNDAY, SUNDAY.plusWeeks(2)), 100L, "faculty"))
+            .isInstanceOf(TimetableConstraintViolationException.class);
+
+        org.mockito.Mockito.verify(sessionOccurrenceRepository, org.mockito.Mockito.never()).saveAll(any());
     }
 }

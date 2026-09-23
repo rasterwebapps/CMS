@@ -18,6 +18,7 @@ export interface Supplier {
   id: number;
   supplierCode: string;
   supplierName: string;
+  state: string;
   taxRegistrationId: string | null;
   legalRegistrationNo: string | null;
   bankAccountNumber: string | null;
@@ -39,6 +40,7 @@ export interface Supplier {
 export interface SupplierRequest {
   supplierCode: string;
   supplierName: string;
+  state: string;
   taxRegistrationId?: string;
   legalRegistrationNo?: string;
   bankAccountNumber?: string;

@@ -28,10 +28,6 @@ export class LabScheduleService {
     return this.http.get<LabSchedule>(`${this.scheduleUrl}/${id}`);
   }
 
-  create(request: LabScheduleRequest): Observable<LabSchedule> {
-    return this.http.post<LabSchedule>(this.scheduleUrl, request);
-  }
-
   update(id: number, request: LabScheduleRequest): Observable<LabSchedule> {
     return this.http.put<LabSchedule>(`${this.scheduleUrl}/${id}`, request);
   }

@@ -1,0 +1,107 @@
+.std-card-inner {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.std-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--cms-text-primary);
+  }
+}
+
+.std-summary {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-text-muted);
+}
+
+.std-empty {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: var(--cms-text-muted);
+  font-size: 0.875rem;
+}
+
+.std-fee-dues {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 0 16px;
+}
+
+.std-fee-dues-label {
+  font-size: 0.8125rem;
+  color: var(--cms-text-muted);
+}
+
+.std-fee-dues-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.std-fee-dues-link {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--cms-primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.std-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    border-bottom: 1px solid var(--cms-border-default);
+  }
+
+  th {
+    color: var(--cms-text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.6875rem;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.ward-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 0;
+  color: var(--cms-text-muted);
+
+  mat-icon {
+    font-size: 2.5rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    opacity: 0.5;
+  }
+}

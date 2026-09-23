@@ -1,4 +1,4 @@
-import { OverageContributor, VenueOverCapacity, VenueTightCapacity } from '../skeleton-builder/skeleton-builder.model';
+import { OverageContributor, VenueOverCapacity, VenueTightCapacity } from '../timetable-builder/timetable-builder.model';
 
 export type PlanningBasis = 'ENROLLED' | 'SANCTIONED';
 
@@ -205,7 +205,7 @@ export interface RoomInventoryRow {
  *  timing. labClinicalVenueCapacitySufficient/labClinicalVenueCapacityTight close the gap this used
  *  to explicitly disclaim: a real weekly (day, period) feasibility check for shared Lab/Clinical
  *  venues (total weekly demand vs. real weekly window) — a necessary-condition aggregate, not a true
- *  collision simulation, so a passing check doesn't guarantee the real Skeleton Builder placement
+ *  collision simulation, so a passing check doesn't guarantee the real Timetable Builder placement
  *  search will actually find a conflict-free arrangement. */
 export interface TermCapacityOverview {
   termInstanceId: number;

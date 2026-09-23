@@ -51,6 +51,15 @@ describe('AttendanceService', () => {
     req.flush([]);
   });
 
+  // OC-256: guardian ward-scoped attendance, resolved+re-validated server-side from studentId.
+  it('getWardAttendance calls the ward-scoped endpoint with studentId', () => {
+    service.getWardAttendance(45).subscribe();
+
+    const req = httpMock.expectOne(`${baseUrl}/my-wards?studentId=45`);
+    expect(req.request.method).toBe('GET');
+    req.flush([]);
+  });
+
   it('delete issues a DELETE to the record id', () => {
     service.delete(42).subscribe();
 

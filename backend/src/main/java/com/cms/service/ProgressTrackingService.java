@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.LogProgressRequest;
+import com.cms.dto.OccurrenceCoverageRequest;
 import com.cms.dto.OfferingProgressResponse;
 import com.cms.dto.SessionOccurrenceDto;
 import com.cms.dto.SubjectProgressSummaryDto;
@@ -29,6 +30,8 @@ import com.cms.model.SessionOccurrence;
 import com.cms.model.SessionOccurrenceUnit;
 import com.cms.model.SyllabusUnit;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.OccurrenceSource;
+import com.cms.model.enums.SpecialClassApprovalStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyRepository;
@@ -49,6 +52,13 @@ import com.cms.repository.SyllabusUnitRepository;
 @Service
 @Transactional(readOnly = true)
 public class ProgressTrackingService {
+
+    /** BR-55 sources whose coverage should count toward a subject's actual progress -- the
+     *  Special Class Scheduler's own ad-hoc/day-repeat/weekly-repeat request shapes. Deliberately
+     *  excludes CLINICAL_SHIFT (OC-175, a different feature with its own semantics) and REGULAR
+     *  (already reached via ClassSchedule). */
+    private static final List<OccurrenceSource> COUNTABLE_SPECIAL_SOURCES =
+        List.of(OccurrenceSource.SPECIAL_CLASS, OccurrenceSource.DAY_REPEAT, OccurrenceSource.RECURRING_SPECIAL_CLASS);
 
     private final SessionOccurrenceRepository sessionOccurrenceRepository;
     private final ClassScheduleRepository classScheduleRepository;
@@ -96,10 +106,36 @@ public class ProgressTrackingService {
             .findByClassScheduleIdAndOccurrenceDate(request.classScheduleId(), date)
             .orElseGet(() -> new SessionOccurrence(schedule, date));
 
-        List<UnitCoverageRequest> units = request.units() != null ? request.units() : List.of();
         CurriculumSemesterCourse csc = schedule.getCourseOffering() != null
             ? schedule.getCourseOffering().getCurriculumSemesterCourse() : null;
+        applyCoverages(occurrence, csc, request.units(), request.remarks(), recordedByFacultyId);
+        return toDto(sessionOccurrenceRepository.save(occurrence));
+    }
 
+    /** BR-55 counterpart of {@link #logCoverage} for a SPECIAL_CLASS/DAY_REPEAT/
+     *  RECURRING_SPECIAL_CLASS occurrence -- these have no ClassSchedule and exactly one fixed
+     *  date already set at request time, so they're addressed directly by their own occurrence id
+     *  instead of a (classScheduleId, date) pair. Only an APPROVED occurrence can be logged
+     *  against, matching {@link #logCoverage}'s own PUBLISHED-only gate for regular sessions. */
+    @Transactional
+    public SessionOccurrenceDto logCoverageForOccurrence(Long occurrenceId, OccurrenceCoverageRequest request,
+                                                          Long recordedByFacultyId) {
+        SessionOccurrence occurrence = requireSpecialOccurrence(occurrenceId);
+        if (occurrence.getApprovalStatus() != SpecialClassApprovalStatus.APPROVED) {
+            throw new IllegalArgumentException("Progress can only be logged against an approved special class");
+        }
+        if (occurrence.getOccurrenceDate().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Cannot log progress for a future date");
+        }
+        CurriculumSemesterCourse csc = occurrence.getCourseOffering() != null
+            ? occurrence.getCourseOffering().getCurriculumSemesterCourse() : null;
+        applyCoverages(occurrence, csc, request.units(), request.remarks(), recordedByFacultyId);
+        return toDto(sessionOccurrenceRepository.save(occurrence));
+    }
+
+    private void applyCoverages(SessionOccurrence occurrence, CurriculumSemesterCourse csc,
+                                 List<UnitCoverageRequest> requestedUnits, String remarks, Long recordedByFacultyId) {
+        List<UnitCoverageRequest> units = requestedUnits != null ? requestedUnits : List.of();
         List<SessionOccurrenceUnit> newCoverages = new ArrayList<>();
         for (UnitCoverageRequest unitRequest : units) {
             SyllabusUnit unit = syllabusUnitRepository.findById(unitRequest.unitId())
@@ -120,12 +156,11 @@ public class ProgressTrackingService {
         occurrence.getUnitCoverages().clear();
         occurrence.getUnitCoverages().addAll(newCoverages);
 
-        occurrence.setRemarks(request.remarks());
+        occurrence.setRemarks(remarks);
         if (recordedByFacultyId != null) {
             Faculty faculty = facultyRepository.findById(recordedByFacultyId).orElse(null);
             occurrence.setRecordedByFaculty(faculty);
         }
-        return toDto(sessionOccurrenceRepository.save(occurrence));
     }
 
     /** Units the "Log Progress" dialog should offer for a session, with each unit's aggregate
@@ -163,6 +198,41 @@ public class ProgressTrackingService {
     public Optional<SessionOccurrenceDto> getOccurrence(Long classScheduleId, LocalDate date) {
         return sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(classScheduleId, date)
             .map(this::toDto);
+    }
+
+    /** BR-55 counterpart of {@link #getAvailableUnits} for a special-class-sourced occurrence,
+     *  which carries its own {@code courseOffering} directly rather than through a ClassSchedule. */
+    public List<UnitPickerOptionDto> getAvailableUnitsForOccurrence(Long occurrenceId) {
+        SessionOccurrence occurrence = requireSpecialOccurrence(occurrenceId);
+        CourseOffering offering = occurrence.getCourseOffering();
+        CurriculumSemesterCourse csc = offering != null ? offering.getCurriculumSemesterCourse() : null;
+        if (csc == null) {
+            return List.of();
+        }
+        List<SyllabusUnit> units = syllabusUnitRepository
+            .findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(csc.getId());
+        Map<Long, UnitAggregate> aggregates = aggregateByUnit(offering.getId());
+
+        return units.stream()
+            .map(unit -> {
+                UnitAggregate agg = aggregates.getOrDefault(unit.getId(), UnitAggregate.EMPTY);
+                return new UnitPickerOptionDto(unit.getId(), unit.getUnitNumber(), unit.getTitle(),
+                    unit.getComponentType(), unit.getPlannedHours(), agg.hoursLogged(), agg.completed());
+            })
+            .toList();
+    }
+
+    public Optional<SessionOccurrenceDto> getOccurrenceById(Long occurrenceId) {
+        return sessionOccurrenceRepository.findById(occurrenceId).map(this::toDto);
+    }
+
+    private SessionOccurrence requireSpecialOccurrence(Long occurrenceId) {
+        SessionOccurrence occurrence = sessionOccurrenceRepository.findById(occurrenceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Session occurrence not found with id: " + occurrenceId));
+        if (occurrence.getOccurrenceSource() == OccurrenceSource.REGULAR) {
+            throw new IllegalArgumentException("Use the class-schedule-based endpoint for a regular session");
+        }
+        return occurrence;
     }
 
     public OfferingProgressResponse getProgressForOffering(Long courseOfferingId) {
@@ -219,10 +289,21 @@ public class ProgressTrackingService {
 
     /** Sums hoursCovered and ORs markedComplete for one unit across every session occurrence
      *  logged for a course offering -- a unit is "complete" the instant any occurrence marks it
-     *  so, regardless of how that compares to its plannedHours. */
+     *  so, regardless of how that compares to its plannedHours. Counts both REGULAR occurrences
+     *  (reached via their ClassSchedule) and approved BR-55 special-class occurrences (which carry
+     *  their own {@code courseOffering} directly, since they have no ClassSchedule at all) -- see
+     *  {@link #COUNTABLE_SPECIAL_SOURCES}. The two queries are naturally disjoint (a REGULAR row's
+     *  direct {@code courseOffering} field is always null), so no dedup is needed. */
     private Map<Long, UnitAggregate> aggregateByUnit(Long courseOfferingId) {
+        List<SessionOccurrence> occurrences = new ArrayList<>(
+            sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(courseOfferingId));
+        sessionOccurrenceRepository.findByCourseOffering_Id(courseOfferingId).stream()
+            .filter(o -> COUNTABLE_SPECIAL_SOURCES.contains(o.getOccurrenceSource())
+                && o.getApprovalStatus() == SpecialClassApprovalStatus.APPROVED)
+            .forEach(occurrences::add);
+
         Map<Long, UnitAggregate> aggregates = new HashMap<>();
-        for (SessionOccurrence occurrence : sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(courseOfferingId)) {
+        for (SessionOccurrence occurrence : occurrences) {
             for (SessionOccurrenceUnit coverage : occurrence.getUnitCoverages()) {
                 Long unitId = coverage.getSyllabusUnit().getId();
                 aggregates.merge(unitId,
@@ -251,9 +332,8 @@ public class ProgressTrackingService {
             .map(c -> new UnitCoverageDto(c.getSyllabusUnit().getId(), c.getSyllabusUnit().getUnitNumber(),
                 c.getSyllabusUnit().getTitle(), c.getHoursCovered(), Boolean.TRUE.equals(c.getMarkedComplete())))
             .toList();
-        // BR-55: a SPECIAL_CLASS/DAY_REPEAT occurrence has no ClassSchedule -- not yet reachable
-        // from this method's actual callers (they only ever load REGULAR rows), but guarded here
-        // since it's the one confirmed NPE site the moment any code path passes one through.
+        // BR-55: a SPECIAL_CLASS/DAY_REPEAT/RECURRING_SPECIAL_CLASS occurrence has no ClassSchedule
+        // -- reached via logCoverageForOccurrence/getOccurrenceById, hence this guard.
         Long classScheduleId = occurrence.getClassSchedule() != null ? occurrence.getClassSchedule().getId() : null;
         return new SessionOccurrenceDto(occurrence.getId(), classScheduleId,
             occurrence.getOccurrenceDate(), coverages, occurrence.getRemarks(),

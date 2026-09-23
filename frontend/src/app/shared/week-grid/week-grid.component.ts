@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
+import { colorForSessionType, SessionTypeForColor } from '../util/session-color.util';
 import {
   WeekGridSession,
   WeekGridMode,
@@ -47,6 +48,12 @@ export class CmsWeekGridComponent {
   @Input() allowManage = false;
   @Input() allowRevert = false;
 
+  /** Non-null disables the Publish button and shows this as its tooltip, independent of
+   *  {@link allowManage}/{@link saving} — used by Draft Review's Conflict Inspector acknowledgment
+   *  gate (OC-258) to block publishing without hiding the button/toolbar entirely. Null (default)
+   *  leaves every other consumer of this component unaffected. */
+  @Input() publishDisabledReason: string | null = null;
+
   private readonly _holidays = signal<WeekGridHolidayInfo[]>([]);
   @Input() set holidays(value: WeekGridHolidayInfo[] | null | undefined) {
     this._holidays.set(value ?? []);
@@ -75,7 +82,14 @@ export class CmsWeekGridComponent {
   @Output() revertClick = new EventEmitter<void>();
   @Output() cellClick = new EventEmitter<WeekGridCandidateCell>();
 
-  protected readonly days = WEEK_GRID_DAYS;
+  /** The term's real working-Saturday count, from TermInstanceDto.workingSaturdayCount -- 0 means
+   *  the term hasn't opted in to Saturday scheduling at all (see WorkingSaturdaysFlyoutComponent's
+   *  doc comment: Mon-Fri only, hard-blocked). Null (default) keeps every existing consumer that
+   *  doesn't pass it unaffected and always shows all 6 days, same as before this input existed. */
+  @Input() workingSaturdayCount: number | null = null;
+
+  protected readonly days = computed(() =>
+    this.workingSaturdayCount === 0 ? WEEK_GRID_DAYS.filter((d) => d !== 'SATURDAY') : WEEK_GRID_DAYS);
   protected readonly dayLabels = WEEK_GRID_DAY_LABELS;
 
   protected readonly isHoliday = computed(() => {
@@ -138,7 +152,26 @@ export class CmsWeekGridComponent {
     return this.cell(day, row).some((s) => s.id === this.swapSourceSessionId);
   }
 
+  /** A negative id is a synthetic, off-grid entry (e.g. a Clinical Shift Group duty roster block
+   *  -- see backend TimetableSkeletonService#findClinicalShiftGridEntries) with no real
+   *  ClassSchedule row behind it, so it can't be swapped or clicked into a detail action; same
+   *  "negative id = non-interactive placeholder" convention ResourceGridCellResponse already uses. */
+  protected isSynthetic(session: WeekGridSession): boolean {
+    return session.id < 0;
+  }
+
+  /** Same primary-color-tint accent Timetable Builder/Day Agenda use for every session type — see
+   *  {@link colorForSessionType}. WeekGridSession carries no coCurricular flag, so this always
+   *  colors by session type alone. */
+  protected sessionColor(sessionType: SessionTypeForColor): string {
+    return colorForSessionType(sessionType);
+  }
+
   protected onSessionClick(session: WeekGridSession, day: string, row: WeekGridRow, event: Event): void {
+    if (this.isSynthetic(session)) {
+      event.stopPropagation();
+      return;
+    }
     if (this.swapMode) {
       event.stopPropagation();
       const candidate = this.candidateFor(day, row);

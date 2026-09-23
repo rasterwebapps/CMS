@@ -44,19 +44,22 @@ public class CalendarEventService {
     private final PeriodRepository periodRepository;
     private final HolidayTemplateRepository holidayTemplateRepository;
     private final HolidayTemplateService holidayTemplateService;
+    private final HolidayDisruptionNotificationService holidayDisruptionNotificationService;
 
     public CalendarEventService(CalendarEventRepository calendarEventRepository,
                                 AcademicYearRepository academicYearRepository,
                                 BlockedPeriodRepository blockedPeriodRepository,
                                 PeriodRepository periodRepository,
                                 HolidayTemplateRepository holidayTemplateRepository,
-                                HolidayTemplateService holidayTemplateService) {
+                                HolidayTemplateService holidayTemplateService,
+                                HolidayDisruptionNotificationService holidayDisruptionNotificationService) {
         this.calendarEventRepository = calendarEventRepository;
         this.academicYearRepository = academicYearRepository;
         this.blockedPeriodRepository = blockedPeriodRepository;
         this.periodRepository = periodRepository;
         this.holidayTemplateRepository = holidayTemplateRepository;
         this.holidayTemplateService = holidayTemplateService;
+        this.holidayDisruptionNotificationService = holidayDisruptionNotificationService;
     }
 
     @Transactional
@@ -327,6 +330,7 @@ public class CalendarEventService {
             .collect(Collectors.toMap(Period::getId, Function.identity()));
 
         for (LocalDate d = event.getStartDate(); !d.isAfter(event.getEndDate()); d = d.plusDays(1)) {
+            List<BlockedPeriod> newlyCreatedForDate = new ArrayList<>();
             for (Long periodId : resolvedPeriodIds) {
                 String key = periodId + "|" + d;
                 if (alreadyLinked.contains(key)) {
@@ -341,7 +345,13 @@ public class CalendarEventService {
                 bp.setSpecificDate(d);
                 bp.setReason("Auto-blocked — " + event.getTitle());
                 bp.setSourceCalendarEvent(event);
-                blockedPeriodRepository.save(bp);
+                newlyCreatedForDate.add(blockedPeriodRepository.save(bp));
+            }
+            // Batched per date (not per period) so a faculty teaching several periods on the same
+            // cancelled day gets one notification, not one per period -- see
+            // HolidayDisruptionNotificationService's own javadoc.
+            if (!newlyCreatedForDate.isEmpty()) {
+                holidayDisruptionNotificationService.notifyIfDisrupts(event, newlyCreatedForDate);
             }
         }
     }

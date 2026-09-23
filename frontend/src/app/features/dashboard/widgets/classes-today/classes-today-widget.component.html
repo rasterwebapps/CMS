@@ -39,7 +39,7 @@
           <div class="ct-text">
             <div class="ct-title">{{ item.subjectName }}</div>
             <div class="ct-sub">
-              <span class="ct-type" [attr.data-type]="item.sessionType">{{ sessionTypeLabel(item.sessionType) }}</span>
+              <span class="ct-type" [style.--subject-color]="sessionTypeColor(item.sessionType)">{{ sessionTypeLabel(item.sessionType) }}</span>
               @if (item.roomName) { <span>· {{ item.roomName }}</span> }
               @if (item.batchName) { <span>· {{ item.batchName }}</span> }
             </div>

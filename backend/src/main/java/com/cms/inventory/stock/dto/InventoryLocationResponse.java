@@ -11,6 +11,8 @@ public record InventoryLocationResponse(
     String virtualName,
     String locationRole,
     String description,
+    Long defaultSupplyingLocationId,
+    String defaultSupplyingLocationVirtualName,
     Boolean isActive,
     Instant createdAt,
     Instant updatedAt

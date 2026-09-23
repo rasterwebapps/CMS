@@ -2504,4 +2504,538 @@ Outstanding: a manual light/dark/role click-through of the new screens, and of `
 detail/list screens per the Component Touch Rule (their own FK addition didn't change any
 existing template output, but the rule still calls for a look).
 
+## 2026-09-21 — OC-206 ("Auto-restocking") reopened as Auto-Indent; Stock Issue Request renamed to Stock Indent
+
+**Prompted by:** the user's own real deployment policy for stock reorder/replenishment, supplying
+exactly the missing input the "Auto-restocking (OC-206) skipped" entry (2026-09-08) said to wait
+for. Ran as a full Partner Mode specialist round before any code — see that skipped entry for the
+original blocker.
+
+**Decisions:**
+1. **"Indent" is the user's name for the existing `StockIssueRequest` concept, not a separate
+   document.** The user explicitly rejected building a second parallel entity — `StockIssueRequest`
+   (Phase 4's IHMS-referenced `IssueLocationIndent` analogue) is renamed to `StockIndent`
+   throughout: entity/item/both status enums, service, controller, repositories, DTOs, package
+   (`com.cms.inventory.issue` -> `com.cms.inventory.indent`, leaving `LoanableItemIssue*` behind in
+   `issue` since it's an unrelated concept sharing the old package), table names, permission codes
+   (`INVENTORY_ISSUE_REQUEST_*` -> `INVENTORY_STOCK_INDENT_*`, updated in place since it's a rename
+   of the same permission, not a new capability — role grants carry over automatically with no
+   copy-forward migration needed), frontend folder/route/nav. This reverses the "distinct from
+   Purchase Requisition, never conflate" naming caution from the original `StockIssueRequest`
+   slice only insofar as the *user's* vocabulary; the code-level distinction from
+   `PurchaseRequisition` (buying from a supplier vs. requesting on-hand stock) is unchanged.
+2. **Per-location reorder policy, not global.** `Product.reorderLevel`/`reorderQty` stay as they
+   are (global, feeding the existing Wanted List's supplier-side auto-reorder) — the new indent
+   trigger gets its own `(product, location)`-scoped config (reorder level, reorder qty, max stock
+   qty, auto-indent flag), scoped to `REQUESTING_POINT`/`BOTH` locations only. Two-tier this phase
+   (Requesting Point -> Store) — a `STORE` location running low stays the Wanted List's job, not a
+   chained indent; multi-tier (`Store -> bigger Main Store`) explicitly deferred, not designed.
+3. **Explicit "default supplying store" field**, added per requesting-point location, rather than
+   inferring the target store from the campus Branch/Block hierarchy — predictable, no surprise
+   fulfillment routing.
+4. **Store-side fulfillment stays manual for this phase** — an auto-generated indent, once
+   department-head-approved, lands on a decision screen (own stock / other locations' surplus / any
+   open PO shown as context); the store clicks Fulfill / Transfer-in-then-fulfill / Raise PO / Deny.
+   No auto-posting. Matches the original OC-206 blocker's own conclusion that sourcing-preference
+   policy "no ERP-standard default can safely guess" — starting manual, tunable later once real
+   usage is observed, rather than guessing at automation rules now.
+5. **Transfer-in routes via the main store, not directly to the requester** — pulling surplus from
+   another sub-location posts two movements (surplus location -> main store, then main store ->
+   requester) rather than one direct transfer, so the store's own stock ledger always reflects
+   everything it dispatched.
+6. **Manual and auto-generated indents share one lifecycle** — the two-step (department-head
+   approval, then store fulfillment decision) split applies to both, not just auto-generated ones.
+   This is a real behavior change from the original `StockIssueRequest` slice, where approving a
+   line immediately posted the ISSUE movement in one step; the user confirmed unifying both paths
+   rather than keeping instant-issue-on-approve for manual requests.
+
+**Status:** Phase A (pure rename, no behavior change) shipped this entry — V531 (table/constraint/
+index/sequence rename, all names verified against the live local dev DB before writing, not
+guessed) + V532 (permission code rename in place). Booted clean against the migrated local dev DB;
+`StockIndentServiceTest` (10 cases, moved and renamed) green; full backend `compileJava`/
+`compileTestJava` and frontend `tsc --noEmit` + `ng build --configuration=production` all clean.
+Decisions 2-6 above (per-location reorder config, auto-detection job, two-step lifecycle, store
+fulfillment screen) are follow-up phases, not yet built — see `MILESTONES.md`'s Phase 4 entry for
+tracking.
+
+## 2026-09-21 — OC-206 reopened, Phase B shipped: per-location reorder config
+
+**Continues the 2026-09-21 "OC-206 reopened" entry above** — Phase B of that entry's decisions is
+now built: `ProductLocationReorderConfig` (per-(product, location) reorder level/qty/max stock/
+auto-indent flag, `REQUESTING_POINT`/`BOTH` locations only, V533) and `InventoryLocation
+.defaultSupplyingLocation` (V534 seeds its permissions). One addition not spelled out in that
+entry: saving a config with auto-indent enabled now hard-requires the location to already have a
+default supplying store set (clear error otherwise) — the same "never blame user data, validate
+heavily" posture as other save-time gates in this codebase, so a config can never be created
+already pointing nowhere. A location's store can still be unset *after* a config already has
+auto-indent on, since there's no DB-level dependency between the two tables; the Reorder
+Configuration list screen surfaces that drift as a distinct warning tag ("On, no store set")
+rather than silently treating it the same as a properly configured one.
+
+**Verified:** booted clean against the migrated local dev DB; full backend test suite green
+(new `ProductLocationReorderConfigServiceTest`, 6 cases); `npx tsc --noEmit` and `ng build
+--configuration=production` both clean. New nav entry "Reorder Configuration" under Stock
+Management, between Supplier Returns and Stock Indents. Manual light/dark/role click-through of
+the new screens and of the edited Inventory Location form (Component Touch Rule) not yet done —
+flagged for the user's own pass per this repo's "no self-run visual verification" posture.
+
+**Still open (Phase C onward, per the entry above):** the auto-detection job itself (nightly +
+on-demand, netting against already-open indents), and the two-step department-head-approval /
+store-fulfillment-decision lifecycle change to `StockIndent`.
+
+## 2026-09-21 — OC-206 reopened, Phase C shipped: auto-indent detection job
+
+**Continues the two 2026-09-21 "OC-206 reopened" entries above.** `AutoIndentService` now reads
+Phase B's `ProductLocationReorderConfig` rows and auto-generates `StockIndent`s, nightly (5:30,
+offset from the Wanted List's own 5:00 run so the two never contend for the same tables) or
+on-demand via a new "Run Now" button. Mirrors `WantedListService`'s shape closely — same MRP
+netting formula, same hybrid lot-sizing rule — with two departures worth recording:
+
+1. **Netting excludes `APPROVED` indent lines, unlike the Wanted List's own query which counts
+   `APPROVED` Purchase Requisition lines as "open."** The two document types mean different things
+   by that status: a Purchase Requisition's approval is just sign-off (buying happens later via a
+   separate PO), so it genuinely still needs netting against; a Stock Indent's approval already
+   posts the real `ISSUE` movement today, so the requesting location's on-hand balance already
+   reflects it — counting it again would double-count the same stock. Only `PENDING` lines under a
+   `SUBMITTED` header count as "open."
+2. **Bundles every product shortfall for the same (requesting location, supplying store) pair into
+   one `StockIndent` with multiple lines**, rather than one indent per product — reuses `StockIndentService`'s
+   own `create`/`addLine`/`submit` instead of new persistence logic, the same way `WantedListService.convert`
+   reuses `PurchaseRequisitionService`. Matches how a person would build one request, not a flurry
+   of single-product ones.
+
+**Known, deliberate gaps (not bugs):** a product with active variants is skipped — reorder policy
+stays product-level only, same simplification the Wanted List already established for
+`Product.reorderLevel`/`reorderQty`, and there's no way to guess which variant needs restocking. A
+config whose location has since lost its default supplying store (see the Phase B entry's own
+"can still drift" note) is skipped for that run rather than failing the whole batch.
+
+**Verified:** booted clean against the migrated local dev DB; the new native queries
+(`findShortageCandidates`, `findOpenQtyByProductAndRequestingLocation`) run cleanly against real
+schema/data via direct psql execution, not just mocked unit tests; full backend test suite green
+(new `AutoIndentServiceTest`, 7 cases); `npx tsc --noEmit` and `ng build --configuration=production`
+both clean. Did not attempt a live end-to-end run through the actual scheduled job or a real
+low-stock scenario — no reorder configs exist in the local dev dataset yet to trigger one.
+
+**Still open:** the two-step department-head-approval / store-fulfillment-decision lifecycle
+change to `StockIndent` (Phase D) — currently, approving a line (manual or auto-generated) still
+immediately posts the `ISSUE` movement in one step, unchanged from before this feature.
+
+## 2026-09-21 — OC-206 reopened, Phase D shipped: two-step approval/fulfillment — feature complete
+
+**Continues the three 2026-09-21 "OC-206 reopened" entries above — this closes the feature.**
+`StockIndentItemStatus` gains a real second decision point: department head (`PENDING` ->
+`APPROVED`/`REJECTED`, no stock movement any more) then store (`APPROVED` -> `FULFILLED`/
+`PO_RAISED`/`DENIED`). Applies to manual and auto-generated indents alike, per the user's own
+confirmed decision (see the first "OC-206 reopened" entry, decision #6).
+
+**One consequence caught and fixed in the same change:** `AutoIndentService`'s open-quantity
+netting query (Phase C) only excluded `APPROVED` lines from "already in the pipeline" — correct
+under the *old* meaning of `APPROVED` (issued, so already reflected in on-hand stock), wrong under
+the new one (awaiting the store, stock not yet moved). Left unfixed, Phase C would have re-flagged
+every shortfall sitting in a store's fulfillment queue as a fresh shortage on its next nightly run.
+Fixed to exclude both `PENDING` and `APPROVED` — only genuinely terminal states (`FULFILLED` and
+the other outcomes) reflect a real stock movement now.
+
+**Decisions carried straight from the original policy round, now implemented exactly as
+described:** transfer-in fulfillment posts two movements (surplus location -> store, then store ->
+requester) rather than one direct hop, so the store's own ledger always reflects what it
+dispatched; raising a PO is terminal for the indent line — the eventual restock is a separate,
+disconnected event via that requisition's own PO/GRN cycle, not tracked back to this line.
+
+**One permission, not four:** `INVENTORY_STOCK_INDENT_FULFILL` covers all four store outcomes
+(fulfill / fulfill-via-transfer / raise-po / deny), the same precedent the original
+`INVENTORY_STOCK_INDENT_APPROVE` already set by covering both approve and reject — one permission
+per *decision point*, not per possible outcome of that decision.
+
+**Verified:** booted clean against the migrated local dev DB; full backend test suite green
+(`StockIndentServiceTest` expanded to 17 cases, covering both decision points and all four store
+outcomes); `npx tsc --noEmit` and `ng build --configuration=production` both clean. Did not attempt
+a live end-to-end click-through of the new fulfillment dialog — per this repo's standing "no
+self-run visual verification" posture, that's flagged for the user's own manual pass.
+
+**Feature status: all four phases (A rename, B per-location config, C auto-detection, D two-step
+lifecycle) are now shipped.** See `MILESTONES.md`/`RELEASE_3_MILESTONES.md` for the rollup.
+
+## 2026-09-22 — Auto-generated Product codes (`<Category.shortCode>-<sequence>`, e.g. STA-000001)
+
+`Category` gains a `shortCode` field (2-10 uppercase letters/digits, unique, required on every
+create/update going forward — nullable at the DB level only because categories that predate this
+feature have none yet). `Product.productCode` is no longer typed by the user: `ProductService.
+create()` now calls the new `ProductCodeGeneratorService.generateNextCode(category)`, which
+increments a per-category counter (`category_product_sequences`, mirroring `RollNumberSequence`'s
+pessimistic-lock pattern) and formats `<shortCode>-<6-digit zero-padded sequence>`. The Product
+form's Code field is now read-only — a live preview (`GET /inventory/products/next-code`) while
+creating, the persisted value while editing. A product's code never changes after creation, even
+if its category is later reassigned.
+
+**Existing products were retroactively renumbered, by explicit user choice** (the alternative —
+leaving pre-existing codes untouched — was the recommended default; the user chose the riskier
+retroactive option instead). This is exposed as a standalone, on-demand admin action —
+`ProductCodeGeneratorService.regenerateAllCodes`, gated by its own
+`INVENTORY_PRODUCT_REGENERATE_CODES` permission (never bundled into `_MANAGE`, per the
+operation-wise permission mapping gate) — rather than baked into a migration, because it has a
+data-dependent precondition
+(every category referenced by an existing product must already have a short code) that a
+deploy-time migration can't guarantee. It hard-stops with the list of under-configured categories
+if that precondition isn't met. Renumbers oldest-product-first per category, in one transaction;
+relies on `uq_products_code` becoming `DEFERRABLE INITIALLY DEFERRED` (V544) so Postgres checks the
+uniqueness constraint once at commit instead of after each row, since a bulk swap of already-unique
+final values can otherwise trip a transient collision against a not-yet-updated row's old code.
+
+**Verified:** booted clean against the migrated local dev DB (V542-V545 applied, Hibernate
+`ddl-auto: validate` passed); `npx tsc --noEmit` and `ng build --configuration=development` both
+clean. Did not attempt a live click-through of the Product/Category forms or the Regenerate Codes
+dialog — per this repo's standing "no self-run visual verification" posture, that's flagged for
+the user's own manual pass (see the updated `inventory-catalog-product.md` / `inventory-catalog-
+category-uom.md` test cases).
+
+## 2026-09-22 — Sequential document numbers for Quotation Request, Purchase Order, Goods Receipt, Return to Supplier
+
+**Reverses a standing decision** — the ServiceTicket slice entry above explicitly named Purchase
+Order as precedent for *not* maintaining a second generated document number ("every other
+business document in this app... displays `#{id}`"), specifically to avoid a second-save problem.
+This entry is a deliberate, explicit user-requested reversal for these four documents only; the
+`#{id}` convention stands unchanged for every other document (Gate Pass, Consignment Agreement,
+Service Ticket, Purchase Requisition, Stock Indent, Stock Transfer, Cycle Count, Rate Contract,
+Loanable Item Issue, Commission Payout) unless a future entry says otherwise.
+
+**Engine: `ApplicationNumberSequenceService`, not `NumberSeriesDefinitionService`.** The two are
+easy to conflate — `NumberSeriesDefinitionService` (+ its `/number-series` controller, + the
+`Settings → Number Sequences` "new/edit series" form) is CRUD-only for series *definitions*
+(prefix/scope/padding); it has no method that actually consumes a number. `ApplicationNumber
+SequenceService` is the real, already-wired generation engine (`number_series_definitions` +
+`number_sequence_counters`, pessimistic-locked per (series, scope period)) already powering
+Admission/Receipt/Refund/Commission/Disbursement numbers. It gained one new method,
+`nextNumberForDate(seriesCode, date)`, which resolves the scope key from an arbitrary business
+date rather than always "today" — used both for normal creation (date = the document's own date
+field, e.g. `poDate`) and for the backfill described below. `ScopeKeyResolver.resolveCurrentPeriod`
+was refactored to delegate to a new `resolvePeriod(scopeType, date)`, purely additive.
+
+**The "second-save problem" solved architecturally, not worked around.** Each of the four
+document's `create()` methods calls `numberSequenceService.nextNumberForDate(...)` and sets the
+number field in the *same* transaction as the initial entity save — exactly one save, no
+after-the-fact PATCH — the same pattern `ProductCodeGeneratorService` already established for
+Product codes (2026-09-22, same day). `id` stays the authoritative backend/FK/route key
+everywhere unchanged; the new number column is purely a display/search-facing field (frontend
+list columns + detail-page headers + a `search` query param each service's `findPage` now
+accepts), per explicit user instruction — this is a deliberate difference from the Product Code
+feature, where the generated code *did* become primary going forward.
+
+**Existing rows are retroactively renumbered, by explicit user choice** (backfill was the
+non-default option offered; the user chose it anyway, same as they did for Product codes the same
+day). A new shared primitive, `ApplicationNumberSequenceService.regenerateNumbers(seriesCode,
+datesInOrder, dryRun)`, resets each touched scope period's counter to zero and reassigns
+gap-free numbers in caller-supplied chronological order — not just filling blanks, so an
+already-numbered row is safely reflowed too rather than risking a collision with it. Each of the
+four documents exposes this as its own on-demand "Regenerate Numbers" admin action, gated by its
+own permission (`INVENTORY_{QUOTATION,PURCHASE_ORDER,GRN,SUPPLIER_RETURN}_REGENERATE_NUMBERS` —
+never bundled into `_MANAGE`, per the operation-wise permission mapping gate), each with a
+preview endpoint for the confirm-dialog flow. New `DocumentNumberChange`/
+`DocumentNumberRegenerationResult` DTOs are shared across all four (and available to future
+document types) rather than duplicated per module.
+
+**Reset cadence deliberately varies per series to demonstrate the config surface**, per explicit
+user ask ("some resets annually, some monthly, some stays forever, need a config for such
+options") — satisfied entirely by seeding three different `scope_type` defaults on otherwise
+identical series rows, since `NumberSeriesDefinitionService`'s existing scope/prefix/padding
+config (and its `Settings → Number Sequences` UI, already built, already routed, just not yet
+linked from the nav — confirmed it *was* already in `nav-config.ts`, a stale assumption from
+earlier in this same session was wrong) is fully sufficient: Quotation Request and Purchase Order
+default to `FINANCIAL_YEAR` (e.g. `PO-2526-00001`), Goods Receipt (highest volume) to
+`FINANCIAL_MONTH` (e.g. `GRN-202609-00001`), Return to Supplier (lowest volume) to `NONE`/never
+(e.g. `SR-00001`). All three are admin-editable afterward with zero code changes, same as any
+other series.
+
+**Verified:** booted clean against the migrated local dev DB (V546-V549 applied; Hibernate
+`ddl-auto: validate` passed for all four new columns); `npx tsc --noEmit` and `ng build
+--configuration=development` both clean; `./gradlew test` green for the procurement/receiving/
+catalog/ApplicationNumberSequenceService test suites, including four pre-existing test files
+whose direct-constructor calls needed updating for the new `ApplicationNumberSequenceService`
+(and, for `ApplicationNumberSequenceServiceTest` itself, new `ScopeKeyResolver`) constructor
+parameters. Did not attempt a live click-through of any of the four forms or their Regenerate
+Numbers dialogs — per this repo's standing "no self-run visual verification" posture, flagged for
+the user's own manual pass (new/updated test cases: `inventory-procurement-purchase-order.md`,
+`inventory-procurement-quotation-request.md` [new file — see it for why the rest of that module
+still needs a full backfill], `inventory-receiving-goods-receipt.md`,
+`inventory-receiving-supplier-return.md`).
+
+**A broader sweep this session found several more `#{id}`-only documents that were explicitly
+NOT touched here** (Purchase Requisition, Stock Indent, Stock Transfer, Cycle Count, Rate
+Contract, Loanable Item Issue — the last two currently un-referenceable even by `#{id}` in their
+own screens; Commission Payout has no identifier shown anywhere at all). Scope was deliberately
+held to the four the user named. If any of these get the same treatment later, the
+`ApplicationNumberSequenceService.regenerateNumbers` + `DocumentNumberChange`/
+`DocumentNumberRegenerationResult` primitives built here are already reusable as-is.
+
+## 2026-09-22 — Overnight Phase 1: Purchasing & Suppliers re-verified, zero defects found
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+First of four chained unattended sessions (OC-264, `PURCHASING_ASSET_OVERNIGHT_PLAN.md`,
+`.worktrees/purchasing-equipment-overnight`). Re-derived, rather than trusted, whether
+`MILESTONES.md`'s "✅ Done" claim (last updated 2026-09-15) for the Purchasing & Suppliers nav
+group's 13 screens still holds — grepped the actual backend controllers, frontend routes, and
+entity enums directly rather than inferring from doc prose. It holds: every screen is genuinely
+wired route → component → service → controller → repository, `PurchaseOrderStatus` has its full
+6-state lifecycle including a properly-gated `FORCE_CLOSED`/`force-close` endpoint, and Price
+Comparison's apparent "missing" backend endpoint is a documented deliberate design choice (it
+reuses `VendorProductMappingController`'s existing `/page?productId=` rather than duplicating
+logic — see that screen's own component doc-comment).
+
+Ran the full CLAUDE.md structural/badge/`mlp-*`-spacing/permission checkup (same checklist as the
+2026-09-16 "finished the 13-screen checkup floor" entry, applied to this different nav group) —
+**found zero defects**, unlike that prior sweep which found one (`GoodsReceiptStatus.CONFIRMED`
+missing from the badge switch). All 9 `mat-paginator` list screens have correct
+paginator-inside-`.table-wrapper`-inside-`.content-card.mlp-table-card` nesting; the one screen
+using `mat-sort-header` (Currency Exchange Rates) has all three `matSort` bindings present; every
+enum value the module's data models can actually produce
+(`PurchaseRequisitionStatus`/`Item`, `QuotationRequestStatus`/`LineStatus`, `WantedListItemStatus`,
+`PurchaseOrderStatus`, plus boolean-derived `ACTIVE`/`INACTIVE`/`APPROVED`/`PENDING`) is present in
+`CmsStatusBadgeComponent.resolveClass()`'s switch — no silent `default: return ''` case; no
+`cms-badge--soft-*` or non-`--cms-*` CSS-variable usage; all `mlp-hdr-*` classes confirmed defined
+in global `styles.scss`; the four master screens with a real uniqueness constraint (Suppliers,
+Tax Rules, Vendor Product Rates, Currency Exchange Rates) all have `uniqueFieldValidator` wired
+against a matching backend `-exists` endpoint; operation-wise permission mapping was already
+correct — `INVENTORY_SUPPLIER_APPROVE`, `INVENTORY_QUOTATION_AWARD`,
+`INVENTORY_PURCHASE_ORDER_FORCE_CLOSE`, `INVENTORY_WANTED_LIST_RUN`/`CONVERT` are all their own
+dedicated permissions rather than reused `MANAGE` grants, and every relevant permission migration
+(V431, V433, V435, V437, V439, V493, V519) ends with the DEV_ADMIN/SUPPORT_ADMIN catch-all block.
+
+**No code changes made this session** — audit-only phase, nothing needed fixing. Verified via
+`npx tsc -p tsconfig.app.json --noEmit` (clean; `frontend/node_modules` symlinked into this
+worktree from the main checkout since `package-lock.json` is byte-identical, same precedent as an
+earlier sibling overnight run), `./gradlew compileJava compileTestJava` (clean), and
+`./gradlew test --tests "com.cms.inventory.*"` (green, no failures). No functional gap found for
+Phase 3 to pick up. Full per-item breakdown in `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md`.
+
+**Impact:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md` (Phase 1 checkboxes + handoff note),
+`PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (new file), this decision log entry. No frontend/
+backend source changes. `MILESTONES.md` left unchanged — no functional gap was found or fixed,
+consistent with this file's own standing rule that pure verification doesn't change module status.
+
+## 2026-09-22 — Overnight Phase 2: Bulk demo data for Purchasing & Suppliers
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+**Prompted by:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phase 2 — the 2026-09-15
+`InventoryBulkDemoDataSeeder` covered only the "Stock Management" nav group; "Purchasing &
+Suppliers" (audited clean in Phase 1, same day) still had thin/placeholder data.
+
+**Built:** `PurchasingAssetBulkDemoDataSeeder` (new, `com.cms.inventory.procurement.config`,
+`cms.seed.bulk-purchasing-asset-demo=true`, `@Profile("local")`, opt-in, never fires on a normal
+boot — same convention as `InventoryBulkDemoDataSeeder`). Reuses the 112 existing products and 9
+existing locations (`productRepo.findAll()`/`locationRepo.findAllByOrderByVirtualNameAsc()`),
+creates no new masters outside this nav group's own tables. Seeds: 10 Suppliers (7 approved/2
+pending/1 inactive), 4 Tax Rules under the pre-existing "GST" `TaxType`, Currency Settings (base
+INR) + 3 dated Exchange Rates (USD×2, EUR×1), 3 Rate Contracts (active/expired/upcoming) with 4
+negotiated lines, 11 Vendor Product Rates (3 contract-linked, 1 USD-priced), 9 Purchase
+Requisitions/21 items across every real state (pending, partially-approved, rejected-line,
+fully-ordered, plus RFQ- and PO-lifecycle-sourcing), 4 Quotation Requests/5 lines across all 4 real
+shipped `QuotationRequestStatus` values (verified from the entity/enum before assuming — DRAFT/
+SUBMITTED/COMPLETED/CANCELLED), 4 Wanted List items (2 genuinely newly auto-flagged via an
+engineered real reorder-level breach, using the actual `WantedListService.generate()` shortage-
+netting method — the same one both the nightly job and the "Run Now" button call, not fabricated
+rows), and 7 Purchase Orders/10 items covering all 6 `PurchaseOrderStatus` values, with the
+receipt-progress-computed states (`IN_PROGRESS`/`PARTIALLY_COMPLETED`/`COMPLETED`) driven by 3
+real confirmed Goods Receipts rather than hand-set on the entity.
+
+**Idempotency:** followed the 2026-09-15 seeder's three lessons exactly — per-phase-table gates
+(never one global count check), every downstream phase re-queries its dependencies from the
+repository rather than reusing another phase's in-memory return value (critical here since
+Requisitions/Direct-POs/Quotation-Requests are three separate phases that each commit
+independently), and tracking-mode compliance was checked — but only after hitting the gap for real
+(see below). Direct-PO scenarios run *before* Quotation Requests specifically so Quotation
+Requests' own `convertAwardedLines`-created PO doesn't trip the Direct-PO phase's `poRepo.count()
+== 0` gate on a resumed run.
+
+**Real gap hit and routed around, not silently patched:** `GoodsReceiptAddLineRequest` never
+carries a batch/serial number, and `InventoryBulkDemoDataSeeder` marks every 8th Nursing Consumable
+`BATCH`-tracked (this run's original pick, "Wound Dressing Kit", was one). `GoodsReceiptService
+.confirm` → `StockMovementService.requireTrackingModeCompliance` rejected the RECEIPT movement
+outright. Fixed by picking a `NONE`-tracked substitute product ("Foley Catheter 14") rather than
+adding batch-number plumbing to this seeder — the exact same class of gap, and the exact same
+routed-around-not-fixed posture, the 2026-09-15 entry already took for Stock Indents/Transfers.
+The underlying capability gap (no document type in this codebase can receive/issue/transfer a
+`BATCH`/`SERIAL` product without a batch/serial number field on its own add-line request) remains
+unfixed and is not this seeder's to close.
+
+**Deliberately not wired:** no Purchase Order line in this run carries a `taxRuleId`.
+`InventoryTaxJurisdictionSetting` (the institution's home state) is unconfigured in local dev, and
+`JurisdictionService.resolve` hard-blocks any tax computation until it is — configuring that
+singleton was out of this phase's scope (a real, if small, business decision: what *is* this
+institution's home state for GST purposes). Tax Rules exist as real, correct, browsable master data
+(4 GST slabs); PO-line tax computation itself was already confirmed working in Phase 1's code
+audit and doesn't need re-proving here.
+
+**Getting this to actually finish — two crashes, one root cause:** the first run crashed inside
+`GoodsReceiptService.confirm` on the batch-tracking gap above, after Suppliers/Tax/Currency/Rate
+Contracts/Vendor Product Rates/Purchase Requisitions/three Purchase Orders had already committed
+(each phase's own `@Transactional` commits independently, same non-atomicity the 2026-09-15 entry
+already documented). The fix was applied to the seeder's *code*, but the already-committed
+Purchase Requisition line still referenced the batch-tracked product — the second run hit the
+identical crash on the same stale data, since `seedRequisitions` is gated on `requisitionRepo
+.count() == 0` and had already succeeded. Resolved by deleting the stray partial rows via `psql`
+in FK-safe order (goods_receipt_lines → goods_receipts → purchase_order_item_tax_components →
+purchase_order_items → purchase_orders, then purchase_requisition_items → purchase_requisitions)
+and resetting the affected requisition items' status back to `APPROVED` before the third,
+successful run — zero real history in any of these rows (same-session fabricated seed data only),
+same "stray partial DRAFT" cleanup precedent the 2026-09-15 entry already established for Stock
+Transfers.
+
+**Verified:** real counts confirmed directly against Postgres (not just "ran with no exception") —
+10 suppliers, 4 tax rules, 1 currency setting + 3 exchange rates, 3 rate contracts + 4 lines, 11
+vendor product mappings, 9 purchase requisitions + 21 items, 4 quotation requests + 5 lines (one of
+each status), 4 wanted list items, 7 purchase orders + 10 items (one of each status) + 3 goods
+receipts + 3 lines. `./gradlew compileJava compileTestJava` clean; `com.cms.inventory.*` test suite
+green (pre-existing suite, unaffected — pure demo-data seeding needs no new test class); `npx tsc
+-p tsconfig.app.json --noEmit` clean (no frontend changes this phase).
+
+**Impact:** `PurchasingAssetBulkDemoDataSeeder.java` (new); `PURCHASING_ASSET_OVERNIGHT_PLAN.md`
+(Phase 2 checkboxes + handoff note), `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 2 section);
+this decision log entry. Local dev Postgres data only — no migration, no schema change, no
+frontend/other backend source changes.
+
+## 2026-09-22 — Overnight Phase 3: Equipment & Asset Management permission split + bulk demo data
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+**Prompted by:** `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phase 3 — verify+audit+seed the 4
+Equipment & Asset Management screens (Asset Register, Maintenance Schedules, Service Contracts,
+Depreciation Summary), same as Phase 1 did for Purchasing & Suppliers.
+
+**Audit result:** genuinely complete end to end, re-derived from code (entities, controllers,
+services, repositories, frontend routes) — not from `MILESTONES.md`'s own prose. One real defect
+found, not cosmetic: `AssetServiceContractController` (`/inventory/asset/service-contracts`) reused
+`AssetMaintenanceScheduleController`'s exact permission pair (`INVENTORY_ASSET_MAINTENANCE_VIEW`/
+`MANAGE` on every endpoint), meaning two entirely distinct screens were gated by one permission —
+a direct violation of CLAUDE.md's operation-wise permission mapping hard gate. The original V455
+migration that created these permissions had explicitly documented the conflation as a deliberate
+choice ("one permission pair covers both entities in this slice... no distinct audit-worthy action
+beyond ordinary manage yet") — that reasoning is overridden here, since the mandatory pattern's own
+stated rule is "the answer is always no, create a new one," not a case-by-case judgment call.
+
+**Fixed:** new dedicated `INVENTORY_ASSET_SERVICE_CONTRACT_VIEW`/`INVENTORY_ASSET_SERVICE_CONTRACT_
+MANAGE` permissions via migration V551, ending with the DEV_ADMIN/SUPPORT_ADMIN catch-all sync
+block per the permission migration pattern. Since this is a *split* of an existing shared
+permission rather than a brand-new capability, V551 also backfills the new permissions onto every
+role that already held the old maintenance ones, so no role loses Service Contract access as a
+side effect — a judgment call specific to this "split, don't just add" shape that a plain new-
+permission migration wouldn't need. `AssetServiceContractController`'s three `@PreAuthorize`
+annotations, `app.routes.ts`'s three `service-contracts` routes, and `nav-config.ts`'s Service
+Contracts nav entry all updated to the new permission strings. Verified live: after the migration
+ran and `devadmin`'s role_permissions were backfilled, `GET /inventory/asset/service-contracts/
+page` returned HTTP 200 against a real JWT. Every other CLAUDE.md gate (list-screen structural,
+badge/status, `mlp-*` spacing; resizable-column N/A — no screen in this nav group uses it) was
+checked clean on all 4 screens — no `cms-status-badge` usage at all in this nav group (status/
+overdue/expired render via local chip classes, each locally defined with `--cms-*`-prefixed
+variables only, no collisions).
+
+**Bulk demo data:** extended `PurchasingAssetBulkDemoDataSeeder` (same class and opt-in flag as
+Phase 2 — not a second seeder) with: one new Requisition→PO→Goods Receipt chain for 2 IT-asset
+products (Laptop + External HDD 1TB against supplier "Chennai IT Solutions") so 2 of 21 seeded
+Assets link back to a *real* `GoodsReceiptLine` rather than a fabricated FK — both products were
+deliberately picked `NONE`-tracked up front (confirmed against `InventoryBulkDemoDataSeeder`'s own
+seed data first), proactively avoiding the batch-tracking gap Phase 2 hit and routed around after
+the fact; 21 Assets (14 IN_USE/3 UNDER_MAINTENANCE/2 RETIRED/2 DISPOSED with a real disposal
+reason/value/date via `AssetService.dispose()`), drawn only from the catalog's 20 `isAsset=true`
+products (10 "Computers"/10 "Medical Equipment") so the Depreciation Summary report's category
+grouping stays realistic, with purchase values/dates/useful lives/salvage values varied enough
+(including two assets purchased further back than their own useful life) that the report shows
+genuinely different book values per category, not near-identical numbers; 6 Maintenance Schedules
+(4 recurring/2 one-off, 3 overdue/3 upcoming, one exercising `markPerformed` for real history); 4
+Service Contracts (2 active/1 expiring soon/1 expired).
+
+**Getting this to actually finish — clean on the first run:** unlike Phase 2's two crashes on the
+batch-tracking gap, this phase hit zero runtime failures — the lesson from Phase 2's own decision-
+log entry (check tracking mode before routing a demo document through a product) was applied
+proactively before writing the onboarding chain, not discovered by crashing into it again.
+
+**Verified:** real counts confirmed directly against Postgres — 21 assets (14/3/2/2 by status, 2
+with a non-null `goods_receipt_line_id`), 6 maintenance schedules (4 recurring, 3 overdue), 4
+service contracts (3 active, 1 expired). Beyond counts, a live `curl` against this phase's own
+`bootRun` (port 8099, `--server.ssl.enabled=false`, `cms.seed.bulk-purchasing-asset-demo=true`)
+using a real `devadmin` JWT confirmed the Depreciation Summary report itself renders correctly:
+Computers (7 assets/₹2.01L purchase value/₹87,119 accumulated depreciation/₹1,13,881 book value)
+and Medical Equipment (12 assets/₹6.65L/₹1,73,105/₹4,91,395) show genuinely distinct figures, and
+the grand total asset count (19) correctly excludes both DISPOSED assets. `./gradlew compileJava
+compileTestJava` clean; `com.cms.inventory.*` test suite green; `npx tsc -p tsconfig.app.json
+--noEmit` clean.
+
+**Incidental fix:** the shared local Keycloak's `devadmin` user's live password credential had
+drifted from the committed `infrastructure/keycloak/cms-realm.json` export (password-grant login
+failed with `invalid_grant` despite the user existing/enabled with no required actions). Reset via
+the Keycloak admin API back to the exported value (`Dev@1cms`) — restoring parity with the
+checked-in source of truth, not introducing a new credential. Noted in the session log in case a
+concurrent session hits the same symptom.
+
+**Impact:** `AssetServiceContractController.java`, `app.routes.ts`, `nav-config.ts` (permission
+string fix); `V551__split_asset_service_contract_permissions.sql` (new migration);
+`PurchasingAssetBulkDemoDataSeeder.java` (extended, not new); `PURCHASING_ASSET_OVERNIGHT_PLAN.md`
+(Phase 3 checkboxes + handoff note), `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 3
+section), `MILESTONES.md` (Phase 5 re-audit note, status unchanged); this decision log entry.
+
+## 2026-09-22 — Phase 4: Final checkup, cross-report verification, wrap-up (OC-264)
+
+**Made autonomously overnight — flag for morning review if this reads wrong.**
+
+Fresh, independent re-verification of Phases 1-3's own claims (not trusting their checkmarks
+blindly), per the plan's own Phase 8-style re-examination discipline. Re-grepped controllers,
+enums, migrations, routes, and nav-config rather than re-reading only the prior phases' prose —
+every checkbox in `PURCHASING_ASSET_OVERNIGHT_PLAN.md`'s Phases 1-3 held up under this
+re-derivation: the 13 Purchasing & Suppliers screens' `uniqueFieldValidator`/`-exists` endpoint
+pairs are real and wired (`SupplierController`, `TaxRuleController`, `VendorProductMappingController`,
+`CurrencyExchangeRateController`), `PurchaseOrderStatus` genuinely has all 6 lifecycle values,
+`AssetStatus` genuinely has the documented `AVAILABLE` default, and all 7 cited permission
+migrations (V431/V433/V435/V437/V439/V493/V519) genuinely end with the DEV_ADMIN/SUPPORT_ADMIN
+catch-all sync block (V519's own block reads `r.name IN ('DEV_ADMIN', 'SUPPORT_ADMIN')` — an
+earlier grep pass under-counted it on quote-style alone; reading the file directly confirmed it's
+present). The V551 Service Contracts permission split (Phase 3's one real defect fix) was
+independently re-verified end-to-end: migration inserts + backfills correctly, `role_permissions`
+shows both new permission codes on the same 2 roles as every other pre-existing Asset permission
+in local dev, `AssetServiceContractController`'s three `@PreAuthorize` annotations and
+`app.routes.ts`/`nav-config.ts` all use the new strings — no lingering reference to the old shared
+maintenance pair anywhere in this screen's own code.
+
+**One real (non-blocking) finding, fixed:** hitting the PO Aging and PO Cycle-Time reports live
+against Phase 2/3's seeded Purchase Orders (via a fresh `bootRun` on port 8099) showed
+mathematically correct but poorly varied output — all 5 open POs landed in the Aging report's
+0-30-day bucket (3 of 4 buckets permanently empty), and the two COMPLETED orders' Cycle-Time
+averages were identically 30.0 days for both suppliers. Root cause: `PurchasingAssetBulkDemoDataSeeder`
+happened to use the same `today.minusDays(30)` offset for both completed POs' `po_date`, and none
+of the open POs were backdated past 30 days — not a computation bug (both report services compute
+correctly off `po_date`/last-confirmed-receipt timestamp), just an under-varied demo-data input.
+Fixed by backdating PO3/PO4/PO5's `po_date` further (IN_PROGRESS 15→70 days, PARTIALLY_COMPLETED
+25→45 days, COMPLETED 30→55 days) in the seeder source, and correcting the three already-seeded
+rows directly via `psql` (zero real history, local demo data only — same posture as Phase 2's
+stray-partial-row cleanup) so this run's live data reflects the fix without a full reseed.
+Re-verified live after the fix: Aging now spreads 3/1/1/0 across the four buckets (grand total
+still 5 orders/₹17,070 unchanged), Cycle-Time now shows Chennai IT Solutions 30.0 days vs. Sri
+Lakshmi Lab Equipments 55.0 days (overall average 42.5). Price Comparison independently confirmed
+varied (9 STANDARD + 2 CONTRACT-sourced rows, one USD-priced row converting to INR). Depreciation
+Summary re-confirmed identical to Phase 3's own figures (Computers 7/₹2.01L, Medical Equipment
+12/₹6.65L, grand total 19 excluding both DISPOSED assets) — no drift since Phase 3.
+
+**Final real counts against Postgres** (all seeded tables, Phases 2-3 combined): 10 suppliers, 4
+tax rules, 1 currency setting + 3 exchange rates, 3 rate contracts + 4 lines, 11 vendor product
+mappings, 10 purchase requisitions + 23 items, 4 quotation requests + 5 lines, 4 wanted list items,
+8 purchase orders + 12 items, 4 goods receipts + 5 lines, 21 assets, 6 maintenance schedules, 4
+service contracts. (Requisition/PO/GR counts are one higher than Phase 2's own tally because Phase
+3's asset-onboarding chain added one more of each — expected, not a discrepancy.)
+
+**Verified clean:** `./gradlew compileJava compileTestJava` and `./gradlew test --tests
+"com.cms.inventory.*"` green (before and after the seeder date fix); `npx tsc -p tsconfig.app.json
+--noEmit` clean. `bootRun` on port 8099 killed after verification — port confirmed free again.
+
+**Not visually verified tonight** (per the plan's standing rule 10 — nobody present to click
+through): light/dark mode and role-conditional rendering on all 17 screens, and specifically the
+Service Contracts screen's new permission strings actually gating the UI correctly for a
+non-DEV_ADMIN role. This needs a manual pass before the module is considered UI-verified, not just
+compile/test-clean.
+
+**Impact:** `PurchasingAssetBulkDemoDataSeeder.java` (3 date offsets changed); 3 `purchase_orders`
+rows corrected directly in local Postgres to match; `PURCHASING_ASSET_OVERNIGHT_PLAN.md` (Phase 4
+checkboxes + final handoff note); `PURCHASING_ASSET_OVERNIGHT_SESSION_LOG.md` (Phase 4 section);
+this decision log entry. OC-264 left **In Progress** for the user to review and resolve.
+
 *Next entry goes here — do not insert above this line.*

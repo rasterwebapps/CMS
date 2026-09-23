@@ -1,4 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -8,7 +9,7 @@ import { TimetableService } from '../timetable.service';
 import { ClassSchedule } from '../timetable.model';
 import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.component';
 import { WeekGridHolidayInfo, WeekGridSession } from '../../../shared/week-grid/week-grid.model';
-import { CmsMonthGridComponent } from '../../../shared/month-grid/month-grid.component';
+import { CmsWeekNavigatorComponent } from '../../../shared/week-navigator/week-navigator.component';
 import { CmsDayAgendaComponent } from '../../../shared/day-agenda/day-agenda.component';
 import { ClassScheduleOccurrence } from '../timetable.model';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -17,8 +18,12 @@ import { LogProgressDialogComponent } from '../log-progress-dialog/log-progress-
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { MY_TIMETABLE_TOUR, MY_TIMETABLE_FLOW_MAP } from '../../../shared/tour/tours/my-timetable.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
-export type TimetableViewMode = 'week' | 'month' | 'day';
+export type TimetableViewMode = 'week' | 'dateWise' | 'day';
+export type MyTimetableAudience = 'STUDENT' | 'STAFF';
 
 /** "HH:mm:ss" -> hours between two times, rounded to 2 decimals -- the "Log Progress" dialog's
  *  default hours-covered suggestion for a fresh log (never enforced, just a starting point). */
@@ -29,22 +34,36 @@ function periodHoursBetween(startTime: string, endTime: string): number {
   return Math.round((minutes / 60) * 100) / 100;
 }
 
+// Local-time-only date math -- .toISOString() converts to UTC, which silently shifts the date
+// backward a day for any positive UTC offset (e.g. IST) when starting from local midnight.
 function mondayOf(date: Date): string {
-  const d = new Date(date);
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const day = d.getDay(); // 0=Sunday..6=Saturday
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
 }
 
+/**
+ * Shared by two routes -- /my-timetable/student (MY_TIMETABLE_VIEW_STUDENT) and
+ * /my-timetable/staff (MY_TIMETABLE_VIEW_STAFF) -- distinguished only by the `audience` route
+ * data each one sets, per the specialist-agreed split: one screen with role-based restrictions
+ * (Log Progress is staff-only), not two duplicated components. Angular re-creates this component
+ * on navigation between the two routes (different paths), so ngOnInit re-reads `audience` fresh
+ * each time.
+ */
 @Component({
   selector: 'app-my-timetable',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsMonthGridComponent, CmsDayAgendaComponent, CmsTourButtonComponent],
+  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsWeekGridComponent, CmsWeekNavigatorComponent, CmsDayAgendaComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './my-timetable.component.html',
   styleUrl: './my-timetable.component.scss',
 })
 export class MyTimetableComponent implements OnInit {
+  private readonly route = inject(ActivatedRoute);
   private readonly academicYearService = inject(AcademicYearService);
   private readonly timetableService = inject(TimetableService);
   private readonly toast = inject(ToastService);
@@ -52,7 +71,12 @@ export class MyTimetableComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly tourService = inject(TourService);
 
-  protected readonly canLogProgress = computed(() => this.permissionService.has('PROGRESS_LOG_CREATE'));
+  protected audience: MyTimetableAudience = 'STUDENT';
+
+  /** Log Progress is a staff action -- gated on audience as well as the permission itself, so a
+   *  student can never see it even in the unlikely case their role also holds PROGRESS_LOG_CREATE. */
+  protected readonly canLogProgress = computed(() =>
+    this.audience === 'STAFF' && this.permissionService.has('PROGRESS_LOG_CREATE'));
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -66,22 +90,34 @@ export class MyTimetableComponent implements OnInit {
   protected weekStart: string = mondayOf(new Date());
 
   protected readonly viewMode = signal<TimetableViewMode>('week');
-  protected readonly monthYear = signal(new Date().getFullYear());
-  protected readonly monthMonth = signal(new Date().getMonth());
   protected readonly dayDate = signal(new Date().toISOString().slice(0, 10));
   protected readonly occurrences = signal<ClassScheduleOccurrence[]>([]);
   protected readonly occurrencesLoading = signal(false);
 
-  /** The "Week of" picker must stay inside the selected term's own date range -- ClassSchedule
-   *  has no calendar date (it's a weekly recurring template, see PersonalTimetableService), so
-   *  nothing stops the backend from happily returning that template for a week outside the term;
-   *  only the picker's own bounds prevent showing a week that never actually occurred. */
+  /** The "Week of" picker (and the Date-wise-weekly navigator, which shares the same weekStart)
+   *  must stay inside the selected term's own date range -- ClassSchedule has no calendar date
+   *  (it's a weekly recurring template, see PersonalTimetableService), so nothing stops the
+   *  backend from happily returning that template for a week outside the term; only the picker's
+   *  own bounds prevent showing a week that never actually occurred. */
   protected readonly selectedTerm = computed(() =>
     this.termInstances().find((t) => t.id === this.selectedTermInstanceId) ?? null);
   protected readonly weekMin = computed(() => this.selectedTerm()?.startDate ?? null);
   protected readonly weekMax = computed(() => this.selectedTerm()?.endDate ?? null);
 
+  /** The Date-wise-weekly view reuses the same day-columns x period-rows grid the Generic Week
+   *  view renders (CmsWeekGridComponent), just fed real dated occurrences instead of the recurring
+   *  template -- carrying each date's actual HELD/SUBSTITUTED/CANCELLED outcome and real
+   *  room/faculty, unlike Week's generic pattern. */
+  protected readonly dateWiseSessions = computed<WeekGridSession[]>(() =>
+    this.occurrences().map((o) => ({
+      ...o.session,
+      occurrenceStatus: o.occurrenceStatus,
+      cancelReason: o.cancelReason,
+    })));
+
   ngOnInit(): void {
+    this.audience = (this.route.snapshot.data['audience'] as MyTimetableAudience | undefined) ?? 'STUDENT';
+
     this.tourService.register('my-timetable', MY_TIMETABLE_TOUR);
     this.tourService.registerFlowMap('my-timetable', MY_TIMETABLE_FLOW_MAP);
 
@@ -98,13 +134,20 @@ export class MyTimetableComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.sessions.set([]);
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     const term = this.selectedTerm();
     if (term) this.weekStart = this.defaultWeekStartFor(term);
     this.load();
@@ -116,9 +159,14 @@ export class MyTimetableComponent implements OnInit {
     this.load();
   }
 
+  protected onDateWiseWeekChange(iso: string): void {
+    this.weekStart = this.clampToTerm(iso, this.selectedTerm());
+    this.loadDateWiseOccurrences(this.weekStart);
+  }
+
   private refreshCurrentViewMode(): void {
     const mode = this.viewMode();
-    if (mode === 'month') this.loadMonthOccurrences(this.monthYear(), this.monthMonth());
+    if (mode === 'dateWise') this.loadDateWiseOccurrences(this.weekStart);
     else if (mode === 'day') this.loadDayOccurrences(this.dayDate());
   }
 
@@ -137,20 +185,8 @@ export class MyTimetableComponent implements OnInit {
 
   protected setViewMode(mode: TimetableViewMode): void {
     this.viewMode.set(mode);
-    if (mode === 'month') this.loadMonthOccurrences(this.monthYear(), this.monthMonth());
+    if (mode === 'dateWise') this.loadDateWiseOccurrences(this.weekStart);
     else if (mode === 'day') this.loadDayOccurrences(this.dayDate());
-  }
-
-  protected onMonthChange(change: { year: number; month: number }): void {
-    this.monthYear.set(change.year);
-    this.monthMonth.set(change.month);
-    this.loadMonthOccurrences(change.year, change.month);
-  }
-
-  protected onMonthDayClick(iso: string): void {
-    this.dayDate.set(iso);
-    this.viewMode.set('day');
-    this.loadDayOccurrences(iso);
   }
 
   protected onDayDateChange(iso: string): void {
@@ -158,14 +194,18 @@ export class MyTimetableComponent implements OnInit {
     this.loadDayOccurrences(iso);
   }
 
-  private loadMonthOccurrences(year: number, month: number): void {
+  /** Lazy-loads exactly one Mon-Sat week's real occurrences at a time as the user pages through
+   *  cms-week-navigator, rather than fetching the whole term upfront -- a term can run 15-20+
+   *  weeks, so this keeps each request small regardless of term length. */
+  private loadDateWiseOccurrences(weekStartIso: string): void {
     if (!this.selectedTermInstanceId) return;
-    const from = new Date(year, month, 1).toISOString().slice(0, 10);
-    const to = new Date(year, month + 1, 0).toISOString().slice(0, 10);
+    const to = new Date(`${weekStartIso}T00:00:00`);
+    to.setDate(to.getDate() + 5);
+    const toIso = `${to.getFullYear()}-${String(to.getMonth() + 1).padStart(2, '0')}-${String(to.getDate()).padStart(2, '0')}`;
     this.occurrencesLoading.set(true);
-    this.timetableService.getOccurrences(this.selectedTermInstanceId, from, to, 'personal').subscribe({
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, weekStartIso, toIso, 'personal').subscribe({
       next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
-      error: () => { this.toast.error('Failed to load month view'); this.occurrencesLoading.set(false); },
+      error: () => { this.toast.error('Failed to load date-wise view'); this.occurrencesLoading.set(false); },
     });
   }
 

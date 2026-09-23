@@ -111,6 +111,59 @@ public class ClassScheduleOccurrenceService {
         return result;
     }
 
+    /** Every distinct PUBLISHED, still-active session that a newly created ONE_OFF {@link
+     *  BlockedPeriod} actually cancels -- i.e. shares its period, whose effective day-of-week
+     *  (through any {@link DayMappingOverride}) lands on its date, falls within its own term's
+     *  bounds, isn't a non-working Saturday, and wasn't already independently cancelled by some
+     *  OTHER block. Used to decide whether a block genuinely disrupts an already-published day (vs.
+     *  one that had no real class scheduled anyway) so callers only notify for the former. Mirrors
+     *  {@link #schedulesEffectiveOn}'s single-date resolution, entered from the period side instead
+     *  of the faculty side. RECURRING blocks never disrupt anything by this definition -- they read
+     *  as routine, known-in-advance non-teaching time, not a one-off surprise on a published day. */
+    public List<ClassSchedule> schedulesDisruptedBy(BlockedPeriod newBlock) {
+        if (newBlock.getBlockType() != BlockType.ONE_OFF || newBlock.getSpecificDate() == null) {
+            return List.of();
+        }
+        LocalDate date = newBlock.getSpecificDate();
+        Long periodId = newBlock.getPeriod().getId();
+
+        Optional<DayMappingOverride> mapping = dayMappingOverrideRepository.findByMappedDate(date);
+        boolean isBorrowedInDate = mapping.isPresent();
+        Optional<com.cms.model.enums.DayOfWeek> effectiveDay = mapping
+            .map(DayMappingOverride::getBorrowedDayOfWeek)
+            .or(() -> date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY
+                ? Optional.empty()
+                : Optional.of(com.cms.model.enums.DayOfWeek.valueOf(date.getDayOfWeek().name())));
+        if (effectiveDay.isEmpty()) {
+            return List.of();
+        }
+
+        List<ClassSchedule> candidates = classScheduleRepository.findByPeriodIdAndStatusAndDayOfWeekAndIsActiveTrue(
+            periodId, ClassScheduleStatus.PUBLISHED, effectiveDay.get());
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+
+        List<BlockedPeriod> otherBlocks = blockedPeriodRepository.findApplicableForPeriodInRange(periodId, date, date)
+            .stream().filter(b -> !b.getId().equals(newBlock.getId())).toList();
+
+        List<ClassSchedule> disrupted = new ArrayList<>();
+        for (ClassSchedule cs : candidates) {
+            TermInstance term = cs.getTermInstance();
+            if (date.isBefore(term.getStartDate()) || date.isAfter(term.getEndDate())) {
+                continue;
+            }
+            if (!isBorrowedInDate && WorkingSaturdayCalculator.isNonWorkingSaturday(date, term)) {
+                continue;
+            }
+            if (matchingBlock(date, otherBlocks).isPresent()) {
+                continue;
+            }
+            disrupted.add(cs);
+        }
+        return disrupted;
+    }
+
     /** One weekly-recurring date that's blocked rather than skipped silently — the complement of
      *  {@link #occurrenceDatesFor}'s own result set for the same schedule/window. */
     public record CancelledOccurrence(LocalDate date, String reason) {}

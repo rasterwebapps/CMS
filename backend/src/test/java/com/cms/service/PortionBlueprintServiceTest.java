@@ -197,6 +197,55 @@ class PortionBlueprintServiceTest {
     }
 
     @Test
+    void projectionShouldCountAnApprovedSpecialClassCompletionAsActual() {
+        SyllabusUnitPlan frozenUnit1 = plan(unit1, LocalDate.of(2026, 1, 2), 2, 1);
+        when(syllabusUnitPlanRepository.findByCourseOfferingIdOrderBySequenceIndexAsc(300L))
+            .thenReturn(List.of(frozenUnit1));
+        when(syllabusUnitRepository.findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(100L))
+            .thenReturn(List.of(unit1));
+        when(occurrenceService.occurrenceDatesFor(schedule, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31)))
+            .thenReturn(List.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 2)));
+        when(sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(300L)).thenReturn(List.of());
+
+        SessionOccurrence specialClass = SessionOccurrence.forSpecialClass(
+            com.cms.model.enums.OccurrenceSource.SPECIAL_CLASS, LocalDate.of(2026, 1, 8),
+            offering.getSubject(), offering, null, null, ClassSessionType.THEORY, null, null, "Catch-up");
+        specialClass.setApprovalStatus(com.cms.model.enums.SpecialClassApprovalStatus.APPROVED);
+        specialClass.getUnitCoverages().add(new SessionOccurrenceUnit(specialClass, unit1, new BigDecimal("2"), true));
+        when(sessionOccurrenceRepository.findByCourseOffering_Id(300L)).thenReturn(List.of(specialClass));
+
+        List<UnitVarianceDto> variance = service.getProjection(300L);
+
+        assertThat(variance).hasSize(1);
+        assertThat(variance.get(0).completed()).isTrue();
+        assertThat(variance.get(0).projectedOrActualDate()).isEqualTo(LocalDate.of(2026, 1, 8));
+    }
+
+    @Test
+    void projectionShouldIgnoreAPendingSpecialClasssCoverage() {
+        SyllabusUnitPlan frozenUnit1 = plan(unit1, LocalDate.of(2026, 1, 2), 2, 1);
+        when(syllabusUnitPlanRepository.findByCourseOfferingIdOrderBySequenceIndexAsc(300L))
+            .thenReturn(List.of(frozenUnit1));
+        when(syllabusUnitRepository.findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(100L))
+            .thenReturn(List.of(unit1));
+        when(occurrenceService.occurrenceDatesFor(schedule, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31)))
+            .thenReturn(List.of(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 2)));
+        when(sessionOccurrenceRepository.findByClassSchedule_CourseOffering_Id(300L)).thenReturn(List.of());
+
+        SessionOccurrence pending = SessionOccurrence.forSpecialClass(
+            com.cms.model.enums.OccurrenceSource.SPECIAL_CLASS, LocalDate.of(2026, 1, 8),
+            offering.getSubject(), offering, null, null, ClassSessionType.THEORY, null, null, "Catch-up");
+        pending.setApprovalStatus(com.cms.model.enums.SpecialClassApprovalStatus.PENDING);
+        pending.getUnitCoverages().add(new SessionOccurrenceUnit(pending, unit1, new BigDecimal("2"), true));
+        when(sessionOccurrenceRepository.findByCourseOffering_Id(300L)).thenReturn(List.of(pending));
+
+        List<UnitVarianceDto> variance = service.getProjection(300L);
+
+        assertThat(variance).hasSize(1);
+        assertThat(variance.get(0).completed()).isFalse();
+    }
+
+    @Test
     void remainingShortfallHoursShouldBeZeroWhenNoBlueprintExists() {
         when(syllabusUnitPlanRepository.findByCourseOfferingIdOrderBySequenceIndexAsc(300L)).thenReturn(List.of());
 

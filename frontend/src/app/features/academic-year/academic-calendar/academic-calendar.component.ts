@@ -47,6 +47,9 @@ import {
   EVENT_TYPE_LABELS,
 } from './calendar-display.constants';
 import { DayDetailFlyoutComponent, DayDetailSection } from './day-detail-flyout/day-detail-flyout.component';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { buildMonthGrids, MonthGrid, toIso } from './month-grid.util';
 
 export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods' | 'day-mappings';
@@ -66,6 +69,7 @@ export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods' | 'day-ma
     CmsTourButtonComponent,
     CmsStatusBadgeComponent,
     DayDetailFlyoutComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './academic-calendar.component.html',
   styleUrl: './academic-calendar.component.scss',
@@ -257,6 +261,9 @@ export class AcademicCalendarComponent implements OnInit {
     });
   }
 
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.allAcademicYears().map(y => ({ id: y.id, name: `${y.name}${y.isCurrent ? ' (Current)' : ''}` })));
+
   protected selectYear(yearId: number): void {
     const year = this.allAcademicYears().find((y) => y.id === yearId);
     if (!year) return;
@@ -265,10 +272,9 @@ export class AcademicCalendarComponent implements OnInit {
     this.loadYearData(yearId);
   }
 
-  /** Typed event handler for the year `<select>` element — avoids `$any()` in the template. */
-  protected selectYearFromEvent(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    this.selectYear(Number(select.value));
+  protected selectYearFromValue(value: InfiniteSelectValue | null): void {
+    if (value == null) return;
+    this.selectYear(Number(value));
   }
 
   private loadYearData(yearId: number): void {

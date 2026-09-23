@@ -1,10 +1,12 @@
-import { Component, inject, OnInit, OnDestroy, ViewChild, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ViewChild, signal, computed } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/paginator';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { PurchaseOrderService } from '../purchase-order.service';
 import { PurchaseOrder } from '../purchase-order.model';
 import { SupplierService } from '../../supplier/supplier.service';
@@ -13,7 +15,9 @@ import { CmsEmptyStateComponent } from '../../../../../shared/empty-state/empty-
 import { CmsStatusBadgeComponent } from '../../../../../shared/status-badge/status-badge.component';
 import { CmsRowActionButtonComponent } from '../../../../../shared/row-action-button/row-action-button.component';
 import { CmsIconViewComponent } from '../../../../../shared/icons';
+import { ConfirmDialogComponent } from '../../../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../../../core/toast/toast.service';
+import { PermissionService } from '../../../../../core/permissions/permission.service';
 
 @Component({
   selector: 'app-purchase-order-list',
@@ -24,6 +28,7 @@ import { ToastService } from '../../../../../core/toast/toast.service';
     DecimalPipe,
     MatTableModule,
     MatPaginatorModule,
+    MatDialogModule,
     CmsEmptyStateComponent,
     CmsStatusBadgeComponent,
     CmsRowActionButtonComponent,
@@ -33,12 +38,15 @@ import { ToastService } from '../../../../../core/toast/toast.service';
   styleUrl: './purchase-order-list.component.scss',
 })
 export class PurchaseOrderListComponent implements OnInit, OnDestroy {
-  private readonly orderService   = inject(PurchaseOrderService);
-  private readonly supplierService = inject(SupplierService);
-  private readonly router         = inject(Router);
-  private readonly toast          = inject(ToastService);
+  private readonly orderService      = inject(PurchaseOrderService);
+  private readonly supplierService   = inject(SupplierService);
+  private readonly router            = inject(Router);
+  private readonly toast             = inject(ToastService);
+  private readonly dialog            = inject(MatDialog);
+  private readonly permissionService = inject(PermissionService);
 
   private readonly destroy$ = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
   private _paginator?: MatPaginator;
   private _paginatorSub?: Subscription;
 
@@ -55,10 +63,13 @@ export class PurchaseOrderListComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected readonly displayedColumns = ['poDate', 'supplierName', 'locationVirtualName', 'status', 'lineCount', 'totalAmount', 'actions'];
+  protected readonly displayedColumns = ['poNumber', 'poDate', 'supplierName', 'locationVirtualName', 'status', 'lineCount', 'totalAmount', 'actions'];
   protected readonly dataSource = new MatTableDataSource<PurchaseOrder>([]);
   protected readonly loading = signal(false);
   protected readonly suppliers = signal<Supplier[]>([]);
+  protected readonly searchValue = signal('');
+  protected readonly canRegenerateNumbers = computed(() => this.permissionService.has('INVENTORY_PURCHASE_ORDER_REGENERATE_NUMBERS'));
+  protected readonly regeneratingNumbers = signal(false);
 
   protected supplierFilter: number | null = null;
   protected statusFilter: string | null = null;
@@ -68,6 +79,14 @@ export class PurchaseOrderListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.supplierService.getAll(true).subscribe({ next: (s) => this.suppliers.set(s) });
+    this.searchSubject.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe(() => {
+      this.currentPage = 0;
+      this.loadPage();
+    });
     this.loadPage();
   }
 
@@ -80,6 +99,59 @@ export class PurchaseOrderListComponent implements OnInit, OnDestroy {
   protected onFilterChange(): void {
     this.currentPage = 0;
     this.loadPage();
+  }
+
+  protected applyFilter(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.searchValue.set(value);
+    this.searchSubject.next(value);
+  }
+
+  protected clearFilter(): void {
+    this.searchValue.set('');
+    this.searchSubject.next('');
+  }
+
+  /** Bulk-reassigns every purchase order's number — previews the full before/after mapping first,
+   *  then asks for confirmation before writing anything (this rewrites production data). */
+  protected regenerateNumbers(): void {
+    this.regeneratingNumbers.set(true);
+    this.orderService.previewRegenerateNumbers().subscribe({
+      next: (preview) => {
+        this.regeneratingNumbers.set(false);
+        if (preview.totalChanged === 0) {
+          this.toast.success('Every purchase order number already matches the current sequence — nothing to change');
+          return;
+        }
+        this.dialog.open(ConfirmDialogComponent, {
+          data: {
+            title: 'Regenerate Purchase Order Numbers?',
+            message: `This will reassign numbers for ${preview.totalChanged} purchase order(s). Old numbers stop working immediately — `
+              + 'make sure a backup was taken first. This cannot be undone.',
+            confirmText: 'Regenerate',
+            cancelText: 'Cancel',
+          },
+        }).afterClosed().subscribe((confirmed) => {
+          if (!confirmed) return;
+          this.regeneratingNumbers.set(true);
+          this.orderService.regenerateNumbers().subscribe({
+            next: (result) => {
+              this.toast.success(`Regenerated ${result.totalChanged} purchase order number(s)`);
+              this.regeneratingNumbers.set(false);
+              this.loadPage();
+            },
+            error: (err) => {
+              this.regeneratingNumbers.set(false);
+              this.toast.error(err?.error?.message ?? 'Failed to regenerate purchase order numbers');
+            },
+          });
+        });
+      },
+      error: (err) => {
+        this.regeneratingNumbers.set(false);
+        this.toast.error(err?.error?.message ?? 'Failed to preview purchase order number regeneration');
+      },
+    });
   }
 
   protected goToNew(): void {
@@ -95,6 +167,7 @@ export class PurchaseOrderListComponent implements OnInit, OnDestroy {
     this.orderService.getPage({
       supplierId: this.supplierFilter,
       status: this.statusFilter,
+      search: this.searchValue().trim() || undefined,
       page: this.currentPage,
       size: this.currentPageSize,
     }).subscribe({

@@ -3,12 +3,12 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { SubjectService } from '../subject.service';
 import { SubjectRequest } from '../subject.model';
 import { SpecialityService } from '../../speciality/speciality.service';
-import { Speciality } from '../../speciality/speciality.model';
 import { LabService } from '../../lab/lab.service';
 import { Lab } from '../../lab/lab.model';
 import { ClinicalVenueService } from '../../clinical-venue/clinical-venue.service';
@@ -22,6 +22,8 @@ import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { noConsecutiveSpaces, noInternalSpaces, trimmedMinLength, cmsFieldError, stripSpaces } from '../../../shared/validators/cms-validators';
 import { environment } from '../../../../environments';
 import { uniqueFieldValidator } from '../../../shared/validators/unique-field.validator';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 
 @Component({
   selector: 'app-subject-form',
@@ -33,6 +35,7 @@ import { uniqueFieldValidator } from '../../../shared/validators/unique-field.va
     MatProgressSpinnerModule,
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './subject-form.component.html',
   styleUrl: './subject-form.component.scss',
@@ -54,7 +57,13 @@ export class SubjectFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Subject');
-  protected readonly specialities = signal<Speciality[]>([]);
+
+  // ── Speciality picker data source — search/paginate against the backend rather than
+  // loading the full master list; see CmsInfiniteSelectComponent. ──────────────────
+  protected readonly specialityFetchPage = (search: string, page: number, size: number) =>
+    this.specialityService.getPage({ search, page, size });
+  protected readonly specialityResolveLabel = (id: InfiniteSelectValue) =>
+    this.specialityService.getById(Number(id)).pipe(map(s => s.name));
 
   /** Eligible Labs/Clinical Venues for this subject's practical sessions — a soft preference for
    *  the auto-suggest algorithm and manual pickers (TimetableCapacityPlanningService), not a hard
@@ -171,7 +180,6 @@ export class SubjectFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadSpecialities();
     this.loadActiveLabs();
     this.loadActiveClinicalVenues();
     this.loadActiveFaculty();
@@ -263,17 +271,6 @@ export class SubjectFormComponent implements OnInit {
 
   protected getErrorMessage(fieldName: string): string {
     return cmsFieldError(this.form.get(fieldName), SubjectFormComponent.FIELD_LABELS[fieldName] ?? fieldName);
-  }
-
-  private loadSpecialities(): void {
-    this.specialityService.getAll().subscribe({
-      next: (specialities) => {
-        this.specialities.set(specialities);
-      },
-      error: () => {
-        this.toast.error('Failed to load specialities');
-      },
-    });
   }
 
   private loadActiveLabs(): void {

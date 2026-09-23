@@ -3,8 +3,10 @@ package com.cms.inventory.receiving.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +14,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.DocumentNumberChange;
+import com.cms.dto.DocumentNumberRegenerationResult;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.inventory.catalog.model.Product;
 import com.cms.inventory.catalog.model.ProductVariant;
@@ -37,6 +41,7 @@ import com.cms.inventory.receiving.repository.SupplierReturnRepository;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.model.InventoryLocation;
 import com.cms.inventory.stock.service.StockMovementService;
+import com.cms.service.ApplicationNumberSequenceService;
 
 /**
  * Owns the Return-to-Supplier workflow — Phase 3's ("Receiving & Stock Movement") third and
@@ -54,6 +59,8 @@ import com.cms.inventory.stock.service.StockMovementService;
 @Transactional(readOnly = true)
 public class SupplierReturnService {
 
+    private static final String RETURN_NUMBER_SERIES = "SUPPLIER_RETURN_NUMBER";
+
     private final SupplierReturnRepository returnRepository;
     private final SupplierReturnLineRepository lineRepository;
     private final GoodsReceiptRepository goodsReceiptRepository;
@@ -61,6 +68,7 @@ public class SupplierReturnService {
     private final PurchaseOrderItemRepository purchaseOrderItemRepository;
     private final PurchaseOrderService purchaseOrderService;
     private final StockMovementService stockMovementService;
+    private final ApplicationNumberSequenceService numberSequenceService;
 
     public SupplierReturnService(SupplierReturnRepository returnRepository,
                                   SupplierReturnLineRepository lineRepository,
@@ -68,7 +76,8 @@ public class SupplierReturnService {
                                   GoodsReceiptLineRepository goodsReceiptLineRepository,
                                   PurchaseOrderItemRepository purchaseOrderItemRepository,
                                   PurchaseOrderService purchaseOrderService,
-                                  StockMovementService stockMovementService) {
+                                  StockMovementService stockMovementService,
+                                  ApplicationNumberSequenceService numberSequenceService) {
         this.returnRepository = returnRepository;
         this.lineRepository = lineRepository;
         this.goodsReceiptRepository = goodsReceiptRepository;
@@ -76,6 +85,7 @@ public class SupplierReturnService {
         this.purchaseOrderItemRepository = purchaseOrderItemRepository;
         this.purchaseOrderService = purchaseOrderService;
         this.stockMovementService = stockMovementService;
+        this.numberSequenceService = numberSequenceService;
     }
 
     @Transactional
@@ -94,17 +104,44 @@ public class SupplierReturnService {
         ret.setCreatedBy(createdBy);
         ret.setCreatedAt(Instant.now());
         ret.setUpdatedAt(Instant.now());
+        ret.setReturnNumber(numberSequenceService.nextNumberForDate(RETURN_NUMBER_SERIES, ret.getReturnDate()));
         return toResponse(returnRepository.save(ret));
     }
 
-    public Page<SupplierReturnResponse> findPage(Long goodsReceiptId, String status, Pageable pageable) {
+    public Page<SupplierReturnResponse> findPage(Long goodsReceiptId, String status, String search, Pageable pageable) {
         Specification<SupplierReturn> spec = (root, query, cb) -> {
             var predicate = cb.conjunction();
             if (goodsReceiptId != null) predicate = cb.and(predicate, cb.equal(root.get("goodsReceipt").get("id"), goodsReceiptId));
             if (status != null && !status.isBlank()) predicate = cb.and(predicate, cb.equal(root.get("status"), parseStatus(status)));
+            if (search != null && !search.isBlank()) {
+                predicate = cb.and(predicate, cb.like(cb.lower(root.get("returnNumber")), "%" + search.trim().toLowerCase(Locale.ROOT) + "%"));
+            }
             return predicate;
         };
         return returnRepository.findAll(spec, pageable).map(r -> toResponse(r, false));
+    }
+
+    /** Bulk-reassigns every supplier return's number to a fresh, gap-free sequence within each
+     *  scope period, oldest return_date first — see ApplicationNumberSequenceService.
+     *  regenerateNumbers for the transactional-safety design. */
+    @Transactional
+    public DocumentNumberRegenerationResult regenerateReturnNumbers(boolean dryRun) {
+        List<SupplierReturn> returns = returnRepository.findAllByOrderByReturnDateAscIdAsc();
+        List<Map.Entry<Long, LocalDate>> dates = returns.stream()
+            .map(r -> Map.entry(r.getId(), r.getReturnDate()))
+            .toList();
+        Map<Long, String> newNumbers = numberSequenceService.regenerateNumbers(RETURN_NUMBER_SERIES, dates, dryRun);
+
+        List<DocumentNumberChange> changes = new ArrayList<>();
+        for (SupplierReturn ret : returns) {
+            String newNumber = newNumbers.get(ret.getId());
+            if (!newNumber.equals(ret.getReturnNumber())) {
+                changes.add(new DocumentNumberChange(ret.getId(), "Return against Receipt #" + ret.getGoodsReceipt().getId(), ret.getReturnNumber(), newNumber));
+                if (!dryRun) ret.setReturnNumber(newNumber);
+            }
+        }
+        if (!dryRun) returnRepository.saveAll(returns);
+        return new DocumentNumberRegenerationResult(changes.size(), changes);
     }
 
     public SupplierReturnResponse findById(Long id) {
@@ -277,7 +314,7 @@ public class SupplierReturnService {
         GoodsReceipt receipt = ret.getGoodsReceipt();
         InventoryLocation location = receipt.getPurchaseOrder().getLocation();
         return new SupplierReturnResponse(
-            ret.getId(), receipt.getId(), receipt.getPurchaseOrder().getSupplier().getSupplierName(),
+            ret.getId(), ret.getReturnNumber(), receipt.getId(), receipt.getPurchaseOrder().getSupplier().getSupplierName(),
             location.getId(), location.getVirtualName(),
             ret.getStatus().name(), ret.getReason() != null ? ret.getReason().name() : null,
             ret.getReturnDate(), ret.getNotes(),

@@ -12,6 +12,19 @@ import {
   Page,
 } from './product.model';
 
+export interface ProductCodeChange {
+  productId: number;
+  productName: string;
+  categoryName: string;
+  oldCode: string;
+  newCode: string;
+}
+
+export interface ProductCodeRegenerationResult {
+  totalChanged: number;
+  changes: ProductCodeChange[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProductService {
   private readonly http = inject(HttpClient);
@@ -49,6 +62,21 @@ export class ProductService {
     let params = new HttpParams().set('value', value);
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
     return this.http.get<boolean>(`${this.baseUrl}/code-exists`, { params });
+  }
+
+  /** Live preview for the Add Product form — the code a save will actually be assigned, without
+   *  committing the category's counter. */
+  getNextCode(categoryId: number): Observable<{ nextCode: string }> {
+    const params = new HttpParams().set('categoryId', categoryId);
+    return this.http.get<{ nextCode: string }>(`${this.baseUrl}/next-code`, { params });
+  }
+
+  previewRegenerateCodes(): Observable<ProductCodeRegenerationResult> {
+    return this.http.get<ProductCodeRegenerationResult>(`${this.baseUrl}/regenerate-codes/preview`);
+  }
+
+  regenerateCodes(): Observable<ProductCodeRegenerationResult> {
+    return this.http.post<ProductCodeRegenerationResult>(`${this.baseUrl}/regenerate-codes`, {});
   }
 
   checkNameExists(value: string, categoryId: number | null, excludeId?: number): Observable<boolean> {

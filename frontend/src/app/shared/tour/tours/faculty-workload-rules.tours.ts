@@ -37,9 +37,9 @@ export const FACULTY_WORKLOAD_RULES_TOUR: TourDefinition = {
 
 export const FACULTY_WORKLOAD_RULES_FLOW_MAP: TourFlowMap = {
   funnel: [
-    { label: 'Faculty Availability', description: 'Record which faculty are unavailable for which periods before building the timetable.' },
+    { label: 'Recurring Unavailability', description: 'Record which faculty have standing weekly commitments before building the timetable.' },
     { label: 'Faculty Workload Rules', description: 'Set weekly/daily/continuous teaching-load caps used to validate staffing.' },
-    { label: 'Skeleton Builder', description: 'Place Theory/Lab/Clinical sessions into periods for each subject across a cohort\'s term.' },
+    { label: 'Timetable Builder', description: 'Place Theory/Lab/Clinical sessions into periods for each subject across a cohort\'s term.' },
     { label: 'Staffing', description: 'Assign faculty to each placed session and pick theory rooms.' },
     { label: 'Capacity Planner', description: 'Work out how many classrooms and lab/clinical batches a cohort needs, and commit the physical rooms.' },
     { label: 'Conflict Inspector', description: 'Scan the whole term for room, faculty, and workload conflicts before publishing.' },

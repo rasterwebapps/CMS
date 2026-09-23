@@ -924,6 +924,64 @@ class TimetableStaffingServiceTest {
     }
 
     @Test
+    void shouldRejectGroupStaffingWhenCombinedSiblingHoursExceedDailyCapEvenThoughEachAloneFits() {
+        // Each sibling of this 2-period block reads exactly at the 2h daily cap boundary when
+        // checked alone (1h pre-existing + 1h of its own period), so neither individual
+        // stageCell() check rejects it -- but together the faculty member would really be at 3h
+        // that day (1h existing + 1h + 1h), over the cap. Only the group-aware aggregate check
+        // added for OC-127 can catch this.
+        java.util.UUID groupId = java.util.UUID.randomUUID();
+        Period period1 = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
+        period1.setId(1L);
+        cell.setPeriod(period1);
+        cell.setSessionGroupId(groupId);
+
+        Period period2 = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
+        period2.setId(2L);
+        ClassSchedule sibling = new ClassSchedule();
+        sibling.setId(101L);
+        sibling.setSessionType(ClassSessionType.THEORY);
+        sibling.setStatus(ClassScheduleStatus.DRAFT);
+        sibling.setSubject(subject);
+        sibling.setDayOfWeek(DayOfWeek.MONDAY);
+        sibling.setTermInstance(termInstance);
+        sibling.setPeriod(period2);
+        sibling.setCourseOffering(cell.getCourseOffering());
+        sibling.setSessionGroupId(groupId);
+
+        ClassSchedule existingSameDay = new ClassSchedule();
+        existingSameDay.setId(400L);
+        existingSameDay.setIsActive(true);
+        existingSameDay.setFaculty(eligibleFaculty);
+        existingSameDay.setDayOfWeek(DayOfWeek.MONDAY);
+        Period existingPeriod = new Period("Early Period", LocalTime.of(8, 0), LocalTime.of(9, 0), 0);
+        existingPeriod.setId(3L);
+        existingSameDay.setPeriod(existingPeriod);
+
+        StaffingAssignmentRequest request = new StaffingAssignmentRequest(1L, 1L);
+        when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cell));
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
+        when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(groupId))
+            .thenReturn(List.of(cell, sibling));
+        when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Collections.emptyList());
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_hours", "2")));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
+            .thenReturn(List.of(existingSameDay));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
+            .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> service.staffCell(100L, request))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("daily cap");
+
+        assertThat(cell.getFaculty()).isNull();
+        assertThat(sibling.getFaculty()).isNull();
+    }
+
+    @Test
     void shouldNotStaffAnySiblingWhenOneSiblingInTheGroupFails() {
         java.util.UUID groupId = java.util.UUID.randomUUID();
         cell.setSessionGroupId(groupId);

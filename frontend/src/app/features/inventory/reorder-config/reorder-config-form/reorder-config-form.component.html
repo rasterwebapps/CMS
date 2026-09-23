@@ -1,0 +1,133 @@
+<div class="entry-form-page">
+
+  <!-- ── Page Header ──────────────────────────────────────────── -->
+  <div class="entry-form-header">
+    <a class="entry-form-back-btn" routerLink="/inventory/stock/reorder-configs" aria-label="Back to reorder configuration">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    </a>
+    <div class="entry-form-hdr-text">
+      <div class="page-title-row">
+        <h1 class="page-title">{{ isEditMode() ? 'Edit' : 'Add' }} <em>Reorder Configuration</em></h1>
+      </div>
+      <p class="page-subtitle">{{ isEditMode() ? 'Update this product\'s reorder policy at this location.' : 'Set a product\'s reorder level, quantity, and max stock at one location.' }}</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else {
+    <div class="entry-form-layout">
+
+      <div class="entry-form-card entry-form-card--sectioned">
+        <div class="entry-form-card__hdr">
+          <div class="entry-form-card__hdr-ico">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          </div>
+          <div>
+            <div class="entry-form-card__hdr-title">Reorder Policy</div>
+            <div class="entry-form-card__hdr-sub">Product, location, and the levels that trigger a Stock Indent</div>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="entry-form-card__body">
+
+            <div class="rc-form-grid">
+              <div class="field-group">
+                <label for="rc-location" class="field-label">Location <span class="required-star">*</span></label>
+                <select id="rc-location" class="field-select" formControlName="locationId"
+                  [class.field-select--error]="form.get('locationId')?.invalid && form.get('locationId')?.touched">
+                  <option [ngValue]="null" disabled>Select a location</option>
+                  @for (l of locations(); track l.id) {
+                    <option [ngValue]="l.id">{{ l.virtualName }}</option>
+                  }
+                </select>
+                @if (form.get('locationId')?.invalid && form.get('locationId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('locationId') }}</p>
+                } @else {
+                  <p class="field-hint">Requesting-point locations only — a store's own shortage is covered by the Wanted List instead.</p>
+                }
+              </div>
+
+              <div class="rc-product-picker">
+                <cms-product-picker
+                  label="Product"
+                  [selectedProductId]="form.get('productId')?.value"
+                  [disabled]="!form.get('locationId')?.value"
+                  (selectedProductIdChange)="form.get('productId')?.setValue($event); form.get('productId')?.markAsTouched()"
+                />
+                @if (!form.get('locationId')?.value) {
+                  <p class="field-hint">Select a location first</p>
+                } @else if (form.get('productId')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                } @else if (form.get('productId')?.invalid && form.get('productId')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('productId') }}</p>
+                }
+              </div>
+            </div>
+
+            <div class="rc-form-grid">
+              <div class="field-group">
+                <label for="rc-reorder-level" class="field-label">Reorder Level <span class="required-star">*</span></label>
+                <input id="rc-reorder-level" type="number" step="0.001" min="0" class="field-input" formControlName="reorderLevel"
+                  [class.field-input--error]="form.get('reorderLevel')?.invalid && form.get('reorderLevel')?.touched" />
+                @if (form.get('reorderLevel')?.invalid && form.get('reorderLevel')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('reorderLevel') }}</p>
+                } @else {
+                  <p class="field-hint">Stock at or below this triggers an indent</p>
+                }
+              </div>
+              <div class="field-group">
+                <label for="rc-reorder-qty" class="field-label">Reorder Quantity <span class="required-star">*</span></label>
+                <input id="rc-reorder-qty" type="number" step="0.001" min="0.001" class="field-input" formControlName="reorderQty"
+                  [class.field-input--error]="form.get('reorderQty')?.invalid && form.get('reorderQty')?.touched" />
+                @if (form.get('reorderQty')?.invalid && form.get('reorderQty')?.touched) {
+                  <p class="field-error">{{ getErrorMessage('reorderQty') }}</p>
+                } @else {
+                  <p class="field-hint">The lot size an auto-generated indent requests</p>
+                }
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="rc-max-stock" class="field-label">Max Stock Quantity</label>
+              <input id="rc-max-stock" type="number" step="0.001" min="0" class="field-input rc-max-stock-input" formControlName="maxStockQty"
+                placeholder="Optional" [class.field-input--error]="form.get('maxStockQty')?.invalid && form.get('maxStockQty')?.touched" />
+              @if (form.get('maxStockQty')?.invalid && form.get('maxStockQty')?.touched) {
+                <p class="field-error">{{ getErrorMessage('maxStockQty') }}</p>
+              } @else {
+                <p class="field-hint">Optional ceiling — leave blank for no cap beyond the reorder quantity</p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label class="checkbox-label"><input type="checkbox" formControlName="autoIndentEnabled" class="field-checkbox" /> Auto-generate a Stock Indent when this level is breached</label>
+              @if (form.get('locationId')?.value) {
+                @if (selectedLocationSupplyingStore()) {
+                  <p class="field-hint">Will indent to <strong>{{ selectedLocationSupplyingStore() }}</strong> — this location's default supplying store.</p>
+                } @else {
+                  <p class="field-error">This location has no default supplying store set yet — set one on the location before enabling auto-indent.</p>
+                }
+              }
+            </div>
+
+            <div class="entry-form-card__footer">
+              <a routerLink="/inventory/stock/reorder-configs" class="btn-secondary">Cancel</a>
+              <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+                @if (saving()) {
+                  <mat-spinner diameter="16"></mat-spinner>
+                }
+                {{ isEditMode() ? 'Save Changes' : 'Add Configuration' }}
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+    </div>
+  }
+
+</div>

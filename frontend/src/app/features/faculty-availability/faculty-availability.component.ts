@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FacultyService } from '../faculty/faculty.service';
@@ -16,6 +17,9 @@ import { BlockAvailabilityDialogComponent, BlockAvailabilityDialogData, BlockAva
 import { TourService } from '../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
 import { FACULTY_AVAILABILITY_TOUR, FACULTY_AVAILABILITY_FLOW_MAP } from '../../shared/tour/tours/faculty-availability.tours';
+import { CmsInfiniteSelectComponent } from '../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../shared/infinite-select/infinite-select.utils';
 
 interface AvailabilityRow {
   key: string;
@@ -27,7 +31,7 @@ interface AvailabilityRow {
 @Component({
   selector: 'app-faculty-availability',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatTooltipModule, CmsTourButtonComponent],
+  imports: [FormsModule, RouterLink, MatDialogModule, MatTooltipModule, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './faculty-availability.component.html',
   styleUrl: './faculty-availability.component.scss',
 })
@@ -73,6 +77,14 @@ export class FacultyAvailabilityComponent implements OnInit {
       error: () => this.toast.error('Failed to load faculty list'),
     });
     this.periodService.getAll(true).subscribe({ next: (periods) => this.periods.set(periods) });
+  }
+
+  protected readonly facultyFetchPage = staticOptionsFetchPage(() =>
+    this.faculties().map(f => ({ id: f.id, name: `${f.fullName} (${f.employeeCode})` })));
+
+  protected onFacultySelectChange(value: InfiniteSelectValue | null): void {
+    this.selectedFacultyId = value != null ? Number(value) : null;
+    this.onFacultyChange();
   }
 
   protected onFacultyChange(): void {

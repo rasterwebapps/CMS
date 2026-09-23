@@ -1,0 +1,82 @@
+<h2 mat-dialog-title>Fulfill Request</h2>
+<mat-dialog-content class="sifd-content">
+  <p class="sifd-product">{{ data.productName }}</p>
+
+  @if (loading()) {
+    <div class="sifd-loading"><mat-spinner diameter="28"></mat-spinner></div>
+  } @else if (context(); as ctx) {
+    <div class="sifd-context">
+      <div class="sifd-context-row">
+        <span class="sifd-context-label">Requested</span>
+        <span class="sifd-context-value">{{ ctx.requestedQty }}</span>
+      </div>
+      <div class="sifd-context-row">
+        <span class="sifd-context-label">This store's own stock</span>
+        <span class="sifd-context-value">{{ ctx.issuingLocationQtyOnHand }}</span>
+      </div>
+      @if (ctx.candidateSourceLocations.length > 0) {
+        <div class="sifd-context-row sifd-context-row--full">
+          <span class="sifd-context-label">Other locations with stock</span>
+          <span class="sifd-context-value">
+            @for (c of ctx.candidateSourceLocations; track c.locationId) {
+              <span class="sifd-candidate-chip">{{ c.locationVirtualName }} · {{ c.qtyOnHand }}</span>
+            }
+          </span>
+        </div>
+      }
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Action</label>
+      <select class="field-select" [(ngModel)]="action" aria-label="Fulfillment action">
+        <option value="fulfill">Fulfill directly from this store's stock</option>
+        @if (ctx.candidateSourceLocations.length > 0) {
+          <option value="transfer">Transfer in from another location, then fulfill</option>
+        }
+        <option value="raise_po">Raise a Purchase Requisition instead</option>
+        <option value="deny">Deny this request</option>
+      </select>
+    </div>
+
+    @if (action === 'transfer') {
+      <div class="sifd-form-grid">
+        <div class="field-group">
+          <label class="field-label">Source Location</label>
+          <select class="field-select" [(ngModel)]="sourceLocationId" aria-label="Transfer source location">
+            <option [ngValue]="null" disabled>Select a location</option>
+            @for (c of ctx.candidateSourceLocations; track c.locationId) {
+              <option [ngValue]="c.locationId">{{ c.locationVirtualName }} ({{ c.qtyOnHand }} available)</option>
+            }
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Transfer Qty</label>
+          <input type="number" step="0.001" min="0.001" class="field-input" [(ngModel)]="transferQty" placeholder="0.000" aria-label="Transfer quantity" />
+        </div>
+      </div>
+    }
+
+    @if (action === 'raise_po') {
+      <div class="field-group">
+        <label class="field-label">Requisition Qty</label>
+        <input type="number" step="0.001" min="0.001" class="field-input" [(ngModel)]="poQty" placeholder="0.000" aria-label="Purchase requisition quantity" />
+      </div>
+    }
+
+    <div class="field-group">
+      <label class="field-label">Notes (optional)</label>
+      <textarea class="field-input" rows="2" [(ngModel)]="notes" placeholder="Add any context..." aria-label="Decision notes"></textarea>
+    </div>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="dialogRef.close(null)">Cancel</button>
+  <button mat-flat-button [color]="action === 'deny' ? 'warn' : 'primary'" [disabled]="loading() || !canConfirm" (click)="confirm()">
+    @switch (action) {
+      @case ('fulfill') { Fulfill }
+      @case ('transfer') { Transfer &amp; Fulfill }
+      @case ('raise_po') { Raise Requisition }
+      @case ('deny') { Deny }
+    }
+  </button>
+</mat-dialog-actions>

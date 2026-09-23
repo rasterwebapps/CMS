@@ -9,7 +9,7 @@ import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { DecimalPipe } from '@angular/common';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
-import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
+import { debounceTime, distinctUntilChanged, of, Subject, takeUntil } from 'rxjs';
 import { EnquiryService } from '../../enquiry/enquiry.service';
 import { FinanceService } from '../finance.service';
 import { Enquiry, EnquiryPaymentRequest, EnquiryYearWiseFeeStatusResponse } from '../../enquiry/enquiry.model';
@@ -33,6 +33,8 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
 import { PermissionService } from '../../../core/permissions/permission.service';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 export type FilterType   = 'ALL' | 'ENQUIRY' | 'STUDENT';
 export type FilterStatus = 'ALL' | 'OUTSTANDING';
 export type PersonType   = 'ENQUIRY' | 'STUDENT';
@@ -73,6 +75,7 @@ export interface FeeEntry {
     CashDenominationComponent,
     FeeReceiptDialogComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './fee-collection.component.html',
   styleUrl: './fee-collection.component.scss',
@@ -123,6 +126,28 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   protected readonly searchTerm   = signal('');
   protected readonly filterType   = signal<FilterType>('ENQUIRY');
   protected readonly filterStatus = signal<FilterStatus>('ALL');
+
+  // Fixed small enums — no backend paging needed, but cms-infinite-select is still the right fit
+  // over a native <select>: keeps these filters visually/behaviourally uniform with the rest of
+  // the app's filter toolbars instead of mixing in browser-native <select> chrome that can't be
+  // restyled. 'ALL' isn't listed as an option — it's represented as "nothing selected" (null),
+  // which is what shows the pinned label row ("All Types"/"Any Status") in the panel.
+  protected readonly filterTypeFetchPage = () =>
+    of({
+      content: [
+        { id: 'ENQUIRY', name: 'Pre-enrollment' },
+        { id: 'STUDENT', name: 'Students' },
+      ],
+      totalElements: 2,
+    });
+
+  protected readonly filterStatusFetchPage = () =>
+    of({
+      content: [
+        { id: 'OUTSTANDING', name: 'Has Outstanding' },
+      ],
+      totalElements: 1,
+    });
 
   protected readonly colState = new ColumnPickerState({
     storageKey: 'fee-collection-columns',
@@ -660,7 +685,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     this.searchSubject$.next(val);
   }
 
-  protected setFilterType(value: FilterType): void {
+  protected setFilterType(selected: InfiniteSelectValue | null): void {
+    const value = (selected as FilterType | null) ?? 'ALL';
     const wasEnquiryOnly = this.filterType() === 'ENQUIRY';
     this.filterType.set(value);
     if (value !== 'ENQUIRY' && wasEnquiryOnly) {
@@ -668,8 +694,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     }
   }
 
-  protected setFilterStatus(value: FilterStatus): void {
-    this.filterStatus.set(value);
+  protected setFilterStatus(selected: InfiniteSelectValue | null): void {
+    this.filterStatus.set((selected as FilterStatus | null) ?? 'ALL');
   }
 
   protected clearFilters(): void {

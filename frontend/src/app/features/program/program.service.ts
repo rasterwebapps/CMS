@@ -25,9 +25,10 @@ export class ProgramService {
     return this.http.get<Program[]>(this.baseUrl);
   }
 
-  getPage(p: { search?: string; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<Program>> {
+  getPage(p: { search?: string; activeOnly?: boolean; page?: number; size?: number; sort?: string; direction?: 'asc' | 'desc' }): Observable<Page<Program>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.search) params = params.set('search', p.search);
+    if (p.activeOnly) params = params.set('activeOnly', 'true');
     if (p.sort) params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
     return this.http.get<Page<Program>>(`${this.baseUrl}/page`, { params });
   }

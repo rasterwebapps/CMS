@@ -1,0 +1,17 @@
+.week-navigator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.week-navigator__range {
+  font-weight: 700;
+  font-size: var(--cms-text-md);
+  color: var(--cms-text-primary);
+  min-width: 160px;
+  text-align: center;
+}
+
+.week-navigator__today-btn {
+  margin-left: auto;
+}

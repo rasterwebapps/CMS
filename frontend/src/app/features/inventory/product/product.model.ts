@@ -70,7 +70,6 @@ export interface ProductAttributeValueRequest {
 }
 
 export interface ProductRequest {
-  productCode: string;
   productName: string;
   barcode?: string | null;
   categoryId: number;

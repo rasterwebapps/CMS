@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CmsPreviewCardComponent } from '../../../../shared/preview-card/preview-card.component';
 import { InventoryLocationService } from '../inventory-location.service';
-import { InventoryLocationRequest, LocationRole } from '../inventory-location.model';
+import { InventoryLocation, InventoryLocationRequest, LocationRole } from '../inventory-location.model';
 import { CampusInfrastructureService } from '../../../hostel/campus-infrastructure/campus-infrastructure.service';
 import { Zone, Room } from '../../../hostel/campus-infrastructure/campus-infrastructure.model';
 import { ToastService } from '../../../../core/toast/toast.service';
@@ -48,6 +48,7 @@ export class LocationFormComponent implements OnInit {
   protected readonly zones      = signal<Zone[]>([]);
   protected readonly rooms      = signal<Room[]>([]);
   protected readonly roomsLoading = signal(false);
+  protected readonly supplyingStores = signal<InventoryLocation[]>([]);
 
   protected readonly previewName = signal('');
   protected readonly previewRoom = signal('');
@@ -69,7 +70,12 @@ export class LocationFormComponent implements OnInit {
     virtualName:  ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(150), noConsecutiveSpaces()]],
     locationRole: ['STORE' as LocationRole, [Validators.required]],
     description:  ['', [Validators.maxLength(500)]],
+    defaultSupplyingLocationId: [null as number | null],
   });
+
+  /** Only a REQUESTING_POINT/BOTH location draws stock from elsewhere — a pure STORE has nothing
+   *  to auto-indent from. */
+  protected readonly showsSupplyingStore = signal(false);
 
   constructor() {
     this.form.valueChanges
@@ -82,6 +88,12 @@ export class LocationFormComponent implements OnInit {
 
     this.form.get('zoneId')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((zoneId) => {
       this.loadRooms(zoneId);
+    });
+
+    this.form.get('locationRole')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((role: LocationRole) => {
+      const shows = role === 'REQUESTING_POINT' || role === 'BOTH';
+      this.showsSupplyingStore.set(shows);
+      if (!shows) this.form.get('defaultSupplyingLocationId')?.setValue(null, { emitEvent: false });
     });
   }
 
@@ -96,6 +108,12 @@ export class LocationFormComponent implements OnInit {
       this.loadLocation();
     }
     this.setupUniquenessValidator();
+
+    this.locationService.getAll(true).subscribe({
+      next: (locations) => this.supplyingStores.set(
+        locations.filter(l => (l.locationRole === 'STORE' || l.locationRole === 'BOTH') && l.id !== this.locationId)
+      ),
+    });
   }
 
   private setupUniquenessValidator(): void {
@@ -134,6 +152,7 @@ export class LocationFormComponent implements OnInit {
       virtualName:  (this.form.value.virtualName ?? '').trim(),
       locationRole: this.form.value.locationRole,
       description:  this.form.value.description?.trim() || undefined,
+      defaultSupplyingLocationId: this.form.value.defaultSupplyingLocationId ?? null,
     };
 
     this.saving.set(true);
@@ -156,6 +175,7 @@ export class LocationFormComponent implements OnInit {
 
   private static readonly FIELD_LABELS: Record<string, string> = {
     zoneId: 'Zone', roomId: 'Room', virtualName: 'Virtual name', locationRole: 'Role', description: 'Description',
+    defaultSupplyingLocationId: 'Default supplying store',
   };
 
   protected getErrorMessage(fieldName: string): string {
@@ -173,7 +193,9 @@ export class LocationFormComponent implements OnInit {
           virtualName: loc.virtualName,
           locationRole: loc.locationRole,
           description: loc.description || '',
+          defaultSupplyingLocationId: loc.defaultSupplyingLocationId ?? null,
         });
+        this.showsSupplyingStore.set(loc.locationRole === 'REQUESTING_POINT' || loc.locationRole === 'BOTH');
         this.loading.set(false);
       },
       error: () => {

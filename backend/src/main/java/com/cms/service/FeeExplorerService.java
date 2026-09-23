@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.FeeExplorerResponse;
+import com.cms.dto.FeeExplorerSemesterWiseRow;
 import com.cms.model.Admission;
 import com.cms.model.Enquiry;
 import com.cms.model.Penalty;
@@ -75,9 +78,33 @@ public class FeeExplorerService {
 
     /**
      * Paginated version of {@link #search(String)} used by the fee explorer and collect-payment
-     * list screens. The search term applies server-side; all other UI filters (program, academic
-     * year, allocation status) are applied client-side within the returned page.
+     * list screens. When none of the dropdown filters (program, academic year, year of study,
+     * allocation status) are active, the search term is pushed to the DB and pagination happens
+     * there. Once any dropdown filter is active, those dimensions are only known after computing
+     * each row's summary (they are not plain Student columns), so this falls back to computing
+     * every search-matching row via {@link #searchAll} and paginating the filtered result in
+     * memory — the same approach already used, unbounded, for the export endpoint.
      */
+    public Page<FeeExplorerResponse.StudentFeeSummary> searchPageable(
+            String search, String program, String academicYear, Integer yearOfStudy, String allocationStatus,
+            Pageable pageable) {
+        boolean hasDropdownFilter =
+            (program != null && !program.isBlank() && !program.equals("ALL"))
+            || (academicYear != null && !academicYear.isBlank() && !academicYear.equals("ALL"))
+            || yearOfStudy != null
+            || (allocationStatus != null && !allocationStatus.isBlank() && !allocationStatus.equals("ALL"));
+
+        if (!hasDropdownFilter) return searchPageable(search, pageable);
+
+        List<FeeExplorerResponse.StudentFeeSummary> filtered =
+            searchAll(search, program, academicYear, yearOfStudy, allocationStatus, pageable.getSort());
+        int total = filtered.size();
+        int from = Math.min((int) pageable.getOffset(), total);
+        int to = Math.min(from + pageable.getPageSize(), total);
+        return new PageImpl<>(filtered.subList(from, to), pageable, total);
+    }
+
+    /** Search-only fast path — no dropdown filters active, so pagination happens at the DB. */
     public Page<FeeExplorerResponse.StudentFeeSummary> searchPageable(String search, Pageable pageable) {
         Specification<Student> spec = Specification.where(null);
         if (search != null && search.length() >= 2) spec = spec.and(StudentSpecification.bySearch(search));
@@ -102,6 +129,30 @@ public class FeeExplorerService {
             .toList();
         return new PageImpl<>(content, pageable, idPage.getTotalElements());
     }
+
+    /** Distinct filter-dropdown values across every student, not just the currently loaded page. */
+    public FilterOptions getFilterOptions() {
+        List<Student> students = studentRepository.findAll();
+
+        Set<String> programs = new TreeSet<>();
+        Set<Integer> years = new TreeSet<>();
+        for (Student s : students) {
+            String name = s.getCourse() != null ? s.getCourse().getName()
+                : s.getProgram() != null ? s.getProgram().getName() : null;
+            if (name != null) programs.add(name);
+            if (s.getYearOfStudy() != null) years.add(s.getYearOfStudy());
+        }
+
+        List<Long> ids = students.stream().map(Student::getId).toList();
+        Set<String> academicYears = admissionRepository.findByStudentIdInFetchJoiningYear(ids).stream()
+            .map(a -> a.getJoiningAcademicYear() != null ? a.getJoiningAcademicYear().getName() : null)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(TreeSet::new));
+
+        return new FilterOptions(new ArrayList<>(programs), new ArrayList<>(academicYears), new ArrayList<>(years));
+    }
+
+    public record FilterOptions(List<String> programs, List<String> academicYears, List<Integer> yearsOfStudy) {}
 
     /**
      * Unbounded version for export: applies the search spec then post-filters by the client-side
@@ -135,6 +186,47 @@ public class FeeExplorerService {
             .toList();
     }
 
+    /**
+     * Semester-wise breakdown for the Fee Explorer "Sem-wise" export: one row per student, with
+     * each semester's Fee/Paid/Pending pivoted into its own column block, so a client can see
+     * exactly which semester(s) still have a pending balance without the row count exploding into
+     * one line per semester. Reuses {@link #searchAll} for filtering (same
+     * search/program/academicYear/yearOfStudy/allocationStatus semantics as the existing export)
+     * and {@link #computeSemesterAmounts} for the per-semester paid/pending figures, so this can
+     * never drift from the aggregate numbers shown elsewhere.
+     */
+    public List<FeeExplorerSemesterWiseRow> searchAllSemesterWise(
+            String search, String program, String academicYear, Integer yearOfStudy, String allocationStatus, Sort sort) {
+
+        List<FeeExplorerResponse.StudentFeeSummary> summaries =
+            searchAll(search, program, academicYear, yearOfStudy, allocationStatus, sort);
+
+        List<FeeExplorerSemesterWiseRow> rows = new ArrayList<>();
+        for (FeeExplorerResponse.StudentFeeSummary summary : summaries) {
+            if ("NOT_ALLOCATED".equals(summary.allocationStatus())) continue;
+
+            Student student = studentRepository.findById(summary.studentId()).orElse(null);
+            var allocationOpt = student != null ? allocationRepository.findByStudentId(student.getId()) : Optional.<StudentFeeAllocation>empty();
+            if (student == null || allocationOpt.isEmpty()) continue;
+
+            StudentFeeAllocation allocation = allocationOpt.get();
+            List<SemesterFee> semesterFees = semesterFeeRepository
+                .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
+            SemesterAmountsResult amounts = computeSemesterAmounts(student, semesterFees);
+
+            List<FeeExplorerSemesterWiseRow.SemesterAmount> semesterAmounts = amounts.perSemester().stream()
+                .map(sa -> new FeeExplorerSemesterWiseRow.SemesterAmount(
+                    sa.semesterFee().getSemesterLabel(), sa.semesterFee().getAmount(), sa.paid(), sa.pending()))
+                .toList();
+
+            rows.add(new FeeExplorerSemesterWiseRow(
+                summary.studentId(), summary.rollNumber(), summary.studentName(), summary.programName(),
+                summary.academicYearName(), semesterAmounts
+            ));
+        }
+        return rows;
+    }
+
     public FeeExplorerResponse search(String query) {
         List<Student> students = findStudents(query);
 
@@ -162,40 +254,9 @@ public class FeeExplorerService {
             List<SemesterFee> semesterFees = semesterFeeRepository
                 .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
 
-            // Enquiry pre-admission credit is real money already received — it must count toward
-            // "Paid" the same way PaymentCollectionService.calculateTotalOutstanding() and
-            // FeeFinalizationService.toResponse() treat it, or Paid + Pending won't sum to Total Fee.
-            Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(student.getId());
-            BigDecimal totalEnquiryCredit = sourceEnquiry
-                .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
-                .orElse(BigDecimal.ZERO);
-            BigDecimal alreadyAppliedCredit = sourceEnquiry
-                .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
-                .orElse(BigDecimal.ZERO);
-            BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
-
-            BigDecimal totalPaid = BigDecimal.ZERO;
-            BigDecimal totalPenalty = BigDecimal.ZERO;
-
-            for (SemesterFee sf : semesterFees) {
-                BigDecimal installmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
-                BigDecimal alreadyCredited = sourceEnquiry.isPresent()
-                    ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
-                        sourceEnquiry.get().getId(), sf.getId())
-                    : BigDecimal.ZERO;
-                BigDecimal capacity = sf.getAmount().subtract(installmentPaid).subtract(alreadyCredited).max(BigDecimal.ZERO);
-                BigDecimal creditForThis = remainingEnquiryCredit.min(capacity);
-                remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
-
-                totalPaid = totalPaid.add(installmentPaid).add(alreadyCredited).add(creditForThis);
-                totalPenalty = totalPenalty.add(
-                    penaltyRepository.findBySemesterFeeId(sf.getId()).stream()
-                        .filter(p -> !p.getIsPaid())
-                        .map(Penalty::getTotalPenalty)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add)
-                );
-            }
-
+            SemesterAmountsResult amounts = computeSemesterAmounts(student, semesterFees);
+            BigDecimal totalPaid = amounts.totalPaid();
+            BigDecimal totalPenalty = amounts.totalPenalty();
             BigDecimal totalPending = allocation.getNetFee().subtract(totalPaid).max(BigDecimal.ZERO);
 
             BigDecimal collectibleOutstanding = paymentCollectionService.getCollectibleOutstanding(student);
@@ -216,6 +277,58 @@ public class FeeExplorerService {
             BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
             "NOT_ALLOCATED", yearOfStudy, academicYearName, BigDecimal.ZERO, BigDecimal.ZERO
         );
+    }
+
+    /** One semester's computed paid/pending/penalty, alongside the {@link SemesterFee} it came from. */
+    private record SemesterFeeAmounts(SemesterFee semesterFee, BigDecimal paid, BigDecimal pending, BigDecimal penalty) {}
+
+    private record SemesterAmountsResult(List<SemesterFeeAmounts> perSemester, BigDecimal totalPaid, BigDecimal totalPenalty) {}
+
+    /**
+     * Walks a student's semester fees in order, carrying forward any unapplied enquiry
+     * pre-admission credit across semesters exactly as {@link #buildSummary} always has — the
+     * single source of truth for per-semester paid/pending/penalty so the aggregate summary and
+     * the semester-wise export can never disagree on the underlying numbers.
+     */
+    private SemesterAmountsResult computeSemesterAmounts(Student student, List<SemesterFee> semesterFees) {
+        // Enquiry pre-admission credit is real money already received — it must count toward
+        // "Paid" the same way PaymentCollectionService.calculateTotalOutstanding() and
+        // FeeFinalizationService.toResponse() treat it, or Paid + Pending won't sum to Total Fee.
+        Optional<Enquiry> sourceEnquiry = enquiryRepository.findByConvertedStudentId(student.getId());
+        BigDecimal totalEnquiryCredit = sourceEnquiry
+            .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal alreadyAppliedCredit = sourceEnquiry
+            .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
+            .orElse(BigDecimal.ZERO);
+        BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+
+        List<SemesterFeeAmounts> perSemester = new ArrayList<>();
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        BigDecimal totalPenalty = BigDecimal.ZERO;
+
+        for (SemesterFee sf : semesterFees) {
+            BigDecimal installmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyCredited = sourceEnquiry.isPresent()
+                ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
+                    sourceEnquiry.get().getId(), sf.getId())
+                : BigDecimal.ZERO;
+            BigDecimal capacity = sf.getAmount().subtract(installmentPaid).subtract(alreadyCredited).max(BigDecimal.ZERO);
+            BigDecimal creditForThis = remainingEnquiryCredit.min(capacity);
+            remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);
+
+            BigDecimal semPaid = installmentPaid.add(alreadyCredited).add(creditForThis);
+            BigDecimal semPending = sf.getAmount().subtract(semPaid).max(BigDecimal.ZERO);
+            BigDecimal semPenalty = penaltyRepository.findBySemesterFeeId(sf.getId()).stream()
+                .filter(p -> !p.getIsPaid())
+                .map(Penalty::getTotalPenalty)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            perSemester.add(new SemesterFeeAmounts(sf, semPaid, semPending, semPenalty));
+            totalPaid = totalPaid.add(semPaid);
+            totalPenalty = totalPenalty.add(semPenalty);
+        }
+        return new SemesterAmountsResult(perSemester, totalPaid, totalPenalty);
     }
 
     private List<Student> findStudents(String query) {

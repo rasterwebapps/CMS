@@ -1,0 +1,373 @@
+.gas-warning {
+  // `--cms-badge-amber-text` is always #fff -- it exists to pair with `--cms-badge-amber-bg` on an
+  // actual badge chip (see styles.scss's `.cms-badge--amber`), never to stand alone as plain text.
+  // This class has no background of its own, so it rendered as literally invisible white-on-white
+  // (light mode) here -- the entire per-cohort unplaced-reasons list (35-of-56-combinations-tried,
+  // etc.) was in the DOM the whole time but unreadable. `--cms-warning` is the standalone amber
+  // accent already used bare elsewhere in this file's own `.gas-shortfall` border/background.
+  color: var(--cms-warning);
+  font-weight: 600;
+}
+
+.gas-running {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.gas-elapsed {
+  margin-top: 6px;
+  color: var(--cms-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.gas-prereq-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  &__title {
+    font-size: var(--cms-text-sm);
+    font-weight: 700;
+    color: var(--cms-text-primary);
+  }
+}
+
+.gas-contributors li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+// Label + trailing action button (e.g. "Assign faculty"): the button must stay pinned on the
+// same line regardless of label length, never pushed onto its own line just because the label
+// is long -- `min-width: 0` on the label is what lets it wrap/truncate instead of forcing the
+// row to overflow or fight the button for space. Qualified as `.gas-contributors li.gas-…` (not
+// just the bare class) so its specificity beats `.gas-contributors li` above -- a bare class
+// selector loses to that element+class selector and silently keeps the old wrap/gap values.
+.gas-contributors li.gas-contributors__assign-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.gas-contributors__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gas-contributors__action {
+  flex: 0 0 auto;
+}
+
+.gas-faculty-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-border-default);
+  background: var(--cms-bg-card);
+
+  &__name {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: var(--cms-text-sm);
+    font-weight: 700;
+    color: var(--cms-text-primary);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__checkbox {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    ::ng-deep .mdc-form-field {
+      width: 100%;
+    }
+
+    ::ng-deep .mdc-label {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+  }
+
+  &__view {
+    flex-shrink: 0;
+  }
+
+  &__stat {
+    font-size: var(--cms-text-xs);
+    color: var(--cms-text-secondary);
+  }
+}
+
+.gas-contributors {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+}
+
+.gas-shortfall {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-warning);
+  background: var(--cms-warning-light);
+}
+
+.gas-shortfall__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+// ── Pre-run checklist (mirrors TermAdvanceChecklistDialogComponent's own .tac-* pattern) ───
+.gas-checklist {
+  list-style: none;
+  margin: 4px 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gas-checklist__item {
+  border-radius: 8px;
+  padding: 6px 8px;
+
+  ::ng-deep .mdc-label {
+    font-size: var(--cms-text-sm);
+    line-height: 1.4;
+  }
+
+  &--warn {
+    background: var(--cms-warning-light);
+  }
+}
+
+.gas-checklist__icon {
+  margin-right: 4px;
+}
+
+.gas-checklist__blocked-hint {
+  margin: 0 0 4px 32px;
+  color: var(--cms-warning);
+  font-size: var(--cms-text-xs);
+}
+
+.gas-checklist__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gas-checklist__view {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 12px;
+  font-size: var(--cms-text-xs);
+
+  // Distinct "currently open" state -- the collapsed/expanded difference must be unmistakable at
+  // a glance, not just a text-label change easy to miss when the revealed content is a single
+  // plain sentence (e.g. a clean, nothing-to-fix milestone).
+  &--expanded {
+    background: var(--cms-primary);
+    color: #fff;
+    border-color: var(--cms-primary);
+  }
+}
+
+.gas-checklist__detail {
+  margin: 10px 0 6px 32px;
+  padding: 12px 14px;
+  border: 1px solid var(--cms-border-default);
+  border-left: 3px solid var(--cms-primary);
+  border-radius: 8px;
+  background: var(--cms-bg-muted, rgba(0, 0, 0, 0.03));
+
+  .field-hint {
+    margin: 0;
+  }
+}
+
+.gas-outcome {
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-warning);
+  background: var(--cms-warning-light, rgba(217, 119, 6, 0.08));
+
+  &--clear {
+    border-color: var(--cms-success, #15803d);
+    background: var(--cms-success-light, rgba(21, 128, 61, 0.08));
+  }
+
+  .field-hint {
+    margin: 4px 0 0;
+  }
+}
+
+.gas-outcome__headline {
+  font-size: var(--cms-text-md);
+  font-weight: 700;
+  color: var(--cms-text-primary);
+}
+
+.gas-outcome__icon {
+  margin-right: 4px;
+}
+
+.gas-outcome__actions {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+}
+
+.gas-details-toggle {
+  margin-bottom: 16px;
+}
+
+.gas-checklist-allclear-banner {
+  margin: 4px 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cms-success, #15803d);
+  background: var(--cms-success-light, rgba(21, 128, 61, 0.08));
+  color: var(--cms-success, #15803d);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+}
+
+.gas-checklist-group {
+  margin: 0 0 16px;
+
+  &--clear {
+    margin-top: -8px;
+  }
+}
+
+.gas-checklist-group__toggle {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-muted, rgba(0, 0, 0, 0.03));
+  color: var(--cms-text-secondary);
+  font-size: var(--cms-text-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cms-bg-card);
+  }
+}
+
+.gas-checklist--clear {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gas-checklist__clear-item {
+  padding: 4px 10px;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+}
+
+.gas-ack {
+  margin: 16px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cms-border-default);
+  border-radius: 8px;
+  background: var(--cms-bg-muted, rgba(0, 0, 0, 0.03));
+
+  ::ng-deep .mdc-label {
+    font-size: var(--cms-text-sm);
+    font-weight: 600;
+  }
+}
+
+.gas-faculty-card--tight {
+  border-color: var(--cms-warning);
+}
+
+.gas-workload-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--cms-border-default);
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: var(--cms-text-xs);
+    font-weight: 600;
+    color: var(--cms-text-secondary);
+  }
+
+  input {
+    width: 140px;
+    padding: 6px 10px;
+    border: 1px solid var(--cms-border-default);
+    border-radius: 6px;
+    font-size: var(--cms-text-sm);
+  }
+
+  .field-hint {
+    margin: 0;
+  }
+
+  &__checkbox {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--cms-text-xs);
+    font-weight: 600;
+    color: var(--cms-text-primary);
+
+    input {
+      width: auto;
+    }
+  }
+}
+
+
+// The remedy sentence is a full instruction, not a trailing fragment, so it always takes its own
+// line under the subject/hours summary. `.gas-contributors li` is a wrapping flex row, so
+// flex-basis:100% is what forces the break -- a plain `display:block` would not, since the item is
+// still a flex child of that row.
+.gas-residual-remedy {
+  flex-basis: 100%;
+  font-size: var(--cms-text-xs);
+  color: var(--cms-text-secondary);
+}

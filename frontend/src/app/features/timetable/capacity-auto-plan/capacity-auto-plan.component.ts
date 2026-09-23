@@ -18,6 +18,9 @@ import { AllocatedBatch, CohortRoomAllocation, CohortSection, CohortSectionReque
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { CAPACITY_AUTO_PLAN_TOUR, CAPACITY_AUTO_PLAN_FLOW_MAP } from '../../../shared/tour/tours/capacity-auto-plan.tours';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 /** One grouped section of the Room Inventory chip grid -- Classrooms / Labs / Clinical Venues,
  *  in that fixed display order regardless of how the backend orders the flat roomInventory list. */
@@ -82,6 +85,7 @@ interface BatchGroup {
     FormsModule, RouterLink, MatProgressSpinnerModule, MatDialogModule,
     CmsEmptyStateComponent, CmsStatusBadgeComponent, NgTemplateOutlet, DecimalPipe, DatePipe,
     CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './capacity-auto-plan.component.html',
   styleUrl: './capacity-auto-plan.component.scss',
@@ -179,7 +183,13 @@ export class CapacityAutoPlanComponent implements OnInit {
     });
   }
 
-  protected onAcademicYearChange(): void {
+  protected readonly academicYearFetchPage = staticOptionsFetchPage(() =>
+    this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
+  protected readonly termFetchPage = staticOptionsFetchPage(() =>
+    this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+
+  protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
+    this.selectedAcademicYearId = value != null ? Number(value) : null;
     this.selectedTermInstanceId = null;
     this.overview.set(null);
     this.drafts.set(new Map());
@@ -188,7 +198,8 @@ export class CapacityAutoPlanComponent implements OnInit {
     if (this.selectedAcademicYearId) this.loadTermInstances(this.selectedAcademicYearId);
   }
 
-  protected onTermChange(): void {
+  protected onTermChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermInstanceId = value != null ? Number(value) : null;
     if (this.selectedTermInstanceId) this.runOverview();
     else this.overview.set(null);
   }

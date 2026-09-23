@@ -284,6 +284,7 @@
             [initialWidgets]="widgetEditTarget!.dashboardWidgets"
             [saving]="saving()"
             [showReset]="false"
+            [filterByViewerPermissions]="false"
             (saved)="saveWidgets($event)"
             (cancelled)="closePanel()" />
 

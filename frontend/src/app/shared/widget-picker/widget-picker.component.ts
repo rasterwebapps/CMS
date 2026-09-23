@@ -1,6 +1,6 @@
 import {
   Component, Input, Output, EventEmitter,
-  OnChanges, SimpleChanges,
+  OnChanges, SimpleChanges, inject,
 } from '@angular/core';
 import {
   CdkDragDrop, CdkDrag, CdkDropList, CdkDragHandle,
@@ -11,7 +11,7 @@ import { MatButtonModule }           from '@angular/material/button';
 import { MatProgressSpinnerModule }  from '@angular/material/progress-spinner';
 import { MatTooltipModule }          from '@angular/material/tooltip';
 
-import { WidgetConfigDto }                       from '../../core/permissions/permission.service';
+import { WidgetConfigDto, PermissionService }    from '../../core/permissions/permission.service';
 import { WIDGET_REGISTRY, WidgetDef, widgetByKey } from '../../features/dashboard/widget-registry';
 
 export interface PickerItem {
@@ -50,12 +50,21 @@ const CATEGORIES = ['layout', 'stats', 'charts', 'lists', 'operational'] as cons
   styleUrl:    './widget-picker.component.scss',
 })
 export class WidgetPickerComponent implements OnChanges {
+  private readonly permService = inject(PermissionService);
+
   /** Pre-configured widgets to load into the active list on open. */
   @Input() initialWidgets: WidgetConfigDto[] = [];
   /** Whether a save is in progress (disables buttons). */
   @Input() saving = false;
   /** Show the Reset button in the footer (personal dashboard only). */
   @Input() showReset = false;
+  /**
+   * Restrict the palette (and drop already-saved entries) to widgets the current viewer holds
+   * a required permission for. Correct for a user editing their own personal dashboard; set to
+   * `false` when an admin is editing a ROLE's default widget set — that should offer the full
+   * catalog regardless of the editing admin's own permissions, since it's the role's set, not theirs.
+   */
+  @Input() filterByViewerPermissions = true;
 
   /** Emits the final WidgetConfigDto[] when the user clicks Save. */
   @Output() saved    = new EventEmitter<WidgetConfigDto[]>();
@@ -72,7 +81,7 @@ export class WidgetPickerComponent implements OnChanges {
       this.activeItems = (this.initialWidgets ?? [])
         .map(c => {
           const def = widgetByKey(c.key);
-          if (!def) return null;
+          if (!def || !this.isAccessible(def)) return null;
           return {
             key:     c.key,
             colSpan: this.coerceColSpan(c.colSpan),
@@ -84,11 +93,18 @@ export class WidgetPickerComponent implements OnChanges {
     }
   }
 
+  /** True if the widget should be offered — always true when filtering is off, otherwise
+   *  true if it has no required permissions or the viewer holds at least one of them. */
+  private isAccessible(def: WidgetDef): boolean {
+    if (!this.filterByViewerPermissions) return true;
+    return !def.requiredPermissions || this.permService.hasAny(...def.requiredPermissions);
+  }
+
   // ── Palette ────────────────────────────────────────────────────────────────
 
   protected get paletteItems(): WidgetDef[] {
     const active = new Set(this.activeItems.map(i => i.key));
-    return WIDGET_REGISTRY.filter(w => !active.has(w.key));
+    return WIDGET_REGISTRY.filter(w => !active.has(w.key) && this.isAccessible(w));
   }
 
   protected paletteByCategory(cat: string): WidgetDef[] {

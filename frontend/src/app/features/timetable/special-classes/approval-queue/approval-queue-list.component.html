@@ -28,6 +28,8 @@
               <span class="mono">{{ r.occurrenceDate }}</span>
               @if (r.occurrenceSource === 'DAY_REPEAT') {
                 <span class="aql-batch-tag" title="Part of a whole-day-repeat batch">Day Repeat</span>
+              } @else if (r.occurrenceSource === 'RECURRING_SPECIAL_CLASS') {
+                <span class="aql-batch-tag" title="Part of a weekly-recurring special class batch">Recurring</span>
               } @else if (r.requestBatchId) {
                 <span class="aql-batch-tag" title="Part of a multi-period special class request">Multi-period</span>
               }
@@ -96,6 +98,8 @@
         <p class="field-hint">{{ row.subjectName }} on {{ row.occurrenceDate }}
           @if (row.requestBatchId && row.occurrenceSource === 'DAY_REPEAT') {
             — rejecting will decline every session in this day-repeat batch.
+          } @else if (row.requestBatchId && row.occurrenceSource === 'RECURRING_SPECIAL_CLASS') {
+            — rejecting will decline every weekly occurrence in this recurring request.
           } @else if (row.requestBatchId) {
             — rejecting will decline every period in this multi-period request.
           }

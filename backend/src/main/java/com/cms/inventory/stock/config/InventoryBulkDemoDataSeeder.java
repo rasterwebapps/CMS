@@ -29,13 +29,13 @@ import com.cms.inventory.catalog.repository.ProductRepository;
 import com.cms.inventory.catalog.repository.UomRepository;
 import com.cms.inventory.issue.dto.LoanableItemIssueCreateRequest;
 import com.cms.inventory.issue.dto.LoanableItemIssueReturnRequest;
-import com.cms.inventory.issue.dto.StockIssueRequestAddLineRequest;
-import com.cms.inventory.issue.dto.StockIssueRequestCreateRequest;
-import com.cms.inventory.issue.dto.StockIssueRequestResolutionRequest;
-import com.cms.inventory.issue.dto.StockIssueRequestResponse;
-import com.cms.inventory.issue.dto.StockIssueRequestReturnLineRequest;
+import com.cms.inventory.indent.dto.StockIndentAddLineRequest;
+import com.cms.inventory.indent.dto.StockIndentCreateRequest;
+import com.cms.inventory.indent.dto.StockIndentResolutionRequest;
+import com.cms.inventory.indent.dto.StockIndentResponse;
+import com.cms.inventory.indent.dto.StockIndentReturnLineRequest;
 import com.cms.inventory.issue.service.LoanableItemIssueService;
-import com.cms.inventory.issue.service.StockIssueRequestService;
+import com.cms.inventory.indent.service.StockIndentService;
 import com.cms.inventory.stock.dto.StockMovementRequest;
 import com.cms.inventory.stock.dto.StockTransferAddLineRequest;
 import com.cms.inventory.stock.dto.StockTransferCreateRequest;
@@ -51,13 +51,13 @@ import com.cms.repository.RoomRepository;
 /**
  * One-off bulk demo-data generator for the Stock Management nav group — masters, sister/store
  * locations (respecting the {@code LocationRole} gate), 100+ products across realistic nursing-
- * college categories, a mix of batch-tracked and untracked opening balances, and Stock Issue
- * Requests / Stock Transfers / Loanable Item Issues in varied lifecycle states, so every list
+ * college categories, a mix of batch-tracked and untracked opening balances, and Stock Indents
+ * / Stock Transfers / Loanable Item Issues in varied lifecycle states, so every list
  * screen under Stock Management has real, varied data to click through during a manual QA pass.
  * Deliberately its own opt-in flag ({@code cms.seed.bulk-inventory-demo=true}), separate from the
  * always-on {@code cms.seed.enabled} seeders, so it never fires on a normal local boot — run once
  * intentionally. Idempotent per phase (masters/locations/products always safe to re-run; stock
- * movements/issue requests/transfers/loanable issues each separately skip once their own table has
+ * movements/indents/transfers/loanable issues each separately skip once their own table has
  * any rows) rather than gated on a single product count, so a run that fails partway through (as
  * the first one did — see the "Bulk demo data" DECISION_LOG entry) can simply be re-run to finish.
  * See docs/inventory-management/DECISION_LOG.md's 2026-09-15 "Bulk demo data" entry.
@@ -80,11 +80,11 @@ public class InventoryBulkDemoDataSeeder {
             ProductRepository productRepo,
             InventoryLocationRepository locationRepo,
             StockMovementService stockMovementService,
-            StockIssueRequestService issueRequestService,
+            StockIndentService indentService,
             StockTransferService transferService,
             LoanableItemIssueService loanableItemIssueService,
             com.cms.inventory.stock.repository.StockBalanceRepository balanceRepo,
-            com.cms.inventory.issue.repository.StockIssueRequestRepository issueRequestRepo,
+            com.cms.inventory.indent.repository.StockIndentRepository indentRepo,
             com.cms.inventory.stock.repository.StockTransferRepository transferRepo,
             com.cms.inventory.issue.repository.LoanableItemIssueRepository loanableRepo) {
         return args -> {
@@ -121,17 +121,17 @@ public class InventoryBulkDemoDataSeeder {
                 log.info("Stock balances already exist — skipping opening-balance seeding this run.");
             }
 
-            // Neither StockIssueRequestAddLineRequest nor StockTransferAddLineRequest carries a
+            // Neither StockIndentAddLineRequest nor StockTransferAddLineRequest carries a
             // batch/serial number — approveLine()/complete() then fail requireTrackingModeCompliance
             // for a BATCH/SERIAL-tracked product (see docs/inventory-management/DECISION_LOG.md's
             // 2026-09-15 "Bulk demo data" entry — flagged there as a real gap, not fixed here).
-            // Route demo Issue Requests/Transfers only through untracked products until that's fixed.
+            // Route demo Indents/Transfers only through untracked products until that's fixed.
             List<Product> untrackedConsumables = consumables.stream()
                 .filter(p -> p.getTrackingMode() == StockTrackingMode.NONE).toList();
-            if (issueRequestRepo.count() == 0) {
-                seedIssueRequests(issueRequestService, untrackedConsumables, locations);
+            if (indentRepo.count() == 0) {
+                seedIndents(indentService, untrackedConsumables, locations);
             } else {
-                log.info("Stock issue requests already exist — skipping this run.");
+                log.info("Stock indents already exist — skipping this run.");
             }
             if (transferRepo.count() == 0) {
                 seedTransfers(transferService, stockMovementService, untrackedConsumables, locations);
@@ -356,9 +356,9 @@ public class InventoryBulkDemoDataSeeder {
         }
     }
 
-    // ── Stock Issue Requests (varied states) ───────────────────────────────
+    // ── Stock Indents (varied states) ───────────────────────────────
 
-    private void seedIssueRequests(StockIssueRequestService service, List<Product> consumables, Locations locations) {
+    private void seedIndents(StockIndentService service, List<Product> consumables, Locations locations) {
         if (consumables.size() < 10) return;
         InventoryLocation wardA = locations.sisters().get(1); // Ward A Requesting Point
         InventoryLocation wardB = locations.sisters().get(2); // Ward B Requesting Point
@@ -369,50 +369,50 @@ public class InventoryBulkDemoDataSeeder {
         InventoryLocation mainStore = locations.mainStore();
 
         // 1) DRAFT — never submitted
-        StockIssueRequestResponse draft = service.create(new StockIssueRequestCreateRequest(wardA.getId(), mainStore.getId(), LocalDate.now(), "Weekly ward restock"), "bulk-seed");
+        StockIndentResponse draft = service.create(new StockIndentCreateRequest(wardA.getId(), mainStore.getId(), LocalDate.now(), "Weekly ward restock"), "bulk-seed");
         addLine(service, draft.id(), consumables.get(0), new BigDecimal("10"));
         addLine(service, draft.id(), consumables.get(1), new BigDecimal("5"));
 
         // 2) SUBMITTED — lines still pending (awaiting approval)
-        StockIssueRequestResponse submitted = service.create(new StockIssueRequestCreateRequest(wardB.getId(), mainStore.getId(), LocalDate.now(), "Monthly consumables"), "bulk-seed");
+        StockIndentResponse submitted = service.create(new StockIndentCreateRequest(wardB.getId(), mainStore.getId(), LocalDate.now(), "Monthly consumables"), "bulk-seed");
         addLine(service, submitted.id(), consumables.get(2), new BigDecimal("8"));
         addLine(service, submitted.id(), consumables.get(3), new BigDecimal("12"));
         addLine(service, submitted.id(), consumables.get(4), new BigDecimal("6"));
         service.submit(submitted.id(), "ward-b-clerk");
 
         // 3) COMPLETED — every line approved
-        StockIssueRequestResponse completed = service.create(new StockIssueRequestCreateRequest(ot.getId(), mainStore.getId(), LocalDate.now().minusDays(3), "OT pre-op supplies"), "bulk-seed");
+        StockIndentResponse completed = service.create(new StockIndentCreateRequest(ot.getId(), mainStore.getId(), LocalDate.now().minusDays(3), "OT pre-op supplies"), "bulk-seed");
         var l1 = addLine(service, completed.id(), consumables.get(5), new BigDecimal("15"));
         var l2 = addLine(service, completed.id(), consumables.get(6), new BigDecimal("20"));
         service.submit(completed.id(), "ot-incharge");
-        service.approveLine(completed.id(), l1.id(), new StockIssueRequestResolutionRequest("Issued"), "store-keeper");
-        service.approveLine(completed.id(), l2.id(), new StockIssueRequestResolutionRequest("Issued"), "store-keeper");
+        service.approveLine(completed.id(), l1.id(), new StockIndentResolutionRequest("Issued"), "store-keeper");
+        service.approveLine(completed.id(), l2.id(), new StockIndentResolutionRequest("Issued"), "store-keeper");
 
         // 4) COMPLETED with one rejected line
-        StockIssueRequestResponse mixed = service.create(new StockIssueRequestCreateRequest(icu.getId(), mainStore.getId(), LocalDate.now().minusDays(5), "ICU request"), "bulk-seed");
+        StockIndentResponse mixed = service.create(new StockIndentCreateRequest(icu.getId(), mainStore.getId(), LocalDate.now().minusDays(5), "ICU request"), "bulk-seed");
         var m1 = addLine(service, mixed.id(), consumables.get(7), new BigDecimal("4"));
         var m2 = addLine(service, mixed.id(), consumables.get(8), new BigDecimal("500")); // deliberately large, gets rejected
         service.submit(mixed.id(), "icu-incharge");
-        service.approveLine(mixed.id(), m1.id(), new StockIssueRequestResolutionRequest("Issued"), "store-keeper");
-        service.rejectLine(mixed.id(), m2.id(), new StockIssueRequestResolutionRequest("Quantity exceeds available stock"), "store-keeper");
+        service.approveLine(mixed.id(), m1.id(), new StockIndentResolutionRequest("Issued"), "store-keeper");
+        service.rejectLine(mixed.id(), m2.id(), new StockIndentResolutionRequest("Quantity exceeds available stock"), "store-keeper");
 
         // 5) COMPLETED with an Internal Return on one line
-        StockIssueRequestResponse returned = service.create(new StockIssueRequestCreateRequest(housekeeping.getId(), mainStore.getId(), LocalDate.now().minusDays(7), "Housekeeping supplies"), "bulk-seed");
+        StockIndentResponse returned = service.create(new StockIndentCreateRequest(housekeeping.getId(), mainStore.getId(), LocalDate.now().minusDays(7), "Housekeeping supplies"), "bulk-seed");
         var r1 = addLine(service, returned.id(), consumables.get(9), new BigDecimal("30"));
         service.submit(returned.id(), "housekeeping-lead");
-        service.approveLine(returned.id(), r1.id(), new StockIssueRequestResolutionRequest("Issued"), "store-keeper");
-        service.returnLine(returned.id(), r1.id(), new StockIssueRequestReturnLineRequest(new BigDecimal("5"), "Unused, returning surplus"), "housekeeping-lead");
+        service.approveLine(returned.id(), r1.id(), new StockIndentResolutionRequest("Issued"), "store-keeper");
+        service.returnLine(returned.id(), r1.id(), new StockIndentReturnLineRequest(new BigDecimal("5"), "Unused, returning surplus"), "housekeeping-lead");
 
         // 6) CANCELLED — drafted then abandoned
-        StockIssueRequestResponse cancelled = service.create(new StockIssueRequestCreateRequest(officePoint.getId(), mainStore.getId(), LocalDate.now(), "Office stationery — cancelled"), "bulk-seed");
+        StockIndentResponse cancelled = service.create(new StockIndentCreateRequest(officePoint.getId(), mainStore.getId(), LocalDate.now(), "Office stationery — cancelled"), "bulk-seed");
         addLine(service, cancelled.id(), consumables.get(10), new BigDecimal("3"));
         service.cancel(cancelled.id());
 
-        log.info("✓ Seeded 6 Stock Issue Requests (DRAFT/SUBMITTED/COMPLETED/rejected-line/returned/CANCELLED)");
+        log.info("✓ Seeded 6 Stock Indents (DRAFT/SUBMITTED/COMPLETED/rejected-line/returned/CANCELLED)");
     }
 
-    private com.cms.inventory.issue.dto.StockIssueRequestItemResponse addLine(StockIssueRequestService service, Long requestId, Product product, BigDecimal qty) {
-        return service.addLine(requestId, new StockIssueRequestAddLineRequest(product.getId(), null, qty, null));
+    private com.cms.inventory.indent.dto.StockIndentItemResponse addLine(StockIndentService service, Long requestId, Product product, BigDecimal qty) {
+        return service.addLine(requestId, new StockIndentAddLineRequest(product.getId(), null, qty, null));
     }
 
     // ── Stock Transfers (varied states) ────────────────────────────────────

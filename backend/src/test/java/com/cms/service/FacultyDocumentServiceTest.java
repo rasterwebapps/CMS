@@ -241,11 +241,12 @@ class FacultyDocumentServiceTest {
 
         FacultyDocument doc = new FacultyDocument(faculty, DocumentType.PAN_CARD, DocumentVerificationStatus.UPLOADED);
         doc.setId(77L);
-        doc.setFileData("abc".getBytes());
+        doc.setStorageKey("faculty-docs/77-pan.pdf");
         doc.setFileName(null);
         doc.setContentType(null);
 
         when(documentRepository.findById(77L)).thenReturn(Optional.of(doc));
+        when(storageService.downloadBytes("faculty-docs/77-pan.pdf")).thenReturn("abc".getBytes());
 
         DocumentFileDownload dl = service.getFileForDownload(77L);
         assertThat(dl.fileName()).isEqualTo("PAN_CARD");
@@ -260,7 +261,7 @@ class FacultyDocumentServiceTest {
 
         FacultyDocument doc = new FacultyDocument(faculty, DocumentType.PAN_CARD, DocumentVerificationStatus.UPLOADED);
         doc.setId(77L);
-        doc.setFileData(new byte[0]);
+        // No storage key set
 
         when(documentRepository.findById(77L)).thenReturn(Optional.of(doc));
 

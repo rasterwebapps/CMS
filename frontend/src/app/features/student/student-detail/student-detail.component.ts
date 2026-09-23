@@ -52,6 +52,7 @@ import { FeeReceiptDialogComponent } from '../../../shared/fee-receipt-dialog/fe
 import { FinanceService } from '../../finance/finance.service';
 import { Receipt, ReceiptDisplayData } from '../../finance/finance.model';
 import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
+import { StudentGuardiansTabComponent } from '../../guardian/student-guardians-tab/student-guardians-tab.component';
 
 @Component({
   selector: 'app-student-detail',
@@ -75,6 +76,7 @@ import { printFeeReceipt } from '../../../shared/utils/print-receipt.utils';
     ProfileDocumentsComponent,
     MatTooltipModule,
     FeeReceiptDialogComponent,
+    StudentGuardiansTabComponent,
   ],
   templateUrl: './student-detail.component.html',
   styleUrl: './student-detail.component.scss',
@@ -403,6 +405,10 @@ export class StudentDetailComponent implements OnInit {
 
   protected canEditStudent(): boolean {
     return this.permissionService.has('STUDENT_EDIT');
+  }
+
+  protected canViewGuardians(): boolean {
+    return this.permissionService.hasAny('GUARDIAN_VIEW', 'GUARDIAN_MANAGE');
   }
 
   protected canTransferProgram(): boolean {

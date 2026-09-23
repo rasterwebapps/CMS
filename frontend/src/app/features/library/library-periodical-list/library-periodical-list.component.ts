@@ -26,6 +26,9 @@ import { PermissionService } from '../../../core/permissions/permission.service'
 import { ExportButtonComponent, ExportFormat } from '../../../shared/export-button';
 import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/column-picker';
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { LibraryBarcodePreviewDialogComponent, LibraryBarcodePreviewDialogData } from '../library-barcode-preview-dialog/library-barcode-preview-dialog.component';
 import { LibraryItemHistoryDialogComponent, LibraryItemHistoryDialogData } from '../library-item-history-dialog/library-item-history-dialog.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -43,6 +46,7 @@ import { LIBRARY_PERIODICAL_LIST_TOUR, LIBRARY_PERIODICAL_LIST_FLOW_MAP } from '
     CmsEmptyStateComponent, CmsRowActionButtonComponent,
     CmsTypeBadgeComponent, CmsStatusBadgeComponent, ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent, CmsTourButtonComponent,
+    CmsInfiniteSelectComponent,
   ],
   templateUrl: './library-periodical-list.component.html',
   styleUrl:    './library-periodical-list.component.scss',
@@ -98,6 +102,20 @@ export class LibraryPeriodicalListComponent implements OnInit, OnDestroy {
   protected readonly statusFilter  = signal<SubscriptionStatus | null>(null);
   protected readonly typeOptions   = JOURNAL_TYPE_OPTIONS;
   protected readonly statusOptions = SUBSCRIPTION_STATUS_OPTIONS;
+  protected readonly typeFetchPage = staticOptionsFetchPage(() =>
+    this.typeOptions.map(o => ({ id: o.value, name: o.label })));
+  protected readonly statusFetchPage = staticOptionsFetchPage(() =>
+    this.statusOptions.map(o => ({ id: o.value, name: o.label })));
+
+  protected onTypeFilterChange(value: InfiniteSelectValue | null): void {
+    this.typeFilter.set(value != null ? (String(value) as JournalType) : null);
+    this.onFilterChange();
+  }
+
+  protected onStatusFilterChange(value: InfiniteSelectValue | null): void {
+    this.statusFilter.set(value != null ? (String(value) as SubscriptionStatus) : null);
+    this.onFilterChange();
+  }
   protected readonly canManage     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_MANAGE'));
   protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_EXPORT'));
   protected readonly canImport     = computed(() => this.permissions.hasAny('LIBRARY_PERIODICAL_IMPORT'));

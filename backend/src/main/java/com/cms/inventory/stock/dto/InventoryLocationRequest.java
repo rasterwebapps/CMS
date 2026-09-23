@@ -19,5 +19,9 @@ public record InventoryLocationRequest(
     @Size(max = 500, message = "Description must not exceed 500 characters")
     String description,
 
+    /** The store this location normally draws stock from, for auto-generated Stock Indents. Only
+     *  meaningful on a REQUESTING_POINT/BOTH location; must itself be a STORE/BOTH location. */
+    Long defaultSupplyingLocationId,
+
     Boolean isActive
 ) {}

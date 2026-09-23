@@ -51,8 +51,12 @@ export const NAV_ENTRIES: NavEntry[] = [
     items: [
       { label: 'Dashboard',  icon: 'dashboard', route: '/dashboard' },
       { label: 'My Profile', icon: 'id_card',   route: '/profile' },
-      { label: 'My Timetable', icon: 'event_note', route: '/my-timetable', permissions: ['TIMETABLE_VIEW'], modules: ['ACADEMICS'] },
+      { label: 'My Timetable (Student)', icon: 'event_note', route: '/my-timetable/student', permissions: ['MY_TIMETABLE_VIEW_STUDENT'], modules: ['ACADEMICS'] },
+      { label: 'My Timetable (Staff)', icon: 'event_note', route: '/my-timetable/staff', permissions: ['MY_TIMETABLE_VIEW_STAFF'], modules: ['ACADEMICS'] },
       { label: 'My Dashboard', icon: 'school', route: '/student/my-dashboard', permissions: ['MY_ATTENDANCE_VIEW', 'MY_EXAM_RESULT_VIEW'] },
+      { label: 'My Fees', icon: 'payments', route: '/student/my-fees', permissions: ['MY_FEE_VIEW'] },
+      { label: 'My Wards', icon: 'family_restroom', route: '/parent/my-wards', permissions: ['MY_WARD_ATTENDANCE_VIEW', 'MY_WARD_EXAM_RESULT_VIEW'] },
+      { label: 'Ward Fees', icon: 'payments', route: '/parent/my-wards/fees', permissions: ['MY_WARD_FEE_VIEW'] },
     ],
   },
   // 2. Admission Management
@@ -118,26 +122,29 @@ export const NAV_ENTRIES: NavEntry[] = [
       // picker (CourseOfferingSectionFacultyService.getForOffering) only appears once those
       // sections already exist. No separate "Capacity Planner" menu item -- it's still a real,
       // fully standalone screen (own year/term/cohort pickers), just reached contextually from
-      // here, from Skeleton Builder, and from Staffing ("Adjust manually" / "size rooms first"
+      // here, from Timetable Builder, and from Staffing ("Adjust manually" / "size rooms first"
       // links) rather than adding a 2nd top-level entry for what's largely the same job.
       { label: 'Capacity Auto-Plan',  icon: 'auto_awesome',       route: '/timetable/capacity-auto-plan', permissions: ['TIMETABLE_CAPACITY_PLANNER_VIEW'] },
       { label: 'Assign Faculty',      icon: 'person_edit',        route: '/assign-faculty',      permissions: ['COURSE_VIEW', 'COURSE_MANAGE'] },
-      // -- Timetable build -- (Faculty Availability first: TimetableStaffingService's
+      // -- Timetable build -- (Recurring Unavailability first: TimetableStaffingService's
       // validateAssignment() checks it directly, so it gates Staffing, not the other way round.
       // Faculty Workload Rules is a Staffing input too, but it's a one-time institution-wide
-      // config screen like Periods/Classrooms, so it lives under Preferences > Academics masters.)
-      { label: 'Faculty Availability', icon: 'event_busy',        route: '/faculty-availability', permissions: ['FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'] },
-      { label: 'Skeleton Builder',    icon: 'grid_on',            route: '/timetable/skeleton-builder', permissions: ['TIMETABLE_VIEW'] },
-      // Lab Schedules is a manual CRUD screen over the same ClassSchedule rows Skeleton Builder
-      // places (see ClassScheduleController's route-naming comment) -- it belongs right after the
-      // tool that actually generates that data, not up in the Term-offering group before it exists.
+      // config screen like Periods/Classrooms, so it lives under Preferences > Academics masters.
+      // Renamed from "Faculty Availability" (2026-09-18): this screen only ever records a
+      // *recurring weekly* block (e.g. standing external duty every Tuesday) -- it is unrelated to
+      // one-off leave, which is the separate "Faculty Absence" screen further down under
+      // "Timetable ops". The two were being confused despite already living in different nav
+      // sections, so the label itself was renamed rather than moved.)
+      { label: 'Recurring Unavailability', icon: 'event_busy',    route: '/faculty-availability', permissions: ['FACULTY_AVAILABILITY_VIEW', 'FACULTY_AVAILABILITY_MANAGE'] },
+      { label: 'Timetable Builder',    icon: 'grid_on',            route: '/timetable/timetable-builder', permissions: ['TIMETABLE_VIEW'] },
       // No standalone Staffing nav entry -- Approve now auto-staffs the draft itself (OC-230), and
-      // any leftover unstaffed cell is fixed in-grid via Skeleton Builder's Reassign Faculty dialog.
-      { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
-      { label: 'Conflict Inspector',  icon: 'fact_check',         route: '/timetable/conflict-inspector', permissions: ['TIMETABLE_CONFLICT_INSPECTOR_VIEW'] },
-      { label: 'Timetable Draft Review', icon: 'auto_awesome',    route: '/timetable/draft-review', permissions: ['TIMETABLE_MANAGE'] },
+      // any leftover unstaffed cell is fixed in-grid via Timetable Builder's Reassign Faculty dialog.
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
       { label: 'Resource Timetable',  icon: 'grid_view',          route: '/timetable/resource-grid', permissions: ['TIMETABLE_FACULTY_GRID_VIEW', 'TIMETABLE_CLASSROOM_GRID_VIEW'] },
+      // Lab Schedules is a manual CRUD screen over the same ClassSchedule rows the timetable
+      // screens above place/publish (see ClassScheduleController's route-naming comment) -- it
+      // sits after them, not up in the Term-offering group before that data exists.
+      { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
       // -- Timetable ops (on-demand, after publish) --
       { label: 'Faculty Absence',     icon: 'person_off',         route: '/faculty-absence',     permissions: ['FACULTY_ABSENCE_MARK', 'FACULTY_ABSENCE_SUBSTITUTE_APPLY'] },
       { label: 'Staff Session Swap',  icon: 'swap_horiz',         route: '/timetable/staff-swap', permissions: ['TIMETABLE_STAFF_SWAP'] },
@@ -239,7 +246,8 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Stock Transfers',   icon: 'sync_alt', route: '/inventory/stock/transfers', permissions: ['INVENTORY_STOCK_TRANSFER_VIEW', 'INVENTORY_STOCK_TRANSFER_MANAGE'] },
       { label: 'Supplier Returns',  icon: 'keyboard_return', route: '/inventory/receiving/supplier-returns', permissions: ['INVENTORY_SUPPLIER_RETURN_VIEW', 'INVENTORY_SUPPLIER_RETURN_MANAGE'] },
       // -- Outbound movement (was "Requests, Issues & Returns") --
-      { label: 'Stock Issue Requests', icon: 'outbound', route: '/inventory/issue/stock-issue-requests', permissions: ['INVENTORY_ISSUE_REQUEST_VIEW', 'INVENTORY_ISSUE_REQUEST_MANAGE', 'INVENTORY_ISSUE_REQUEST_APPROVE'] },
+      { label: 'Reorder Configuration', icon: 'tune', route: '/inventory/stock/reorder-configs', permissions: ['INVENTORY_REORDER_CONFIG_VIEW', 'INVENTORY_REORDER_CONFIG_MANAGE'] },
+      { label: 'Stock Indents', icon: 'outbound', route: '/inventory/indent/stock-indents', permissions: ['INVENTORY_STOCK_INDENT_VIEW', 'INVENTORY_STOCK_INDENT_MANAGE', 'INVENTORY_STOCK_INDENT_APPROVE'] },
       { label: 'Loanable Item Issues', icon: 'assignment_return', route: '/inventory/issue/loanable-item-issues', permissions: ['INVENTORY_LOAN_ISSUE_VIEW', 'INVENTORY_LOAN_ISSUE_MANAGE', 'INVENTORY_LOAN_ISSUE_RETURN'] },
     ],
   },
@@ -277,7 +285,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     items: [
       { label: 'Asset Register', icon: 'inventory_2', route: '/inventory/asset/assets', permissions: ['INVENTORY_ASSET_VIEW', 'INVENTORY_ASSET_MANAGE'] },
       { label: 'Maintenance Schedules', icon: 'build', route: '/inventory/asset/maintenance-schedules', permissions: ['INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'] },
-      { label: 'Service Contracts', icon: 'handshake', route: '/inventory/asset/service-contracts', permissions: ['INVENTORY_ASSET_MAINTENANCE_VIEW', 'INVENTORY_ASSET_MAINTENANCE_MANAGE'] },
+      { label: 'Service Contracts', icon: 'handshake', route: '/inventory/asset/service-contracts', permissions: ['INVENTORY_ASSET_SERVICE_CONTRACT_VIEW', 'INVENTORY_ASSET_SERVICE_CONTRACT_MANAGE'] },
       { label: 'Depreciation Summary', icon: 'trending_down', route: '/inventory/reporting/asset-depreciation-summary', permissions: ['INVENTORY_ASSET_VIEW', 'INVENTORY_ASSET_MANAGE'] },
     ],
   },

@@ -39,23 +39,30 @@ public class ProductService {
     private final CategoryService categoryService;
     private final UomService uomService;
     private final BrandService brandService;
+    private final ProductCodeGeneratorService codeGeneratorService;
 
     public ProductService(ProductRepository productRepository,
                            CategoryAttributeRepository attributeRepository,
                            CategoryService categoryService,
                            UomService uomService,
-                           BrandService brandService) {
+                           BrandService brandService,
+                           ProductCodeGeneratorService codeGeneratorService) {
         this.productRepository = productRepository;
         this.attributeRepository = attributeRepository;
         this.brandService = brandService;
         this.categoryService = categoryService;
         this.uomService = uomService;
+        this.codeGeneratorService = codeGeneratorService;
     }
 
     @Transactional
     public ProductResponse create(ProductRequest request) {
         Product product = new Product();
         applyRequest(product, request, null);
+        // Assigned last, after category resolution/validation in applyRequest has already
+        // succeeded — generateNextCode commits the per-category counter, so nothing upstream
+        // should be able to fail after this and leave a gap in the sequence.
+        product.setProductCode(codeGeneratorService.generateNextCode(product.getCategory()));
         return toResponse(productRepository.save(product));
     }
 
@@ -143,19 +150,12 @@ public class ProductService {
     }
 
     private void applyRequest(Product product, ProductRequest request, Long excludeId) {
-        String code = requireTrimmed(request.productCode(), "Product code is required");
         String name = requireTrimmed(request.productName(), "Product name is required");
         String barcode = trim(request.barcode());
         Category category = categoryService.findOrThrow(request.categoryId());
         Uom baseUom = uomService.findOrThrow(request.baseUomId());
         Brand brand = request.brandId() != null ? brandService.findOrThrow(request.brandId()) : null;
 
-        boolean codeTaken = excludeId != null
-            ? productRepository.existsByProductCodeIgnoreCaseAndIdNot(code, excludeId)
-            : productRepository.existsByProductCodeIgnoreCase(code);
-        if (codeTaken) {
-            throw new IllegalArgumentException("A product with the code '" + code + "' already exists");
-        }
         boolean nameTaken = excludeId != null
             ? productRepository.existsByProductNameIgnoreCaseAndCategoryIdAndIdNot(name, category.getId(), excludeId)
             : productRepository.existsByProductNameIgnoreCaseAndCategoryId(name, category.getId());
@@ -166,7 +166,6 @@ public class ProductService {
             throw new IllegalArgumentException("A product with the barcode '" + barcode + "' already exists");
         }
 
-        product.setProductCode(code);
         product.setProductName(name);
         product.setBarcode(barcode);
         product.setCategory(category);

@@ -33,16 +33,11 @@
       }
     </div>
 
-    <select
-      class="mlp-filter-select"
-      [value]="isCurrentFilter() === null ? '' : '' + isCurrentFilter()"
-      (change)="onIsCurrentFilterChange($any($event.target).value)"
-      aria-label="Filter by period"
-    >
-      <option value="">All Periods</option>
-      <option value="true">Current</option>
-      <option value="false">Past</option>
-    </select>
+    <cms-infinite-select
+      label="All Periods" ariaLabel="Filter by period" searchPlaceholder="Search…"
+      [fetchPage]="isCurrentFetchPage"
+      [selectedValue]="isCurrentFilter() === null ? null : '' + isCurrentFilter()" (selectedValueChange)="onIsCurrentFilterChange($event)"
+    />
 
     <div id="tour-ay-view-toggle" style="margin-left:auto"><cms-view-toggle [mode]="viewMode()" (modeChange)="setViewMode($event)" /></div>
   </div>

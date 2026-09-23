@@ -1,0 +1,88 @@
+<h2 mat-dialog-title class="dialog-title">
+  <mat-icon>family_restroom</mat-icon>
+  Add Guardian
+  <span class="dialog-title__sub">{{ data.studentName }}</span>
+</h2>
+
+<mat-dialog-content>
+  <mat-button-toggle-group class="guardian-mode-toggle" [value]="mode()" (change)="setMode($event.value)">
+    <mat-button-toggle value="existing">Existing Guardian</mat-button-toggle>
+    <mat-button-toggle value="new">New Guardian</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (mode() === 'existing') {
+    <form [formGroup]="existingForm" class="guardian-dialog-form">
+      @if (loadingGuardians()) {
+        <div class="guardian-dialog-loading"><mat-spinner diameter="24"></mat-spinner></div>
+      } @else {
+        <div class="field-group">
+          <label class="field-label" for="gld-guardian">Guardian <span class="required-star">*</span></label>
+          <mat-select id="gld-guardian" formControlName="guardianId" placeholder="Select a guardian">
+            @for (g of availableGuardians(); track g.id) {
+              <mat-option [value]="g.id">{{ g.firstName }} {{ g.lastName }} ({{ g.email }})</mat-option>
+            }
+          </mat-select>
+          @if (availableGuardians().length === 0) {
+            <p class="field-hint">No unlinked guardians found — switch to "New Guardian" to create one.</p>
+          }
+        </div>
+        <mat-checkbox formControlName="isPrimary">Primary guardian</mat-checkbox>
+      }
+    </form>
+  } @else {
+    <form [formGroup]="newForm" class="guardian-dialog-form">
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="gld-first">First name <span class="required-star">*</span></label>
+          <input id="gld-first" class="field-input" formControlName="firstName" autocomplete="off"
+                 [class.field-input--error]="newForm.get('firstName')?.invalid && newForm.get('firstName')?.touched" />
+          @if (getNewFieldError('firstName')) {
+            <p class="field-error">{{ getNewFieldError('firstName') }}</p>
+          }
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="gld-last">Last name <span class="required-star">*</span></label>
+          <input id="gld-last" class="field-input" formControlName="lastName" autocomplete="off"
+                 [class.field-input--error]="newForm.get('lastName')?.invalid && newForm.get('lastName')?.touched" />
+          @if (getNewFieldError('lastName')) {
+            <p class="field-error">{{ getNewFieldError('lastName') }}</p>
+          }
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="gld-email">Email <span class="required-star">*</span></label>
+        <input id="gld-email" class="field-input" formControlName="email" autocomplete="off" type="email"
+               [class.field-input--error]="newForm.get('email')?.invalid && newForm.get('email')?.touched" />
+        @if (newForm.get('email')?.pending) {
+          <p class="field-hint">Checking…</p>
+        } @else if (getNewFieldError('email')) {
+          <p class="field-error">{{ getNewFieldError('email') }}</p>
+        }
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="gld-phone">Phone</label>
+          <input id="gld-phone" class="field-input" formControlName="phone" autocomplete="off" />
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="gld-relationship">Relationship</label>
+          <input id="gld-relationship" class="field-input" formControlName="relationshipHint"
+                 placeholder="e.g., Father, Mother, Guardian" autocomplete="off" />
+        </div>
+      </div>
+      <mat-checkbox formControlName="isPrimary">Primary guardian</mat-checkbox>
+    </form>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" (click)="onCancel()" [disabled]="saving()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="onSave()" [disabled]="saving()">
+    @if (saving()) {
+      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+    } @else {
+      <mat-icon>link</mat-icon>
+    }
+    Link Guardian
+  </button>
+</mat-dialog-actions>

@@ -11,26 +11,33 @@
   </div>
 
   <div id="tour-tt-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
-    <select class="mlp-filter-select" [(ngModel)]="selectedAcademicYearId" (ngModelChange)="onAcademicYearChange()" aria-label="Academic year">
-      @for (ay of academicYears(); track ay.id) {
-        <option [ngValue]="ay.id">{{ ay.name }}</option>
-      }
-    </select>
-    <select class="mlp-filter-select" [(ngModel)]="selectedTermInstanceId" (ngModelChange)="onTermChange()"
-      [disabled]="termsLoading() || termInstances().length === 0" aria-label="Term">
-      @if (termInstances().length === 0) {
-        <option [ngValue]="null">No terms yet</option>
-      }
-      @for (term of termInstances(); track term.id) {
-        <option [ngValue]="term.id">{{ term.termType }} · {{ term.status }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
+      [fetchPage]="academicYearFetchPage"
+      [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+    />
+    <cms-infinite-select
+      label="Term" ariaLabel="Term" searchPlaceholder="Search terms…"
+      [fetchPage]="termFetchPage"
+      [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
+      [disabled]="termsLoading() || termInstances().length === 0"
+    />
+    <cms-infinite-select
+      label="Cohort" ariaLabel="Cohort" searchPlaceholder="Search cohorts…"
+      [fetchPage]="cohortFetchPage"
+      [selectedValue]="selectedCohortId" (selectedValueChange)="onCohortChange($event)"
+      [disabled]="cohortsLoading() || cohorts().length === 0"
+    />
 
     <div class="view-mode-toggle">
-      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'week'" (click)="setViewMode('week')">Week</button>
-      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'month'" (click)="setViewMode('month')">Month</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'week'" (click)="setViewMode('week')">Generic</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'dateWise'" (click)="setViewMode('dateWise')">Date-wise</button>
       <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'day'" (click)="setViewMode('day')">Day</button>
     </div>
+
+    @if (viewMode() === 'dateWise') {
+      <cms-week-navigator [weekStart]="weekStart()" [min]="dayMin" [max]="dayMax" (weekStartChange)="onWeekStartChange($event)" />
+    }
 
     @if (viewMode() === 'day') {
       <label class="day-picker">
@@ -40,26 +47,23 @@
       </label>
     }
 
-    <select class="mlp-filter-select" [ngModel]="selectedFaculty()" (ngModelChange)="selectedFaculty.set($event)" aria-label="Faculty">
-      <option [ngValue]="null">All Faculty</option>
-      @for (name of facultyOptions(); track name) {
-        <option [ngValue]="name">{{ name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Faculty" ariaLabel="Faculty" searchPlaceholder="Search faculty…"
+      [fetchPage]="facultyFetchPage"
+      [selectedValue]="selectedFaculty()" (selectedValueChange)="onFacultyFilterChange($event)"
+    />
 
-    <select class="mlp-filter-select" [ngModel]="selectedRoom()" (ngModelChange)="selectedRoom.set($event)" aria-label="Room">
-      <option [ngValue]="null">All Rooms</option>
-      @for (name of roomOptions(); track name) {
-        <option [ngValue]="name">{{ name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Rooms" ariaLabel="Room" searchPlaceholder="Search rooms…"
+      [fetchPage]="roomFetchPage"
+      [selectedValue]="selectedRoom()" (selectedValueChange)="onRoomFilterChange($event)"
+    />
 
-    <select class="mlp-filter-select" [ngModel]="selectedBatch()" (ngModelChange)="selectedBatch.set($event)" aria-label="Batch">
-      <option [ngValue]="null">All Batches</option>
-      @for (name of batchOptions(); track name) {
-        <option [ngValue]="name">{{ name }}</option>
-      }
-    </select>
+    <cms-infinite-select
+      label="All Batches" ariaLabel="Batch" searchPlaceholder="Search batches…"
+      [fetchPage]="batchFetchPage"
+      [selectedValue]="selectedBatch()" (selectedValueChange)="onBatchFilterChange($event)"
+    />
   </div>
 
   <div id="tour-tt-view" class="content-card">
@@ -69,16 +73,16 @@
           <mat-spinner diameter="36" aria-label="Loading timetable"></mat-spinner>
         </div>
       } @else {
-        <cms-week-grid mode="browse" [sessions]="filteredSessions()" />
+        <cms-week-grid mode="browse" [sessions]="filteredSessions()" [workingSaturdayCount]="selectedTerm()?.workingSaturdayCount ?? null" />
       }
-    } @else if (viewMode() === 'month') {
+    } @else if (viewMode() === 'dateWise') {
       @if (occurrencesLoading()) {
         <div class="loading-container">
-          <mat-spinner diameter="36" aria-label="Loading month view"></mat-spinner>
+          <mat-spinner diameter="36" aria-label="Loading date-wise view"></mat-spinner>
         </div>
       } @else {
-        <cms-month-grid [year]="monthYear()" [month]="monthMonth()" [occurrences]="filteredOccurrences()"
-          (monthChange)="onMonthChange($event)" (dayClick)="onMonthDayClick($event)" />
+        <cms-week-grid mode="browse" [sessions]="dateWiseSessions()" [weekStart]="weekStart()"
+          [workingSaturdayCount]="selectedTerm()?.workingSaturdayCount ?? null" />
       }
     } @else {
       @if (occurrencesLoading()) {
@@ -86,7 +90,7 @@
           <mat-spinner diameter="36" aria-label="Loading day view"></mat-spinner>
         </div>
       } @else {
-        <cms-day-agenda [date]="dayDate()" [occurrences]="filteredOccurrences()"
+        <cms-day-agenda [date]="dayDate()" [occurrences]="filteredOccurrences()" [periods]="dayPeriods()"
           [allowRoomRelocate]="canRelocateRoom()" (relocateRoomClick)="openRoomRelocation($event)" />
       }
     }

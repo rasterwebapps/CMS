@@ -23,6 +23,9 @@ import { ColumnPickerState, CmsColumnPickerComponent } from '../../../shared/col
 import { PermissionService } from '../../../core/permissions/permission.service';
 
 import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shared/column-resize';
+import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
+import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 
 @Component({
   selector: 'app-syllabus-list',
@@ -43,6 +46,7 @@ import { ColumnResizeDirective, CmsWrapTextToggleComponent } from '../../../shar
     CmsIconToggleStatusComponent,
     CmsTourButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
+    CmsInfiniteSelectComponent,
 ],
   templateUrl: './syllabus-list.component.html',
   styleUrl: './syllabus-list.component.scss',
@@ -156,13 +160,18 @@ export class SyllabusListComponent implements OnInit {
     this.searchValue.set('');
   }
 
-  protected onCurriculumVersionChange(id: number | null): void {
-    this.selectedCurriculumVersionId.set(id);
+  protected readonly curriculumVersionFetchPage = staticOptionsFetchPage(() =>
+    this.curriculumVersionOptions().map(cv => ({ id: cv.id, name: cv.name })));
+  protected readonly termNumberFetchPage = staticOptionsFetchPage(() =>
+    this.termNumberOptions().map(term => ({ id: term, name: `Term ${term}` })));
+
+  protected onCurriculumVersionChange(value: InfiniteSelectValue | null): void {
+    this.selectedCurriculumVersionId.set(value != null ? Number(value) : null);
     this.selectedTermNumber.set(null);
   }
 
-  protected onTermNumberChange(term: number | null): void {
-    this.selectedTermNumber.set(term);
+  protected onTermNumberChange(value: InfiniteSelectValue | null): void {
+    this.selectedTermNumber.set(value != null ? Number(value) : null);
   }
 
   protected clearFilters(): void {

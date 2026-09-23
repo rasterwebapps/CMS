@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.DocumentNumberRegenerationResult;
 import com.cms.inventory.procurement.dto.PurchaseOrderAddLineRequest;
 import com.cms.inventory.procurement.dto.PurchaseOrderCreateRequest;
 import com.cms.inventory.procurement.dto.PurchaseOrderForceCloseRequest;
@@ -55,8 +56,26 @@ public class PurchaseOrderController {
             @RequestParam(required = false) Long supplierId,
             @RequestParam(required = false) Long locationId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
             @PageableDefault(size = 25, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(orderService.findPage(supplierId, locationId, status, pageable));
+        return ResponseEntity.ok(orderService.findPage(supplierId, locationId, status, search, pageable));
+    }
+
+    /** Preview of the "Regenerate Numbers" admin action — computes the full before/after mapping
+     *  without writing anything, for a confirm dialog. */
+    @GetMapping("/regenerate-numbers/preview")
+    @PreAuthorize("@perm.has('INVENTORY_PURCHASE_ORDER_REGENERATE_NUMBERS')")
+    public ResponseEntity<DocumentNumberRegenerationResult> previewRegenerateNumbers() {
+        return ResponseEntity.ok(orderService.regeneratePoNumbers(true));
+    }
+
+    /** Executes the "Regenerate Numbers" admin action — bulk-reassigns every purchase order's
+     *  number to a fresh, gap-free sequence. Mass rewrite of production data — should only be run
+     *  after a backup, per the project's production-data-safety policy. */
+    @PostMapping("/regenerate-numbers")
+    @PreAuthorize("@perm.has('INVENTORY_PURCHASE_ORDER_REGENERATE_NUMBERS')")
+    public ResponseEntity<DocumentNumberRegenerationResult> regenerateNumbers() {
+        return ResponseEntity.ok(orderService.regeneratePoNumbers(false));
     }
 
     @GetMapping("/{id}")

@@ -37,6 +37,11 @@ public class SupplierReturn {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Sequential, e.g. "SR-00001" — assigned via ApplicationNumberSequenceService.
+     *  Nullable only for rows that predate this feature; every create() assigns one. */
+    @Column(name = "return_number", length = 50)
+    private String returnNumber;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "goods_receipt_id", nullable = false)
     private GoodsReceipt goodsReceipt;
@@ -72,6 +77,9 @@ public class SupplierReturn {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getReturnNumber() { return returnNumber; }
+    public void setReturnNumber(String returnNumber) { this.returnNumber = returnNumber; }
 
     public GoodsReceipt getGoodsReceipt() { return goodsReceipt; }
     public void setGoodsReceipt(GoodsReceipt goodsReceipt) { this.goodsReceipt = goodsReceipt; }

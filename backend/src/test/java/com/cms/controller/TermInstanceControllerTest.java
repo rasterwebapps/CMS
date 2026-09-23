@@ -136,6 +136,6 @@ class TermInstanceControllerTest {
 
     private TermInstanceDto createDto(Long id, Long ayId, String ayName, TermType type,
                                        LocalDate start, LocalDate end, TermInstanceStatus status) {
-        return new TermInstanceDto(id, ayId, ayName, type, start, end, status, Instant.now(), Instant.now());
+        return new TermInstanceDto(id, ayId, ayName, type, start, end, status, Instant.now(), Instant.now(), 0L);
     }
 }

@@ -9,6 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Timetable Draft Review — cohort status landing page + Clinical Shift visibility in grid**
+  - Draft Review now lands on a per-cohort status summary table (one row per cohort enrolled in the term instance, showing DRAFT / PUBLISHED / PARTIALLY_PUBLISHED status, draft/published session counts, and unassigned curriculum hours) instead of opening the term-wide grid directly; clicking a cohort row opens the existing, unchanged term-wide grid — Publish/Revert/Discard remain term-scoped, not cohort-scoped
+  - Added `GET /api/v1/timetable/draft/cohort-status-summary` endpoint and `CohortTermStatusSummary` DTO
+  - Clinical Shift Group duty-roster blocks (previously visible only in a separate summary banner) now also render as read-only, non-interactive entries directly in the Draft/Published review grid, matching how they already appear on the Resource Grid
+  - Added `PARTIALLY_PUBLISHED` to `CmsStatusBadgeComponent`'s status map
+  - Renamed the review grid's "Approve" action button to "Publish" to match the summary table's status labels
+  - Week grid: LIBRARY/SPORTS session chips get their own color treatment; LIBRARY rows no longer show a false "Unstaffed — needs staffing" warning (Library has no faculty concept)
 - **Excess Bank Payment with Auto-Generated Refund (BR-36)**
   - Student Fee Detail → Advance Payment: opt-in "Allow payment above total outstanding (bank excess)" for Demand Draft / Bank Transfer payments, gated by new `FEE_COLLECT_EXCESS` permission
   - Excess over total outstanding auto-generates a `FeeRefund` (`source = AUTO_EXCESS`) in the same transaction as the payment; the receipt records the full amount actually received
@@ -42,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Contributing guide
 
 ### Fixed
+- **Clinical Shift Group hours banner** — a shift group created/activated before Capacity Auto-Plan room-sections its cohort (`cohortSection` still null) was silently dropped from the Draft Review duty-roster hours banner even though it was already crediting the grid's CLINICAL budget; now falls back to resolving the cohort name(s) via the offering's `(curriculumVersion, semesterNumber)`, the same reverse-lookup `CourseOfferingService` already uses elsewhere
 - **Fee Structure validation** — Year-wise amount inputs can now be left blank and are treated as `0`; saving is blocked only when the generic Course Total is not greater than zero.
 - **SubjectController** — Updated API base path from `/subjects` to `/api/v1/subjects` to follow project conventions
 - **SubjectControllerTest** — Updated all test paths to use `/api/v1/subjects` prefix

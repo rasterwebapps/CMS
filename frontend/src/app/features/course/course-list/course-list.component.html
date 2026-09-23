@@ -34,18 +34,12 @@
       }
     </div>
 
-    <select
+    <cms-infinite-select
       id="tour-course-filters"
-      class="mlp-filter-select"
-      [value]="selectedProgramId() ?? ''"
-      (change)="onProgramFilterChange($any($event.target).value)"
-      aria-label="Filter by program"
-    >
-      <option value="">All Programs</option>
-      @for (prog of programs(); track prog.id) {
-        <option [value]="prog.id">{{ prog.name }}</option>
-      }
-    </select>
+      label="All Programs" ariaLabel="Filter by program" searchPlaceholder="Search programs…"
+      [fetchPage]="programFetchPage" [resolveLabel]="programResolveLabel"
+      [selectedValue]="selectedProgramId()" (selectedValueChange)="onProgramFilterChange($event)"
+    />
 
     <cms-view-toggle
       id="tour-course-view-toggle"

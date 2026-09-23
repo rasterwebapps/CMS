@@ -103,6 +103,8 @@
   min-width: 0;
 
   @media (max-width: 520px) { flex-direction: column; gap: 12px; }
+
+  .entry-form-back-btn { margin-top: 12px; }
 }
 
 // Avatar

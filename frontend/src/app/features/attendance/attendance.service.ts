@@ -19,6 +19,11 @@ export class AttendanceService {
     return this.http.get<Attendance[]>(`${this.baseUrl}/my`);
   }
 
+  /** A guardian's linked ward's attendance -- backend re-validates ward ownership server-side. */
+  getWardAttendance(studentId: number): Observable<Attendance[]> {
+    return this.http.get<Attendance[]>(`${this.baseUrl}/my-wards?studentId=${studentId}`);
+  }
+
   getBySubject(subjectId: number, date?: string): Observable<Attendance[]> {
     const dateParam = date ? `&date=${date}` : '';
     return this.http.get<Attendance[]>(`${this.baseUrl}?subjectId=${subjectId}${dateParam}`);

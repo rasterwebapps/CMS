@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   LogProgressRequest,
+  OccurrenceCoverageRequest,
   OfferingProgress,
   SessionOccurrence,
   UnitPickerOption,
@@ -31,6 +32,18 @@ export class ProgressTrackingService {
 
   logCoverage(request: LogProgressRequest): Observable<SessionOccurrence> {
     return this.http.post<SessionOccurrence>(`${this.baseUrl}/log`, request);
+  }
+
+  getAvailableUnitsForOccurrence(occurrenceId: number): Observable<UnitPickerOption[]> {
+    return this.http.get<UnitPickerOption[]>(`${this.baseUrl}/occurrences/${occurrenceId}/units`);
+  }
+
+  getOccurrenceById(occurrenceId: number): Observable<SessionOccurrence> {
+    return this.http.get<SessionOccurrence>(`${this.baseUrl}/occurrences/${occurrenceId}`);
+  }
+
+  logCoverageForOccurrence(occurrenceId: number, request: OccurrenceCoverageRequest): Observable<SessionOccurrence> {
+    return this.http.post<SessionOccurrence>(`${this.baseUrl}/occurrences/${occurrenceId}/log`, request);
   }
 
   getOfferingProgress(courseOfferingId: number): Observable<OfferingProgress> {

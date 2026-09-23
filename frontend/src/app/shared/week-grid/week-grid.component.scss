@@ -1,8 +1,9 @@
 .week-grid-wrap {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
+  padding: 16px;
 }
 
 .week-grid-toolbar {
@@ -105,32 +106,41 @@
   gap: 1px;
   padding: 6px 8px;
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px solid var(--cms-border-default);
   cursor: pointer;
   text-align: left;
   width: 100%;
   font-family: inherit;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+  // Same recipe every timetable-shaped screen uses -- see session-color.util.ts. --subject-color is
+  // set inline per chip from the session's sessionType (component.ts#sessionColor), so this rule
+  // never hardcodes a session-type color itself. A light background tint (color-mix, matching this
+  // file's existing color-mix usage above for the swap-candidate overlay) plus a solid, undiluted
+  // left accent bar via box-shadow -- exactly Timetable Builder's own .skeleton-cell recipe (border
+  // stays the neutral default color; only the accent bar and the light fill carry the session-type
+  // tint) -- rather than this chip's previous from a diluted-color BORDER, which read as a visibly
+  // different (more uniformly-colorful) treatment from Builder's neutral-border-plus-accent-bar look.
+  background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--subject-color, var(--cms-border-default));
 
+  // box-shadow doesn't stack across declarations -- the elevation shadow must be combined with the
+  // base rule's accent-bar shadow in one declaration, or hovering would make the accent bar vanish.
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.25);
+    box-shadow: inset 3px 0 0 0 var(--subject-color, var(--cms-border-default)), 0 4px 10px -4px rgba(0, 0, 0, 0.25);
   }
 }
 
-.session-chip--theory {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.28);
-}
+// A synthetic entry (e.g. a Clinical Shift Group duty roster block) has no real ClassSchedule row
+// behind it -- no swap/detail action applies, so it shouldn't look clickable like the rest of the
+// grid's session chips.
+.session-chip--readonly {
+  cursor: default;
 
-.session-chip--lab {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.28);
-}
-
-.session-chip--clinical {
-  background: rgba(168, 85, 247, 0.12);
-  border-color: rgba(168, 85, 247, 0.28);
+  &:hover {
+    transform: none;
+    box-shadow: inset 3px 0 0 0 var(--subject-color, var(--cms-border-default));
+  }
 }
 
 .session-chip--draft {
@@ -152,6 +162,36 @@
 .session-chip--swap-source {
   outline: 2px solid var(--cms-primary);
   outline-offset: 1px;
+}
+
+// Date-wise-weekly view only (see WeekGridSession.occurrenceStatus) -- a specific date's real
+// outcome for an otherwise-recurring slot, never set by the generic template consumers.
+.session-chip--cancelled {
+  background: var(--cms-bg-muted);
+  border-color: var(--cms-border-default);
+  opacity: 0.7;
+
+  &:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .session-chip__subject {
+    text-decoration: line-through;
+    color: var(--cms-text-muted);
+  }
+}
+
+.session-chip--substituted {
+  border-style: dashed;
+  border-color: var(--cms-badge-amber-text, #b45309);
+}
+
+.session-chip__cancelled-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--cms-text-muted);
+  line-height: 1.2;
 }
 
 .session-chip__subject {

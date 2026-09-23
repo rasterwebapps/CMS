@@ -85,13 +85,12 @@
 
             <div class="field-group" style="margin-bottom: 0;">
               <label for="course-program" class="field-label">Program <span class="required-star">*</span></label>
-              <select id="course-program" class="field-select" formControlName="programId"
-                [class.field-select--error]="form.get('programId')?.invalid && form.get('programId')?.touched">
-                <option [ngValue]="null" disabled>Select a program</option>
-                @for (program of programs(); track program.id) {
-                  <option [ngValue]="program.id">{{ program.name }}</option>
-                }
-              </select>
+              <cms-infinite-select
+                id="course-program"
+                label="Select a program" ariaLabel="Program" searchPlaceholder="Search programs…"
+                formControlName="programId"
+                [fetchPage]="programFetchPage" [resolveLabel]="programResolveLabel"
+              />
               @if (form.get('programId')?.invalid && form.get('programId')?.touched) {
                 <p class="field-error">{{ getErrorMessage('programId') }}</p>
               }
