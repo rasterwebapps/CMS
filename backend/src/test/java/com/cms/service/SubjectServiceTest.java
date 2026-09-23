@@ -250,6 +250,21 @@ class SubjectServiceTest {
     }
 
     @Test
+    void shouldRejectNonZeroTheoryCreditsForSystemManagedSubjectOnUpdate() {
+        Subject sportsSubject = new Subject("Sports", "SYSTEM-SPORTS", 0, 0, 0, null, 0);
+        sportsSubject.setId(5L);
+        SubjectRequest request = new SubjectRequest("Sports", "SYSTEM-SPORTS", 0, 2, 0, null, 0, null, null,
+            null, null, null, null);
+        when(subjectRepository.findById(5L)).thenReturn(Optional.of(sportsSubject));
+
+        assertThatThrownBy(() -> subjectService.update(5L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("must all be 0");
+
+        verify(subjectRepository, never()).save(any(Subject.class));
+    }
+
+    @Test
     void shouldThrowWhenSpecialityNotFoundOnCreate() {
         SubjectRequest request = new SubjectRequest("Anatomy", "ANAT101", 4, 3, 1, 999L, 1, null, null, null, null, null, null);
         when(specialityRepository.findById(999L)).thenReturn(Optional.empty());
@@ -436,7 +451,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldDeleteSubject() {
-        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(curriculumSemesterCourseRepository.existsBySubjectId(1L)).thenReturn(false);
         when(courseOfferingRepository.existsBySubjectId(1L)).thenReturn(false);
 
@@ -447,7 +462,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenSubjectNotFoundOnDelete() {
-        when(subjectRepository.existsById(999L)).thenReturn(false);
+        when(subjectRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> subjectService.delete(999L))
             .isInstanceOf(ResourceNotFoundException.class)
@@ -457,8 +472,20 @@ class SubjectServiceTest {
     }
 
     @Test
+    void shouldThrowWhenDeletingSystemManagedSubject() {
+        testSubject.setCode("SYSTEM-SPORTS");
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
+
+        assertThatThrownBy(() -> subjectService.delete(1L))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("system-managed");
+
+        verify(subjectRepository, never()).deleteById(any());
+    }
+
+    @Test
     void shouldThrowWhenDeletingSubjectMappedIntoCurriculum() {
-        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(curriculumSemesterCourseRepository.existsBySubjectId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> subjectService.delete(1L))
@@ -470,7 +497,7 @@ class SubjectServiceTest {
 
     @Test
     void shouldThrowWhenDeletingSubjectWithCourseOfferings() {
-        when(subjectRepository.existsById(1L)).thenReturn(true);
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
         when(curriculumSemesterCourseRepository.existsBySubjectId(1L)).thenReturn(false);
         when(courseOfferingRepository.existsBySubjectId(1L)).thenReturn(true);
 
@@ -522,6 +549,20 @@ class SubjectServiceTest {
             .hasMessageContaining("rostered");
 
         verify(subjectRepository, never()).save(any(Subject.class));
+    }
+
+    @Test
+    void updateStatus_blocksDeactivationOfSystemManagedSubject() {
+        testSubject.setCode("SYSTEM-LIBRARY");
+        testSubject.setIsActive(true);
+        when(subjectRepository.findById(1L)).thenReturn(Optional.of(testSubject));
+
+        assertThatThrownBy(() -> subjectService.updateStatus(1L, new ActiveStatusUpdateRequest(false, null)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("system-managed");
+
+        verify(subjectRepository, never()).save(any(Subject.class));
+        verify(classScheduleRepository, never()).existsByCourseOffering_Subject_Id(any());
     }
 
     @Test

@@ -17,11 +17,13 @@ public record SubjectRequest(
     @Size(max = 50, message = "Code must not exceed 50 characters")
     String code,
 
-    /** Min is 0, not 1, only so a system-managed subject (code starting "SYSTEM-", e.g.
-     *  SYSTEM-LIBRARY/SYSTEM-SPORTS) can round-trip its deliberate credits=0 sentinel through this
-     *  same endpoint when an admin edits its eligible faculty/venues. {@link
-     *  com.cms.service.SubjectService#create}/{@code #update} still reject credits &lt; 1 for every
-     *  ordinary subject. */
+    /** Min is 0, not 1, only so a system-managed subject (an exact two-code allowlist --
+     *  SYSTEM-LIBRARY/SYSTEM-SPORTS, not a "SYSTEM-" prefix match, see
+     *  {@link com.cms.service.SubjectService#isSystemManaged}) can round-trip its deliberate
+     *  credits=0 sentinel through this same endpoint when an admin edits its eligible
+     *  faculty/venues. {@link com.cms.service.SubjectService#create}/{@code #update} still reject
+     *  credits &lt; 1 for every ordinary subject, and pin it to exactly 0 (not just &gt;= 0) for the
+     *  two allowlisted ones. */
     @NotNull(message = "Credits is required")
     @Min(value = 0, message = "Credits must be at least 0")
     @Max(value = 20, message = "Credits must not exceed 20")

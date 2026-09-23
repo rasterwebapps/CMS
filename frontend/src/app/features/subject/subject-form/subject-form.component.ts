@@ -316,12 +316,14 @@ export class SubjectFormComponent implements OnInit {
         // async uniqueness validator at all for a system-managed subject, instead of kicking off a
         // real HTTP check (fired by patchValue's own default emitEvent:true) that disable() alone
         // can't cancel and whose result would just be silently discarded on the now-disabled control.
-        // isActive is locked too, alongside Code/Credits/Term Number -- before this feature these
-        // two subjects couldn't be saved at all (the old min(1) validator rejected their 0/0
-        // sentinel outright), so toggling Status was never actually reachable; this form is only
-        // meant to unlock editing their eligible faculty/venues, not open up deactivating permanent
-        // scheduling infrastructure nobody has a workflow for reactivating cleanly.
-        const lockedControls = ['code', 'credits', 'termNumber', 'isActive'] as const;
+        // isActive/theoryCredits/labCredits are locked too, alongside Code/Credits/Term Number --
+        // before this feature these two subjects couldn't be saved at all (the old min(1) validator
+        // rejected their 0/0 sentinel outright), so editing any of them was never actually reachable;
+        // this form is only meant to unlock editing their eligible faculty/venues. V412/V505 seed
+        // theoryCredits=0/labCredits=0 alongside credits=0/termNumber=0 (SubjectService's backend
+        // guard pins all four to exactly 0), so those two ride along with the same lock rather than
+        // being left independently editable down to a 0-total-credits-but-nonzero-theory/lab row.
+        const lockedControls = ['code', 'credits', 'termNumber', 'isActive', 'theoryCredits', 'labCredits'] as const;
         for (const name of lockedControls) {
           const ctrl = this.form.get(name);
           if (systemManaged) {

@@ -94,7 +94,9 @@
                 <input id="subj-theory-credits" class="field-input" formControlName="theoryCredits"
                   type="number" min="0" max="20" autocomplete="off"
                   [class.field-input--error]="form.get('theoryCredits')?.invalid && form.get('theoryCredits')?.touched" />
-                @if (form.get('theoryCredits')?.invalid && form.get('theoryCredits')?.touched) {
+                @if (isSystemManagedSubject()) {
+                  <p class="field-hint">Fixed at 0 for this system-managed subject.</p>
+                } @else if (form.get('theoryCredits')?.invalid && form.get('theoryCredits')?.touched) {
                   <p class="field-error">{{ getErrorMessage('theoryCredits') }}</p>
                 }
               </div>
@@ -104,7 +106,9 @@
                 <input id="subj-lab-credits" class="field-input" formControlName="labCredits"
                   type="number" min="0" max="20" autocomplete="off"
                   [class.field-input--error]="form.get('labCredits')?.invalid && form.get('labCredits')?.touched" />
-                @if (form.get('labCredits')?.invalid && form.get('labCredits')?.touched) {
+                @if (isSystemManagedSubject()) {
+                  <p class="field-hint">Fixed at 0 for this system-managed subject.</p>
+                } @else if (form.get('labCredits')?.invalid && form.get('labCredits')?.touched) {
                   <p class="field-error">{{ getErrorMessage('labCredits') }}</p>
                 }
               </div>
