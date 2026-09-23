@@ -63,8 +63,11 @@
                 <label for="subj-term" class="field-label">Term Number <span class="required-star">*</span></label>
                 <input id="subj-term" class="field-input" formControlName="termNumber"
                   type="number" min="1" max="12" placeholder="e.g., 1" autocomplete="off"
+                  [readOnly]="isSystemManagedSubject()"
                   [class.field-input--error]="form.get('termNumber')?.invalid && form.get('termNumber')?.touched" />
-                @if (form.get('termNumber')?.invalid && form.get('termNumber')?.touched) {
+                @if (isSystemManagedSubject()) {
+                  <p class="field-hint">Fixed at 0 for this system-managed subject — it's never placed in a curriculum term.</p>
+                } @else if (form.get('termNumber')?.invalid && form.get('termNumber')?.touched) {
                   <p class="field-error">{{ getErrorMessage('termNumber') }}</p>
                 }
               </div>
@@ -75,8 +78,11 @@
                 <label for="subj-credits" class="field-label">Credits <span class="required-star">*</span></label>
                 <input id="subj-credits" class="field-input" formControlName="credits"
                   type="number" min="1" max="20" autocomplete="off"
+                  [readOnly]="isSystemManagedSubject()"
                   [class.field-input--error]="form.get('credits')?.invalid && form.get('credits')?.touched" />
-                @if (form.get('credits')?.invalid && form.get('credits')?.touched) {
+                @if (isSystemManagedSubject()) {
+                  <p class="field-hint">Fixed at 0 for this system-managed subject — it carries no real credit value.</p>
+                } @else if (form.get('credits')?.invalid && form.get('credits')?.touched) {
                   <p class="field-error">{{ getErrorMessage('credits') }}</p>
                 }
               </div>
