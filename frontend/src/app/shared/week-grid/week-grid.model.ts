@@ -20,6 +20,9 @@ export interface WeekGridSession {
   roomName: string | null;
   batchName: string | null;
   dayOfWeek: string;
+  /** Null for legacy/unassigned rows that predate strict Period assignment -- cms-day-agenda falls
+   *  back to grouping those by exact start/end time instead of periodId when this is null. */
+  periodId: number | null;
   startTime: string;
   endTime: string;
   slotName: string;

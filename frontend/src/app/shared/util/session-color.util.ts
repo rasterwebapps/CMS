@@ -10,12 +10,13 @@
  *  ThemeService — never a hardcoded brand color), one per real curriculum category, so every
  *  timetable-shaped screen reads as one cohesive palette instead of an arbitrary per-screen
  *  rainbow. Alpha, not a mix toward white/black, so each tint composites correctly against any
- *  card background in either theme rather than assuming a light backdrop. Mandatory Theory gets
- *  the strongest (most prominent) tint; advisory Co-curricular the faintest, matching its lower
- *  scheduling priority (see TimetableGlobalAutoScheduleService#isAdvisoryRow). */
-const THEORY_MANDATORY_COLOR = 'rgba(var(--cms-primary-rgb), 1)';
+ *  card background in either theme rather than assuming a light backdrop. Clinical gets the
+ *  strongest (most prominent) tint, then Lab, then Theory; advisory Co-curricular stays the
+ *  faintest of all four regardless of session type (2026-09-23: explicit user-directed ordering,
+ *  overriding this file's original Theory-strongest priority). */
+const THEORY_MANDATORY_COLOR = 'rgba(var(--cms-primary-rgb), 0.55)';
 const LAB_COLOR = 'rgba(var(--cms-primary-rgb), 0.75)';
-const CLINICAL_COLOR = 'rgba(var(--cms-primary-rgb), 0.55)';
+const CLINICAL_COLOR = 'rgba(var(--cms-primary-rgb), 1)';
 const CO_CURRICULAR_COLOR = 'rgba(var(--cms-primary-rgb), 0.3)';
 
 /** LIBRARY sessions have no CourseOffering at all (see TimetableGlobalAutoScheduleService

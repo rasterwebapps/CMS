@@ -374,43 +374,38 @@
     transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
   }
 
-  // Four primary tints (2026-09-21), replacing the old fixed blue/green badge fills — mandatory
-  // Theory reads strongest, advisory Co-curricular faintest, matching its lower scheduling
-  // priority (see TimetableGlobalAutoScheduleService#isAdvisoryRow). All four stay in the same
-  // "light tint" range Lab's original 8% already proved safe, so every cell keeps using the normal
-  // page-surface text tokens — no fixed on-fill text colour needed anymore.
-  //
-  // The rule this replaced used a SOLID saturated fill for Theory/Clinical (with forced light text
-  // to match) specifically because a light tint at THAT fill's darkness read as invisible dark-grey
-  // text on mid-blue in dark mode. That risk doesn't apply here: every tint below stays well inside
-  // the light range Lab's 8% already shipped and proved safe, so re-check contrast in both themes
-  // when you look at this live, but this isn't the same fill depth the old comment was warning about.
+  // Every fill below is driven by the one shared --subject-color variable (colorForSessionType,
+  // see session-color.util.ts) already set per-cell for the accent bar above — the exact same
+  // color-mix formula Week Grid/Day Agenda use for their own session chips, so all three
+  // timetable-shaped screens render pixel-identical tints instead of each maintaining its own
+  // independent alpha ladder. Strongest-to-faintest order is Clinical > Lab > Theory > Co-curricular
+  // (2026-09-23, explicit user-directed ordering) — entirely driven by colorForSessionType, so it
+  // never needs to be duplicated here; this block only ever supplies the 12% dilution + border style.
   &--theory {
     border-style: solid;
-    background: rgba(var(--cms-primary-rgb), 0.08);
+    background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
   }
   &--lab {
     border-style: solid;
-    background: rgba(var(--cms-primary-rgb), 0.16);
+    background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
   }
   &--clinical {
     border-style: solid;
-    background: rgba(var(--cms-primary-rgb), 0.22);
+    background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
   }
   // Deliberately keeps the base rule's dashed border (no border-style override here, unlike the
   // three mandatory variants above) instead of relying on alpha alone to read as different — a
-  // real incident (2026-09-21) showed 5% vs Theory's 16% tint was numerically distinct but not
-  // visually distinguishable at a glance, especially stacked under --staffed's own 0.75 opacity.
-  // A dashed border is a genuinely different visual cue, not just a fainter one, matching this
-  // subject's actual advisory/uncertain status.
+  // real incident (2026-09-21) showed a faint tint was numerically distinct but not visually
+  // distinguishable at a glance, especially stacked under --staffed's own 0.75 opacity. A dashed
+  // border is a genuinely different visual cue, not just a fainter one, matching this subject's
+  // actual advisory/uncertain status.
   &--co-curricular {
-    background: rgba(var(--cms-primary-rgb), 0.05);
+    background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
   }
-  // A light tint of SPORTS_CELL_COLOR (#65a30d), like Lab's tint rather than a solid fill, so the
-  // page-surface text tokens keep reading in both themes.
+  // SPORTS_CELL_COLOR (#65a30d) flows through --subject-color the same way every other type does.
   &--sports {
     border-style: solid;
-    background: rgba(101, 163, 13, 0.14);
+    background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
   }
 
   &--staffed {

@@ -10,7 +10,8 @@ import { ClassSchedule, ClassScheduleOccurrence } from '../timetable.model';
 import { CmsWeekGridComponent } from '../../../shared/week-grid/week-grid.component';
 import { WeekGridSession } from '../../../shared/week-grid/week-grid.model';
 import { CmsWeekNavigatorComponent } from '../../../shared/week-navigator/week-navigator.component';
-import { CmsDayAgendaComponent } from '../../../shared/day-agenda/day-agenda.component';
+import { CmsDayAgendaComponent, DayAgendaPeriod } from '../../../shared/day-agenda/day-agenda.component';
+import { PeriodService } from '../../period/period.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { RoomRelocationModalComponent } from '../room-relocation/room-relocation-modal.component';
@@ -44,6 +45,7 @@ function mondayOf(date: Date): string {
 export class TimetableViewComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly timetableService = inject(TimetableService);
+  private readonly periodService = inject(PeriodService);
   private readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly permissionService = inject(PermissionService);
@@ -74,6 +76,11 @@ export class TimetableViewComponent implements OnInit {
   protected readonly cohorts = signal<CohortSummary[]>([]);
   protected readonly cohortsLoading = signal(false);
   protected selectedCohortId: number | null = null;
+
+  /** The Day view's period-grid rows -- the full active Period master list, independent of the
+   *  selected term (Period has no term/shift scoping in this data model), fetched once so every
+   *  period shows a row even when nothing is scheduled that period. */
+  protected readonly dayPeriods = signal<DayAgendaPeriod[]>([]);
 
   protected readonly viewMode = signal<TimetableViewMode>('week');
   protected readonly weekStart = signal(mondayOf(new Date()));
@@ -133,6 +140,12 @@ export class TimetableViewComponent implements OnInit {
   ngOnInit(): void {
     this.tourService.register('timetable-view', TIMETABLE_VIEW_TOUR);
     this.tourService.registerFlowMap('timetable-view', TIMETABLE_VIEW_FLOW_MAP);
+
+    this.periodService.getAll(true).subscribe({
+      next: (periods) => this.dayPeriods.set(periods
+        .map((p) => ({ id: p.id, name: p.name, startTime: p.startTime, endTime: p.endTime, periodOrder: p.periodOrder ?? null }))),
+      error: () => { /* Day view just falls back to time-only grouping without period rows. */ },
+    });
 
     const qpAcademicYearId = Number(this.route.snapshot.queryParamMap.get('academicYearId')) || null;
     const qpTermInstanceId = Number(this.route.snapshot.queryParamMap.get('termInstanceId')) || null;

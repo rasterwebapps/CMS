@@ -89,7 +89,7 @@ describe('TimetableViewComponent', () => {
       cancelReason: null,
       session: {
         id: 2, sessionType: 'LAB', status: 'PUBLISHED', subjectName: 'Physiology', subjectCode: 'PHYS101',
-        facultyName: 'Dr. Iyer', roomName: 'Lab 2', batchName: 'B1', dayOfWeek: 'TUESDAY',
+        facultyName: 'Dr. Iyer', roomName: 'Lab 2', batchName: 'B1', dayOfWeek: 'TUESDAY', periodId: 2,
         startTime: '10:00', endTime: '10:50', slotName: '2nd Period',
       },
     };

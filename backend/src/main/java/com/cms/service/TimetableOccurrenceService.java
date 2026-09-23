@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import com.cms.model.ClassSchedule;
 import com.cms.model.Faculty;
 import com.cms.model.SessionOccurrence;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.OccurrenceStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.SessionOccurrenceRepository;
@@ -126,9 +128,41 @@ public class TimetableOccurrenceService {
                 result.add(new ClassScheduleOccurrenceResponse(cancelled.date(), response, OccurrenceStatus.CANCELLED, cancelled.reason()));
             }
         }
+
+        // CLINICAL hours are delivered off-grid via ClinicalShiftGroup/Batch and never produce a real
+        // ClassSchedule row (see TimetableSkeletonService#findClinicalShiftGridEntries's own doc
+        // comment) -- withOUT this, this endpoint (unlike the published/draft list, which already
+        // merges these via TimetableController#withClinicalShiftEntries) silently drops every
+        // CLINICAL session from the Date-wise/Day calendar views. Not applied to scope=personal here;
+        // PersonalTimetableService resolves an identity's own sessions separately.
+        if (!"personal".equalsIgnoreCase(scope)) {
+            for (ClassScheduleResponse template : timetableSkeletonService.findClinicalShiftGridEntries(
+                    termInstanceId, ClassScheduleStatus.PUBLISHED, cohortId)) {
+                for (LocalDate date : datesForDayOfWeek(template.dayOfWeek(), from, to)) {
+                    result.add(new ClassScheduleOccurrenceResponse(date, template, OccurrenceStatus.HELD, null));
+                }
+            }
+        }
+
         result.sort(Comparator.comparing(ClassScheduleOccurrenceResponse::date)
             .thenComparing(o -> o.session().startTime()));
         return result;
+    }
+
+    /** Every date in {@code [from, to]} matching {@code dayOfWeek} -- at most one per week, since
+     *  callers only ever pass a single-day or single-week window. {@code com.cms.model.enums.
+     *  DayOfWeek}'s names line up exactly with {@code java.time.DayOfWeek}'s (MONDAY..SATURDAY), the
+     *  same direct mapping ClassScheduleOccurrenceService#weeklyDatesInRange already relies on. */
+    private static List<LocalDate> datesForDayOfWeek(DayOfWeek dayOfWeek, LocalDate from, LocalDate to) {
+        if (dayOfWeek == null) return List.of();
+        java.time.DayOfWeek javaDayOfWeek = java.time.DayOfWeek.valueOf(dayOfWeek.name());
+        List<LocalDate> dates = new ArrayList<>();
+        LocalDate date = from.with(TemporalAdjusters.nextOrSame(javaDayOfWeek));
+        while (!date.isAfter(to)) {
+            dates.add(date);
+            date = date.plusWeeks(1);
+        }
+        return dates;
     }
 
     /** Independently overrides the faculty fields (if {@code substitute != null}) and/or the room

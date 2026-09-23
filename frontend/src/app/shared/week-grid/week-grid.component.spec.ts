@@ -23,6 +23,7 @@ describe('CmsWeekGridComponent', () => {
     roomName: 'Room 101',
     batchName: null,
     dayOfWeek: 'MONDAY',
+    periodId: 1,
     startTime: '09:00',
     endTime: '09:50',
     slotName: '1st Period',

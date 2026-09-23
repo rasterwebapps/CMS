@@ -106,24 +106,28 @@
   gap: 1px;
   padding: 6px 8px;
   border-radius: 8px;
-  border: 1px solid transparent;
+  border: 1px solid var(--cms-border-default);
   cursor: pointer;
   text-align: left;
   width: 100%;
   font-family: inherit;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
-  // Same accent every timetable-shaped screen uses (Timetable Builder's own left accent bar, Day
-  // Agenda's border-left) -- see session-color.util.ts. --subject-color is set inline per chip
-  // from the session's sessionType (component.ts#sessionColor), so this rule never hardcodes a
-  // session-type color itself. color-mix dilutes --subject-color's own tint down to a
-  // background-appropriate strength (matching this file's existing color-mix usage above for the
-  // swap-candidate overlay) instead of needing a second hardcoded alpha tier per session type.
+  // Same recipe every timetable-shaped screen uses -- see session-color.util.ts. --subject-color is
+  // set inline per chip from the session's sessionType (component.ts#sessionColor), so this rule
+  // never hardcodes a session-type color itself. A light background tint (color-mix, matching this
+  // file's existing color-mix usage above for the swap-candidate overlay) plus a solid, undiluted
+  // left accent bar via box-shadow -- exactly Timetable Builder's own .skeleton-cell recipe (border
+  // stays the neutral default color; only the accent bar and the light fill carry the session-type
+  // tint) -- rather than this chip's previous from a diluted-color BORDER, which read as a visibly
+  // different (more uniformly-colorful) treatment from Builder's neutral-border-plus-accent-bar look.
   background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 12%, transparent);
-  border-color: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 28%, transparent);
+  box-shadow: inset 3px 0 0 0 var(--subject-color, var(--cms-border-default));
 
+  // box-shadow doesn't stack across declarations -- the elevation shadow must be combined with the
+  // base rule's accent-bar shadow in one declaration, or hovering would make the accent bar vanish.
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.25);
+    box-shadow: inset 3px 0 0 0 var(--subject-color, var(--cms-border-default)), 0 4px 10px -4px rgba(0, 0, 0, 0.25);
   }
 }
 
@@ -135,7 +139,7 @@
 
   &:hover {
     transform: none;
-    box-shadow: none;
+    box-shadow: inset 3px 0 0 0 var(--subject-color, var(--cms-border-default));
   }
 }
 
