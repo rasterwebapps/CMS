@@ -48,7 +48,7 @@ class SubjectControllerTest {
 
     private SubjectResponse createTestResponse(Long id, String name, String code) {
         SpecialityResponse dept = new SpecialityResponse(1L, "MSN", "MSN", "Desc", null, "Dr. X", now, now);
-        return new SubjectResponse(id, name, code, 4, 3, 1, dept, 1, true, 1, 1, now, now, List.of(), List.of(), List.of());
+        return new SubjectResponse(id, name, code, 4, 3, 1, dept, 1, true, 1, 1, now, now, List.of(), List.of(), List.of(), false);
     }
 
     @Test

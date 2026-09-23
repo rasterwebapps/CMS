@@ -71,16 +71,22 @@ public class SubjectService {
         this.facultyRepository = facultyRepository;
     }
 
-    /** The exact codes of the two subjects seeded directly by a migration (V412/V505, matching
-     *  {@link TimetableGlobalAutoScheduleService}'s own {@code LIBRARY_SUBJECT_CODE}/
-     *  {@code SPORTS_SUBJECT_CODE} lookups) with the deliberate credits=0/term_number=0 sentinel so
-     *  they never appear in a curriculum term listing. An exact allowlist, not a "SYSTEM-" prefix
-     *  match, so this can never be satisfied by a subject an admin creates or renames through this
-     *  service -- only matters so {@link #requireCurriculumCreditsAndTerm} can let an admin edit one
-     *  of these two subjects' eligible faculty/venues through the same {@code update} endpoint
-     *  without having to fabricate a real credits/term value for a subject that intentionally has
-     *  none. */
-    private static final Set<String> SYSTEM_MANAGED_CODES = Set.of("SYSTEM-LIBRARY", "SYSTEM-SPORTS");
+    /** The exact codes of the two subjects seeded directly by a migration (V412/V505) with the
+     *  deliberate credits=0/term_number=0 sentinel so they never appear in a curriculum term
+     *  listing -- reuses {@link TimetableGlobalAutoScheduleService}'s own constants rather than a
+     *  second copy of the two literals, since that's the class whose hardcoded {@code findByCode}
+     *  lookups define what "system-managed" actually means in practice. An exact allowlist, not a
+     *  "SYSTEM-" prefix match, so this can never be satisfied by a subject an admin creates through
+     *  this service -- only matters so {@link #requireCurriculumCreditsAndTerm} can let an admin
+     *  edit one of these two subjects' eligible faculty/venues through the same {@code update}
+     *  endpoint without having to fabricate a real credits/term value for a subject that
+     *  intentionally has none. {@link #update} separately forbids renaming either code away from
+     *  this allowlist, so a subject satisfying this check today can never silently drift out from
+     *  under {@code TimetableGlobalAutoScheduleService}'s lookups. */
+    private static final Set<String> SYSTEM_MANAGED_CODES = Set.of(
+        TimetableGlobalAutoScheduleService.LIBRARY_SUBJECT_CODE,
+        TimetableGlobalAutoScheduleService.SPORTS_SUBJECT_CODE
+    );
 
     private static boolean isSystemManaged(String code) {
         return SYSTEM_MANAGED_CODES.contains(code);
@@ -229,6 +235,16 @@ public class SubjectService {
         requireCurriculumCreditsAndTerm(request);
         Subject subject = subjectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + id));
+
+        // A system-managed subject's code is a hardcoded lookup key for
+        // TimetableGlobalAutoScheduleService (LIBRARY_SUBJECT_CODE/SPORTS_SUBJECT_CODE) -- renaming
+        // it away would silently detach the subject from that lookup with no error anywhere, so this
+        // is blocked outright rather than left to depend on the edit form also keeping its Code
+        // field locked.
+        if (isSystemManaged(subject.getCode()) && !subject.getCode().equalsIgnoreCase(request.code())) {
+            throw new IllegalArgumentException(
+                "Cannot change the code of a system-managed subject (" + subject.getCode() + ")");
+        }
 
         Speciality speciality = null;
         if (request.specialityId() != null) {
@@ -399,7 +415,8 @@ public class SubjectService {
             subject.getUpdatedAt(),
             eligibleLabs,
             eligibleClinicalVenues,
-            eligibleFaculty
+            eligibleFaculty,
+            isSystemManaged(subject.getCode())
         );
     }
 }

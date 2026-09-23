@@ -49,6 +49,10 @@ export interface Subject {
   eligibleLabs: SubjectEligibleVenue[];
   eligibleClinicalVenues: SubjectEligibleVenue[];
   eligibleFaculty: SubjectEligibleFaculty[];
+  /** True for the two subjects (SYSTEM-LIBRARY, SYSTEM-SPORTS) the backend treats as
+   *  system-managed -- computed server-side (SubjectService.isSystemManaged), not re-derived from
+   *  the code here, so this stays the single source of truth for which subjects those are. */
+  isSystemManaged: boolean;
 }
 
 export interface SubjectRequest {

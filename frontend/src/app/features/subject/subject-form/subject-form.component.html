@@ -50,12 +50,17 @@
                 <input id="subj-code" class="field-input" formControlName="code"
                   placeholder="e.g., BSN101" autocomplete="off"
                   (input)="onCodeInput($event)"
+                  [readOnly]="isSystemManagedSubject()"
                   [class.field-input--error]="form.get('code')?.invalid && form.get('code')?.touched" />
-                <p class="field-hint">Short identifier</p>
-                @if (form.get('code')?.pending) {
-                  <p class="field-hint">Checking…</p>
-                } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
-                  <p class="field-error">{{ getErrorMessage('code') }}</p>
+                @if (isSystemManagedSubject()) {
+                  <p class="field-hint">Fixed -- this code is a lookup key the auto-scheduler depends on and can't be renamed here.</p>
+                } @else {
+                  <p class="field-hint">Short identifier</p>
+                  @if (form.get('code')?.pending) {
+                    <p class="field-hint">Checking…</p>
+                  } @else if (form.get('code')?.invalid && form.get('code')?.touched) {
+                    <p class="field-error">{{ getErrorMessage('code') }}</p>
+                  }
                 }
               </div>
 

@@ -19,5 +19,9 @@ public record SubjectResponse(
     Instant updatedAt,
     List<VenueOptionResponse> eligibleLabs,
     List<VenueOptionResponse> eligibleClinicalVenues,
-    List<FacultyOptionResponse> eligibleFaculty
+    List<FacultyOptionResponse> eligibleFaculty,
+    /** True for the two subjects (SYSTEM-LIBRARY, SYSTEM-SPORTS) SubjectService itself treats as
+     *  system-managed. The frontend edit form reads this rather than keeping its own copy of the
+     *  two codes, so the backend stays the single source of truth. */
+    boolean isSystemManaged
 ) {}

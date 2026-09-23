@@ -191,14 +191,17 @@ public class TimetableGlobalAutoScheduleService {
      *  TimetableCapacityPlanningService}'s Lab/Clinical venue tight-capacity check — one literal,
      *  not two independently-typed copies. */
     private static final double TIGHT_CAPACITY_THRESHOLD = TimetableCapacityPlanningService.TIGHT_CAPACITY_THRESHOLD;
-    private static final String LIBRARY_SUBJECT_CODE = "SYSTEM-LIBRARY";
+    /** Not private -- {@link SubjectService#SYSTEM_MANAGED_CODES} references this and {@link
+     *  #SPORTS_SUBJECT_CODE} directly rather than keeping its own copy of the two literals, same
+     *  "one literal, not two copies" discipline as {@link #TIGHT_CAPACITY_THRESHOLD} above. */
+    static final String LIBRARY_SUBJECT_CODE = "SYSTEM-LIBRARY";
     private static final String CONFIG_LIBRARY_SESSIONS_PER_WEEK = "timetable.library_sessions_per_week";
     private static final String CONFIG_LIBRARY_BLOCK_SIZE_PERIODS = "timetable.library_block_size_periods";
     private static final int DEFAULT_LIBRARY_SESSIONS_PER_WEEK = 1;
     private static final int DEFAULT_LIBRARY_BLOCK_SIZE_PERIODS = 2;
     private static final String CONFIG_LIBRARY_EXTRA_SESSION_MIN_FREE_PERIODS = "timetable.library_extra_session_min_free_periods";
     private static final int DEFAULT_LIBRARY_EXTRA_SESSION_MIN_FREE_PERIODS = 8;
-    private static final String SPORTS_SUBJECT_CODE = "SYSTEM-SPORTS";
+    static final String SPORTS_SUBJECT_CODE = "SYSTEM-SPORTS";
     private static final String CONFIG_SPORTS_SESSIONS_PER_WEEK = "timetable.sports_sessions_per_week";
     private static final String CONFIG_SPORTS_BLOCK_SIZE_PERIODS = "timetable.sports_block_size_periods";
     private static final int DEFAULT_SPORTS_SESSIONS_PER_WEEK = 1;
