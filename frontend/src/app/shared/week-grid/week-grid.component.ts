@@ -116,8 +116,17 @@ export class CmsWeekGridComponent {
     const seen = new Map<string, WeekGridRow>();
     for (const s of this._sessions()) {
       const key = `${s.startTime}-${s.endTime}`;
-      if (!seen.has(key)) {
-        seen.set(key, { key, label: s.slotName || `${s.startTime}–${s.endTime}`, startTime: s.startTime, endTime: s.endTime });
+      const label = s.slotName || `${s.startTime}–${s.endTime}`;
+      const existing = seen.get(key);
+      if (!existing) {
+        seen.set(key, { key, label, startTime: s.startTime, endTime: s.endTime });
+      } else if (existing.label !== label) {
+        // A real Period's slotName is identical for every session that shares its time window, so
+        // a mismatch here only happens for time-window-only groupings with no shared master record
+        // (e.g. two distinct off-campus Clinical Shift groups that happen to run the same
+        // bus-depart/return window) -- keeping whichever session was seen first would mislabel
+        // every other session's column with a name that doesn't describe it.
+        existing.label = `${s.startTime}–${s.endTime}`;
       }
     }
     for (const c of this._candidateCells()) {

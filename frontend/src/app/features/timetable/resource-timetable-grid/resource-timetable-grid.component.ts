@@ -68,8 +68,15 @@ export class ResourceTimetableGridComponent implements OnInit {
     for (const row of this.rows()) {
       for (const s of row.sessions) {
         const key = `${s.startTime}-${s.endTime}`;
-        if (!seen.has(key)) {
-          seen.set(key, { key, label: s.slotName || `${s.startTime}–${s.endTime}`, startTime: s.startTime, endTime: s.endTime });
+        const label = s.slotName || `${s.startTime}–${s.endTime}`;
+        const existing = seen.get(key);
+        if (!existing) {
+          seen.set(key, { key, label, startTime: s.startTime, endTime: s.endTime });
+        } else if (existing.label !== label) {
+          // See week-grid.component.ts's identical guard: two off-campus Clinical Shift groups
+          // sharing a bus window have no shared master record, so a slotName mismatch here means
+          // the column has no single true name -- fall back to the neutral time-range label.
+          existing.label = `${s.startTime}–${s.endTime}`;
         }
       }
     }
