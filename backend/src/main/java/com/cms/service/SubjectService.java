@@ -242,6 +242,7 @@ public class SubjectService {
     public SubjectResponse update(Long id, SubjectRequest request) {
         Subject subject = subjectRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + id));
+        boolean subjectIsSystemManaged = isSystemManaged(subject.getCode());
 
         // A system-managed subject's code is a hardcoded lookup key for
         // TimetableGlobalAutoScheduleService (LIBRARY_SUBJECT_CODE/SPORTS_SUBJECT_CODE), read back
@@ -253,7 +254,7 @@ public class SubjectService {
         // termNumber still 0/0, round-tripped from the loaded entity) fails with this specific
         // message instead of the misleading "Credits must be at least 1" the generic check would
         // throw once the new, non-allowlisted code makes isSystemManaged(request.code()) false.
-        if (isSystemManaged(subject.getCode()) && !subject.getCode().equals(request.code())) {
+        if (subjectIsSystemManaged && !subject.getCode().equals(request.code())) {
             throw new IllegalArgumentException(
                 "Cannot change the code of a system-managed subject (" + subject.getCode() + ")");
         }
@@ -262,7 +263,7 @@ public class SubjectService {
         // general endpoint -- the frontend edit form already fully disables the Status field for
         // these two subjects, so this rejects the only way that lock could otherwise be bypassed by
         // a direct API call.
-        if (isSystemManaged(subject.getCode()) && request.isActive() != null
+        if (subjectIsSystemManaged && request.isActive() != null
                 && !request.isActive().equals(subject.getIsActive())) {
             throw new IllegalArgumentException(
                 "Cannot change the active status of a system-managed subject (" + subject.getCode() + ")");
