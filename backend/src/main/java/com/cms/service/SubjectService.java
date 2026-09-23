@@ -237,11 +237,12 @@ public class SubjectService {
             .orElseThrow(() -> new ResourceNotFoundException("Subject not found with id: " + id));
 
         // A system-managed subject's code is a hardcoded lookup key for
-        // TimetableGlobalAutoScheduleService (LIBRARY_SUBJECT_CODE/SPORTS_SUBJECT_CODE) -- renaming
-        // it away would silently detach the subject from that lookup with no error anywhere, so this
-        // is blocked outright rather than left to depend on the edit form also keeping its Code
-        // field locked.
-        if (isSystemManaged(subject.getCode()) && !subject.getCode().equalsIgnoreCase(request.code())) {
+        // TimetableGlobalAutoScheduleService (LIBRARY_SUBJECT_CODE/SPORTS_SUBJECT_CODE), read back
+        // via SubjectRepository#findByCode -- an exact-case `=` query, not IgnoreCase. Renaming it
+        // away, even to a same-text different-case variant (e.g. "system-sports"), would silently
+        // detach the subject from that lookup with no error anywhere, so this compares with exact
+        // .equals(), not .equalsIgnoreCase() -- a case-only change must still trip this guard.
+        if (isSystemManaged(subject.getCode()) && !subject.getCode().equals(request.code())) {
             throw new IllegalArgumentException(
                 "Cannot change the code of a system-managed subject (" + subject.getCode() + ")");
         }
