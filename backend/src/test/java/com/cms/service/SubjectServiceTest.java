@@ -250,6 +250,21 @@ class SubjectServiceTest {
     }
 
     @Test
+    void shouldRejectDeactivatingSystemManagedSubjectThroughUpdate() {
+        Subject sportsSubject = new Subject("Sports", "SYSTEM-SPORTS", 0, 0, 0, null, 0);
+        sportsSubject.setId(5L);
+        SubjectRequest request = new SubjectRequest("Sports", "SYSTEM-SPORTS", 0, 0, 0, null, 0, false, null,
+            null, null, null, null);
+        when(subjectRepository.findById(5L)).thenReturn(Optional.of(sportsSubject));
+
+        assertThatThrownBy(() -> subjectService.update(5L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("active status");
+
+        verify(subjectRepository, never()).save(any(Subject.class));
+    }
+
+    @Test
     void shouldRejectNonZeroTheoryCreditsForSystemManagedSubjectOnUpdate() {
         Subject sportsSubject = new Subject("Sports", "SYSTEM-SPORTS", 0, 0, 0, null, 0);
         sportsSubject.setId(5L);

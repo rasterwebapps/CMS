@@ -257,6 +257,16 @@ public class SubjectService {
             throw new IllegalArgumentException(
                 "Cannot change the code of a system-managed subject (" + subject.getCode() + ")");
         }
+        // Status for a system-managed subject changes only through the dedicated updateStatus()
+        // endpoint (its own isSystemManaged guard blocks deactivation there), never through this
+        // general endpoint -- the frontend edit form already fully disables the Status field for
+        // these two subjects, so this rejects the only way that lock could otherwise be bypassed by
+        // a direct API call.
+        if (isSystemManaged(subject.getCode()) && request.isActive() != null
+                && !request.isActive().equals(subject.getIsActive())) {
+            throw new IllegalArgumentException(
+                "Cannot change the active status of a system-managed subject (" + subject.getCode() + ")");
+        }
         requireCurriculumCreditsAndTerm(request);
 
         Speciality speciality = null;
@@ -354,8 +364,8 @@ public class SubjectService {
         boolean nextActive = Boolean.TRUE.equals(request.isActive());
         if (!nextActive) {
             // The dedicated PATCH .../status endpoint (the subject-list row toggle) is a separate
-            // path from update() above -- update()'s own isActive lock for a system-managed subject
-            // doesn't cover this one, so it needs the same guard independently.
+            // path from update() above and needs this guard independently, even though update() now
+            // has its own equivalent check -- neither endpoint's guard covers the other.
             if (isSystemManaged(subject.getCode())) {
                 throw new IllegalArgumentException(
                     "Cannot deactivate a system-managed subject (" + subject.getCode() + ")");
