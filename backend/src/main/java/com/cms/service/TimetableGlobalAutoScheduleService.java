@@ -3520,8 +3520,18 @@ public class TimetableGlobalAutoScheduleService {
         return placedForAudience;
     }
 
-    /** Days this audience already has a whole-audience Library block: pre-run cells (a published or
-     *  pinned one survives the rebuild) plus blocks this run placed before the caller. The run's own
+    /** Days this audience already has Library exposure of any kind: pre-run cells (a published or
+     *  pinned one survives the rebuild) plus blocks this run placed before the caller. Counts a
+     *  batch-scoped idle-batch fallback cell (see {@link #saveIdleBatchLibraryCell}, Phase 1.5) the
+     *  same as a whole-section block — a batch already sent to Library while its sibling was in
+     *  Lab/Clinical has genuinely had its Library time for that day, so this quota (targeting
+     *  {@code timetable.library_sessions_per_week} PER CohortSection, not per batch) must not go on
+     *  to add a second, redundant whole-cohort block on top of it. Pre-run cells never distinguished
+     *  batch-scoped from whole-section here (no {@code batchId} filter below either); previously this
+     *  method's own same-run half of the check applied that filter anyway, so a batch's idle-filler
+     *  Library day this same run wasn't recognized as satisfying the quota and a second, whole-cohort
+     *  session got added on top of it (fixed 2026-09-23, reported by user: cohort was ending up with
+     *  Library filler on top of Library filler, well beyond the intended weekly quota). The run's own
      *  count matters too: a Phase 2 backtrack that bumps an idle-batch Library cell relocates it as a
      *  section-level block (#tryRePlaceBumpedLibrarySession, batchId null), and counting only pre-run
      *  cells made the pass report "reduced to 0 of 2" for a cohort that visibly had one (OC-227 local
@@ -3534,7 +3544,7 @@ public class TimetableGlobalAutoScheduleService {
             .map(SkeletonCellResponse::dayOfWeek)
             .collect(java.util.stream.Collectors.toCollection(HashSet::new));
         placedThisRun.stream()
-            .filter(p -> p.sessionType() == ClassSessionType.LIBRARY && p.batchId() == null
+            .filter(p -> p.sessionType() == ClassSessionType.LIBRARY
                 && Objects.equals(p.cohortSectionId(), sectionId))
             .map(Placement::dayOfWeek)
             .forEach(days::add);
