@@ -1456,10 +1456,11 @@ public class TimetableSkeletonService {
             // Auto-Plan bakes the batch's original Lab/Clinical split into its own name (e.g.
             // "Clinical - Section 1 - Batch 2", see CohortRoomAllocationService's own comment on
             // that naming scheme), so a Library filler cell showed a name that said "Clinical" on
-            // it, reading as though this were a real Clinical session. The " (Individual)" suffix
-            // marks it as one idle batch's own filler, distinct from #saveAudienceBlockCells' whole-
-            // section label just below -- without renaming/reparsing the batch's real identity.
-            cs.setBatchName(batch.getName() + " (Individual)");
+            // it, reading as though this were a real Clinical session. "Individual" leads the label
+            // (parallel to #saveAudienceBlockCells' "<Section> — Whole Section" just below) with the
+            // batch's real Section/Batch identity kept, only the stale category word dropped --
+            // "Clinical - Section 1 - Batch 2" reads as "Individual — Section 1 - Batch 2".
+            cs.setBatchName("Individual — " + dropLeadingCategoryWord(batch.getName()));
             cs.setCohortSection(cohortSection);
             cs.setIsActive(true);
             cs.setSessionGroupId(sessionGroupId);
@@ -1468,6 +1469,18 @@ public class TimetableSkeletonService {
             ids.add(saved.getId());
         }
         return ids;
+    }
+
+    /** Strips the leading "<Category> - " Capacity Auto-Plan always prefixes a batch name with
+     *  (e.g. "Clinical - Section 1 - Batch 2", "Lab - Section 1" -- see
+     *  CohortRoomAllocationService's own comment on this naming scheme), keeping only the real
+     *  Section/Batch identity after it. Splits on the FIRST " - " only, so it's exactly the category
+     *  prefix removed regardless of what a section label itself contains afterward. Falls back to
+     *  the untouched name on the rare row that doesn't follow the convention (no " - " at all)
+     *  rather than mangling it. */
+    private String dropLeadingCategoryWord(String batchName) {
+        int sep = batchName.indexOf(" - ");
+        return sep < 0 ? batchName : batchName.substring(sep + 3);
     }
 
     /** {@code REQUIRES_NEW} — the whole-section/whole-cohort twin of {@link
