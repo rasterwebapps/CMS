@@ -13,11 +13,21 @@
  *  card background in either theme rather than assuming a light backdrop. Clinical gets the
  *  strongest (most prominent) tint, then Lab, then Theory; advisory Co-curricular stays the
  *  faintest of all four regardless of session type (2026-09-23: explicit user-directed ordering,
- *  overriding this file's original Theory-strongest priority). */
-const THEORY_MANDATORY_COLOR = 'rgba(var(--cms-primary-rgb), 0.55)';
-const LAB_COLOR = 'rgba(var(--cms-primary-rgb), 0.75)';
+ *  overriding this file's original Theory-strongest priority).
+ *
+ *  <p>Every consumer's SCSS composites this value again at a low percentage (`color-mix(in srgb,
+ *  var(--subject-color) 12%, transparent)`, see e.g. week-grid.component.scss) to get an actual
+ *  cell fill — that second dilution multiplies whatever gap exists between two stops here, so the
+ *  original 0.55/0.75/1 spacing (deltas of 0.2) survived as an almost-imperceptible ~2-3% opacity
+ *  difference between Theory and Lab cells, especially in dark mode where the card background sits
+ *  close in lightness to the tinted result to begin with. Spaced further apart (0.35/0.7/1, Lab
+ *  exactly 2x Theory) so that same downstream dilution still reads as two visibly different
+ *  tints (2026-09-23, reported: "in dark mode the primary color variants of theory and lab don't
+ *  look different"). */
+const THEORY_MANDATORY_COLOR = 'rgba(var(--cms-primary-rgb), 0.35)';
+const LAB_COLOR = 'rgba(var(--cms-primary-rgb), 0.7)';
 const CLINICAL_COLOR = 'rgba(var(--cms-primary-rgb), 1)';
-const CO_CURRICULAR_COLOR = 'rgba(var(--cms-primary-rgb), 0.3)';
+const CO_CURRICULAR_COLOR = 'rgba(var(--cms-primary-rgb), 0.15)';
 
 /** LIBRARY sessions have no CourseOffering at all (see TimetableGlobalAutoScheduleService
  *  #fillLibraryGaps) — a fixed slate outside the four curriculum tints, so Library always reads

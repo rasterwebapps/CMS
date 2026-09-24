@@ -488,8 +488,17 @@ public class TimetableSkeletonService {
             if (group.getCourseOffering() == null) continue;
             ClinicalShiftWindow window = ClinicalShiftWindow.from(group);
             if (window.busDepart() == null || window.busReturn() == null) continue;
-            for (Batch batch : batchRepository.findByClinicalShiftGroupId(group.getId())) {
-                if (!Boolean.TRUE.equals(batch.getIsActive())) continue;
+            // Resolved by offering (like ClinicalShiftGroupService#resolveActiveWindowsForCohort),
+            // not by Batch#clinicalShiftGroupId: that FK is single-valued, but one batch's clinical
+            // duty can legitimately span several ClinicalShiftGroup rows (one per weekday) sharing
+            // the same offering+venue. FK-based lookup silently dropped every day but the one the
+            // FK happened to point at -- e.g. a Tue+Wed offering with only Wednesday linked lost its
+            // Tuesday entry from the published grid entirely, even though the batch genuinely runs
+            // both days.
+            for (Batch batch : batchRepository.findByCourseOfferingId(group.getCourseOffering().getId())) {
+                if (!Boolean.TRUE.equals(batch.getIsActive()) || batch.getClinicalVenue() == null) continue;
+                if (group.getCohortSection() != null
+                    && (batch.getCohortSection() == null || !group.getCohortSection().getId().equals(batch.getCohortSection().getId()))) continue;
                 if (cohortId != null && !matchesCohort(batch, cohortId)) continue;
                 if (status == ClassScheduleStatus.PUBLISHED && !isCohortPublished(termInstanceId, batch, publishedByCohortId)) continue;
                 entries.add(toClinicalShiftGridEntry(group, window, batch, termInstanceId, status));
@@ -523,7 +532,10 @@ public class TimetableSkeletonService {
         CourseOffering offering = group.getCourseOffering();
         Faculty coordinator = batch.getCoordinatorFaculty();
         return new ClassScheduleResponse(
-            CLINICAL_SHIFT_GRID_ENTRY_ID_BASE - batch.getId(),
+            // Keyed on both batch and group -- a batch can now surface once per active weekday
+            // group it belongs to (see findClinicalShiftGridEntries), so batch id alone is no
+            // longer unique per entry.
+            CLINICAL_SHIFT_GRID_ENTRY_ID_BASE - batch.getId() * 10_000L - group.getId(),
             ClassSessionType.CLINICAL,
             status,
             null, null,

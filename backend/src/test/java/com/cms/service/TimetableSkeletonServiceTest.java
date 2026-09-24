@@ -597,7 +597,7 @@ class TimetableSkeletonServiceTest {
         batch.setClinicalVenue(venue);
         batch.setCoordinatorFaculty(coordinator);
         batch.setIsActive(true);
-        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(batch));
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(List.of(batch));
 
         List<com.cms.dto.ClassScheduleResponse> entries =
             service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT);
@@ -648,7 +648,7 @@ class TimetableSkeletonServiceTest {
         Batch inactiveBatch = new Batch();
         inactiveBatch.setId(401L);
         inactiveBatch.setIsActive(false);
-        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(inactiveBatch));
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(List.of(inactiveBatch));
 
         List<com.cms.dto.ClassScheduleResponse> entries =
             service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT);
@@ -668,15 +668,21 @@ class TimetableSkeletonServiceTest {
         group.setIsActive(true);
         when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(group));
 
+        com.cms.model.ClinicalVenue venueA = new com.cms.model.ClinicalVenue("City Hospital", "City Hospital", "General");
+        venueA.setId(50L);
+        com.cms.model.ClinicalVenue venueB = new com.cms.model.ClinicalVenue("District Hospital", "District Hospital", "General");
+        venueB.setId(51L);
         Batch batchA = new Batch();
         batchA.setId(400L);
         batchA.setName("Batch A");
         batchA.setIsActive(true);
+        batchA.setClinicalVenue(venueA);
         Batch batchB = new Batch();
         batchB.setId(401L);
         batchB.setName("Batch B");
         batchB.setIsActive(true);
-        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(batchA, batchB));
+        batchB.setClinicalVenue(venueB);
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(List.of(batchA, batchB));
 
         List<com.cms.dto.ClassScheduleResponse> entries =
             service.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT);
@@ -706,12 +712,15 @@ class TimetableSkeletonServiceTest {
         CohortRoomAllocation allocation = new CohortRoomAllocation();
         allocation.setId(900L);
         allocation.setCohort(cohort);
+        com.cms.model.ClinicalVenue venue = new com.cms.model.ClinicalVenue("City Hospital", "City Hospital", "General");
+        venue.setId(50L);
         Batch batch = new Batch();
         batch.setId(400L);
         batch.setName("Batch A");
         batch.setIsActive(true);
+        batch.setClinicalVenue(venue);
         batch.setCohortRoomAllocation(allocation);
-        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(batch));
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(List.of(batch));
 
         when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(5L, 10L, CohortRoomAllocationStatus.COMMITTED))
             .thenReturn(Optional.empty());
@@ -743,12 +752,15 @@ class TimetableSkeletonServiceTest {
         CohortRoomAllocation allocation = new CohortRoomAllocation();
         allocation.setId(900L);
         allocation.setCohort(cohort);
+        com.cms.model.ClinicalVenue venue = new com.cms.model.ClinicalVenue("City Hospital", "City Hospital", "General");
+        venue.setId(50L);
         Batch batch = new Batch();
         batch.setId(400L);
         batch.setName("Batch A");
         batch.setIsActive(true);
+        batch.setClinicalVenue(venue);
         batch.setCohortRoomAllocation(allocation);
-        when(batchRepository.findByClinicalShiftGroupId(1L)).thenReturn(List.of(batch));
+        when(batchRepository.findByCourseOfferingId(100L)).thenReturn(List.of(batch));
 
         when(cohortRoomAllocationRepository.findByCohortIdAndTermInstanceIdAndStatus(5L, 10L, CohortRoomAllocationStatus.COMMITTED))
             .thenReturn(Optional.empty());

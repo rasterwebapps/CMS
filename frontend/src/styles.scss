@@ -2633,6 +2633,14 @@ th.cms-th-resize-hover .mat-sort-header-container {
 
 .entry-form-hdr-text { flex: 1; min-width: 0; }
 
+// Trailing action button on an .entry-form-header (e.g. Timetable Builder's grid-view "Run
+// Automation") -- .entry-form-hdr-text's own flex:1 already pushes this to the far right, so it
+// only needs vertical centering against the header's flex-start-aligned back button/text block.
+.entry-form-header__action {
+  align-self: center;
+  flex-shrink: 0;
+}
+
 // ── Form Card ────────────────────────────────────────
 .entry-form-card {
   background: var(--cms-bg-card);
