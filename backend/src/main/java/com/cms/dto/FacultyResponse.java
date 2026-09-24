@@ -61,5 +61,6 @@ public record FacultyResponse(
     BigDecimal commissionAmount,
     Integer plannedWeeklySessionsOverride,
     Integer plannedDailySessionsOverride,
-    Integer plannedContinuousSessionsOverride
+    Integer plannedContinuousSessionsOverride,
+    Integer plannedMinWeeklySessionsOverride
 ) {}

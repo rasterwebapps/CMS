@@ -13,5 +13,13 @@ public record FacultyWorkloadRow(
     Double effectiveCapacityHours,
     Double netCapacityHours,
     boolean overDemand,
-    boolean overCommitted
+    boolean overCommitted,
+    /** Real session (period-row) count this faculty currently has this week -- the same unit
+     *  {@code effectiveMinSessions} is configured in, so this and the floor are always directly
+     *  comparable, unlike committedHoursPerWeek (variable-length periods). */
+    int actualSessionsPerWeek,
+    boolean minSessionsConfigured,
+    Integer effectiveMinSessions,
+    /** Advisory only -- never blocks anything, unlike overCommitted's hard-cap counterpart. */
+    boolean belowMinimum
 ) {}

@@ -303,6 +303,7 @@ public class FacultyService {
         faculty.setPlannedWeeklySessionsOverride(r.plannedWeeklySessionsOverride());
         faculty.setPlannedDailySessionsOverride(r.plannedDailySessionsOverride());
         faculty.setPlannedContinuousSessionsOverride(r.plannedContinuousSessionsOverride());
+        faculty.setPlannedMinWeeklySessionsOverride(r.plannedMinWeeklySessionsOverride());
     }
 
     private static String trim(String s) {
@@ -380,7 +381,8 @@ public class FacultyService {
             faculty.getCommissionAmount(),
             faculty.getPlannedWeeklySessionsOverride(),
             faculty.getPlannedDailySessionsOverride(),
-            faculty.getPlannedContinuousSessionsOverride()
+            faculty.getPlannedContinuousSessionsOverride(),
+            faculty.getPlannedMinWeeklySessionsOverride()
         );
     }
 

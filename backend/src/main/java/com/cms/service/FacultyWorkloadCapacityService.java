@@ -47,17 +47,22 @@ public class FacultyWorkloadCapacityService {
     private final FacultyRepository facultyRepository;
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
+    private final SystemConfigurationService systemConfigurationService;
+
+    private static final String MIN_WEEKLY_SESSIONS_KEY = "timetable.faculty_min_weekly_sessions";
 
     public FacultyWorkloadCapacityService(TermInstanceRepository termInstanceRepository,
                                            ClassScheduleRepository classScheduleRepository,
                                            FacultyRepository facultyRepository,
                                            FacultyAvailabilityRepository facultyAvailabilityRepository,
-                                           TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService) {
+                                           TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService,
+                                           SystemConfigurationService systemConfigurationService) {
         this.termInstanceRepository = termInstanceRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.timetableGlobalAutoScheduleService = timetableGlobalAutoScheduleService;
+        this.systemConfigurationService = systemConfigurationService;
     }
 
     public FacultyWorkloadReportResponse getTermWorkloadReport(Long termInstanceId) {
@@ -77,6 +82,12 @@ public class FacultyWorkloadCapacityService {
         // filter -- previously this summed every status, which could silently disagree with the
         // hard-cap gate's own committed-hours count for the same faculty/term.
         Map<Long, Double> committedByFaculty = new HashMap<>();
+        // Real session (period-row) count per faculty this week -- the same unit the min-weekly-
+        // sessions floor is configured in (2026-09-24), kept alongside committedByFaculty's real
+        // HOURS figure rather than replacing it: hours stay the honest INC/university-reporting
+        // number (derived from each session's own real Period duration), while the floor check
+        // below needs a plain count, not a sum of variable-length periods.
+        Map<Long, Integer> sessionCountByFaculty = new HashMap<>();
         for (ClassSchedule schedule : Stream.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)
                 .flatMap(status -> classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, status).stream())
                 .toList()) {
@@ -86,6 +97,7 @@ public class FacultyWorkloadCapacityService {
             }
             double hours = schedule.getPeriod().getDurationMinutes() / 60.0;
             committedByFaculty.merge(faculty.getId(), hours, Double::sum);
+            sessionCountByFaculty.merge(faculty.getId(), 1, Integer::sum);
         }
 
         Set<Long> facultyIds = new HashSet<>(demandByFaculty.keySet());
@@ -110,16 +122,22 @@ public class FacultyWorkloadCapacityService {
             double demand = demandByFaculty.getOrDefault(faculty.getId(), 0.0);
             double committed = committedByFaculty.getOrDefault(faculty.getId(), 0.0);
             double blocked = blockedByFaculty.getOrDefault(faculty.getId(), 0.0);
+            int actualSessions = sessionCountByFaculty.getOrDefault(faculty.getId(), 0);
 
             Integer effective = resolveEffectiveCapacity(faculty);
             boolean configured = effective != null;
             Double netCapacity = configured ? Math.max(0.0, effective - blocked) : null;
 
+            Integer effectiveMin = resolveEffectiveMinWeeklySessions(faculty);
+            boolean minConfigured = effectiveMin != null;
+            boolean belowMinimum = minConfigured && actualSessions < effectiveMin;
+
             rows.add(new FacultyWorkloadRow(
                 faculty.getId(), faculty.getFullName(), designationName(faculty),
                 demand, committed, blocked,
                 configured, configured ? effective.doubleValue() : null, netCapacity,
-                configured && demand > netCapacity, configured && committed > netCapacity));
+                configured && demand > netCapacity, configured && committed > netCapacity,
+                actualSessions, minConfigured, effectiveMin, belowMinimum));
 
             totalDemand += demand;
             totalCommitted += committed;
@@ -149,6 +167,32 @@ public class FacultyWorkloadCapacityService {
      *  {@link TimetableStaffingService}'s continuous (unbroken run) hard-cap gate. */
     static Integer resolveEffectiveContinuousCapacity(Faculty faculty) {
         return resolveEffective(faculty, Faculty::getPlannedContinuousSessionsOverride, DesignationMaster::getDefaultContinuousTeachingSessions);
+    }
+
+    /** Per-faculty-override-then-designation-default-then-institution-wide precedence, same shape
+     *  as {@link #resolveEffectiveCapacity} and its daily/continuous siblings -- but unlike those
+     *  three (which feed {@link TimetableStaffingService}'s hard-block gate), this is never
+     *  enforced: it only ever drives {@code belowMinimum} on this report's rows, an advisory flag
+     *  a real-time UI can surface. Instance method (not static like the other three resolvers)
+     *  because the institution-wide fallback needs {@link #systemConfigurationService}. */
+    Integer resolveEffectiveMinWeeklySessions(Faculty faculty) {
+        Integer perFacultyOrDesignation = resolveEffective(
+            faculty, Faculty::getPlannedMinWeeklySessionsOverride, DesignationMaster::getDefaultMinWeeklySessions);
+        if (perFacultyOrDesignation != null) {
+            return perFacultyOrDesignation;
+        }
+        return systemConfigurationService.findByKey(MIN_WEEKLY_SESSIONS_KEY)
+            .map(config -> config.configValue())
+            .filter(value -> value != null && !value.isBlank())
+            .flatMap(value -> {
+                try {
+                    int parsed = Integer.parseInt(value.trim());
+                    return parsed > 0 ? java.util.Optional.of(parsed) : java.util.Optional.<Integer>empty();
+                } catch (NumberFormatException e) {
+                    return java.util.Optional.<Integer>empty();
+                }
+            })
+            .orElse(null);
     }
 
     private static Integer resolveEffective(Faculty faculty,

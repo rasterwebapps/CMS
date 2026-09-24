@@ -47,6 +47,7 @@ public class DesignationService {
         designation.setDefaultWeeklyTeachingSessions(request.defaultWeeklyTeachingSessions());
         designation.setDefaultDailyTeachingSessions(request.defaultDailyTeachingSessions());
         designation.setDefaultContinuousTeachingSessions(request.defaultContinuousTeachingSessions());
+        designation.setDefaultMinWeeklySessions(request.defaultMinWeeklySessions());
         return toResponse(designationRepository.save(designation));
     }
 
@@ -103,6 +104,7 @@ public class DesignationService {
         designation.setDefaultWeeklyTeachingSessions(request.defaultWeeklyTeachingSessions());
         designation.setDefaultDailyTeachingSessions(request.defaultDailyTeachingSessions());
         designation.setDefaultContinuousTeachingSessions(request.defaultContinuousTeachingSessions());
+        designation.setDefaultMinWeeklySessions(request.defaultMinWeeklySessions());
         return toResponse(designationRepository.save(designation));
     }
 
@@ -142,7 +144,7 @@ public class DesignationService {
     private DesignationResponse toResponse(DesignationMaster d) {
         return new DesignationResponse(d.getId(), d.getName(), d.getCode(), d.getDescription(),
             d.getIsActive(), d.getDefaultWeeklyTeachingSessions(), d.getDefaultDailyTeachingSessions(),
-            d.getDefaultContinuousTeachingSessions(), d.getCreatedAt(), d.getUpdatedAt());
+            d.getDefaultContinuousTeachingSessions(), d.getDefaultMinWeeklySessions(), d.getCreatedAt(), d.getUpdatedAt());
     }
 
     private static String trim(String s) {

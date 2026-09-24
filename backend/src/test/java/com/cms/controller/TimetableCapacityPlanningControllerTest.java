@@ -45,7 +45,8 @@ class TimetableCapacityPlanningControllerTest {
             1L, "Jane Doe", "Professor",
             18.0, 16.0, 4.0,
             true, 20.0, 16.0,
-            true, false);
+            true, false,
+            10, true, 16, false);
         FacultyWorkloadReportResponse response = new FacultyWorkloadReportResponse(
             10L, List.of(row), 18.0, 16.0, 16.0, 0);
 

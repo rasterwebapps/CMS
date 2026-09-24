@@ -169,14 +169,20 @@ public class Faculty {
     private Integer plannedWeeklySessionsOverride;
 
     /** Same override precedence as {@link #plannedWeeklySessionsOverride}, but feeds the daily hard
-     *  cap ({@code timetable.faculty_max_daily_hours}) instead of the advisory weekly report. */
+     *  cap ({@code timetable.faculty_max_daily_sessions}) instead of the advisory weekly report. */
     @Column(name = "planned_daily_sessions_override")
     private Integer plannedDailySessionsOverride;
 
     /** Same override precedence as {@link #plannedWeeklySessionsOverride}, but feeds the continuous
-     *  (unbroken run) hard cap ({@code timetable.faculty_max_continuous_hours}). */
+     *  (unbroken run) hard cap ({@code timetable.faculty_max_continuous_sessions}). */
     @Column(name = "planned_continuous_sessions_override")
     private Integer plannedContinuousSessionsOverride;
+
+    /** Advisory floor counterpart to {@link #plannedWeeklySessionsOverride} -- wins over {@link
+     *  DesignationMaster#getDefaultMinWeeklySessions()} when set. Never a hard block; see that
+     *  field's own doc comment for why. */
+    @Column(name = "planned_min_weekly_sessions_override")
+    private Integer plannedMinWeeklySessionsOverride;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -338,6 +344,9 @@ public class Faculty {
 
     public Integer getPlannedContinuousSessionsOverride() { return plannedContinuousSessionsOverride; }
     public void setPlannedContinuousSessionsOverride(Integer plannedContinuousSessionsOverride) { this.plannedContinuousSessionsOverride = plannedContinuousSessionsOverride; }
+
+    public Integer getPlannedMinWeeklySessionsOverride() { return plannedMinWeeklySessionsOverride; }
+    public void setPlannedMinWeeklySessionsOverride(Integer plannedMinWeeklySessionsOverride) { this.plannedMinWeeklySessionsOverride = plannedMinWeeklySessionsOverride; }
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }

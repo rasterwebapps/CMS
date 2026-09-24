@@ -39,6 +39,7 @@ class FacultyWorkloadCapacityServiceTest {
     @Mock private FacultyRepository facultyRepository;
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
+    @Mock private SystemConfigurationService systemConfigurationService;
 
     private FacultyWorkloadCapacityService service;
     private TermInstance term;
@@ -46,7 +47,8 @@ class FacultyWorkloadCapacityServiceTest {
     @BeforeEach
     void setUp() {
         service = new FacultyWorkloadCapacityService(termInstanceRepository,
-            classScheduleRepository, facultyRepository, facultyAvailabilityRepository, timetableGlobalAutoScheduleService);
+            classScheduleRepository, facultyRepository, facultyAvailabilityRepository, timetableGlobalAutoScheduleService,
+            systemConfigurationService);
 
         term = new TermInstance();
         term.setId(10L);
@@ -190,5 +192,90 @@ class FacultyWorkloadCapacityServiceTest {
         assertThat(row.blockedHoursPerWeek()).isEqualTo(2.0);
         assertThat(row.netCapacityHours()).isEqualTo(8.0);
         assertThat(row.overCommitted()).isTrue();
+    }
+
+    @Test
+    void shouldFlagBelowMinimumUsingDesignationDefaultFloor() {
+        DesignationMaster designation = designation(20);
+        designation.setDefaultMinWeeklySessions(16);
+        Faculty f = faculty(6L, "Arjun", designation, null);
+
+        // Only 2 real sessions this week, well under the designation's 16-session floor.
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(schedule(f, 60), schedule(f, 60)));
+        when(facultyRepository.findAllById(java.util.Set.of(6L))).thenReturn(List.of(f));
+        when(facultyAvailabilityRepository.findByFacultyIdInOrderByDayOfWeekAscStartTimeAsc(List.of(6L)))
+            .thenReturn(List.of());
+
+        FacultyWorkloadReportResponse report = service.getTermWorkloadReport(10L);
+
+        FacultyWorkloadRow row = report.rows().get(0);
+        assertThat(row.actualSessionsPerWeek()).isEqualTo(2);
+        assertThat(row.minSessionsConfigured()).isTrue();
+        assertThat(row.effectiveMinSessions()).isEqualTo(16);
+        assertThat(row.belowMinimum()).isTrue();
+    }
+
+    @Test
+    void shouldNotFlagBelowMinimumWhenActualMeetsTheFloorExactly() {
+        DesignationMaster designation = designation(20);
+        designation.setDefaultMinWeeklySessions(2);
+        Faculty f = faculty(7L, "Meera", designation, null);
+
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(schedule(f, 60), schedule(f, 60)));
+        when(facultyRepository.findAllById(java.util.Set.of(7L))).thenReturn(List.of(f));
+        when(facultyAvailabilityRepository.findByFacultyIdInOrderByDayOfWeekAscStartTimeAsc(List.of(7L)))
+            .thenReturn(List.of());
+
+        FacultyWorkloadReportResponse report = service.getTermWorkloadReport(10L);
+
+        FacultyWorkloadRow row = report.rows().get(0);
+        assertThat(row.actualSessionsPerWeek()).isEqualTo(2);
+        assertThat(row.belowMinimum()).isFalse();
+    }
+
+    @Test
+    void shouldFallBackToInstitutionWideMinWhenNoFacultyOrDesignationFloorConfigured() {
+        DesignationMaster designation = designation(20); // no defaultMinWeeklySessions set
+        Faculty f = faculty(8L, "Divya", designation, null);
+
+        when(systemConfigurationService.findByKey("timetable.faculty_min_weekly_sessions"))
+            .thenReturn(java.util.Optional.of(new com.cms.dto.SystemConfigurationResponse(
+                1L, "timetable.faculty_min_weekly_sessions", "10", "desc",
+                com.cms.model.enums.ConfigDataType.INTEGER, "TIMETABLE", true, null, null)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(schedule(f, 60)));
+        when(facultyRepository.findAllById(java.util.Set.of(8L))).thenReturn(List.of(f));
+        when(facultyAvailabilityRepository.findByFacultyIdInOrderByDayOfWeekAscStartTimeAsc(List.of(8L)))
+            .thenReturn(List.of());
+
+        FacultyWorkloadReportResponse report = service.getTermWorkloadReport(10L);
+
+        FacultyWorkloadRow row = report.rows().get(0);
+        assertThat(row.effectiveMinSessions()).isEqualTo(10);
+        assertThat(row.belowMinimum()).isTrue();
+    }
+
+    @Test
+    void shouldLeaveBelowMinimumFalseWhenNoFloorConfiguredAnywhere() {
+        DesignationMaster designation = designation(20); // no defaultMinWeeklySessions set
+        Faculty f = faculty(9L, "Karthik", designation, null);
+
+        // Some demand so this faculty shows up in the report at all (rows are keyed off demand or
+        // committed presence, same as every other test in this file).
+        when(timetableGlobalAutoScheduleService.getTermTotalDemandByFaculty(10L)).thenReturn(Map.of(9L, 40.0));
+        lenient().when(systemConfigurationService.findByKey("timetable.faculty_min_weekly_sessions"))
+            .thenReturn(java.util.Optional.empty());
+        when(facultyRepository.findAllById(java.util.Set.of(9L))).thenReturn(List.of(f));
+        when(facultyAvailabilityRepository.findByFacultyIdInOrderByDayOfWeekAscStartTimeAsc(List.of(9L)))
+            .thenReturn(List.of());
+
+        FacultyWorkloadReportResponse report = service.getTermWorkloadReport(10L);
+
+        FacultyWorkloadRow row = report.rows().get(0);
+        assertThat(row.minSessionsConfigured()).isFalse();
+        assertThat(row.effectiveMinSessions()).isNull();
+        assertThat(row.belowMinimum()).isFalse();
     }
 }

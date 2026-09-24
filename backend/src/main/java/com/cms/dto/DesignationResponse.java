@@ -11,6 +11,7 @@ public record DesignationResponse(
     Integer defaultWeeklyTeachingSessions,
     Integer defaultDailyTeachingSessions,
     Integer defaultContinuousTeachingSessions,
+    Integer defaultMinWeeklySessions,
     Instant createdAt,
     Instant updatedAt
 ) {
@@ -22,6 +23,6 @@ public record DesignationResponse(
         Instant createdAt,
         Instant updatedAt
     ) {
-        this(id, name, code, description, true, null, null, null, createdAt, updatedAt);
+        this(id, name, code, description, true, null, null, null, null, createdAt, updatedAt);
     }
 }

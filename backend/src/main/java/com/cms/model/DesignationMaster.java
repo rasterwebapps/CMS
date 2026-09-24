@@ -41,14 +41,24 @@ public class DesignationMaster {
     private Integer defaultWeeklyTeachingSessions;
 
     /** Same override precedence as {@link #defaultWeeklyTeachingSessions}, but feeds the daily hard
-     *  cap ({@code timetable.faculty_max_daily_hours}) instead of the advisory weekly report. */
+     *  cap ({@code timetable.faculty_max_daily_sessions}) instead of the advisory weekly report. */
     @Column(name = "default_daily_teaching_sessions")
     private Integer defaultDailyTeachingSessions;
 
     /** Same override precedence as {@link #defaultWeeklyTeachingSessions}, but feeds the continuous
-     *  (unbroken run) hard cap ({@code timetable.faculty_max_continuous_hours}). */
+     *  (unbroken run) hard cap ({@code timetable.faculty_max_continuous_sessions}). */
     @Column(name = "default_continuous_teaching_sessions")
     private Integer defaultContinuousTeachingSessions;
+
+    /** Advisory floor counterpart to {@link #defaultWeeklyTeachingSessions} -- a faculty member
+     *  below this many sessions/week shows as under-loaded (Faculty List, Assign Faculty, the
+     *  Faculty Workload report). Never a hard block, unlike the three maximums above: refusing to
+     *  place a session because it would leave someone under a floor makes no sense the way
+     *  refusing one that pushes someone over a ceiling does. Same per-faculty-override-then-
+     *  designation-default-then-institution-wide ({@code timetable.faculty_min_weekly_sessions})
+     *  precedence. */
+    @Column(name = "default_min_weekly_sessions")
+    private Integer defaultMinWeeklySessions;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -89,6 +99,9 @@ public class DesignationMaster {
 
     public Integer getDefaultContinuousTeachingSessions() { return defaultContinuousTeachingSessions; }
     public void setDefaultContinuousTeachingSessions(Integer defaultContinuousTeachingSessions) { this.defaultContinuousTeachingSessions = defaultContinuousTeachingSessions; }
+
+    public Integer getDefaultMinWeeklySessions() { return defaultMinWeeklySessions; }
+    public void setDefaultMinWeeklySessions(Integer defaultMinWeeklySessions) { this.defaultMinWeeklySessions = defaultMinWeeklySessions; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
