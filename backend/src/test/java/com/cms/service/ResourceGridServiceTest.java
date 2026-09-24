@@ -34,6 +34,7 @@ import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceGridServiceTest {
@@ -47,6 +48,7 @@ class ResourceGridServiceTest {
     @Mock private DayMappingOverrideRepository dayMappingOverrideRepository;
     @Mock private ClinicalShiftGroupRepository clinicalShiftGroupRepository;
     @Mock private BatchRepository batchRepository;
+    @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
 
     private ResourceGridService service;
     private Faculty faculty1;
@@ -56,7 +58,8 @@ class ResourceGridServiceTest {
     void setUp() {
         service = new ResourceGridService(classScheduleRepository, classScheduleService,
             facultyRepository, classroomRepository, labRepository, clinicalVenueRepository,
-            dayMappingOverrideRepository, clinicalShiftGroupRepository, batchRepository);
+            dayMappingOverrideRepository, clinicalShiftGroupRepository, batchRepository,
+            studentTermEnrollmentRepository);
         lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(any()))
             .thenReturn(List.of());
 
@@ -156,6 +159,55 @@ class ResourceGridServiceTest {
         assertThat(rows.get(0).resourceId()).isEqualTo(1L);
         assertThat(rows.get(0).sessions()).hasSize(1);
         assertThat(rows.get(0).sessions().get(0).sessionId()).isEqualTo(100L);
+    }
+
+    @Test
+    void libraryCellWithNoCourseOfferingShouldFallBackToTheCohortsRealTermNumber() {
+        // LIBRARY sessions never have a CourseOffering (see TimetableSkeletonService's Library
+        // filler paths), so ClassScheduleResponse#termNumber is always null for them -- this grid
+        // must fall back to the cell's own CohortSection -> cohort's real StudentTermEnrollment for
+        // this term instance instead, the same source Global Auto-Schedule itself uses to resolve
+        // "which term is this cohort actually in."
+        Classroom libraryHall = new Classroom("Library Hall", "Main Block", "L01", 60);
+        libraryHall.setId(1L);
+
+        com.cms.model.Cohort cohort = new com.cms.model.Cohort();
+        cohort.setId(5L);
+        com.cms.model.CohortRoomAllocation allocation = new com.cms.model.CohortRoomAllocation();
+        allocation.setId(9L);
+        allocation.setCohort(cohort);
+        com.cms.model.CohortSection section = new com.cms.model.CohortSection();
+        section.setId(20L);
+        section.setCohortRoomAllocation(allocation);
+
+        com.cms.model.ClassSchedule librarySession = new com.cms.model.ClassSchedule();
+        librarySession.setId(100L);
+        librarySession.setClassroom(libraryHall);
+        librarySession.setCohortSection(section);
+
+        ClassScheduleResponse response = new ClassScheduleResponse(100L, ClassSessionType.LIBRARY,
+            ClassScheduleStatus.PUBLISHED, null, null, null, "Library", "LIB", null, null,
+            1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), "Section 1 — Whole Section", null, 1L, null,
+            "Library Hall", null, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+
+        com.cms.model.StudentTermEnrollment enrollment = new com.cms.model.StudentTermEnrollment();
+        enrollment.setSemesterNumber(3);
+
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+            .thenReturn(List.of(librarySession));
+        when(classScheduleService.toResponseList(List.of(librarySession))).thenReturn(List.of(response));
+        when(classroomRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of(libraryHall));
+        when(labRepository.findAll()).thenReturn(List.of());
+        when(clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()).thenReturn(List.of());
+        when(studentTermEnrollmentRepository.findFirstByTermInstanceIdAndCohortIdAndStatus(
+            10L, 5L, com.cms.model.enums.EnrollmentStatus.ENROLLED)).thenReturn(java.util.Optional.of(enrollment));
+
+        List<ResourceGridRowResponse> rows = service.getResourceGrid(
+            ResourceGridService.ResourceType.CLASSROOM, 10L, DayOfWeek.MONDAY, null);
+
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).sessions()).hasSize(1);
+        assertThat(rows.get(0).sessions().get(0).termNumber()).isEqualTo(3);
     }
 
     @Test

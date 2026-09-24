@@ -19,13 +19,16 @@ import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.ClinicalShiftGroup;
 import com.cms.model.ClinicalVenue;
+import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.DayMappingOverride;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
+import com.cms.model.StudentTermEnrollment;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
 import com.cms.repository.BatchRepository;
@@ -36,6 +39,7 @@ import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.DayMappingOverrideRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
 
 /**
  * Master resource-matrix views (Faculty/Classroom) for the Timetable planner Round 2 initiative —
@@ -62,6 +66,7 @@ public class ResourceGridService {
     private final DayMappingOverrideRepository dayMappingOverrideRepository;
     private final ClinicalShiftGroupRepository clinicalShiftGroupRepository;
     private final BatchRepository batchRepository;
+    private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
 
     /** Synthetic sessionId floor for a Clinical Shift cell (no backing {@code ClassSchedule} row)
      *  — {@code SHIFT_CELL_ID_BASE - batch.getId()} is always negative, so it can never collide
@@ -76,7 +81,8 @@ public class ResourceGridService {
                                 ClinicalVenueRepository clinicalVenueRepository,
                                 DayMappingOverrideRepository dayMappingOverrideRepository,
                                 ClinicalShiftGroupRepository clinicalShiftGroupRepository,
-                                BatchRepository batchRepository) {
+                                BatchRepository batchRepository,
+                                StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
         this.classScheduleRepository = classScheduleRepository;
         this.classScheduleService = classScheduleService;
         this.facultyRepository = facultyRepository;
@@ -86,6 +92,7 @@ public class ResourceGridService {
         this.dayMappingOverrideRepository = dayMappingOverrideRepository;
         this.clinicalShiftGroupRepository = clinicalShiftGroupRepository;
         this.batchRepository = batchRepository;
+        this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
     }
 
     /** @param date when supplied, resolves the effective day-of-week through any {@link
@@ -123,9 +130,13 @@ public class ResourceGridService {
                 .filter(g -> g.getDayOfWeek() == effectiveDayOfWeek)
                 .toList();
 
+        // One cache per request, keyed by cohortId -- see {@link #resolveCohortTermNumber}. Shared
+        // across every row/cell this call builds so a cohort with many Library/Sports cells today
+        // only ever triggers one real lookup, not one per cell.
+        Map<Long, Integer> cohortTermNumberCache = new HashMap<>();
         return type == ResourceType.FACULTY
-            ? facultyRows(daySchedules, responseById, shiftGroupsToday, effectiveDayOfWeek)
-            : classroomAndLabRows(daySchedules, responseById, shiftGroupsToday, effectiveDayOfWeek);
+            ? facultyRows(daySchedules, responseById, shiftGroupsToday, effectiveDayOfWeek, termInstanceId, cohortTermNumberCache)
+            : classroomAndLabRows(daySchedules, responseById, shiftGroupsToday, effectiveDayOfWeek, termInstanceId, cohortTermNumberCache);
     }
 
     /** Full Mon-Sat week for exactly one faculty/room, drilled into from a single grid row —
@@ -150,6 +161,7 @@ public class ResourceGridService {
         java.util.function.Predicate<ClassSchedule> matchesResource = resourceMatcher(type, resourceId);
         java.util.function.Predicate<Batch> matchesShiftResource = shiftResourceMatcher(type, resourceId);
 
+        Map<Long, Integer> cohortTermNumberCache = new HashMap<>();
         List<ResourceGridCellResponse> cells = new ArrayList<>();
         DayOfWeek[] days = DayOfWeek.values();
         for (int i = 0; i < days.length; i++) {
@@ -158,7 +170,7 @@ public class ResourceGridService {
 
             for (ClassSchedule cs : allPublished) {
                 if (cs.getDayOfWeek() == queryDay && matchesResource.test(cs)) {
-                    cells.add(toCell(responseById.get(cs.getId()), displayDay));
+                    cells.add(toCell(cs, responseById.get(cs.getId()), displayDay, termInstanceId, cohortTermNumberCache));
                 }
             }
             List<ClinicalShiftGroup> shiftGroupsThatDay = activeShiftGroups.stream()
@@ -190,12 +202,13 @@ public class ResourceGridService {
     private List<ResourceGridRowResponse> facultyRows(List<ClassSchedule> daySchedules,
                                                         Map<Long, ClassScheduleResponse> responseById,
                                                         List<ClinicalShiftGroup> shiftGroupsToday,
-                                                        DayOfWeek displayDay) {
+                                                        DayOfWeek displayDay, Long termInstanceId,
+                                                        Map<Long, Integer> cohortTermNumberCache) {
         List<ResourceGridRowResponse> rows = new ArrayList<>();
         for (Faculty faculty : facultyRepository.findByStatus(FacultyStatus.ACTIVE)) {
             List<ResourceGridCellResponse> cells = new ArrayList<>(daySchedules.stream()
                 .filter(cs -> cs.getFaculty() != null && cs.getFaculty().getId().equals(faculty.getId()))
-                .map(cs -> toCell(responseById.get(cs.getId()), displayDay))
+                .map(cs -> toCell(cs, responseById.get(cs.getId()), displayDay, termInstanceId, cohortTermNumberCache))
                 .toList());
             cells.addAll(shiftCellsFor(shiftGroupsToday, displayDay,
                 batch -> batch.getCoordinatorFaculty() != null && batch.getCoordinatorFaculty().getId().equals(faculty.getId())));
@@ -207,12 +220,13 @@ public class ResourceGridService {
     private List<ResourceGridRowResponse> classroomAndLabRows(List<ClassSchedule> daySchedules,
                                                                 Map<Long, ClassScheduleResponse> responseById,
                                                                 List<ClinicalShiftGroup> shiftGroupsToday,
-                                                                DayOfWeek displayDay) {
+                                                                DayOfWeek displayDay, Long termInstanceId,
+                                                                Map<Long, Integer> cohortTermNumberCache) {
         List<ResourceGridRowResponse> rows = new ArrayList<>();
         for (Classroom classroom : classroomRepository.findByIsActiveTrueOrderByNameAsc()) {
             List<ResourceGridCellResponse> cells = daySchedules.stream()
                 .filter(cs -> cs.getClassroom() != null && cs.getClassroom().getId().equals(classroom.getId()))
-                .map(cs -> toCell(responseById.get(cs.getId()), displayDay))
+                .map(cs -> toCell(cs, responseById.get(cs.getId()), displayDay, termInstanceId, cohortTermNumberCache))
                 .toList();
             rows.add(new ResourceGridRowResponse(classroom.getId(), classroom.getName(), cells));
         }
@@ -222,7 +236,7 @@ public class ResourceGridService {
             }
             List<ResourceGridCellResponse> cells = daySchedules.stream()
                 .filter(cs -> cs.getLab() != null && cs.getLab().getId().equals(lab.getId()))
-                .map(cs -> toCell(responseById.get(cs.getId()), displayDay))
+                .map(cs -> toCell(cs, responseById.get(cs.getId()), displayDay, termInstanceId, cohortTermNumberCache))
                 .toList();
             rows.add(new ResourceGridRowResponse(lab.getId(), lab.getName(), cells));
         }
@@ -233,7 +247,7 @@ public class ResourceGridService {
         for (ClinicalVenue venue : clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()) {
             List<ResourceGridCellResponse> cells = new ArrayList<>(daySchedules.stream()
                 .filter(cs -> cs.getClinicalVenue() != null && cs.getClinicalVenue().getId().equals(venue.getId()))
-                .map(cs -> toCell(responseById.get(cs.getId()), displayDay))
+                .map(cs -> toCell(cs, responseById.get(cs.getId()), displayDay, termInstanceId, cohortTermNumberCache))
                 .toList());
             cells.addAll(shiftCellsFor(shiftGroupsToday, displayDay,
                 batch -> batch.getClinicalVenue() != null && batch.getClinicalVenue().getId().equals(venue.getId())));
@@ -306,9 +320,35 @@ public class ResourceGridService {
         return DayOfWeek.valueOf(date.getDayOfWeek().name());
     }
 
-    private ResourceGridCellResponse toCell(ClassScheduleResponse r, DayOfWeek displayDay) {
+    private ResourceGridCellResponse toCell(ClassSchedule cs, ClassScheduleResponse r, DayOfWeek displayDay,
+                                             Long termInstanceId, Map<Long, Integer> cohortTermNumberCache) {
+        Integer termNumber = r.termNumber() != null
+            ? r.termNumber()
+            : resolveCohortTermNumber(cs.getCohortSection(), termInstanceId, cohortTermNumberCache);
         return new ResourceGridCellResponse(r.id(), r.subjectName(), r.subjectCode(), r.roomName(),
             r.facultyName(), r.batchName(), r.startTime(), r.endTime(), r.slotName(), r.sessionType(), r.status(),
-            r.termNumber(), false, displayDay, r.periodId());
+            termNumber, false, displayDay, r.periodId());
+    }
+
+    /** LIBRARY/SPORTS filler rows have no CourseOffering at all (see session-color.util.ts's own
+     *  comment on the frontend twin of this), so {@link ClassScheduleResponse#termNumber} is always
+     *  null for them -- this grid pools sessions across cohorts, so without a fallback those rows
+     *  never carried any term-distinguishing signal at all. Falls back to whichever curriculum term
+     *  the cell's own {@link CohortSection}'s cohort is actually enrolled in for this term instance
+     *  (StudentTermEnrollment -- the same source Global Auto-Schedule itself uses to find "which
+     *  cohorts are active this term"), cached per cohort per request since one grid response can
+     *  carry many Library cells for the same handful of cohorts. Null (no fallback, chip just omits
+     *  the badge) for a synthetic Clinical Shift cell (no CohortSection) or a cohort with no real
+     *  enrollment row for this term instance. */
+    private Integer resolveCohortTermNumber(CohortSection section, Long termInstanceId, Map<Long, Integer> cache) {
+        if (section == null || section.getCohortRoomAllocation() == null
+            || section.getCohortRoomAllocation().getCohort() == null) {
+            return null;
+        }
+        Long cohortId = section.getCohortRoomAllocation().getCohort().getId();
+        return cache.computeIfAbsent(cohortId, id -> studentTermEnrollmentRepository
+            .findFirstByTermInstanceIdAndCohortIdAndStatus(termInstanceId, id, EnrollmentStatus.ENROLLED)
+            .map(StudentTermEnrollment::getSemesterNumber)
+            .orElse(null));
     }
 }
