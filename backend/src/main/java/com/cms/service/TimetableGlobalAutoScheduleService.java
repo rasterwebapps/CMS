@@ -253,6 +253,7 @@ public class TimetableGlobalAutoScheduleService {
     private final RotationMemberRepository rotationMemberRepository;
     private final RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
     private final TimetableConflictInspectorService timetableConflictInspectorService;
+    private final BatchService batchService;
 
     // Field injection with @Lazy breaks the circular dependency:
     // TimetableGlobalAutoScheduleService -> CourseOfferingSectionFacultyService -> TimetableGlobalAutoScheduleService
@@ -285,7 +286,8 @@ public class TimetableGlobalAutoScheduleService {
                                                RotationSlotRepository rotationSlotRepository,
                                                RotationMemberRepository rotationMemberRepository,
                                                RotationMemberAssignmentRepository rotationMemberAssignmentRepository,
-                                               TimetableConflictInspectorService timetableConflictInspectorService) {
+                                               TimetableConflictInspectorService timetableConflictInspectorService,
+                                               BatchService batchService) {
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableStaffingService = timetableStaffingService;
         this.clinicalShiftChecker = clinicalShiftChecker;
@@ -312,6 +314,7 @@ public class TimetableGlobalAutoScheduleService {
         this.rotationMemberRepository = rotationMemberRepository;
         this.rotationMemberAssignmentRepository = rotationMemberAssignmentRepository;
         this.timetableConflictInspectorService = timetableConflictInspectorService;
+        this.batchService = batchService;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -2051,11 +2054,22 @@ public class TimetableGlobalAutoScheduleService {
         }
         purgeRotationRowsForCells(idsToDeactivate);
         List<ClassSchedule> toDeactivate = classScheduleRepository.findAllById(idsToDeactivate);
+        Set<Long> touchedBatchIds = new HashSet<>();
         for (ClassSchedule cs : toDeactivate) {
             cs.setIsActive(false);
             classScheduleRepository.save(cs);
             AutoScheduleRunCache.current().ifPresent(cache -> cache.recordRemoval(cs));
+            if (cs.getBatch() != null) {
+                touchedBatchIds.add(cs.getBatch().getId());
+            }
         }
+        // A batch CohortRoomAllocation#revert correctly kept alive because it still had a real
+        // DRAFT cell riding on it can lose that last reason to exist right here, the moment this
+        // rebuild deactivates that same cell -- revert's own "delete if zero real history" check
+        // only ever runs once, at revert time. See BatchService#deleteOrphanedInactiveBatches's own
+        // doc comment for the real incident (6 stale "Lab/Clinical - Section 1 - Batch N" rows) this
+        // closes the gap on.
+        batchService.deleteOrphanedInactiveBatches(touchedBatchIds);
         return new PurgeOutcome(toDeactivate.size(), pinnedPreserved);
     }
 

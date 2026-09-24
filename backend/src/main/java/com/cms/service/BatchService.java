@@ -124,6 +124,36 @@ public class BatchService {
         batchRepository.delete(batch);
     }
 
+    /** Best-effort cleanup called by {@code TimetableGlobalAutoScheduleService}'s DRAFT rebuild
+     *  right after it deactivates a run of stale {@code ClassSchedule} rows. A batch that {@link
+     *  com.cms.service.CohortRoomAllocationService#revert} correctly kept alive (soft-deactivated,
+     *  not deleted) because it still had a real DRAFT class_schedule riding on it at THAT moment can
+     *  lose that last reason to exist the instant a LATER, unrelated rebuild deactivates that same
+     *  row — revert's own "delete if zero real history" check only ever runs once, at revert time,
+     *  so without this the batch was stuck as a permanently soft-deactivated husk with genuinely
+     *  nothing attached, forever (this is exactly how the 6 stale "Lab/Clinical - Section 1 - Batch
+     *  N" rows from a 2026-08-31 revert -- correctly kept alive that day, orphaned by 2026-09-08's
+     *  next rebuild -- accumulated with no path back to deletion).
+     *
+     *  <p>Only ever touches an already-inactive batch (never an active one, regardless of its own
+     *  history) and only deletes once it has zero real impact right now — the exact same guard
+     *  {@link #deleteBatch} enforces, just run opportunistically instead of requiring someone to
+     *  notice and delete it by hand via Manage Batches. Silently skips anything still ineligible
+     *  (still has real history, or no longer exists) rather than failing the caller's rebuild over
+     *  a purely advisory cleanup. */
+    @Transactional
+    public void deleteOrphanedInactiveBatches(java.util.Set<Long> batchIds) {
+        for (Long batchId : batchIds) {
+            Batch batch = batchRepository.findById(batchId).orElse(null);
+            if (batch == null || !Boolean.FALSE.equals(batch.getIsActive())) {
+                continue;
+            }
+            if (!computeLifecycleImpact(batch).hasAny()) {
+                batchRepository.delete(batch);
+            }
+        }
+    }
+
     public BatchLifecycleImpactDto getLifecycleImpact(Long id) {
         return computeLifecycleImpact(getOrThrow(id));
     }

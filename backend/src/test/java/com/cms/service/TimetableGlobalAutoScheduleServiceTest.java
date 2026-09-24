@@ -134,6 +134,7 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private RotationMemberRepository rotationMemberRepository;
     @Mock private RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
     @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
+    @Mock private BatchService batchService;
 
     /** {@code fillSelfStudyGaps}'s final fallback message -- reached only when a fixture configures
      *  neither a genuine Self-Study/Co-curricular offering NOR any other real Theory offering for
@@ -164,7 +165,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,
             blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService,
             clinicalShiftGroupService, rotationGroupService, rotationGroupRepository, rotationSlotRepository,
-            rotationMemberRepository, rotationMemberAssignmentRepository, timetableConflictInspectorService);
+            rotationMemberRepository, rotationMemberAssignmentRepository, timetableConflictInspectorService, batchService);
         service.setCourseOfferingSectionFacultyService(courseOfferingSectionFacultyService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
         // Every successful run now ends with a term-wide post-run conflict scan (flag-only) --

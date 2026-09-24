@@ -195,6 +195,59 @@ class BatchServiceTest {
     }
 
     @Test
+    void deleteOrphanedInactiveBatchesShouldDeleteAnInactiveBatchWithZeroRealHistory() {
+        Batch batch = new Batch(testOffering, "Lab - Section 1 - Batch 3", 25, testOffering.getTermInstance());
+        batch.setId(287L);
+        batch.setIsActive(false);
+
+        when(batchRepository.findById(287L)).thenReturn(Optional.of(batch));
+        when(batchRepository.countStudents(287L)).thenReturn(0L);
+        when(classScheduleRepository.countByBatchIdAndIsActiveTrue(287L)).thenReturn(0L);
+        when(rotationMemberAssignmentRepository.countByBatchId(287L)).thenReturn(0L);
+        when(escortRotationAssignmentRepository.countByBatchId(287L)).thenReturn(0L);
+        when(sessionOccurrenceRepository.countByBatch_IdAndOccurrenceStatusNot(287L, com.cms.model.enums.OccurrenceStatus.CANCELLED))
+            .thenReturn(0L);
+
+        service.deleteOrphanedInactiveBatches(java.util.Set.of(287L));
+
+        verify(batchRepository).delete(batch);
+    }
+
+    @Test
+    void deleteOrphanedInactiveBatchesShouldNeverTouchAnActiveBatchEvenWithZeroHistory() {
+        // The batch is currently in real use (isActive=true) -- zero history right now just means
+        // nothing has ridden on it yet, not that it's abandoned scaffolding safe to delete.
+        Batch batch = new Batch(testOffering, "Lab - Section 1 - Batch 1", 30, testOffering.getTermInstance());
+        batch.setId(285L);
+        batch.setIsActive(true);
+
+        when(batchRepository.findById(285L)).thenReturn(Optional.of(batch));
+
+        service.deleteOrphanedInactiveBatches(java.util.Set.of(285L));
+
+        verify(batchRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteOrphanedInactiveBatchesShouldSkipAnInactiveBatchThatStillHasRealHistory() {
+        Batch batch = new Batch(testOffering, "Clinical - Section 1 - Batch 1", 50, testOffering.getTermInstance());
+        batch.setId(289L);
+        batch.setIsActive(false);
+
+        when(batchRepository.findById(289L)).thenReturn(Optional.of(batch));
+        when(batchRepository.countStudents(289L)).thenReturn(0L);
+        when(classScheduleRepository.countByBatchIdAndIsActiveTrue(289L)).thenReturn(1L);
+        when(rotationMemberAssignmentRepository.countByBatchId(289L)).thenReturn(0L);
+        when(escortRotationAssignmentRepository.countByBatchId(289L)).thenReturn(0L);
+        when(sessionOccurrenceRepository.countByBatch_IdAndOccurrenceStatusNot(289L, com.cms.model.enums.OccurrenceStatus.CANCELLED))
+            .thenReturn(0L);
+
+        service.deleteOrphanedInactiveBatches(java.util.Set.of(289L));
+
+        verify(batchRepository, never()).delete(any());
+    }
+
+    @Test
     void shouldRejectUpdateWithStaleVersion() {
         Batch batch = new Batch(testOffering, "Batch A", 20, testOffering.getTermInstance());
         batch.setId(1L);
