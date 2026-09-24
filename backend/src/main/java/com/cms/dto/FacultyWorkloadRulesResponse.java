@@ -1,9 +1,11 @@
 package com.cms.dto;
 
-/** Null means no institution-wide cap configured for that tier -- matches the existing
- *  "blank/zero = no cap" convention {@code TimetableStaffingService.resolveCapHours} already uses. */
+/** Null means no institution-wide cap/floor configured for that tier -- matches the existing
+ *  "blank/zero = not configured" convention {@code TimetableStaffingService.resolveCapSessions}
+ *  already uses. Sessions (real Period-row count), not hours. */
 public record FacultyWorkloadRulesResponse(
-    Double maxDailyHours,
-    Double maxWeeklyHours,
-    Double maxContinuousHours
+    Integer maxDailySessions,
+    Integer maxWeeklySessions,
+    Integer maxContinuousSessions,
+    Integer minWeeklySessions
 ) {}
