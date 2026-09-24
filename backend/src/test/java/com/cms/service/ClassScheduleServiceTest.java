@@ -217,7 +217,7 @@ class ClassScheduleServiceTest {
     void shouldFindAllClassSchedules() {
         ClassSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
             testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
-        when(classScheduleRepository.findAll()).thenReturn(List.of(schedule));
+        when(classScheduleRepository.findByIsActiveTrue()).thenReturn(List.of(schedule));
 
         List<ClassScheduleResponse> responses = classScheduleService.findAll();
 
@@ -250,7 +250,7 @@ class ClassScheduleServiceTest {
         ClassSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
             testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         when(labRepository.existsById(1L)).thenReturn(true);
-        when(classScheduleRepository.findByLabId(1L)).thenReturn(List.of(schedule));
+        when(classScheduleRepository.findByLabIdAndIsActiveTrue(1L)).thenReturn(List.of(schedule));
 
         List<ClassScheduleResponse> responses = classScheduleService.findByLabId(1L);
 
@@ -272,7 +272,7 @@ class ClassScheduleServiceTest {
         ClassSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
             testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
         when(facultyRepository.existsById(1L)).thenReturn(true);
-        when(classScheduleRepository.findByFacultyId(1L)).thenReturn(List.of(schedule));
+        when(classScheduleRepository.findByFacultyIdAndIsActiveTrue(1L)).thenReturn(List.of(schedule));
 
         List<ClassScheduleResponse> responses = classScheduleService.findByFacultyId(1L);
 
@@ -284,7 +284,7 @@ class ClassScheduleServiceTest {
     void shouldFindByBatchName() {
         ClassSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
             testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
-        when(classScheduleRepository.findByBatchName("Batch-A")).thenReturn(List.of(schedule));
+        when(classScheduleRepository.findByBatchNameAndIsActiveTrue("Batch-A")).thenReturn(List.of(schedule));
 
         List<ClassScheduleResponse> responses = classScheduleService.findByBatchName("Batch-A");
 
@@ -296,7 +296,7 @@ class ClassScheduleServiceTest {
     void shouldFindByDayOfWeek() {
         ClassSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
             testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
-        when(classScheduleRepository.findByDayOfWeek(DayOfWeek.MONDAY)).thenReturn(List.of(schedule));
+        when(classScheduleRepository.findByDayOfWeekAndIsActiveTrue(DayOfWeek.MONDAY)).thenReturn(List.of(schedule));
 
         List<ClassScheduleResponse> responses = classScheduleService.findByDayOfWeek(DayOfWeek.MONDAY);
 
@@ -521,7 +521,7 @@ class ClassScheduleServiceTest {
             testPeriod, "Batch-A", DayOfWeek.WEDNESDAY, testTermInstance, true); // 90 min = 1.5h
 
         when(facultyRepository.existsById(1L)).thenReturn(true);
-        when(classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusIn(1L, 1L,
+        when(classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(1L, 1L,
             List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)))
             .thenReturn(List.of(monday90, monday60Draft, wednesday90));
 

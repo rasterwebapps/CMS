@@ -275,7 +275,7 @@ public class CourseOfferingServiceImpl implements CourseOfferingService {
      *  caller, {@link #updateStatus}) has no equivalent guard: deactivation never touches anything
      *  else, so flipping the flag back restores exactly the prior state. */
     private void requireSafeToDeactivate(CourseOffering offering) {
-        if (!classScheduleRepository.findByCourseOfferingId(offering.getId()).isEmpty()) {
+        if (!classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(offering.getId()).isEmpty()) {
             throw new IllegalArgumentException(
                 "Cannot deactivate — this offering already has sessions placed in Skeleton Builder. Remove them there first.");
         }

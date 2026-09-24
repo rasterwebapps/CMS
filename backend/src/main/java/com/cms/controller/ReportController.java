@@ -29,6 +29,7 @@ public class ReportController {
     }
 
     @GetMapping("/student-performance/{studentId}")
+    @PreAuthorize("@perm.has('REPORT_VIEW')")
     public ResponseEntity<StudentPerformanceReportResponse> getStudentPerformanceReport(
             @PathVariable Long studentId) {
         return ResponseEntity.ok(reportService.getStudentPerformanceReport(studentId));

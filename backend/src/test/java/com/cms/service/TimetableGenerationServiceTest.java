@@ -123,7 +123,7 @@ class TimetableGenerationServiceTest {
         stubCohortSchedules(List.of(row));
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
         when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(false);
-        when(classScheduleRepository.findByTermInstanceId(10L)).thenReturn(List.of(row));
+        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(row));
 
         TimetableActionResponse response = service.clear(10L, COHORT_IDS, "admin");
 

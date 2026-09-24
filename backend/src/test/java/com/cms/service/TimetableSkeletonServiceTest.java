@@ -1016,7 +1016,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SkeletonCellResponse response = service.placeCell(request);
@@ -1064,7 +1064,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(existing));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(existing));
 
         assertThatThrownBy(() -> service.placeCell(request))
             .isInstanceOf(TimetableConstraintViolationException.class);
@@ -1078,7 +1078,7 @@ class TimetableSkeletonServiceTest {
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SkeletonCellResponse response = service.placeCell(request);
@@ -1152,7 +1152,7 @@ class TimetableSkeletonServiceTest {
         when(periodRepository.findById(3L)).thenReturn(Optional.of(p3));
         when(periodRepository.findById(4L)).thenReturn(Optional.of(p4));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2, p3, p4, p5));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         Batch batch = new Batch();
         batch.setId(7L);
         batch.setCourseOffering(offering);
@@ -1235,7 +1235,7 @@ class TimetableSkeletonServiceTest {
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period, period2));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(existingAtPeriod2));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(existingAtPeriod2));
 
         assertThatThrownBy(() -> service.placeCell(request))
             .isInstanceOf(TimetableConstraintViolationException.class);
@@ -1260,7 +1260,7 @@ class TimetableSkeletonServiceTest {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(s1, s2, s3));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(s1, s2, s3));
 
         assertThatThrownBy(() -> service.placeCell(request))
             .isInstanceOf(TimetableConstraintViolationException.class)
@@ -1289,7 +1289,7 @@ class TimetableSkeletonServiceTest {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(s1, s2, s3));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(s1, s2, s3));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> {
             ClassSchedule saved = inv.getArgument(0);
             saved.setId(4243L);
@@ -1329,7 +1329,7 @@ class TimetableSkeletonServiceTest {
         // No findByIsActiveTrueOrderByPeriodOrderAsc stub here, unlike the enforced-cap test above:
         // that lookup happens only inside checkBudgetNotExceeded, which this path must now skip
         // entirely -- Mockito flagging it as an unnecessary stubbing is itself part of the proof.
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(s1, s2, s3));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(s1, s2, s3));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> {
             ClassSchedule saved = inv.getArgument(0);
             saved.setId(4242L);
@@ -1348,7 +1348,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
             .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
@@ -1369,7 +1369,7 @@ class TimetableSkeletonServiceTest {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(batchRepository.findById(400L)).thenReturn(Optional.of(batchA));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
             .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
@@ -1390,7 +1390,7 @@ class TimetableSkeletonServiceTest {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(batchRepository.findById(400L)).thenReturn(Optional.of(batchA));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
             .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
@@ -1407,7 +1407,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(blockedPeriodChecker.blockReason(
             DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Staff meeting"));
@@ -1422,7 +1422,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(blockedPeriodChecker.blockReason(
             DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), termInstance))
             .thenReturn(Optional.of("Auto-blocked — Independence Day"));
@@ -1441,7 +1441,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SkeletonCellResponse response = service.placeCell(request);
@@ -1487,7 +1487,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 701L, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
             .thenReturn(List.of(theoryForA));
@@ -1512,7 +1512,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(100L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, 700L, null);
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
             .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
@@ -1544,7 +1544,7 @@ class TimetableSkeletonServiceTest {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         when(batchRepository.findById(400L)).thenReturn(Optional.of(batchScopedToB));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L))
             .thenReturn(List.of(offeringDto(100L, false), offeringDto(200L, false)));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L, 200L)))
@@ -1570,7 +1570,7 @@ class TimetableSkeletonServiceTest {
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
         // The alreadyPlaced dedupe check queries findByCourseOfferingId -- must include section A's
         // row (same offering) to prove the fix distinguishes it from the section B request by id.
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(theoryForA));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(theoryForA));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 5L)).thenReturn(List.of(offeringDto(100L, false)));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(100L)))
             .thenReturn(List.of(theoryForA));
@@ -1590,7 +1590,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(300L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(electiveOff));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(300L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(300L)).thenReturn(Collections.emptyList());
         when(courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(10L, 950L))
             .thenReturn(List.of(electiveOff));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(300L)))
@@ -1613,7 +1613,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(301L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(301L)).thenReturn(Optional.of(electiveB));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(301L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(301L)).thenReturn(Collections.emptyList());
         when(courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(10L, 950L))
             .thenReturn(List.of(electiveA, electiveB));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(300L, 301L)))
@@ -1636,7 +1636,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(301L, ClassSessionType.THEORY, DayOfWeek.TUESDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(301L)).thenReturn(Optional.of(electiveB));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(301L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(301L)).thenReturn(Collections.emptyList());
         when(courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(10L, 950L))
             .thenReturn(List.of(electiveA, electiveB));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(300L, 301L)))
@@ -1662,7 +1662,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(400L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(400L)).thenReturn(Optional.of(ungroupedOffering));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(400L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(400L)).thenReturn(Collections.emptyList());
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         SkeletonCellResponse response = service.placeCell(request);
@@ -1679,7 +1679,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellPlacementRequest request = new SkeletonCellPlacementRequest(300L, ClassSessionType.THEORY, DayOfWeek.MONDAY, 1L, null, 5L, null, null);
         when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(electiveA));
         when(periodRepository.findById(1L)).thenReturn(Optional.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(300L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(300L)).thenReturn(Collections.emptyList());
         when(courseOfferingRepository.findByTermInstanceIdAndCurriculumSemesterCourse_ElectiveGroupId(10L, 950L))
             .thenReturn(List.of(electiveA));
         when(classScheduleRepository.findByTermInstanceIdAndCourseOfferingIdIn(10L, List.of(300L)))
@@ -1700,7 +1700,7 @@ class TimetableSkeletonServiceTest {
     void shouldSuggestCandidateSlotsUpToShortfall() {
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
 
         List<SkeletonPlacementCandidateResponse> candidates = service.suggestCandidates(100L, ClassSessionType.THEORY, null, null);
 
@@ -1714,7 +1714,7 @@ class TimetableSkeletonServiceTest {
         ClassSchedule already = existingRow(ClassSessionType.THEORY, null, false); // MONDAY by default
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(already));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(already));
 
         List<SkeletonPlacementCandidateResponse> candidates = service.suggestCandidates(100L, ClassSessionType.THEORY, null, null);
 
@@ -1749,7 +1749,7 @@ class TimetableSkeletonServiceTest {
 
         when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(sectionAAlreadyPlaced));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(sectionAAlreadyPlaced));
 
         // Section B has nothing placed yet -- its shortfall must still be the full 3, unaffected
         // by Section A's one placement.
@@ -1811,7 +1811,7 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
-        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(200L)).thenReturn(List.of());
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
         when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
@@ -1871,7 +1871,7 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
-        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of(a, b, c));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(200L)).thenReturn(List.of(a, b, c));
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
         when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
@@ -1929,7 +1929,7 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
-        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(200L)).thenReturn(List.of());
         when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -1973,7 +1973,7 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findById(101L)).thenReturn(Optional.of(cs));
         when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
-        when(classScheduleRepository.findByCourseOfferingId(200L)).thenReturn(List.of());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(200L)).thenReturn(List.of());
         when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -2009,7 +2009,7 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(chosenElective));
         when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
-        when(classScheduleRepository.findByCourseOfferingId(300L)).thenReturn(List.of());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(300L)).thenReturn(List.of());
         when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period));
         when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
@@ -2312,7 +2312,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(cs, occupantAtTarget));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(cs, occupantAtTarget));
 
         assertThatThrownBy(() -> service.moveCell(100L, request))
             .isInstanceOf(TimetableConstraintViolationException.class);
@@ -2331,7 +2331,7 @@ class TimetableSkeletonServiceTest {
         SkeletonCellMoveRequest request = new SkeletonCellMoveRequest(DayOfWeek.TUESDAY, 2L, 5L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(periodRepository.findById(2L)).thenReturn(Optional.of(period2));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(cs, ghostAtTarget));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(cs, ghostAtTarget));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         assertThatCode(() -> service.moveCell(100L, request)).doesNotThrowAnyException();

@@ -98,7 +98,7 @@ class TimetableStaffingAutoAssignServiceTest {
             .thenReturn(List.of(cell(1L, 100L, "Anatomy", 5L, 9L, false)));
         when(facultyRepository.findBySpecialityIdAndStatus(5L, FacultyStatus.ACTIVE))
             .thenReturn(List.of(faculty(50L)));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
 
         AutoStaffResult result = service.autoStaff(10L);
 
@@ -179,7 +179,7 @@ class TimetableStaffingAutoAssignServiceTest {
 
         ClassSchedule existingByFifty = new ClassSchedule();
         existingByFifty.setFaculty(faculty(50L));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(List.of(existingByFifty));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(List.of(existingByFifty));
 
         service.autoStaff(10L);
 
@@ -192,7 +192,7 @@ class TimetableStaffingAutoAssignServiceTest {
             .thenReturn(List.of(cell(1L, 100L, "Anatomy", 5L, 9L, false)));
         when(facultyRepository.findBySpecialityIdAndStatus(5L, FacultyStatus.ACTIVE))
             .thenReturn(List.of(faculty(50L), faculty(51L)));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(timetableStaffingService.staffCell(1L, new StaffingAssignmentRequest(50L, null)))
             .thenThrow(new TimetableConstraintViolationException(
                 List.of(new com.cms.dto.ConstraintViolation("STAFFING_FACULTY_CONFLICT", "busy"))));
@@ -209,7 +209,7 @@ class TimetableStaffingAutoAssignServiceTest {
             .thenReturn(List.of(cell(1L, 100L, "Anatomy", 5L, 9L, false)));
         when(facultyRepository.findBySpecialityIdAndStatus(5L, FacultyStatus.ACTIVE))
             .thenReturn(List.of(faculty(50L)));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
         when(timetableStaffingService.staffCell(1L, new StaffingAssignmentRequest(50L, null)))
             .thenThrow(new TimetableConstraintViolationException(
                 List.of(new com.cms.dto.ConstraintViolation("STAFFING_FACULTY_CONFLICT", "busy"))));
@@ -257,7 +257,7 @@ class TimetableStaffingAutoAssignServiceTest {
             .thenReturn(overCapacity());
         when(facultyRepository.findBySpecialityIdAndStatus(5L, FacultyStatus.ACTIVE))
             .thenReturn(List.of(faculty(50L)));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
 
         AutoStaffResult result = service.autoStaff(10L);
 
@@ -283,7 +283,7 @@ class TimetableStaffingAutoAssignServiceTest {
             .thenReturn(Optional.of(override));
         when(facultyRepository.findBySpecialityIdAndStatus(5L, FacultyStatus.ACTIVE))
             .thenReturn(List.of(faculty(50L)));
-        when(classScheduleRepository.findByCourseOfferingId(100L)).thenReturn(Collections.emptyList());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(100L)).thenReturn(Collections.emptyList());
 
         AutoStaffResult result = service.autoStaff(10L);
 

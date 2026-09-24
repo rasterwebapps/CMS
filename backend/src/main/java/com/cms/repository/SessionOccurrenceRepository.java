@@ -22,6 +22,17 @@ public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurr
 
     List<SessionOccurrence> findByClassSchedule_CourseOffering_Id(Long courseOfferingId);
 
+    /** Every occurrence riding on any of these ClassSchedule rows, regardless of date -- used by
+     *  {@code TimetableGlobalAutoScheduleService#purgeOccurrencesForCells} to find what has to be
+     *  cleared before a rebuild hard-deletes an unpinned DRAFT cell. */
+    List<SessionOccurrence> findByClassSchedule_IdIn(List<Long> classScheduleIds);
+
+    /** The reverse side of a Phase 7 staff swap link -- who still points at these occurrences as
+     *  their {@code swapPartnerOccurrence}. Used to unlink an external swap partner before a purge
+     *  hard-deletes the occurrence it points at, since {@code swap_partner_occurrence_id} has no
+     *  {@code ON DELETE} clause and would otherwise block the delete. */
+    List<SessionOccurrence> findBySwapPartnerOccurrence_IdIn(List<Long> occurrenceIds);
+
     List<SessionOccurrence> findByClassSchedule_TermInstance_IdAndClassSchedule_Status(
         Long termInstanceId, com.cms.model.enums.ClassScheduleStatus status);
 

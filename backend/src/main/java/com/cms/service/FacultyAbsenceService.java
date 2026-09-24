@@ -97,7 +97,7 @@ public class FacultyAbsenceService {
             .map(com.cms.model.DayMappingOverride::getBorrowedDayOfWeek)
             .orElseGet(() -> DayOfWeek.valueOf(javaDay.name()));
 
-        List<ClassSchedule> candidates = classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(
+        List<ClassSchedule> candidates = classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeekAndIsActiveTrue(
             absence.getFaculty().getId(), ClassScheduleStatus.PUBLISHED, dayOfWeek);
 
         List<AffectedSessionResponse> result = new ArrayList<>();

@@ -234,7 +234,7 @@ public class TimetableStaffingAutoAssignService {
      *  day-scoped reuse tally with no server-side equivalent to reproduce), just aimed at the same
      *  underlying goal. */
     private List<Faculty> rankBySameSubjectReuse(List<Faculty> pool, Long courseOfferingId) {
-        Map<Long, Long> reuseCounts = classScheduleRepository.findByCourseOfferingId(courseOfferingId).stream()
+        Map<Long, Long> reuseCounts = classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(courseOfferingId).stream()
             .filter(cs -> cs.getFaculty() != null)
             .collect(Collectors.groupingBy(cs -> cs.getFaculty().getId(), Collectors.counting()));
         return pool.stream()

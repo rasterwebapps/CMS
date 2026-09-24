@@ -894,7 +894,7 @@ public class TimetableSkeletonService {
         Long scopeSectionId = cohortSection != null ? cohortSection.getId() : null;
         List<ClassSchedule> candidates = AutoScheduleRunCache.current()
             .map(cache -> cache.byCourseOfferingId(offering.getId()))
-            .orElseGet(() -> classScheduleRepository.findByCourseOfferingId(offering.getId()));
+            .orElseGet(() -> classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(offering.getId()));
         List<ClassSchedule> placed = candidates.stream()
             .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
             .filter(cs -> cs.getSessionType() == sessionType)
@@ -1220,7 +1220,7 @@ public class TimetableSkeletonService {
         int requiredRuns = CurriculumHoursCalculator.sessionsOverTerm(theoryHours, periodDurationMinutes, 1);
 
         Long audienceId = audience != null ? audience.getId() : null;
-        List<ClassSchedule> placed = classScheduleRepository.findByCourseOfferingId(displaced.getId()).stream()
+        List<ClassSchedule> placed = classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(displaced.getId()).stream()
             .filter(row -> Boolean.TRUE.equals(row.getIsActive()))
             .filter(row -> row.getSessionType() == ClassSessionType.THEORY)
             .filter(row -> Objects.equals(
@@ -1631,7 +1631,7 @@ public class TimetableSkeletonService {
                                                                       Set<Long> excludeCellIds) {
         List<ClassSchedule> candidates = AutoScheduleRunCache.current()
             .map(cache -> cache.byCourseOfferingId(offering.getId()))
-            .orElseGet(() -> classScheduleRepository.findByCourseOfferingId(offering.getId()));
+            .orElseGet(() -> classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(offering.getId()));
         boolean alreadyPlaced = candidates.stream()
             .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
             .filter(cs -> !isExcluded(excludeCellIds, cs.getId()))
@@ -2827,7 +2827,7 @@ public class TimetableSkeletonService {
         int effectiveHours = creditClinicalShiftHours(sessionType, hours, offering, weeksInTerm);
         int required = CurriculumHoursCalculator.sessionsPerWeek(effectiveHours, weeksInTerm, periodDurationMinutes, blockSize);
 
-        List<ClassSchedule> existingForOffering = classScheduleRepository.findByCourseOfferingId(courseOfferingId);
+        List<ClassSchedule> existingForOffering = classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(courseOfferingId);
         List<ClassSchedule> existingForThis = existingForOffering.stream()
             .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
             .filter(cs -> cs.getSessionType() == sessionType

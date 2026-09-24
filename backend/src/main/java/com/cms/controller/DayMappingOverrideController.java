@@ -37,11 +37,13 @@ public class DayMappingOverrideController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.hasAny('TIMETABLE_DAY_MAPPING_VIEW', 'TIMETABLE_DAY_MAPPING_MANAGE')")
     public ResponseEntity<List<DayMappingOverrideResponse>> findAll() {
         return ResponseEntity.ok(dayMappingOverrideService.findAll());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.hasAny('TIMETABLE_DAY_MAPPING_VIEW', 'TIMETABLE_DAY_MAPPING_MANAGE')")
     public ResponseEntity<DayMappingOverrideResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(dayMappingOverrideService.findById(id));
     }

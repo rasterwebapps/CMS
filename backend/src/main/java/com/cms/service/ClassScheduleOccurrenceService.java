@@ -87,7 +87,7 @@ public class ClassScheduleOccurrenceService {
             return List.of();
         }
 
-        List<ClassSchedule> candidates = classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(
+        List<ClassSchedule> candidates = classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeekAndIsActiveTrue(
             facultyId, ClassScheduleStatus.PUBLISHED, effectiveDay.get());
 
         List<ClassSchedule> result = new ArrayList<>();

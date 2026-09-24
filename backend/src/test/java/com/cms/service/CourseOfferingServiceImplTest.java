@@ -592,7 +592,7 @@ class CourseOfferingServiceImplTest {
 
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
         when(courseOfferingRepository.save(any(CourseOffering.class))).thenReturn(offering);
-        when(classScheduleRepository.findByCourseOfferingId(1L)).thenReturn(List.of());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(1L)).thenReturn(List.of());
         when(batchRepository.existsAnyStudentInBatchesForOffering(1L)).thenReturn(false);
 
         service.updateStatus(1L, new ActiveStatusUpdateRequest(false, null));
@@ -611,7 +611,7 @@ class CourseOfferingServiceImplTest {
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(classScheduleRepository.findByCourseOfferingId(1L)).thenReturn(List.of(new ClassSchedule()));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(1L)).thenReturn(List.of(new ClassSchedule()));
 
         assertThatThrownBy(() -> service.updateStatus(1L, new ActiveStatusUpdateRequest(false, null)))
             .isInstanceOf(IllegalArgumentException.class)
@@ -632,7 +632,7 @@ class CourseOfferingServiceImplTest {
         CourseOffering offering = createOffering(1L, ti, cv, subject, 1);
 
         when(courseOfferingRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(classScheduleRepository.findByCourseOfferingId(1L)).thenReturn(List.of());
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(1L)).thenReturn(List.of());
         when(batchRepository.existsAnyStudentInBatchesForOffering(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.updateStatus(1L, new ActiveStatusUpdateRequest(false, null)))
@@ -663,7 +663,7 @@ class CourseOfferingServiceImplTest {
         service.updateStatus(1L, new ActiveStatusUpdateRequest(true, null));
 
         assertThat(offering.getIsActive()).isTrue();
-        verify(classScheduleRepository, never()).findByCourseOfferingId(any());
+        verify(classScheduleRepository, never()).findByCourseOfferingIdAndIsActiveTrue(any());
         verify(batchRepository, never()).existsAnyStudentInBatchesForOffering(any());
     }
 

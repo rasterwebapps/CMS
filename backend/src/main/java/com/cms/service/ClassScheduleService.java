@@ -197,7 +197,7 @@ public class ClassScheduleService {
     }
 
     public List<ClassScheduleResponse> findAll() {
-        return classScheduleRepository.findAll().stream().map(this::toResponse).toList();
+        return classScheduleRepository.findByIsActiveTrue().stream().map(this::toResponse).toList();
     }
 
     public ClassScheduleResponse findById(Long id) {
@@ -208,14 +208,14 @@ public class ClassScheduleService {
         if (!labRepository.existsById(labId)) {
             throw new ResourceNotFoundException("Lab not found with id: " + labId);
         }
-        return classScheduleRepository.findByLabId(labId).stream().map(this::toResponse).toList();
+        return classScheduleRepository.findByLabIdAndIsActiveTrue(labId).stream().map(this::toResponse).toList();
     }
 
     public List<ClassScheduleResponse> findByFacultyId(Long facultyId) {
         if (!facultyRepository.existsById(facultyId)) {
             throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
         }
-        return classScheduleRepository.findByFacultyId(facultyId).stream().map(this::toResponse).toList();
+        return classScheduleRepository.findByFacultyIdAndIsActiveTrue(facultyId).stream().map(this::toResponse).toList();
     }
 
     /** This faculty's real sessions for one term — both PUBLISHED and DRAFT, matching the same
@@ -226,7 +226,7 @@ public class ClassScheduleService {
         if (!facultyRepository.existsById(facultyId)) {
             throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
         }
-        return classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusIn(termInstanceId, facultyId,
+        return classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(termInstanceId, facultyId,
             List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT))
             .stream().map(this::toResponse).toList();
     }
@@ -241,7 +241,7 @@ public class ClassScheduleService {
         if (!facultyRepository.existsById(facultyId)) {
             throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
         }
-        List<ClassSchedule> rows = classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusIn(
+        List<ClassSchedule> rows = classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(
             termInstanceId, facultyId, List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT));
 
         Map<DayOfWeek, Double> byDay = new LinkedHashMap<>();
@@ -265,18 +265,18 @@ public class ClassScheduleService {
     }
 
     public List<ClassScheduleResponse> findByBatchName(String batchName) {
-        return classScheduleRepository.findByBatchName(batchName).stream().map(this::toResponse).toList();
+        return classScheduleRepository.findByBatchNameAndIsActiveTrue(batchName).stream().map(this::toResponse).toList();
     }
 
     public List<ClassScheduleResponse> findByDayOfWeek(DayOfWeek dayOfWeek) {
-        return classScheduleRepository.findByDayOfWeek(dayOfWeek).stream().map(this::toResponse).toList();
+        return classScheduleRepository.findByDayOfWeekAndIsActiveTrue(dayOfWeek).stream().map(this::toResponse).toList();
     }
 
     public List<ClassScheduleResponse> findByTermInstanceId(Long termInstanceId) {
         if (!termInstanceRepository.existsById(termInstanceId)) {
             throw new ResourceNotFoundException("Term instance not found with id: " + termInstanceId);
         }
-        return classScheduleRepository.findByTermInstanceId(termInstanceId).stream().map(this::toResponse).toList();
+        return classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream().map(this::toResponse).toList();
     }
 
     public List<ClassScheduleResponse> findByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status) {

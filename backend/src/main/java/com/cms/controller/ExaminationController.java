@@ -37,16 +37,19 @@ public class ExaminationController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.hasAny('EXAMINATION_VIEW', 'EXAMINATION_MANAGE')")
     public ResponseEntity<List<ExaminationResponse>> findAll() {
         return ResponseEntity.ok(examinationService.findAll());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.hasAny('EXAMINATION_VIEW', 'EXAMINATION_MANAGE')")
     public ResponseEntity<ExaminationResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(examinationService.findById(id));
     }
 
     @GetMapping("/subject/{subjectId}")
+    @PreAuthorize("@perm.hasAny('EXAMINATION_VIEW', 'EXAMINATION_MANAGE')")
     public ResponseEntity<List<ExaminationResponse>> findBySubjectId(@PathVariable Long subjectId) {
         return ResponseEntity.ok(examinationService.findBySubjectId(subjectId));
     }

@@ -136,7 +136,7 @@ class FacultyAbsenceServiceTest {
         absence.setId(50L);
 
         when(facultyAbsenceRepository.findById(50L)).thenReturn(Optional.of(absence));
-        when(classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(1L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+        when(classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeekAndIsActiveTrue(1L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(schedule));
         when(sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(300L, LocalDate.of(2024, 8, 5)))
             .thenReturn(Optional.empty());
@@ -163,7 +163,7 @@ class FacultyAbsenceServiceTest {
 
         when(facultyAbsenceRepository.findById(53L)).thenReturn(Optional.of(absence));
         when(dayMappingOverrideRepository.findByMappedDate(mappedSaturday)).thenReturn(Optional.of(mapping));
-        when(classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(1L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+        when(classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeekAndIsActiveTrue(1L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(schedule));
         when(sessionOccurrenceRepository.findByClassScheduleIdAndOccurrenceDate(300L, mappedSaturday))
             .thenReturn(Optional.empty());
@@ -180,7 +180,7 @@ class FacultyAbsenceServiceTest {
         absence.setId(51L);
 
         when(facultyAbsenceRepository.findById(51L)).thenReturn(Optional.of(absence));
-        when(classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeek(1L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
+        when(classScheduleRepository.findByFacultyIdAndStatusAndDayOfWeekAndIsActiveTrue(1L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(schedule));
 
         List<AffectedSessionResponse> result = service.findAffectedSessions(51L);

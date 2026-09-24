@@ -42,11 +42,13 @@ public class HolidayTemplateController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.hasAny('HOLIDAY_TEMPLATE_VIEW', 'HOLIDAY_TEMPLATE_MANAGE')")
     public ResponseEntity<List<HolidayTemplateResponse>> findAll() {
         return ResponseEntity.ok(holidayTemplateService.findAll());
     }
 
     @GetMapping("/page")
+    @PreAuthorize("@perm.hasAny('HOLIDAY_TEMPLATE_VIEW', 'HOLIDAY_TEMPLATE_MANAGE')")
     public ResponseEntity<Page<HolidayTemplateResponse>> findPage(
             @RequestParam(required = false) String search,
             @PageableDefault(size = 25, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
@@ -54,6 +56,7 @@ public class HolidayTemplateController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.hasAny('HOLIDAY_TEMPLATE_VIEW', 'HOLIDAY_TEMPLATE_MANAGE')")
     public ResponseEntity<HolidayTemplateResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(holidayTemplateService.findById(id));
     }

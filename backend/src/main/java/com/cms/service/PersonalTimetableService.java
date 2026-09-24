@@ -78,7 +78,7 @@ public class PersonalTimetableService {
     public List<ClassSchedule> findPublishedSchedules(ProfileIdentity identity, Long termInstanceId) {
         return switch (identity.entityType()) {
             case "STUDENT" -> findForStudent(identity.entityId(), termInstanceId);
-            case "FACULTY" -> classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(
+            case "FACULTY" -> classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyIdAndIsActiveTrue(
                 termInstanceId, ClassScheduleStatus.PUBLISHED, identity.entityId());
             default -> List.of();
         };
@@ -104,7 +104,7 @@ public class PersonalTimetableService {
         // ClassSchedule.batch set) is picked up below via batchIds instead, same as LAB/CLINICAL,
         // so a student never sees another section's Theory schedule for the same subject.
         List<ClassSchedule> theoryRows = courseOfferingIds.isEmpty() ? List.of()
-            : classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdIn(
+            : classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdInAndIsActiveTrue(
                 termInstanceId, ClassScheduleStatus.PUBLISHED, List.copyOf(courseOfferingIds))
               .stream()
               .filter(cs -> cs.getSessionType() == com.cms.model.enums.ClassSessionType.THEORY)
@@ -112,7 +112,7 @@ public class PersonalTimetableService {
               .toList();
 
         List<ClassSchedule> batchScopedRows = batchIds.isEmpty() ? List.of()
-            : classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdIn(
+            : classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdInAndIsActiveTrue(
                 termInstanceId, ClassScheduleStatus.PUBLISHED, batchIds);
 
         List<ClassSchedule> merged = new ArrayList<>(theoryRows);

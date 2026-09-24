@@ -195,7 +195,7 @@ public class PortionBlueprintService {
      *  hours walk below consumes. Reuses {@link ClassScheduleOccurrenceService}, which is already
      *  period/block-aware (skips holiday- and manually-blocked dates precisely). */
     private List<OccurrenceHour> buildTimeline(CourseOffering offering, LocalDate from, LocalDate to) {
-        List<ClassSchedule> schedules = classScheduleRepository.findByCourseOfferingId(offering.getId()).stream()
+        List<ClassSchedule> schedules = classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(offering.getId()).stream()
             .filter(cs -> cs.getStatus() == ClassScheduleStatus.PUBLISHED)
             .toList();
         List<OccurrenceHour> timeline = new ArrayList<>();

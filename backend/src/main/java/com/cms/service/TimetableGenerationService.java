@@ -139,7 +139,7 @@ public class TimetableGenerationService {
                 "Attendance has already been recorded against this cohort's timetable. It can no longer be discarded.",
                 "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", termInstanceId, null);
         }
-        List<ClassSchedule> existing = classScheduleRepository.findByTermInstanceId(termInstanceId).stream()
+        List<ClassSchedule> existing = classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
             .filter(cs -> scheduleIds.contains(cs.getId()))
             .toList();
         classScheduleRepository.deleteAll(existing);

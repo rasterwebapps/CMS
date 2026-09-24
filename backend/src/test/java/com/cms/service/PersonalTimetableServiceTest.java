@@ -88,14 +88,14 @@ class PersonalTimetableServiceTest {
     @Test
     void shouldResolveFacultyScheduleDirectlyByFacultyId() {
         ProfileIdentity identity = new ProfileIdentity("FACULTY", 5L, null, null, "Dr. Faculty", null, null, null, null);
-        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 5L))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyIdAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED, 5L))
             .thenReturn(List.of(new ClassSchedule()));
         when(classScheduleService.toResponseList(anyList())).thenReturn(List.of());
 
         service.findMyTimetable(identity, 10L, null);
 
         org.mockito.Mockito.verify(classScheduleRepository)
-            .findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 5L);
+            .findByTermInstanceIdAndStatusAndFacultyIdAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED, 5L);
     }
 
     @Test
@@ -120,12 +120,12 @@ class PersonalTimetableServiceTest {
 
         ClassSchedule theoryRow = new ClassSchedule();
         theoryRow.setSessionType(ClassSessionType.THEORY);
-        when(classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdIn(10L, ClassScheduleStatus.PUBLISHED, List.of(200L)))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdInAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED, List.of(200L)))
             .thenReturn(List.of(theoryRow));
 
         ClassSchedule labRow = new ClassSchedule();
         labRow.setSessionType(ClassSessionType.LAB);
-        when(classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdIn(10L, ClassScheduleStatus.PUBLISHED, List.of(400L)))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdInAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED, List.of(400L)))
             .thenReturn(List.of(labRow));
 
         when(classScheduleService.toResponseList(anyList())).thenReturn(List.of());
@@ -164,13 +164,13 @@ class PersonalTimetableServiceTest {
         ClassSchedule otherSectionTheoryRow = new ClassSchedule();
         otherSectionTheoryRow.setSessionType(ClassSessionType.THEORY);
         otherSectionTheoryRow.setBatch(otherSectionBatch);
-        when(classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdIn(10L, ClassScheduleStatus.PUBLISHED, List.of(200L)))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndCourseOfferingIdInAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED, List.of(200L)))
             .thenReturn(List.of(otherSectionTheoryRow));
 
         ClassSchedule ownSectionTheoryRow = new ClassSchedule();
         ownSectionTheoryRow.setSessionType(ClassSessionType.THEORY);
         ownSectionTheoryRow.setBatch(studentsOwnBatch);
-        when(classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdIn(10L, ClassScheduleStatus.PUBLISHED, List.of(400L)))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndBatchIdInAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED, List.of(400L)))
             .thenReturn(List.of(ownSectionTheoryRow));
 
         when(classScheduleService.toResponseList(anyList())).thenReturn(List.of());
@@ -183,7 +183,7 @@ class PersonalTimetableServiceTest {
     @Test
     void shouldReturnHolidaysWhenWeekStartSupplied() {
         ProfileIdentity identity = new ProfileIdentity("FACULTY", 5L, null, null, "Dr. Faculty", null, null, null, null);
-        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(anyLong(), any(), anyLong()))
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyIdAndIsActiveTrue(anyLong(), any(), anyLong()))
             .thenReturn(Collections.emptyList());
         when(classScheduleService.toResponseList(anyList())).thenReturn(List.of());
         when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termInstance));

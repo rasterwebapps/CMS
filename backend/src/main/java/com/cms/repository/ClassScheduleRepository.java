@@ -19,13 +19,21 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     List<ClassSchedule> findByLabId(Long labId);
 
+    List<ClassSchedule> findByLabIdAndIsActiveTrue(Long labId);
+
     List<ClassSchedule> findByFacultyId(Long facultyId);
 
+    List<ClassSchedule> findByFacultyIdAndIsActiveTrue(Long facultyId);
+
     List<ClassSchedule> findByBatchName(String batchName);
+
+    List<ClassSchedule> findByBatchNameAndIsActiveTrue(String batchName);
 
     long countByBatchIdAndIsActiveTrue(Long batchId);
 
     List<ClassSchedule> findByDayOfWeek(DayOfWeek dayOfWeek);
+
+    List<ClassSchedule> findByDayOfWeekAndIsActiveTrue(DayOfWeek dayOfWeek);
 
     List<ClassSchedule> findByTermInstanceId(Long termInstanceId);
 
@@ -37,16 +45,24 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
 
     List<ClassSchedule> findByCourseOfferingId(Long courseOfferingId);
 
+    List<ClassSchedule> findByCourseOfferingIdAndIsActiveTrue(Long courseOfferingId);
+
     List<ClassSchedule> findBySessionTypeAndTermInstanceId(ClassSessionType sessionType, Long termInstanceId);
 
     List<ClassSchedule> findByTermInstanceIdAndStatus(Long termInstanceId, ClassScheduleStatus status);
 
-    /** Active rows only. Every Global Auto-Schedule rebuild switches the previous run's DRAFT rows
-     *  off ({@code isActive = false}) instead of deleting them, so a term carries many inactive
-     *  copies of its week. Anything that means "this term's timetable" -- approve, the conflict
-     *  scan, counts, the draft/published views -- must read through these, not the unfiltered
-     *  finders above, or it acts on (and double-counts) every leftover copy. */
+    /** Active rows only. Every Global Auto-Schedule rebuild now hard-deletes the previous run's
+     *  unpinned DRAFT rows outright (see {@code TimetableGlobalAutoScheduleService#
+     *  purgeDraftCellsForRebuild}), so a live {@code is_active = false} row should no longer be
+     *  possible going forward -- but these filtered finders remain the correct pattern for
+     *  anything that means "this term's timetable" (approve, the conflict scan, counts, the
+     *  draft/published views), both defensively and for any environment still carrying leftover
+     *  inactive copies from before that migration ran. Read through these, not the unfiltered
+     *  finders above, or a stale copy gets acted on (and double-counted). */
     List<ClassSchedule> findByTermInstanceIdAndIsActiveTrue(Long termInstanceId);
+
+    /** Active rows only, unscoped -- see the note on {@link #findByTermInstanceIdAndIsActiveTrue}. */
+    List<ClassSchedule> findByIsActiveTrue();
 
     /** Cheap sibling of {@link #findByTermInstanceIdAndIsActiveTrue} used only to fingerprint "has
      *  the skeleton changed" for the Conflict Inspector acknowledgment gate (see
@@ -68,6 +84,9 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findByFacultyIdAndStatusAndDayOfWeek(
         Long facultyId, ClassScheduleStatus status, DayOfWeek dayOfWeek);
 
+    List<ClassSchedule> findByFacultyIdAndStatusAndDayOfWeekAndIsActiveTrue(
+        Long facultyId, ClassScheduleStatus status, DayOfWeek dayOfWeek);
+
     /** Every still-active PUBLISHED row sharing one Period+dayOfWeek slot, across all faculty --
      *  the period-scoped sibling of {@link #findByFacultyIdAndStatusAndDayOfWeek}, used by {@link
      *  com.cms.service.ClassScheduleOccurrenceService#schedulesDisruptedBy} to find every session a
@@ -78,10 +97,19 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
     List<ClassSchedule> findByTermInstanceIdAndStatusAndFacultyId(
         Long termInstanceId, ClassScheduleStatus status, Long facultyId);
 
+    List<ClassSchedule> findByTermInstanceIdAndStatusAndFacultyIdAndIsActiveTrue(
+        Long termInstanceId, ClassScheduleStatus status, Long facultyId);
+
     List<ClassSchedule> findByTermInstanceIdAndFacultyIdAndStatusIn(
         Long termInstanceId, Long facultyId, List<ClassScheduleStatus> statuses);
 
+    List<ClassSchedule> findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(
+        Long termInstanceId, Long facultyId, List<ClassScheduleStatus> statuses);
+
     List<ClassSchedule> findByTermInstanceIdAndStatusAndCourseOfferingIdIn(
+        Long termInstanceId, ClassScheduleStatus status, List<Long> courseOfferingIds);
+
+    List<ClassSchedule> findByTermInstanceIdAndStatusAndCourseOfferingIdInAndIsActiveTrue(
         Long termInstanceId, ClassScheduleStatus status, List<Long> courseOfferingIds);
 
     /** Status-agnostic sibling of the method above — used by the cohort-wide Skeleton Builder,
@@ -91,6 +119,9 @@ public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Lo
         Long termInstanceId, List<Long> courseOfferingIds);
 
     List<ClassSchedule> findByTermInstanceIdAndStatusAndBatchIdIn(
+        Long termInstanceId, ClassScheduleStatus status, List<Long> batchIds);
+
+    List<ClassSchedule> findByTermInstanceIdAndStatusAndBatchIdInAndIsActiveTrue(
         Long termInstanceId, ClassScheduleStatus status, List<Long> batchIds);
 
     /** Every still-active row riding on one of these batches, regardless of status — used by

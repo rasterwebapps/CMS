@@ -45,6 +45,7 @@ public class ClassScheduleController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.hasAny('LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE')")
     public ResponseEntity<List<ClassScheduleResponse>> findAll(
             @RequestParam(required = false) Long labId,
             @RequestParam(required = false) Long facultyId,
@@ -71,11 +72,13 @@ public class ClassScheduleController {
     }
 
     @GetMapping("/by-term/{termInstanceId}")
+    @PreAuthorize("@perm.hasAny('LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE')")
     public ResponseEntity<List<ClassScheduleResponse>> findByTermInstance(@PathVariable Long termInstanceId) {
         return ResponseEntity.ok(classScheduleService.findByTermInstanceId(termInstanceId));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.hasAny('LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE')")
     public ResponseEntity<ClassScheduleResponse> findById(@PathVariable Long id) {
         ClassScheduleResponse response = classScheduleService.findById(id);
         return ResponseEntity.ok(response);

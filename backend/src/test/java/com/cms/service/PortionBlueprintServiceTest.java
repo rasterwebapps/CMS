@@ -103,7 +103,7 @@ class PortionBlueprintServiceTest {
         org.mockito.Mockito.lenient().when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(offering));
         org.mockito.Mockito.lenient().when(syllabusUnitRepository.findByCurriculumSemesterCourseIdOrderBySortOrderAscUnitNumberAsc(100L))
             .thenReturn(List.of(unit1, unit2));
-        org.mockito.Mockito.lenient().when(classScheduleRepository.findByCourseOfferingId(300L)).thenReturn(List.of(schedule));
+        org.mockito.Mockito.lenient().when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(300L)).thenReturn(List.of(schedule));
     }
 
     @Test

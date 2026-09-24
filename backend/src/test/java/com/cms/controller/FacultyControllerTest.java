@@ -356,4 +356,48 @@ class FacultyControllerTest {
 
         verify(facultyService).delete(999L);
     }
+
+    @Test
+    void shouldReturnTrueWhenEmployeeCodeExists() throws Exception {
+        when(facultyService.employeeCodeExists("EMP001", null)).thenReturn(true);
+
+        mockMvc.perform(get("/faculty/employee-code-exists").param("value", "EMP001"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").value(true));
+
+        verify(facultyService).employeeCodeExists("EMP001", null);
+    }
+
+    @Test
+    void shouldReturnFalseWhenEmployeeCodeExistsExcludingSelf() throws Exception {
+        when(facultyService.employeeCodeExists("EMP001", 1L)).thenReturn(false);
+
+        mockMvc.perform(get("/faculty/employee-code-exists").param("value", "EMP001").param("excludeId", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").value(false));
+
+        verify(facultyService).employeeCodeExists("EMP001", 1L);
+    }
+
+    @Test
+    void shouldReturnTrueWhenEmailExists() throws Exception {
+        when(facultyService.emailExists("faculty@college.edu", null)).thenReturn(true);
+
+        mockMvc.perform(get("/faculty/email-exists").param("value", "faculty@college.edu"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").value(true));
+
+        verify(facultyService).emailExists("faculty@college.edu", null);
+    }
+
+    @Test
+    void shouldReturnFalseWhenEmailExistsExcludingSelf() throws Exception {
+        when(facultyService.emailExists("faculty@college.edu", 1L)).thenReturn(false);
+
+        mockMvc.perform(get("/faculty/email-exists").param("value", "faculty@college.edu").param("excludeId", "1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").value(false));
+
+        verify(facultyService).emailExists("faculty@college.edu", 1L);
+    }
 }

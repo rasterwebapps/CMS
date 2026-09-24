@@ -73,7 +73,7 @@ public class LabController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@perm.has('LAB_VIEW')")
+    @PreAuthorize("@perm.has('LAB_MANAGE')")
     public ResponseEntity<LabResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody LabRequest request) {
