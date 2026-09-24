@@ -126,7 +126,7 @@ class TimetableControllerTest {
             -1_000_001L, com.cms.model.enums.ClassSessionType.CLINICAL, com.cms.model.enums.ClassScheduleStatus.DRAFT,
             null, null, 1L, "Anatomy — Off-campus Clinical Shift", "ANAT101", 9L, "Dr. Rao",
             null, "Shift A", java.time.LocalTime.of(6, 30), java.time.LocalTime.of(13, 30),
-            "Batch A", 400L, null, 50L, "City Hospital", 100L,
+            "Batch A", 400L, null, 50L, "City Hospital", 100L, null,
             com.cms.model.enums.DayOfWeek.MONDAY, 10L, null, true, null, null);
         when(timetableSkeletonService.findClinicalShiftGridEntries(10L, com.cms.model.enums.ClassScheduleStatus.DRAFT, null))
             .thenReturn(List.of(shiftEntry));

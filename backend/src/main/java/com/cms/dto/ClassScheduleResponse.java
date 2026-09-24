@@ -38,6 +38,10 @@ public record ClassScheduleResponse(
     String roomName,
 
     Long courseOfferingId,
+    /** The CourseOffering's own curriculum term/semester number (e.g. 1, 3, 5) — distinguishes
+     *  which cohort/term a session belongs to on resource-comparison views (Resource Timetable)
+     *  that pool sessions from every active cohort together for one faculty/room row. */
+    Integer termNumber,
 
     DayOfWeek dayOfWeek,
     Long termInstanceId,

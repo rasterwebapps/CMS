@@ -279,6 +279,7 @@ public class ResourceGridService {
             group.getLabel(),
             ClassSessionType.CLINICAL,
             ClassScheduleStatus.PUBLISHED,
+            offering.getSemesterNumber(),
             true,
             displayDay,
             null);
@@ -308,6 +309,6 @@ public class ResourceGridService {
     private ResourceGridCellResponse toCell(ClassScheduleResponse r, DayOfWeek displayDay) {
         return new ResourceGridCellResponse(r.id(), r.subjectName(), r.subjectCode(), r.roomName(),
             r.facultyName(), r.batchName(), r.startTime(), r.endTime(), r.slotName(), r.sessionType(), r.status(),
-            false, displayDay, r.periodId());
+            r.termNumber(), false, displayDay, r.periodId());
     }
 }

@@ -228,7 +228,7 @@ class ClassScheduleControllerTest {
             1L, "Lab 1", 1L, "Data Structures Lab", "CS201L",
             1L, "John Doe", 1L, "Slot 1",
             LocalTime.of(9, 0), LocalTime.of(10, 30),
-            batchName, null, null, null, "Lab 1", null,
+            batchName, null, null, null, "Lab 1", null, null,
             dayOfWeek, 1L, "Odd Semester 2024",
             true, now, now
         );

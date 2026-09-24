@@ -82,7 +82,7 @@ class ResourceGridServiceTest {
         ClassScheduleResponse response1 = new ClassScheduleResponse(100L, ClassSessionType.THEORY,
             ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 1L, "John Doe",
             1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
-            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+            1L, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
 
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(cs1));
@@ -140,7 +140,7 @@ class ResourceGridServiceTest {
         ClassScheduleResponse response = new ClassScheduleResponse(100L, ClassSessionType.CLINICAL,
             ClassScheduleStatus.PUBLISHED, null, null, 1L, "Community Health Nursing", "CHN101", 1L, "John Doe",
             1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), "Batch A", 1L, null, 1L, "Ward 3",
-            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+            1L, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
 
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(clinicalSession));
@@ -173,7 +173,7 @@ class ResourceGridServiceTest {
         ClassScheduleResponse response1 = new ClassScheduleResponse(100L, ClassSessionType.THEORY,
             ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 1L, "John Doe",
             1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
-            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+            1L, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
 
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(10L, ClassScheduleStatus.PUBLISHED, DayOfWeek.MONDAY))
             .thenReturn(List.of(cs1));
@@ -203,11 +203,11 @@ class ResourceGridServiceTest {
         ClassScheduleResponse mondayResponse = new ClassScheduleResponse(100L, ClassSessionType.THEORY,
             ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 1L, "John Doe",
             1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
-            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+            1L, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
         ClassScheduleResponse otherResponse = new ClassScheduleResponse(101L, ClassSessionType.THEORY,
             ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 2L, "Jane Roe",
             1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
-            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+            1L, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
 
         List<com.cms.model.ClassSchedule> published = List.of(mondaySession, otherFacultySession);
         when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
@@ -241,7 +241,7 @@ class ResourceGridServiceTest {
         ClassScheduleResponse mondayResponse = new ClassScheduleResponse(100L, ClassSessionType.THEORY,
             ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 1L, "John Doe",
             1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
-            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+            1L, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
 
         List<com.cms.model.ClassSchedule> published = List.of(mondaySession);
         when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))

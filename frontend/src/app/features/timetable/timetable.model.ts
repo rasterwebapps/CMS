@@ -141,6 +141,10 @@ export interface ResourceGridCell {
   slotName: string;
   sessionType: 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
   status: 'DRAFT' | 'PUBLISHED';
+  /** The course offering's curriculum term/semester number (e.g. 1, 3, 5) — this grid pools
+   *  sessions from every active cohort's own faculty/room onto one row, so this is what tells two
+   *  cohorts' sessions apart at a glance. Null only if the backing session has no offering link. */
+  termNumber: number | null;
   /** True only for a synthetic Clinical Shift cell (bus-depart through bus-return) — it has no
    *  backing ClassSchedule row, so `sessionId` is a negative, non-clickable placeholder id. */
   isOffCampusShift: boolean;

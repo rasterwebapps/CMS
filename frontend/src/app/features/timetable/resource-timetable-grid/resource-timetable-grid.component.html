@@ -100,7 +100,12 @@
     [style.--subject-color]="cellColor(cell.sessionType)"
     [class.resource-grid__chip--shift]="cell.isOffCampusShift"
     [title]="cell.isOffCampusShift ? 'Off-campus Clinical Shift (incl. buffer)' : ''">
-    <span class="resource-grid__chip-subject" [title]="cell.subjectName">{{ cell.subjectCode }}</span>
+    <div class="resource-grid__chip-top">
+      <span class="resource-grid__chip-subject" [title]="cell.subjectName">{{ cell.subjectCode }}</span>
+      @if (cell.termNumber) {
+        <span class="resource-grid__chip-term" [title]="'Term ' + cell.termNumber">T{{ cell.termNumber }}</span>
+      }
+    </div>
     <span class="resource-grid__chip-detail">{{ resourceType() === 'FACULTY' ? cell.roomName : cell.facultyName }}</span>
     @if (cell.batchName) {
       <span class="resource-grid__chip-detail">{{ cell.batchName }}</span>

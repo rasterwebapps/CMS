@@ -96,6 +96,13 @@
   }
 }
 
+.resource-grid__chip-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+}
+
 .resource-grid__chip-subject {
   font-size: var(--cms-text-xs);
   font-weight: 700;
@@ -106,6 +113,20 @@
   // run past a dozen columns with every Lab Slot included, see resource-grid-card's own comment)
   // has no room for "Midwifery/Obstetrics and Gynaecology (OBG) Nursing II including Safe Delivery
   // App module". Full name is still one hover away via this span's own [title].
+  cursor: help;
+}
+
+.resource-grid__chip-term {
+  flex: none;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  padding: 0 4px;
+  border-radius: 4px;
+  // Same --subject-color accent the chip itself uses (component.ts#cellColor) so the term badge
+  // reads as part of the same session's chip rather than a competing color system.
+  color: var(--subject-color, var(--cms-text-muted));
+  background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 20%, transparent);
   cursor: help;
 }
 

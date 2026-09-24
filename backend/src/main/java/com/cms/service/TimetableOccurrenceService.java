@@ -197,7 +197,7 @@ public class TimetableOccurrenceService {
             r.periodId(), r.slotName(), r.startTime(), r.endTime(),
             r.batchName(), r.batchId(),
             classroomId, clinicalVenueId, roomName,
-            r.courseOfferingId(),
+            r.courseOfferingId(), r.termNumber(),
             r.dayOfWeek(), r.termInstanceId(), r.termInstanceLabel(), r.isActive(),
             r.createdAt(), r.updatedAt());
     }

@@ -417,6 +417,7 @@ public class ClassScheduleService {
             cs.getClinicalVenue() != null ? cs.getClinicalVenue().getId() : null,
             roomName, // session-type-neutral: resolves to classroom, lab, or clinical venue name
             cs.getCourseOffering() != null ? cs.getCourseOffering().getId() : null,
+            cs.getCourseOffering() != null ? cs.getCourseOffering().getSemesterNumber() : null,
             cs.getDayOfWeek(),
             ti.getId(),
             label,

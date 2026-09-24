@@ -52,7 +52,7 @@ class TimetableOccurrenceServiceTest {
         response = new ClassScheduleResponse(100L, ClassSessionType.THEORY,
             ClassScheduleStatus.PUBLISHED, null, null, 1L, "Anatomy", "ANAT101", 1L, "John Doe",
             1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
-            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+            1L, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
 
         when(sessionOccurrenceRepository.findByClassSchedule_TermInstance_IdAndClassSchedule_Status(
             10L, ClassScheduleStatus.PUBLISHED)).thenReturn(List.of());
@@ -154,7 +154,7 @@ class TimetableOccurrenceServiceTest {
         ClassScheduleResponse clinicalTemplate = new ClassScheduleResponse(-1000068L, ClassSessionType.CLINICAL,
             ClassScheduleStatus.PUBLISHED, null, null, 39L, "Adult Health Nursing I — Off-campus Clinical Shift",
             "N-AHN-I-215", 37L, "Sneha Rao", null, "Shift A - AHN", LocalTime.of(6, 0), LocalTime.of(14, 10),
-            "Clinical - Section 1", 68L, null, 1L, "Ward 1 - Medical", 68L, DayOfWeek.MONDAY, 10L, null, true, null, null);
+            "Clinical - Section 1", 68L, null, 1L, "Ward 1 - Medical", 68L, null, DayOfWeek.MONDAY, 10L, null, true, null, null);
         when(timetableSkeletonService.findClinicalShiftGridEntries(10L, ClassScheduleStatus.PUBLISHED, null))
             .thenReturn(List.of(clinicalTemplate));
 

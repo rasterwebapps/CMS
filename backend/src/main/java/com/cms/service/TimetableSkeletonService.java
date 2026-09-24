@@ -545,7 +545,7 @@ public class TimetableSkeletonService {
             batch.getName(), batch.getId(),
             null, batch.getClinicalVenue() != null ? batch.getClinicalVenue().getId() : null,
             batch.getClinicalVenue() != null ? batch.getClinicalVenue().getName() : null,
-            offering.getId(),
+            offering.getId(), offering.getSemesterNumber(),
             group.getDayOfWeek(), termInstanceId, null, true, null, null);
     }
 
