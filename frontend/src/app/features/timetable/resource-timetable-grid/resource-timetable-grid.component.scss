@@ -5,7 +5,11 @@
 }
 
 .resource-grid-card {
-  overflow-x: auto;
+  // No horizontal scroll, on any of the four Faculty/Classroom x Date/Weekday view combos --
+  // every active Period is always a column (resource-timetable-grid.component.ts's `periods`),
+  // which can run past a dozen once Lab Slot periods are included, so the grid below always fits
+  // exactly the card's own width via `1fr` tracks instead of ever growing past it.
+  overflow-x: hidden;
 }
 
 .resource-grid {
@@ -15,20 +19,20 @@
   border: 1px solid var(--cms-border-default);
   border-radius: 12px;
   overflow: hidden;
-  min-width: max-content;
+  width: 100%;
 }
 
 .resource-grid__corner,
 .resource-grid__col-hdr {
   background: var(--cms-bg-muted);
-  padding: 10px 8px;
+  padding: 10px 4px;
   text-align: center;
   font-size: var(--cms-text-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--cms-text-secondary);
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 .resource-grid__row-label {
@@ -39,7 +43,7 @@
   color: var(--cms-text-primary);
   display: flex;
   align-items: center;
-  white-space: nowrap;
+  overflow-wrap: break-word;
   min-height: 60px;
 
   &--clickable {
@@ -63,7 +67,7 @@
   flex-direction: column;
   gap: 4px;
   min-height: 60px;
-  min-width: 140px;
+  min-width: 0;
 }
 
 .resource-grid__chip {
@@ -97,10 +101,17 @@
   font-weight: 700;
   color: var(--cms-text-primary);
   line-height: 1.25;
+  overflow-wrap: break-word;
+  // The subject/offering's short code, not its full name -- a narrow Period column (this grid can
+  // run past a dozen columns with every Lab Slot included, see resource-grid-card's own comment)
+  // has no room for "Midwifery/Obstetrics and Gynaecology (OBG) Nursing II including Safe Delivery
+  // App module". Full name is still one hover away via this span's own [title].
+  cursor: help;
 }
 
 .resource-grid__chip-detail {
   font-size: 0.625rem;
   color: var(--cms-text-muted);
   line-height: 1.2;
+  overflow-wrap: break-word;
 }

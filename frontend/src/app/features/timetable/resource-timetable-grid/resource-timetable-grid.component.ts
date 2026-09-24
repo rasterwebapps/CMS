@@ -1,11 +1,12 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
 import { TimetableService } from '../timetable.service';
-import { ResourceGridRow, ResourceGridType } from '../timetable.model';
+import { ResourceGridCell, ResourceGridRow, ResourceGridType } from '../timetable.model';
 import { WEEK_GRID_DAYS, WEEK_GRID_DAY_LABELS } from '../../../shared/week-grid/week-grid.model';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ToastService } from '../../../core/toast/toast.service';
@@ -18,24 +19,37 @@ import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-se
 import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { colorForSessionType, SessionTypeForColor } from '../../../shared/util/session-color.util';
 import { ResourceWeekModalComponent, ResourceWeekModalData } from './resource-week-modal/resource-week-modal.component';
+import { PeriodService } from '../../period/period.service';
+import { Period } from '../../period/period.model';
 
 interface TimeColumn {
   key: string;
   label: string;
   startTime: string;
   endTime: string;
+  periodId: number;
 }
+
+/** One row's cells, left to right: a real Period column renders individually (`kind: 'period'`,
+ *  unchanged); a run of consecutive Period columns covered by the same off-grid entry (e.g. a
+ *  Clinical Shift duty window, periodId null) collapses into one `kind: 'shift'` segment spanning
+ *  that many columns — same technique as cms-week-grid's `daySegments`/`WeekGridSegment`, just
+ *  applied per resource-row instead of per-day since this grid's columns are periods, not days. */
+type RowSegment =
+  | { kind: 'period'; key: string; column: TimeColumn }
+  | { kind: 'shift'; key: string; span: number; cells: ResourceGridCell[] };
 
 @Component({
   selector: 'app-resource-timetable-grid',
   standalone: true,
-  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
+  imports: [FormsModule, NgTemplateOutlet, MatDialogModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './resource-timetable-grid.component.html',
   styleUrl: './resource-timetable-grid.component.scss',
 })
 export class ResourceTimetableGridComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly timetableService = inject(TimetableService);
+  private readonly periodService = inject(PeriodService);
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
@@ -52,6 +66,9 @@ export class ResourceTimetableGridComponent implements OnInit {
   protected selectedAcademicYearId: number | null = null;
   protected selectedTermInstanceId: number | null = null;
 
+  protected readonly selectedTerm = computed(() =>
+    this.termInstances().find((t) => t.id === this.selectedTermInstanceId) ?? null);
+
   protected readonly resourceType = signal<ResourceGridType>('FACULTY');
   protected readonly dayOfWeek = signal<string>(WEEK_GRID_DAYS[0]);
   protected readonly days = WEEK_GRID_DAYS;
@@ -63,6 +80,29 @@ export class ResourceTimetableGridComponent implements OnInit {
    *  not tied to any specific date). */
   protected readonly viewMode = signal<'DATE' | 'WEEKDAY'>('DATE');
   protected selectedDate: string = new Date().toISOString().slice(0, 10);
+
+  /** Bound to the date input's min/max — see timetable-view.component.ts's identically-named
+   *  getters. Without this, Date mode's `dayOfWeek` is resolved purely from the picked date's own
+   *  weekday (ResourceGridService#resolveEffectiveDayOfWeek), with no check that the date actually
+   *  falls inside the selected term at all — e.g. picking a term starting 01/10/2026 while today
+   *  (24/09) is still selected happily resolved "Thursday" and returned every Thursday's PUBLISHED
+   *  recurring session, reading as though the term had already started when it hadn't. */
+  protected get dayMin(): string | null {
+    return this.selectedTerm()?.startDate ?? null;
+  }
+
+  protected get dayMax(): string | null {
+    return this.selectedTerm()?.endDate ?? null;
+  }
+
+  /** The full active Period master list, independent of the selected term/day — fetched once so
+   *  every period shows its own column even when nothing is scheduled that period, the same reason
+   *  timetable-view.component.ts's `dayPeriods` exists for Day Agenda. Without this, {@link
+   *  timeColumns} derived columns purely from whatever sessions happened to be loaded, so a day
+   *  with real PUBLISHED sessions only in its later periods (e.g. Monday's classroom-type sessions
+   *  only starting at Period 6) silently dropped every earlier period's column entirely instead of
+   *  showing it blank -- reading as though those periods didn't exist rather than just being free. */
+  protected readonly periods = signal<Period[]>([]);
 
   protected readonly rows = signal<ResourceGridRow[]>([]);
 
@@ -84,25 +124,71 @@ export class ResourceTimetableGridComponent implements OnInit {
     return id == null ? this.rows() : this.rows().filter((r) => r.resourceId === id);
   });
 
-  protected readonly timeColumns = computed<TimeColumn[]>(() => {
-    const seen = new Map<string, TimeColumn>();
-    for (const row of this.filteredRows()) {
-      for (const s of row.sessions) {
-        const key = `${s.startTime}-${s.endTime}`;
-        const label = s.slotName || `${s.startTime}–${s.endTime}`;
-        const existing = seen.get(key);
-        if (!existing) {
-          seen.set(key, { key, label, startTime: s.startTime, endTime: s.endTime });
-        } else if (existing.label !== label) {
-          // See week-grid.component.ts's identical guard: two off-campus Clinical Shift groups
-          // sharing a bus window have no shared master record, so a slotName mismatch here means
-          // the column has no single true name -- fall back to the neutral time-range label.
-          existing.label = `${s.startTime}–${s.endTime}`;
-        }
+  /** Columns come from the full active Period master list ({@link periods}), not from whatever
+   *  sessions happen to be loaded — see {@link periods}' own doc comment for why (a day with real
+   *  data only in its later periods was silently losing every earlier period's column instead of
+   *  showing it blank). Sorted by periodOrder the same way cms-day-agenda's own periodRows are,
+   *  falling back to startTime when periodOrder is unset. An off-grid entry (e.g. a Clinical
+   *  Shift's 06:00-14:10 bus-departure/return buffer, no Period of its own) never mints a column
+   *  here — see {@link rowSegments}, which renders it as a block spanning whichever real Period
+   *  columns its time window overlaps instead. */
+  protected readonly timeColumns = computed<TimeColumn[]>(() =>
+    this.periods()
+      .slice()
+      .sort((a, b) => (a.periodOrder ?? 0) - (b.periodOrder ?? 0) || a.startTime.localeCompare(b.startTime))
+      .map((p) => ({ key: `period-${p.id}`, label: p.name, startTime: p.startTime, endTime: p.endTime, periodId: p.id })));
+
+  /** Off-grid cells (periodId null) for one row, grouped by their exact time window -- two
+   *  entries sharing one window (e.g. a Clinical Shift group running in parallel at two venues)
+   *  render as chips inside the same spanning block, the same way a normal Period cell already
+   *  groups multiple sessions together. Mirrors cms-week-grid's `shiftGroupsByDay`. */
+  private shiftGroupsForRow(row: ResourceGridRow): Map<string, ResourceGridCell[]> {
+    const groups = new Map<string, ResourceGridCell[]>();
+    for (const s of row.sessions) {
+      if (s.periodId != null) continue;
+      const key = `${s.startTime}-${s.endTime}`;
+      const bucket = groups.get(key);
+      if (bucket) bucket.push(s); else groups.set(key, [s]);
+    }
+    return groups;
+  }
+
+  /** Same overlap test cms-week-grid's `shiftWindowFor` uses (window.startTime < column.endTime &&
+   *  column.startTime < window.endTime), just against this row's own off-grid groups. */
+  private shiftWindowForColumn(groups: Map<string, ResourceGridCell[]>, column: TimeColumn): { key: string; cells: ResourceGridCell[] } | null {
+    for (const [key, cells] of groups) {
+      const [startTime, endTime] = key.split('-');
+      if (startTime < column.endTime && column.startTime < endTime) {
+        return { key, cells };
       }
     }
-    return Array.from(seen.values()).sort((a, b) => a.startTime.localeCompare(b.startTime));
-  });
+    return null;
+  }
+
+  /** Left-to-right rendering plan for one row: a real Period column renders individually, and a
+   *  run of consecutive Period columns covered by the same off-grid window (e.g. a Clinical Shift
+   *  duty block) collapses into one spanning segment — see {@link RowSegment}. */
+  protected rowSegments(row: ResourceGridRow): RowSegment[] {
+    const columns = this.timeColumns();
+    const groups = this.shiftGroupsForRow(row);
+    const segments: RowSegment[] = [];
+    let i = 0;
+    while (i < columns.length) {
+      const window = this.shiftWindowForColumn(groups, columns[i]);
+      if (!window) {
+        segments.push({ kind: 'period', key: columns[i].key, column: columns[i] });
+        i++;
+        continue;
+      }
+      let span = 1;
+      while (i + span < columns.length && this.shiftWindowForColumn(groups, columns[i + span])?.key === window.key) {
+        span++;
+      }
+      segments.push({ kind: 'shift', key: `shift-${window.key}-${row.resourceId}`, span, cells: window.cells });
+      i += span;
+    }
+    return segments;
+  }
 
   protected readonly isEmpty = computed(() => this.filteredRows().every((r) => r.sessions.length === 0));
 
@@ -111,6 +197,11 @@ export class ResourceTimetableGridComponent implements OnInit {
     this.tourService.registerFlowMap('resource-timetable-grid', RESOURCE_TIMETABLE_GRID_FLOW_MAP);
 
     this.resourceType.set(this.canViewFaculty() ? 'FACULTY' : 'CLASSROOM');
+
+    this.periodService.getAll(true).subscribe({
+      next: (periods) => this.periods.set(periods),
+      error: () => this.toast.error('Failed to load periods'),
+    });
 
     this.academicYearService.getAllAcademicYears().subscribe({
       next: (years) => {
@@ -141,6 +232,7 @@ export class ResourceTimetableGridComponent implements OnInit {
 
   protected onTermChange(value: InfiniteSelectValue | null): void {
     this.selectedTermInstanceId = value != null ? Number(value) : null;
+    this.selectedDate = this.clampToTerm(this.selectedDate, this.selectedTerm());
     this.load();
   }
 
@@ -161,8 +253,15 @@ export class ResourceTimetableGridComponent implements OnInit {
   }
 
   protected onDateChange(date: string): void {
-    this.selectedDate = date;
+    this.selectedDate = this.clampToTerm(date, this.selectedTerm());
     this.load();
+  }
+
+  private clampToTerm(date: string, term: TermInstance | null): string {
+    if (!term) return date;
+    if (date < term.startDate) return term.startDate;
+    if (date > term.endDate) return term.endDate;
+    return date;
   }
 
   protected setViewMode(mode: 'DATE' | 'WEEKDAY'): void {
@@ -184,8 +283,11 @@ export class ResourceTimetableGridComponent implements OnInit {
     this.dialog.open(ResourceWeekModalComponent, { data, width: '1200px', maxWidth: '95vw' });
   }
 
+  /** Matches by periodId, not start/end time equality -- same reasoning as cms-day-agenda's own
+   *  byPeriodId lookup: it's the direct FK relationship, not a string comparison that could drift
+   *  from how a period's own time got serialized. */
   protected cellsFor(row: ResourceGridRow, column: TimeColumn) {
-    return row.sessions.filter((s) => s.startTime === column.startTime && s.endTime === column.endTime);
+    return row.sessions.filter((s) => s.periodId === column.periodId);
   }
 
   /** Same primary-color-tint accent Timetable Builder/Week Grid/Day Agenda use for every session
@@ -202,6 +304,7 @@ export class ResourceTimetableGridComponent implements OnInit {
         this.termInstances.set(terms);
         this.termsLoading.set(false);
         this.selectedTermInstanceId = terms[0]?.id ?? null;
+        this.selectedDate = this.clampToTerm(this.selectedDate, this.selectedTerm());
         this.load();
       },
       error: () => { this.toast.error('Failed to load term instances'); this.termsLoading.set(false); },

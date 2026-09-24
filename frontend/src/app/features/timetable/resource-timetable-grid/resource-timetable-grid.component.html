@@ -32,7 +32,7 @@
 
     <cms-infinite-select
       [label]="resourceFilterLabel()" ariaLabel="Filter by resource" searchPlaceholder="Search…"
-      [fetchPage]="resourceFetchPage"
+      [fetchPage]="resourceFetchPage" [reloadKey]="resourceType() + ':' + rows().length"
       [selectedValue]="selectedResourceId()" (selectedValueChange)="onResourceFilterChange($event)"
     />
 
@@ -42,7 +42,8 @@
     </div>
 
     @if (viewMode() === 'DATE') {
-      <input type="date" class="field-input field-input--inline field-input--narrow" [ngModel]="selectedDate" (ngModelChange)="onDateChange($event)" aria-label="Date" />
+      <input type="date" class="field-input field-input--inline field-input--narrow" [ngModel]="selectedDate" (ngModelChange)="onDateChange($event)"
+        [min]="dayMin" [max]="dayMax" aria-label="Date" />
     } @else {
       <cms-infinite-select
         label="Day of week" ariaLabel="Day of week" searchPlaceholder="Search days…"
@@ -69,21 +70,23 @@
         @for (row of filteredRows(); track row.resourceId) {
           <button type="button" class="resource-grid__row-label resource-grid__row-label--clickable"
             (click)="openWeekView(row)" [title]="'See ' + row.resourceName + '\'s full week'">{{ row.resourceName }}</button>
-          @for (col of timeColumns(); track col.key) {
-            <div class="resource-grid__cell">
-              @for (cell of cellsFor(row, col); track cell.sessionId) {
-                <div class="resource-grid__chip"
-                  [style.--subject-color]="cellColor(cell.sessionType)"
-                  [class.resource-grid__chip--shift]="cell.isOffCampusShift"
-                  [title]="cell.isOffCampusShift ? 'Off-campus Clinical Shift (incl. buffer)' : ''">
-                  <span class="resource-grid__chip-subject">{{ cell.subjectName }}</span>
-                  <span class="resource-grid__chip-detail">{{ resourceType() === 'FACULTY' ? cell.roomName : cell.facultyName }}</span>
-                  @if (cell.batchName) {
-                    <span class="resource-grid__chip-detail">{{ cell.batchName }}</span>
-                  }
-                </div>
-              }
-            </div>
+          @for (seg of rowSegments(row); track seg.key) {
+            @if (seg.kind === 'period') {
+              <div class="resource-grid__cell">
+                @for (cell of cellsFor(row, seg.column); track cell.sessionId) {
+                  <ng-container [ngTemplateOutlet]="chip" [ngTemplateOutletContext]="{ $implicit: cell }" />
+                }
+              </div>
+            } @else {
+              <!-- An off-grid entry (e.g. a Clinical Shift duty window) spans exactly the real
+                   Period columns its time overlaps, instead of sitting off to the side in its own
+                   column — see resource-timetable-grid.component.ts#rowSegments. -->
+              <div class="resource-grid__cell" [style.grid-column]="'span ' + seg.span">
+                @for (cell of seg.cells; track cell.sessionId) {
+                  <ng-container [ngTemplateOutlet]="chip" [ngTemplateOutletContext]="{ $implicit: cell }" />
+                }
+              </div>
+            }
           }
         }
       </div>
@@ -91,3 +94,16 @@
   </div>
 
 </div>
+
+<ng-template #chip let-cell>
+  <div class="resource-grid__chip"
+    [style.--subject-color]="cellColor(cell.sessionType)"
+    [class.resource-grid__chip--shift]="cell.isOffCampusShift"
+    [title]="cell.isOffCampusShift ? 'Off-campus Clinical Shift (incl. buffer)' : ''">
+    <span class="resource-grid__chip-subject" [title]="cell.subjectName">{{ cell.subjectCode }}</span>
+    <span class="resource-grid__chip-detail">{{ resourceType() === 'FACULTY' ? cell.roomName : cell.facultyName }}</span>
+    @if (cell.batchName) {
+      <span class="resource-grid__chip-detail">{{ cell.batchName }}</span>
+    }
+  </div>
+</ng-template>

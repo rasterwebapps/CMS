@@ -35,6 +35,21 @@ export interface WeekGridSession {
 
 export type WeekGridMode = 'review' | 'personal' | 'browse';
 
+/** A real Period master row — supplied only by a consumer that wants every active period to
+ *  always render its own column, even one with nothing scheduled yet (e.g. Resource Timetable's
+ *  full-week drill-in, where "only 4 of the day's 8 periods have content" otherwise read as "the
+ *  other 4 periods don't exist"). Omitted (default) by every other consumer, whose columns stay
+ *  exactly the set of periods actually present in `sessions`/`candidateCells`, unchanged from
+ *  before this existed — see {@link CmsWeekGridComponent#rows}. Deliberately this shared
+ *  component's own minimal shape rather than importing the feature-level `Period` model, matching
+ *  {@link WeekGridOccurrenceStatus}'s identical reasoning above. */
+export interface WeekGridPeriod {
+  id: number;
+  name: string;
+  startTime: string;
+  endTime: string;
+}
+
 /** A valid swap-mode target cell — day+slot combo the currently selected session could move
  *  into, sourced from the backend's swap-candidates endpoint (matches SwapCandidate 1:1). */
 export interface WeekGridCandidateCell {

@@ -4,9 +4,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TimetableService } from '../../timetable.service';
 import { ResourceGridType } from '../../timetable.model';
 import { CmsWeekGridComponent } from '../../../../shared/week-grid/week-grid.component';
-import { WeekGridSession } from '../../../../shared/week-grid/week-grid.model';
+import { WeekGridPeriod, WeekGridSession } from '../../../../shared/week-grid/week-grid.model';
 import { CmsWeekNavigatorComponent } from '../../../../shared/week-navigator/week-navigator.component';
 import { ToastService } from '../../../../core/toast/toast.service';
+import { PeriodService } from '../../../period/period.service';
 
 export interface ResourceWeekModalData {
   resourceType: ResourceGridType;
@@ -41,6 +42,7 @@ function mondayOf(date: Date): string {
 export class ResourceWeekModalComponent {
   protected readonly data: ResourceWeekModalData = inject(MAT_DIALOG_DATA);
   private readonly timetableService = inject(TimetableService);
+  private readonly periodService = inject(PeriodService);
   private readonly toast = inject(ToastService);
 
   protected readonly viewMode = signal<'DATE' | 'WEEKDAY'>('WEEKDAY');
@@ -48,7 +50,17 @@ export class ResourceWeekModalComponent {
   protected readonly loading = signal(false);
   protected readonly sessions = signal<WeekGridSession[]>([]);
 
+  /** Passed to cms-week-grid's `allPeriods` input so every active period shows its own column even
+   *  when this resource has nothing scheduled in it that week -- see WeekGridPeriod's doc comment.
+   *  Without this, e.g. a faculty member with sessions only in Periods 1, 2, 7, 8 across the whole
+   *  week rendered just those 4 columns, reading as though Periods 3-6 didn't exist that day. */
+  protected readonly periods = signal<WeekGridPeriod[]>([]);
+
   constructor() {
+    this.periodService.getAll(true).subscribe({
+      next: (periods) => this.periods.set(periods),
+      error: () => { /* Non-critical -- the grid just falls back to session-derived columns. */ },
+    });
     this.load();
   }
 

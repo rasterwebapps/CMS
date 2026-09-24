@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -97,9 +98,15 @@ public class ResourceGridService {
         if (date == null && dayOfWeek == null) {
             throw new IllegalArgumentException("Either date or dayOfWeek is required");
         }
+        // Null only for a Sunday with no DayMappingOverride borrowing it into a working day -- see
+        // resolveEffectiveDayOfWeek's own doc comment. DayOfWeek (the recurring weekly template's
+        // enum) has no SUNDAY value at all, so there's structurally nothing to query; every active
+        // resource still renders its own row, just with zero sessions, exactly like a real weekday
+        // with nothing PUBLISHED yet -- not an error.
         DayOfWeek effectiveDayOfWeek = date != null ? resolveEffectiveDayOfWeek(date) : dayOfWeek;
-        List<ClassSchedule> daySchedules = classScheduleRepository
-            .findByTermInstanceIdAndStatusAndDayOfWeek(termInstanceId, ClassScheduleStatus.PUBLISHED, effectiveDayOfWeek);
+        List<ClassSchedule> daySchedules = effectiveDayOfWeek == null
+            ? List.of()
+            : classScheduleRepository.findByTermInstanceIdAndStatusAndDayOfWeek(termInstanceId, ClassScheduleStatus.PUBLISHED, effectiveDayOfWeek);
 
         Map<Long, ClassScheduleResponse> responseById = new HashMap<>();
         for (ClassScheduleResponse response : classScheduleService.toResponseList(daySchedules)) {
@@ -110,10 +117,11 @@ public class ResourceGridService {
         // own comment on this), so without this they'd be invisible on this grid entirely even
         // though their bus-depart-to-bus-return window occupies a coordinator faculty and a
         // ClinicalVenue for real. Loaded once per request, filtered to this exact effective day.
-        List<ClinicalShiftGroup> shiftGroupsToday = clinicalShiftGroupRepository
-            .findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
-            .filter(g -> g.getDayOfWeek() == effectiveDayOfWeek)
-            .toList();
+        List<ClinicalShiftGroup> shiftGroupsToday = effectiveDayOfWeek == null
+            ? List.of()
+            : clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
+                .filter(g -> g.getDayOfWeek() == effectiveDayOfWeek)
+                .toList();
 
         return type == ResourceType.FACULTY
             ? facultyRows(daySchedules, responseById, shiftGroupsToday, effectiveDayOfWeek)
@@ -276,13 +284,25 @@ public class ResourceGridService {
             null);
     }
 
+    /** Null only for a Sunday with no {@link DayMappingOverride} borrowing it into a working day --
+     *  {@link DayOfWeek} (the recurring weekly template's own enum) has no SUNDAY value at all,
+     *  matching {@code SpecialClassRequestService#dayOfWeekOrNullForSunday}'s identical reasoning;
+     *  {@link #getResourceGrid} treats null as "structurally nothing to query" rather than an error.
+     *  Checks for an override before the Sunday short-circuit (not after, as this previously did),
+     *  so a real compensatory-working Sunday still resolves to its borrowed weekday and shows real
+     *  data instead of being treated as a plain day-off. Previously this threw for every Sunday
+     *  unconditionally -- including an overridden one -- surfacing as "Failed to load resource
+     *  grid" the moment Date mode's picker (which has no way to exclude just Sundays from its
+     *  min/max range) landed on one. */
     private DayOfWeek resolveEffectiveDayOfWeek(LocalDate date) {
-        if (date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
-            throw new IllegalArgumentException("No timetable data for Sunday");
+        Optional<DayMappingOverride> mapping = dayMappingOverrideRepository.findByMappedDate(date);
+        if (mapping.isPresent()) {
+            return mapping.get().getBorrowedDayOfWeek();
         }
-        return dayMappingOverrideRepository.findByMappedDate(date)
-            .map(DayMappingOverride::getBorrowedDayOfWeek)
-            .orElseGet(() -> DayOfWeek.valueOf(date.getDayOfWeek().name()));
+        if (date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+            return null;
+        }
+        return DayOfWeek.valueOf(date.getDayOfWeek().name());
     }
 
     private ResourceGridCellResponse toCell(ClassScheduleResponse r, DayOfWeek displayDay) {

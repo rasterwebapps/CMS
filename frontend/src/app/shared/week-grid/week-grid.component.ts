@@ -8,6 +8,7 @@ import {
   WeekGridMode,
   WeekGridCandidateCell,
   WeekGridHolidayInfo,
+  WeekGridPeriod,
   WEEK_GRID_DAYS,
   WEEK_GRID_DAY_LABELS,
   WEEK_GRID_HOLIDAY_CATEGORY_LABELS,
@@ -97,6 +98,13 @@ export class CmsWeekGridComponent {
     this._candidateCells.set(value ?? []);
   }
 
+  /** See {@link WeekGridPeriod}'s own doc comment. Empty (default) for every consumer that
+   *  doesn't pass it, leaving {@link rows} exactly as it behaved before this input existed. */
+  private readonly _allPeriods = signal<WeekGridPeriod[]>([]);
+  @Input() set allPeriods(value: WeekGridPeriod[] | null | undefined) {
+    this._allPeriods.set(value ?? []);
+  }
+
   @Output() sessionClick = new EventEmitter<WeekGridSession>();
   @Output() approveClick = new EventEmitter<void>();
   @Output() discardClick = new EventEmitter<void>();
@@ -157,9 +165,18 @@ export class CmsWeekGridComponent {
    *  columns instead. */
   protected readonly rows = computed<WeekGridRow[]>(() => {
     const seen = new Map<string, WeekGridRow>();
+    // Master Period rows go in first, when supplied — their name is authoritative, so a session
+    // sharing one of these exact windows below must never overwrite it (see the `masterKeys` guard).
+    const masterKeys = new Set<string>();
+    for (const p of this._allPeriods()) {
+      const key = `${p.startTime}-${p.endTime}`;
+      seen.set(key, { key, label: p.name, startTime: p.startTime, endTime: p.endTime });
+      masterKeys.add(key);
+    }
     for (const s of this._sessions()) {
       if (s.periodId == null) continue;
       const key = `${s.startTime}-${s.endTime}`;
+      if (masterKeys.has(key)) continue;
       const label = s.slotName || `${s.startTime}–${s.endTime}`;
       const existing = seen.get(key);
       if (!existing) {

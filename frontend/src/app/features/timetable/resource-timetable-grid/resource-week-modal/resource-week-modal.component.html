@@ -17,7 +17,7 @@
       <mat-spinner diameter="36" aria-label="Loading resource week"></mat-spinner>
     </div>
   } @else {
-    <cms-week-grid mode="browse" [sessions]="sessions()" [weekStart]="viewMode() === 'DATE' ? weekStart() : null" />
+    <cms-week-grid mode="browse" [sessions]="sessions()" [allPeriods]="periods()" [weekStart]="viewMode() === 'DATE' ? weekStart() : null" />
   }
 </mat-dialog-content>
 
