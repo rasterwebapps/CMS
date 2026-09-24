@@ -136,19 +136,19 @@ public class FacultyWorkloadCapacityService {
     }
 
     static Integer resolveEffectiveCapacity(Faculty faculty) {
-        return resolveEffective(faculty, Faculty::getPlannedWeeklyHoursOverride, DesignationMaster::getDefaultWeeklyTeachingHours);
+        return resolveEffective(faculty, Faculty::getPlannedWeeklySessionsOverride, DesignationMaster::getDefaultWeeklyTeachingSessions);
     }
 
     /** Same per-faculty-then-designation precedence as {@link #resolveEffectiveCapacity}, feeding
      *  {@link TimetableStaffingService}'s daily hard-cap gate instead of the weekly report. */
     static Integer resolveEffectiveDailyCapacity(Faculty faculty) {
-        return resolveEffective(faculty, Faculty::getPlannedDailyHoursOverride, DesignationMaster::getDefaultDailyTeachingHours);
+        return resolveEffective(faculty, Faculty::getPlannedDailySessionsOverride, DesignationMaster::getDefaultDailyTeachingSessions);
     }
 
     /** Same per-faculty-then-designation precedence as {@link #resolveEffectiveCapacity}, feeding
      *  {@link TimetableStaffingService}'s continuous (unbroken run) hard-cap gate. */
     static Integer resolveEffectiveContinuousCapacity(Faculty faculty) {
-        return resolveEffective(faculty, Faculty::getPlannedContinuousHoursOverride, DesignationMaster::getDefaultContinuousTeachingHours);
+        return resolveEffective(faculty, Faculty::getPlannedContinuousSessionsOverride, DesignationMaster::getDefaultContinuousTeachingSessions);
     }
 
     private static Integer resolveEffective(Faculty faculty,

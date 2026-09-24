@@ -286,7 +286,7 @@ class FacultyServiceTest {
     }
 
     @Test
-    void shouldPersistPlannedWeeklyHoursOverrideOnCreate() {
+    void shouldPersistPlannedWeeklySessionsOverrideOnCreate() {
         FacultyRequest request = facultyRequestWithOverride(
             "EMP001", "John", "Doe", "john.doe@college.edu", "1234567890",
             1L, 1L, "Artificial Intelligence", "Machine Learning Lab",
@@ -294,7 +294,7 @@ class FacultyServiceTest {
 
         Faculty savedFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john.doe@college.edu",
             testSpeciality, professor, FacultyStatus.ACTIVE);
-        savedFaculty.setPlannedWeeklyHoursOverride(22);
+        savedFaculty.setPlannedWeeklySessionsOverride(22);
 
         when(specialityRepository.findById(1L)).thenReturn(Optional.of(testSpeciality));
         when(designationRepository.findById(1L)).thenReturn(Optional.of(professor));
@@ -302,11 +302,11 @@ class FacultyServiceTest {
 
         FacultyResponse response = facultyService.create(request);
 
-        assertThat(response.plannedWeeklyHoursOverride()).isEqualTo(22);
+        assertThat(response.plannedWeeklySessionsOverride()).isEqualTo(22);
 
         ArgumentCaptor<Faculty> captor = ArgumentCaptor.forClass(Faculty.class);
         verify(facultyRepository).save(captor.capture());
-        assertThat(captor.getValue().getPlannedWeeklyHoursOverride()).isEqualTo(22);
+        assertThat(captor.getValue().getPlannedWeeklySessionsOverride()).isEqualTo(22);
     }
 
     @Test
@@ -432,7 +432,7 @@ class FacultyServiceTest {
     private static FacultyRequest facultyRequestWithOverride(
             String employeeCode, String firstName, String lastName, String email, String phone,
             Long specialityId, Long designationId, String specialization, String labExpertise,
-            LocalDate joiningDate, FacultyStatus status, Integer plannedWeeklyHoursOverride) {
+            LocalDate joiningDate, FacultyStatus status, Integer plannedWeeklySessionsOverride) {
         final com.cms.model.enums.FacultyType facultyType = null;
         final com.cms.model.enums.FacultyQualification highestQualification = null;
         final com.cms.model.enums.Gender gender = null;
@@ -445,7 +445,7 @@ class FacultyServiceTest {
             specialization, labExpertise, joiningDate, status,
             facultyType, highestQualification, null, null, null, null, gender, maritalStatus,
             null, null, null, null, null, null, null, null, bankAccountType, address,
-            years, years, years, years, years, years, years, plannedWeeklyHoursOverride, null, null
+            years, years, years, years, years, years, years, plannedWeeklySessionsOverride, null, null
         );
     }
 
@@ -487,7 +487,7 @@ class FacultyServiceTest {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
             testSpeciality, professor, FacultyStatus.ACTIVE);
         existingFaculty.setSpecialization("Original Specialization");
-        existingFaculty.setPlannedDailyHoursOverride(null);
+        existingFaculty.setPlannedDailySessionsOverride(null);
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
         ArgumentCaptor<Faculty> savedCaptor = ArgumentCaptor.forClass(Faculty.class);
@@ -495,9 +495,9 @@ class FacultyServiceTest {
 
         FacultyResponse response = facultyService.updateDailyCapOverride(1L, 6);
 
-        assertThat(response.plannedDailyHoursOverride()).isEqualTo(6);
+        assertThat(response.plannedDailySessionsOverride()).isEqualTo(6);
         Faculty saved = savedCaptor.getValue();
-        assertThat(saved.getPlannedDailyHoursOverride()).isEqualTo(6);
+        assertThat(saved.getPlannedDailySessionsOverride()).isEqualTo(6);
         // Everything else on the entity is untouched -- proves this doesn't risk corrupting other
         // fields the way reconstructing a full FacultyRequest client-side would.
         assertThat(saved.getEmployeeCode()).isEqualTo("EMP001");
@@ -511,14 +511,14 @@ class FacultyServiceTest {
     void updateDailyCapOverride_null_clearsExistingOverride() {
         Faculty existingFaculty = createFaculty(1L, "EMP001", "John", "Doe", "john@college.edu",
             testSpeciality, professor, FacultyStatus.ACTIVE);
-        existingFaculty.setPlannedDailyHoursOverride(4);
+        existingFaculty.setPlannedDailySessionsOverride(4);
 
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(existingFaculty));
         when(facultyRepository.save(any(Faculty.class))).thenAnswer(inv -> inv.getArgument(0));
 
         FacultyResponse response = facultyService.updateDailyCapOverride(1L, null);
 
-        assertThat(response.plannedDailyHoursOverride()).isNull();
+        assertThat(response.plannedDailySessionsOverride()).isNull();
     }
 
     @Test
@@ -526,5 +526,41 @@ class FacultyServiceTest {
         when(facultyRepository.findById(999L)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> facultyService.updateDailyCapOverride(999L, 6))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void employeeCodeExists_returnsFalseForBlankValue() {
+        assertThat(facultyService.employeeCodeExists("  ", null)).isFalse();
+        verify(facultyRepository, never()).existsByEmployeeCodeIgnoreCase(any());
+    }
+
+    @Test
+    void employeeCodeExists_checksWithoutExcludeId() {
+        when(facultyRepository.existsByEmployeeCodeIgnoreCase("EMP001")).thenReturn(true);
+        assertThat(facultyService.employeeCodeExists("EMP001", null)).isTrue();
+    }
+
+    @Test
+    void employeeCodeExists_checksWithExcludeId() {
+        when(facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot("EMP001", 1L)).thenReturn(false);
+        assertThat(facultyService.employeeCodeExists("EMP001", 1L)).isFalse();
+    }
+
+    @Test
+    void emailExists_returnsFalseForBlankValue() {
+        assertThat(facultyService.emailExists("  ", null)).isFalse();
+        verify(facultyRepository, never()).existsByEmailIgnoreCase(any());
+    }
+
+    @Test
+    void emailExists_checksWithoutExcludeId() {
+        when(facultyRepository.existsByEmailIgnoreCase("john@college.edu")).thenReturn(true);
+        assertThat(facultyService.emailExists("john@college.edu", null)).isTrue();
+    }
+
+    @Test
+    void emailExists_checksWithExcludeId() {
+        when(facultyRepository.existsByEmailIgnoreCaseAndIdNot("john@college.edu", 1L)).thenReturn(false);
+        assertThat(facultyService.emailExists("john@college.edu", 1L)).isFalse();
     }
 }

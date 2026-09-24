@@ -143,7 +143,7 @@ public class FacultyController {
     @PatchMapping("/{id}/daily-cap")
     @PreAuthorize("@perm.has('FACULTY_MANAGE')")
     public ResponseEntity<FacultyResponse> updateDailyCap(@PathVariable Long id, @RequestBody DailyCapUpdateRequest request) {
-        return ResponseEntity.ok(facultyService.updateDailyCapOverride(id, request.plannedDailyHoursOverride()));
+        return ResponseEntity.ok(facultyService.updateDailyCapOverride(id, request.plannedDailySessionsOverride()));
     }
 
     @DeleteMapping("/{id}")
@@ -198,6 +198,22 @@ public class FacultyController {
             @RequestParam String value,
             @RequestParam(required = false) Long excludeId) {
         return ResponseEntity.ok(facultyService.nrtsNumberExists(value, excludeId));
+    }
+
+    @GetMapping("/employee-code-exists")
+    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    public ResponseEntity<Boolean> employeeCodeExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(facultyService.employeeCodeExists(value, excludeId));
+    }
+
+    @GetMapping("/email-exists")
+    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    public ResponseEntity<Boolean> emailExists(
+            @RequestParam String value,
+            @RequestParam(required = false) Long excludeId) {
+        return ResponseEntity.ok(facultyService.emailExists(value, excludeId));
     }
 
 }

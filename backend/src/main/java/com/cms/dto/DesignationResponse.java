@@ -8,9 +8,9 @@ public record DesignationResponse(
     String code,
     String description,
     Boolean isActive,
-    Integer defaultWeeklyTeachingHours,
-    Integer defaultDailyTeachingHours,
-    Integer defaultContinuousTeachingHours,
+    Integer defaultWeeklyTeachingSessions,
+    Integer defaultDailyTeachingSessions,
+    Integer defaultContinuousTeachingSessions,
     Instant createdAt,
     Instant updatedAt
 ) {

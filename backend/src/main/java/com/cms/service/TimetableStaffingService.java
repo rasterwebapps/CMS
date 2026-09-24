@@ -623,14 +623,13 @@ public class TimetableStaffingService {
      *  (same cell, different or same faculty) doesn't double-count its own slot. {@code day} is
      *  passed explicitly for the same reason as {@link #checkFacultyFree}. */
     List<ConstraintViolation> checkWithinWorkloadCaps(Faculty faculty, ClassSchedule cs, DayOfWeek day, LocalTime start, LocalTime end) {
-        Optional<Double> dailyCap = resolveDailyCap(faculty);
-        Optional<Double> weeklyCap = resolveWeeklyCap(faculty);
-        Optional<Double> continuousCap = resolveContinuousCap(faculty);
+        Optional<Integer> dailyCap = resolveDailyCap(faculty);
+        Optional<Integer> weeklyCap = resolveWeeklyCap(faculty);
+        Optional<Integer> continuousCap = resolveContinuousCap(faculty);
         if (dailyCap.isEmpty() && weeklyCap.isEmpty() && continuousCap.isEmpty()) {
             return List.of();
         }
 
-        double newSessionHours = Duration.between(start, end).toMinutes() / 60.0;
         Optional<AutoScheduleRunCache> runCache = AutoScheduleRunCache.current();
         List<ClassSchedule> otherSessions = Stream.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)
             .flatMap(status -> runCache
@@ -659,35 +658,32 @@ public class TimetableStaffingService {
         List<ConstraintViolation> violations = new ArrayList<>();
 
         if (dailyCap.isPresent()) {
-            double dailyHours = otherSessions.stream()
+            long dailySessions = otherSessions.stream()
                 .filter(other -> other.getDayOfWeek() == day)
-                .mapToDouble(other -> sessionHours(other.getPeriod()))
-                .sum() + newSessionHours;
-            if (dailyHours > dailyCap.get()) {
+                .count() + 1;
+            if (dailySessions > dailyCap.get()) {
                 violations.add(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED",
-                    "Staffing this session would put this faculty member at " + formatHours(dailyHours)
-                        + " hours today, over the configured daily cap of " + formatHours(dailyCap.get()) + " hours."));
+                    "Staffing this session would put this faculty member at " + dailySessions
+                        + " sessions today, over the configured daily cap of " + dailyCap.get() + " sessions."));
             }
         }
 
         if (weeklyCap.isPresent()) {
-            double weeklyHours = otherSessions.stream()
-                .mapToDouble(other -> sessionHours(other.getPeriod()))
-                .sum() + newSessionHours;
-            if (weeklyHours > weeklyCap.get()) {
+            long weeklySessions = otherSessions.size() + 1;
+            if (weeklySessions > weeklyCap.get()) {
                 violations.add(new ConstraintViolation("STAFFING_WORKLOAD_WEEKLY_CAP_EXCEEDED",
-                    "Staffing this session would put this faculty member at " + formatHours(weeklyHours)
-                        + " hours this week, over the configured weekly cap of " + formatHours(weeklyCap.get()) + " hours."));
+                    "Staffing this session would put this faculty member at " + weeklySessions
+                        + " sessions this week, over the configured weekly cap of " + weeklyCap.get() + " sessions."));
             }
         }
 
         if (continuousCap.isPresent()) {
-            double continuousHours = continuousChainHours(otherSessions, day, start, end);
-            if (continuousHours > continuousCap.get()) {
+            int continuousSessions = continuousChainSessionCount(otherSessions, day, start, end);
+            if (continuousSessions > continuousCap.get()) {
                 violations.add(new ConstraintViolation("STAFFING_WORKLOAD_CONTINUOUS_CAP_EXCEEDED",
-                    "Staffing this session would put this faculty member into a " + formatHours(continuousHours)
-                        + "-hour unbroken run, over the configured continuous-hours cap of "
-                        + formatHours(continuousCap.get()) + " hours."));
+                    "Staffing this session would put this faculty member into a " + continuousSessions
+                        + "-session unbroken run, over the configured continuous-sessions cap of "
+                        + continuousCap.get() + " sessions."));
             }
         }
 
@@ -713,9 +709,9 @@ public class TimetableStaffingService {
         if (group.size() <= 1) {
             return List.of();
         }
-        Optional<Double> dailyCap = resolveDailyCap(faculty);
-        Optional<Double> weeklyCap = resolveWeeklyCap(faculty);
-        Optional<Double> continuousCap = resolveContinuousCap(faculty);
+        Optional<Integer> dailyCap = resolveDailyCap(faculty);
+        Optional<Integer> weeklyCap = resolveWeeklyCap(faculty);
+        Optional<Integer> continuousCap = resolveContinuousCap(faculty);
         if (dailyCap.isEmpty() && weeklyCap.isEmpty() && continuousCap.isEmpty()) {
             return List.of();
         }
@@ -737,32 +733,28 @@ public class TimetableStaffingService {
         List<ConstraintViolation> violations = new ArrayList<>();
 
         if (dailyCap.isPresent()) {
-            Map<DayOfWeek, Double> groupHoursByDay = group.stream()
-                .collect(Collectors.groupingBy(ClassSchedule::getDayOfWeek, Collectors.summingDouble(m -> sessionHours(m.getPeriod()))));
-            for (Map.Entry<DayOfWeek, Double> entry : groupHoursByDay.entrySet()) {
-                double dailyHours = otherSessions.stream()
+            Map<DayOfWeek, Long> groupSessionsByDay = group.stream()
+                .collect(Collectors.groupingBy(ClassSchedule::getDayOfWeek, Collectors.counting()));
+            for (Map.Entry<DayOfWeek, Long> entry : groupSessionsByDay.entrySet()) {
+                long dailySessions = otherSessions.stream()
                     .filter(other -> other.getDayOfWeek() == entry.getKey())
-                    .mapToDouble(other -> sessionHours(other.getPeriod()))
-                    .sum() + entry.getValue();
-                if (dailyHours > dailyCap.get()) {
+                    .count() + entry.getValue();
+                if (dailySessions > dailyCap.get()) {
                     violations.add(new ConstraintViolation("STAFFING_WORKLOAD_DAILY_CAP_EXCEEDED",
                         "Staffing this multi-period session together would put this faculty member at "
-                            + formatHours(dailyHours) + " hours on " + entry.getKey()
-                            + ", over the configured daily cap of " + formatHours(dailyCap.get()) + " hours."));
+                            + dailySessions + " sessions on " + entry.getKey()
+                            + ", over the configured daily cap of " + dailyCap.get() + " sessions."));
                 }
             }
         }
 
         if (weeklyCap.isPresent()) {
-            double groupTotalHours = group.stream().mapToDouble(m -> sessionHours(m.getPeriod())).sum();
-            double weeklyHours = otherSessions.stream()
-                .mapToDouble(other -> sessionHours(other.getPeriod()))
-                .sum() + groupTotalHours;
-            if (weeklyHours > weeklyCap.get()) {
+            long weeklySessions = otherSessions.size() + group.size();
+            if (weeklySessions > weeklyCap.get()) {
                 violations.add(new ConstraintViolation("STAFFING_WORKLOAD_WEEKLY_CAP_EXCEEDED",
                     "Staffing this multi-period session together would put this faculty member at "
-                        + formatHours(weeklyHours) + " hours this week, over the configured weekly cap of "
-                        + formatHours(weeklyCap.get()) + " hours."));
+                        + weeklySessions + " sessions this week, over the configured weekly cap of "
+                        + weeklyCap.get() + " sessions."));
             }
         }
 
@@ -770,7 +762,7 @@ public class TimetableStaffingService {
             Map<DayOfWeek, List<ClassSchedule>> groupByDay = group.stream()
                 .collect(Collectors.groupingBy(ClassSchedule::getDayOfWeek));
             for (List<ClassSchedule> dayMembers : groupByDay.values()) {
-                double worstContinuousHours = 0;
+                int worstContinuousSessions = 0;
                 for (ClassSchedule anchor : dayMembers) {
                     List<ClassSchedule> augmented = new ArrayList<>(otherSessions);
                     for (ClassSchedule sibling : dayMembers) {
@@ -778,15 +770,15 @@ public class TimetableStaffingService {
                             augmented.add(sibling);
                         }
                     }
-                    double continuousHours = continuousChainHours(augmented, anchor.getDayOfWeek(),
+                    int continuousSessions = continuousChainSessionCount(augmented, anchor.getDayOfWeek(),
                         anchor.getPeriod().getStartTime(), anchor.getPeriod().getEndTime());
-                    worstContinuousHours = Math.max(worstContinuousHours, continuousHours);
+                    worstContinuousSessions = Math.max(worstContinuousSessions, continuousSessions);
                 }
-                if (worstContinuousHours > continuousCap.get()) {
+                if (worstContinuousSessions > continuousCap.get()) {
                     violations.add(new ConstraintViolation("STAFFING_WORKLOAD_CONTINUOUS_CAP_EXCEEDED",
                         "Staffing this multi-period session together would put this faculty member into a "
-                            + formatHours(worstContinuousHours) + "-hour unbroken run on " + dayMembers.get(0).getDayOfWeek()
-                            + ", over the configured continuous-hours cap of " + formatHours(continuousCap.get()) + " hours."));
+                            + worstContinuousSessions + "-session unbroken run on " + dayMembers.get(0).getDayOfWeek()
+                            + ", over the configured continuous-sessions cap of " + continuousCap.get() + " sessions."));
                 }
             }
         }
@@ -794,11 +786,14 @@ public class TimetableStaffingService {
         return violations;
     }
 
-    /** Sums the back-to-back (no-gap) run of same-day sessions that the new [start,end) interval
+    /** Counts the back-to-back (no-gap) run of same-day sessions that the new [start,end) interval
      *  joins onto, including the new interval itself — faculty-free already guarantees no true
-     *  overlap, so "continuous" here just means adjacent intervals with zero gap between them. */
-    private double continuousChainHours(List<ClassSchedule> otherSessions, DayOfWeek dayOfWeek,
-                                         LocalTime start, LocalTime end) {
+     *  overlap, so "continuous" here just means adjacent intervals with zero gap between them. Run
+     *  detection itself still works in real start/end times (that's the only way to tell two
+     *  periods are actually adjacent); only the final metric is now how many periods are in the
+     *  winning run, not its duration. */
+    private int continuousChainSessionCount(List<ClassSchedule> otherSessions, DayOfWeek dayOfWeek,
+                                             LocalTime start, LocalTime end) {
         record Interval(LocalTime start, LocalTime end) {}
 
         List<Interval> intervals = Stream.concat(
@@ -809,27 +804,28 @@ public class TimetableStaffingService {
             .sorted(Comparator.comparing(Interval::start))
             .toList();
 
-        List<Interval> runs = new java.util.ArrayList<>();
+        record Run(LocalTime start, LocalTime end, int count) {}
+
+        List<Run> runs = new java.util.ArrayList<>();
         LocalTime runStart = null;
         LocalTime runEnd = null;
+        int runCount = 0;
         for (Interval interval : intervals) {
             if (runStart == null || !interval.start().equals(runEnd)) {
-                if (runStart != null) runs.add(new Interval(runStart, runEnd));
+                if (runStart != null) runs.add(new Run(runStart, runEnd, runCount));
                 runStart = interval.start();
+                runCount = 0;
             }
             runEnd = interval.end();
+            runCount++;
         }
-        runs.add(new Interval(runStart, runEnd));
+        runs.add(new Run(runStart, runEnd, runCount));
 
         return runs.stream()
             .filter(run -> !run.start().isAfter(start) && !run.end().isBefore(end))
-            .mapToDouble(run -> Duration.between(run.start(), run.end()).toMinutes() / 60.0)
+            .mapToInt(Run::count)
             .findFirst()
-            .orElse(Duration.between(start, end).toMinutes() / 60.0);
-    }
-
-    private double sessionHours(Period period) {
-        return Duration.between(period.getStartTime(), period.getEndTime()).toMinutes() / 60.0;
+            .orElse(1);
     }
 
     /** Per-faculty override, then designation default (both from {@link
@@ -837,59 +833,45 @@ public class TimetableStaffingService {
      *  institution-wide config value, falling back to no cap. Reused rather than duplicated so the
      *  advisory Faculty Workload report and this hard gate can never resolve a faculty's weekly
      *  capacity differently. A configured value of 0 or less is treated as unset, mirroring {@link
-     *  #resolveCapHours}'s own "blank/zero = no cap" convention. */
-    Optional<Double> resolveWeeklyCap(Faculty faculty) {
+     *  #resolveCapSessions}'s own "blank/zero = no cap" convention. */
+    Optional<Integer> resolveWeeklyCap(Faculty faculty) {
         Integer perFacultyOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveCapacity(faculty);
         if (perFacultyOrDesignation != null && perFacultyOrDesignation > 0) {
-            return Optional.of(perFacultyOrDesignation.doubleValue());
+            return Optional.of(perFacultyOrDesignation);
         }
-        return resolveCapHours("timetable.faculty_max_weekly_hours");
+        return resolveCapSessions("timetable.faculty_max_weekly_sessions");
     }
 
     /** Same per-faculty-then-designation-then-global precedence as {@link #resolveWeeklyCap}. */
-    Optional<Double> resolveDailyCap(Faculty faculty) {
+    Optional<Integer> resolveDailyCap(Faculty faculty) {
         Integer perFacultyOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveDailyCapacity(faculty);
         if (perFacultyOrDesignation != null && perFacultyOrDesignation > 0) {
-            return Optional.of(perFacultyOrDesignation.doubleValue());
+            return Optional.of(perFacultyOrDesignation);
         }
-        return resolveCapHours("timetable.faculty_max_daily_hours");
+        return resolveCapSessions("timetable.faculty_max_daily_sessions");
     }
 
     /** Same per-faculty-then-designation-then-global precedence as {@link #resolveWeeklyCap}. */
-    private Optional<Double> resolveContinuousCap(Faculty faculty) {
+    private Optional<Integer> resolveContinuousCap(Faculty faculty) {
         Integer perFacultyOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveContinuousCapacity(faculty);
         if (perFacultyOrDesignation != null && perFacultyOrDesignation > 0) {
-            return Optional.of(perFacultyOrDesignation.doubleValue());
+            return Optional.of(perFacultyOrDesignation);
         }
-        return resolveCapHours("timetable.faculty_max_continuous_hours");
+        return resolveCapSessions("timetable.faculty_max_continuous_sessions");
     }
 
-    private Optional<Double> resolveCapHours(String configKey) {
+    private Optional<Integer> resolveCapSessions(String configKey) {
         return systemConfigurationService.findByKey(configKey)
             .map(config -> config.configValue())
             .filter(value -> value != null && !value.isBlank())
             .flatMap(value -> {
                 try {
-                    double parsed = Double.parseDouble(value.trim());
-                    return parsed > 0 ? Optional.of(parsed) : Optional.<Double>empty();
+                    int parsed = Integer.parseInt(value.trim());
+                    return parsed > 0 ? Optional.of(parsed) : Optional.<Integer>empty();
                 } catch (NumberFormatException e) {
                     return Optional.empty();
                 }
             });
-    }
-
-    /** A whole number renders bare ("7"), anything else to a single decimal ("14.2").
-     *
-     *  <p>The fractional branch used to be a plain {@code String.valueOf(double)}, which leaked the
-     *  full binary-floating-point expansion straight into user-facing violation messages -- a real
-     *  message read "would put this faculty member at 14.166666666666668 hours today". Period
-     *  lengths are routinely non-terminating in hours (a 50-minute period is 5/6 h), so this was
-     *  the normal case for any cap message, not an edge case. */
-    private static String formatHours(double hours) {
-        if (hours == Math.floor(hours)) {
-            return String.valueOf((long) hours);
-        }
-        return BigDecimal.valueOf(hours).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
     }
 
     /** Blocks assigning a room already occupied at this exact day/time — either the exact same

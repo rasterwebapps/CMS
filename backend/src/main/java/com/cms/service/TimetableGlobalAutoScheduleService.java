@@ -81,6 +81,7 @@ import com.cms.model.Period;
 import com.cms.model.RotationGroup;
 import com.cms.model.RotationMemberAssignment;
 import com.cms.model.RotationSlot;
+import com.cms.model.SessionOccurrence;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
@@ -106,6 +107,7 @@ import com.cms.repository.RotationGroupRepository;
 import com.cms.repository.RotationMemberAssignmentRepository;
 import com.cms.repository.RotationMemberRepository;
 import com.cms.repository.RotationSlotRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -254,6 +256,7 @@ public class TimetableGlobalAutoScheduleService {
     private final RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
     private final TimetableConflictInspectorService timetableConflictInspectorService;
     private final BatchService batchService;
+    private final SessionOccurrenceRepository sessionOccurrenceRepository;
 
     // Field injection with @Lazy breaks the circular dependency:
     // TimetableGlobalAutoScheduleService -> CourseOfferingSectionFacultyService -> TimetableGlobalAutoScheduleService
@@ -287,7 +290,8 @@ public class TimetableGlobalAutoScheduleService {
                                                RotationMemberRepository rotationMemberRepository,
                                                RotationMemberAssignmentRepository rotationMemberAssignmentRepository,
                                                TimetableConflictInspectorService timetableConflictInspectorService,
-                                               BatchService batchService) {
+                                               BatchService batchService,
+                                               SessionOccurrenceRepository sessionOccurrenceRepository) {
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableStaffingService = timetableStaffingService;
         this.clinicalShiftChecker = clinicalShiftChecker;
@@ -315,6 +319,7 @@ public class TimetableGlobalAutoScheduleService {
         this.rotationMemberAssignmentRepository = rotationMemberAssignmentRepository;
         this.timetableConflictInspectorService = timetableConflictInspectorService;
         this.batchService = batchService;
+        this.sessionOccurrenceRepository = sessionOccurrenceRepository;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -943,26 +948,34 @@ public class TimetableGlobalAutoScheduleService {
      *  mirroring how {@link TimetableStaffingService#checkWithinWorkloadCaps} treats an unresolved
      *  cap today (no check, not an error). */
     private CapacityResolution resolveEffectiveTermCapacity(Faculty faculty, int workingDaysInTerm, int weeksInTerm) {
+        // Curriculum demand (the other side of every comparison this feeds) is inherently hours --
+        // that's how a curriculum specifies Lab/Theory/Clinical requirements, before any block-size
+        // scheduling decision exists yet to derive a session count from. The configured cap is now
+        // sessions, so it's bridged into an hours-equivalent via each active Period's own real
+        // duration -- the exact "periods carry a real minute figure, so sessions and hours are never
+        // in conflict" design (2026-09-24), not a guessed/fabricated conversion factor.
+        double avgPeriodHours = averagePeriodDurationHours(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc());
         Integer dailyOverrideOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveDailyCapacity(faculty);
         if (dailyOverrideOrDesignation != null) {
-            String tier = faculty.getPlannedDailyHoursOverride() != null ? "FACULTY_OVERRIDE" : "DESIGNATION_DEFAULT";
-            return new CapacityResolution(dailyOverrideOrDesignation.doubleValue() * workingDaysInTerm,
-                dailyOverrideOrDesignation.doubleValue(), tier);
+            String tier = faculty.getPlannedDailySessionsOverride() != null ? "FACULTY_OVERRIDE" : "DESIGNATION_DEFAULT";
+            double dailyHours = dailyOverrideOrDesignation * avgPeriodHours;
+            return new CapacityResolution(dailyHours * workingDaysInTerm, dailyHours, tier);
         }
-        Optional<Double> globalDaily = timetableStaffingService.resolveDailyCap(faculty);
+        Optional<Integer> globalDaily = timetableStaffingService.resolveDailyCap(faculty);
         if (globalDaily.isPresent()) {
-            return new CapacityResolution(globalDaily.get() * workingDaysInTerm, globalDaily.get(), "SYSTEM_CONFIGURATION");
+            double dailyHours = globalDaily.get() * avgPeriodHours;
+            return new CapacityResolution(dailyHours * workingDaysInTerm, dailyHours, "SYSTEM_CONFIGURATION");
         }
 
         Integer weeklyOverrideOrDesignation = FacultyWorkloadCapacityService.resolveEffectiveCapacity(faculty);
         if (weeklyOverrideOrDesignation != null) {
-            String tier = faculty.getPlannedWeeklyHoursOverride() != null ? "FACULTY_OVERRIDE" : "DESIGNATION_DEFAULT";
-            double termCapacity = weeklyOverrideOrDesignation.doubleValue() * weeksInTerm;
+            String tier = faculty.getPlannedWeeklySessionsOverride() != null ? "FACULTY_OVERRIDE" : "DESIGNATION_DEFAULT";
+            double termCapacity = weeklyOverrideOrDesignation * avgPeriodHours * weeksInTerm;
             return new CapacityResolution(termCapacity, termCapacity / workingDaysInTerm, tier);
         }
-        Optional<Double> globalWeekly = timetableStaffingService.resolveWeeklyCap(faculty);
+        Optional<Integer> globalWeekly = timetableStaffingService.resolveWeeklyCap(faculty);
         if (globalWeekly.isPresent()) {
-            double termCapacity = globalWeekly.get() * weeksInTerm;
+            double termCapacity = globalWeekly.get() * avgPeriodHours * weeksInTerm;
             return new CapacityResolution(termCapacity, termCapacity / workingDaysInTerm, "SYSTEM_CONFIGURATION");
         }
         return null;
@@ -1124,7 +1137,7 @@ public class TimetableGlobalAutoScheduleService {
 
             rows.add(new FacultyWorkloadOverviewRow(faculty.getId(), faculty.getFullName(),
                 faculty.getDesignation() != null ? faculty.getDesignation().getName() : null,
-                faculty.getPlannedDailyHoursOverride(), configured,
+                faculty.getPlannedDailySessionsOverride(), configured,
                 configured ? capacity.dailyCapForDisplay() : 0, configured ? capacity.tier() : "NONE",
                 demand.workingDaysInTerm(), termCapacityHours, totalDemand, utilizationPercent,
                 overCapacity ? totalDemand - termCapacityHours : 0,
@@ -1996,10 +2009,11 @@ public class TimetableGlobalAutoScheduleService {
         return caps.isEmpty() ? 0 : caps.stream().mapToDouble(Double::doubleValue).average().orElse(0);
     }
 
-    /** Clears EVERY DRAFT cell for the cohorts in scope, so each run re-packs the week from an
-     *  empty grid instead of adding on top of whatever previous runs left behind. A PUBLISHED cell
-     *  is never touched -- {@link #doRunGlobalAutoSchedule}'s own publish gate already refuses to
-     *  run against a published term at all, so in practice everything reachable here is DRAFT.
+    /** Hard-deletes EVERY DRAFT cell for the cohorts in scope, so each run re-packs the week from
+     *  an empty grid instead of adding on top of whatever previous runs left behind. A PUBLISHED
+     *  cell is never touched -- {@link #doRunGlobalAutoSchedule}'s own publish gate already
+     *  refuses to run against a published term at all, so in practice everything reachable here is
+     *  DRAFT.
      *
      *  <p>This replaced (2026-09-02) a narrower purge that only cleared cells a budget could prove
      *  were excess -- over-budget scopes, section-less THEORY ghosts, extra Library days, truncated
@@ -2052,25 +2066,58 @@ public class TimetableGlobalAutoScheduleService {
         if (idsToDeactivate.isEmpty()) {
             return new PurgeOutcome(0, pinnedPreserved);
         }
+        purgeOccurrencesForCells(idsToDeactivate);
         purgeRotationRowsForCells(idsToDeactivate);
         List<ClassSchedule> toDeactivate = classScheduleRepository.findAllById(idsToDeactivate);
         Set<Long> touchedBatchIds = new HashSet<>();
         for (ClassSchedule cs : toDeactivate) {
-            cs.setIsActive(false);
-            classScheduleRepository.save(cs);
             AutoScheduleRunCache.current().ifPresent(cache -> cache.recordRemoval(cs));
             if (cs.getBatch() != null) {
                 touchedBatchIds.add(cs.getBatch().getId());
             }
         }
+        classScheduleRepository.deleteAllInBatch(toDeactivate);
         // A batch CohortRoomAllocation#revert correctly kept alive because it still had a real
         // DRAFT cell riding on it can lose that last reason to exist right here, the moment this
-        // rebuild deactivates that same cell -- revert's own "delete if zero real history" check
+        // rebuild deletes that same cell -- revert's own "delete if zero real history" check
         // only ever runs once, at revert time. See BatchService#deleteOrphanedInactiveBatches's own
         // doc comment for the real incident (6 stale "Lab/Clinical - Section 1 - Batch N" rows) this
         // closes the gap on.
         batchService.deleteOrphanedInactiveBatches(touchedBatchIds);
         return new PurgeOutcome(toDeactivate.size(), pinnedPreserved);
+    }
+
+    /** Cleans up every {@link SessionOccurrence} still attached to a cell {@link
+     *  #purgeDraftCellsForRebuild} is about to hard-delete, so the DELETE never trips
+     *  session_occurrences' {@code class_schedule_id} FK. Occurrences are normally only ever
+     *  materialized against a PUBLISHED schedule (absence substitution, room relocation, staff
+     *  swap, progress logging all gate on it) -- but {@link TimetableGenerationService#revertToDraft}
+     *  can hand a cohort's cell back to DRAFT without cleaning up the occurrences already logged
+     *  against it, so a cell reachable here can carry real ones. The only thing that can actually
+     *  block a hard delete is the self-referencing {@code swap_partner_occurrence_id} FK (no {@code
+     *  ON DELETE} clause): if some OTHER occurrence outside this purge batch still points at one of
+     *  these as its swap partner, that pointer is cleared first. Two occurrences that are BOTH being
+     *  purged together need no unswapping between them -- the single batch DELETE removes both sides
+     *  in one statement, so there's no dangling reference left to trip the FK. Every other column on
+     *  an occurrence (effective_faculty_id, faculty_absence_id) is an outward-pointing reference to
+     *  faculty/faculty_absences, not something else pointing in, so it never blocks the delete;
+     *  session_occurrence_units cascades away with its parent occurrence automatically (V324). */
+    private void purgeOccurrencesForCells(Set<Long> classScheduleIds) {
+        List<Long> ids = new ArrayList<>(classScheduleIds);
+        List<SessionOccurrence> occurrences = sessionOccurrenceRepository.findByClassSchedule_IdIn(ids);
+        if (occurrences.isEmpty()) {
+            return;
+        }
+        List<Long> occurrenceIds = occurrences.stream().map(SessionOccurrence::getId).collect(Collectors.toList());
+        List<SessionOccurrence> externalSwapReferrers = sessionOccurrenceRepository
+            .findBySwapPartnerOccurrence_IdIn(occurrenceIds).stream()
+            .filter(occ -> !occurrenceIds.contains(occ.getId()))
+            .collect(Collectors.toList());
+        for (SessionOccurrence referrer : externalSwapReferrers) {
+            referrer.setSwapPartnerOccurrence(null);
+        }
+        sessionOccurrenceRepository.saveAll(externalSwapReferrers);
+        sessionOccurrenceRepository.deleteAllInBatch(occurrences);
     }
 
     /** Both halves of what the rebuild did to the existing DRAFT grid: how many cells it cleared,

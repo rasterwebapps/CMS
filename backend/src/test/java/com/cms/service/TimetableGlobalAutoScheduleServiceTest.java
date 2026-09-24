@@ -74,6 +74,7 @@ import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.Period;
+import com.cms.model.SessionOccurrence;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
@@ -100,6 +101,7 @@ import com.cms.repository.RotationGroupRepository;
 import com.cms.repository.RotationMemberAssignmentRepository;
 import com.cms.repository.RotationMemberRepository;
 import com.cms.repository.RotationSlotRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -135,6 +137,7 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
     @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
     @Mock private BatchService batchService;
+    @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
 
     /** {@code fillSelfStudyGaps}'s final fallback message -- reached only when a fixture configures
      *  neither a genuine Self-Study/Co-curricular offering NOR any other real Theory offering for
@@ -165,7 +168,8 @@ class TimetableGlobalAutoScheduleServiceTest {
             courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,
             blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService,
             clinicalShiftGroupService, rotationGroupService, rotationGroupRepository, rotationSlotRepository,
-            rotationMemberRepository, rotationMemberAssignmentRepository, timetableConflictInspectorService, batchService);
+            rotationMemberRepository, rotationMemberAssignmentRepository, timetableConflictInspectorService, batchService,
+            sessionOccurrenceRepository);
         service.setCourseOfferingSectionFacultyService(courseOfferingSectionFacultyService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
         // Every successful run now ends with a term-wide post-run conflict scan (flag-only) --
@@ -226,15 +230,29 @@ class TimetableGlobalAutoScheduleServiceTest {
             .thenReturn(List.of());
     }
 
-    private Faculty facultyWithDailyCap(Long id, String name, Integer plannedDailyHoursOverride) {
+    private Faculty facultyWithDailyCap(Long id, String name, Integer plannedDailySessionsOverride) {
         Faculty faculty = new Faculty();
         faculty.setId(id);
         faculty.setFirstName(name);
         faculty.setLastName("Staff");
         faculty.setStatus(FacultyStatus.ACTIVE);
-        faculty.setPlannedDailyHoursOverride(plannedDailyHoursOverride);
+        faculty.setPlannedDailySessionsOverride(plannedDailySessionsOverride);
         when(facultyRepository.findById(id)).thenReturn(Optional.of(faculty));
         return faculty;
+    }
+
+    /** A session cap is now bridged into an hours-equivalent via the real average Period duration
+     *  (see resolveEffectiveTermCapacity) -- an exact 1-hour period keeps a precheck test's existing
+     *  "N sessions -> N hours" expected values valid. Deliberately NOT folded into {@link
+     *  #facultyWithDailyCap} itself: that helper is shared by tests (e.g. runSingleSubjectWithOccupancy)
+     *  that stub periodRepository with their own real, varying-duration period fixture just before
+     *  calling it -- an unconditional stub in the shared helper silently clobbered theirs (Mockito is
+     *  last-stub-wins), halving their effective daily period count. Call this only from a test that
+     *  actually asserts an exact hours figure. */
+    private void usePreciseOneHourPeriodFixture() {
+        Period oneHourPeriod = new Period("1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), 1);
+        oneHourPeriod.setId(1L);
+        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(oneHourPeriod));
     }
 
     private Cohort cohort(Long id, String name) {
@@ -330,6 +348,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         cohort(3L, "Cohort 3");
 
         Faculty xyz = facultyWithDailyCap(500L, "XYZ", 3); // 3h/day x 100 days = 300h capacity
+        usePreciseOneHourPeriodFixture();
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 2L)).thenReturn(List.of(offeringDto(200L, "Offering B")));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 3L)).thenReturn(List.of(offeringDto(300L, "Offering C")));
@@ -389,6 +408,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
         facultyWithDailyCap(500L, "XYZ", 4);
+        usePreciseOneHourPeriodFixture();
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
         assignWholeCohort(100L, 1L, 500L);
         offeringEntity(100L, 385, 0, 0);
@@ -456,6 +476,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
         Faculty coord = facultyWithDailyCap(600L, "Coordinator", 1); // 100h capacity
+        usePreciseOneHourPeriodFixture();
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
         offeringEntity(100L, 0, 40, 60);
         when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
@@ -491,6 +512,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
         Faculty sectionBFaculty = facultyWithDailyCap(700L, "Section B Faculty", 1);
+        usePreciseOneHourPeriodFixture();
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
         offeringEntity(100L, 100, 0, 0);
 
@@ -1638,12 +1660,7 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(idsCaptor.getValue()).containsExactlyInAnyOrder(901L, 902L, 903L);
         assertThat(result.staleDraftsCleared()).isEqualTo(3);
-        assertThat(cleared1.getIsActive()).isFalse();
-        assertThat(cleared2.getIsActive()).isFalse();
-        assertThat(cleared3.getIsActive()).isFalse();
-        verify(classScheduleRepository).save(cleared1);
-        verify(classScheduleRepository).save(cleared2);
-        verify(classScheduleRepository).save(cleared3);
+        verify(classScheduleRepository).deleteAllInBatch(List.of(cleared1, cleared2, cleared3));
         assertThat(result.totalPlaced()).isEqualTo(0);
         assertThat(result.cohortSummaries().get(0).unplaced()).extracting(AutoPlaceUnplacedItem::reason)
             .containsExactly(NO_LIBRARY_CLASSROOM_REASON);
@@ -1894,8 +1911,55 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(idsCaptor.getValue()).containsExactlyInAnyOrder(901L, 903L);
         assertThat(result.staleDraftsCleared()).isEqualTo(2);
         assertThat(result.pinnedCellsPreserved()).isEqualTo(1);
-        assertThat(cleared1.getIsActive()).isFalse();
-        assertThat(cleared2.getIsActive()).isFalse();
+        verify(classScheduleRepository).deleteAllInBatch(List.of(cleared1, cleared2));
+    }
+
+    /** purgeOccurrencesForCells: a session_occurrences row tied to a cell the rebuild is about to
+     *  hard-delete is itself hard-deleted, and any OTHER occurrence pointing at it as a Phase 7
+     *  swap partner is unlinked first -- the self-referencing swap_partner_occurrence_id FK (no ON
+     *  DELETE clause) is the only thing that could otherwise block the class_schedules delete. */
+    @Test
+    void runUnswapsExternalPartnerThenPurgesOccurrencesTiedToDeletedDraftCells() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        facultyWithDailyCap(500L, "XYZ", 6);
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
+        assignWholeCohort(100L, 1L, 500L);
+        offeringEntity(100L, 10, 0, 0);
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+        when(batchRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
+
+        SkeletonSubjectBudget budget = new SkeletonSubjectBudget(ClassSessionType.THEORY, null, null, null, null, 10, 10, 1, 1);
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(100L, "Offering A", "OFFE", List.of(budget), null, null);
+        SkeletonCellResponse draft1 = skeletonCell(901L, com.cms.model.enums.ClassScheduleStatus.DRAFT);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term", List.of(subject),
+            List.of(draft1), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        ClassSchedule cleared1 = new ClassSchedule();
+        cleared1.setId(901L);
+        cleared1.setIsActive(true);
+        when(classScheduleRepository.findAllById(any())).thenReturn(List.of(cleared1));
+
+        // A real occurrence still riding on the cell being purged (e.g. left behind by a
+        // publish -> revert-to-draft cycle).
+        SessionOccurrence purgedOccurrence = new SessionOccurrence();
+        purgedOccurrence.setId(5001L);
+        when(sessionOccurrenceRepository.findByClassSchedule_IdIn(List.of(901L))).thenReturn(List.of(purgedOccurrence));
+
+        // Some other, unrelated occurrence still calls this one its swap partner.
+        SessionOccurrence externalSwapPartner = new SessionOccurrence();
+        externalSwapPartner.setId(5002L);
+        externalSwapPartner.setSwapPartnerOccurrence(purgedOccurrence);
+        when(sessionOccurrenceRepository.findBySwapPartnerOccurrence_IdIn(List.of(5001L)))
+            .thenReturn(List.of(externalSwapPartner));
+
+        service.runGlobalAutoSchedule(10L, null);
+
+        assertThat(externalSwapPartner.getSwapPartnerOccurrence()).isNull();
+        verify(sessionOccurrenceRepository).saveAll(List.of(externalSwapPartner));
+        verify(sessionOccurrenceRepository).deleteAllInBatch(List.of(purgedOccurrence));
     }
 
     @Test
@@ -2439,6 +2503,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
         facultyWithDailyCap(500L, "XYZ", 6); // 600h capacity
+        usePreciseOneHourPeriodFixture();
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
             .thenReturn(List.of(offeringDto(100L, "Offering A")));
         offeringEntity(100L, 10, 0, 0);
@@ -2460,6 +2525,7 @@ class TimetableGlobalAutoScheduleServiceTest {
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
         facultyWithDailyCap(500L, "XYZ", 2); // 200h capacity
+        usePreciseOneHourPeriodFixture();
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
             .thenReturn(List.of(offeringDto(100L, "Offering A"), offeringDto(200L, "Offering B")));
         assignWholeCohort(100L, 1L, 500L); // already bound to 500 -- 150h existing demand
@@ -2513,6 +2579,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         cohort(3L, "Cohort 3");
 
         facultyWithDailyCap(500L, "XYZ", 3); // 3h/day x 100 days = 300h capacity
+        usePreciseOneHourPeriodFixture();
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 2L)).thenReturn(List.of(offeringDto(200L, "Offering B")));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 3L)).thenReturn(List.of(offeringDto(300L, "Offering C")));
@@ -2599,6 +2666,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         facultyWithDailyCap(500L, "Over", 1); // 100h capacity
         facultyWithDailyCap(600L, "Fits", 6); // 600h capacity
         facultyWithDailyCap(999L, "Idle", 6);
+        usePreciseOneHourPeriodFixture();
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of(offeringDto(100L, "Offering A")));
         when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 2L)).thenReturn(List.of(offeringDto(200L, "Offering B")));
         assignWholeCohort(100L, 1L, 500L);
@@ -2845,7 +2913,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         f.setId(id);
         f.setSpeciality(speciality);
         f.setStatus(FacultyStatus.ACTIVE);
-        f.setPlannedDailyHoursOverride(dailyCapHours);
+        f.setPlannedDailySessionsOverride(dailyCapHours);
         return f;
     }
 
@@ -3884,7 +3952,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         faculty.setFirstName(name);
         faculty.setLastName("Staff");
         faculty.setStatus(FacultyStatus.ACTIVE);
-        faculty.setPlannedDailyHoursOverride(6);
+        faculty.setPlannedDailySessionsOverride(6);
         return faculty;
     }
 

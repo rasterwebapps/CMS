@@ -222,10 +222,10 @@ public class FacultyService {
      *  one field risks silently dropping/corrupting other fields on a mapping mistake. {@code null}
      *  clears the override, same semantics as leaving the field blank on the full edit form. */
     @Transactional
-    public FacultyResponse updateDailyCapOverride(Long id, Integer plannedDailyHoursOverride) {
+    public FacultyResponse updateDailyCapOverride(Long id, Integer plannedDailySessionsOverride) {
         Faculty faculty = facultyRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Faculty not found with id: " + id));
-        faculty.setPlannedDailyHoursOverride(plannedDailyHoursOverride);
+        faculty.setPlannedDailySessionsOverride(plannedDailySessionsOverride);
         return toResponse(facultyRepository.save(faculty));
     }
 
@@ -234,6 +234,20 @@ public class FacultyService {
         if (value == null) return false;
         if (excludeId != null) return facultyRepository.existsByNrtsNumberIgnoreCaseAndIdNot(value, excludeId);
         return facultyRepository.existsByNrtsNumberIgnoreCase(value);
+    }
+
+    public boolean employeeCodeExists(String employeeCode, Long excludeId) {
+        String value = trim(employeeCode);
+        if (value == null) return false;
+        if (excludeId != null) return facultyRepository.existsByEmployeeCodeIgnoreCaseAndIdNot(value, excludeId);
+        return facultyRepository.existsByEmployeeCodeIgnoreCase(value);
+    }
+
+    public boolean emailExists(String email, Long excludeId) {
+        String value = trim(email);
+        if (value == null) return false;
+        if (excludeId != null) return facultyRepository.existsByEmailIgnoreCaseAndIdNot(value, excludeId);
+        return facultyRepository.existsByEmailIgnoreCase(value);
     }
 
     @Transactional
@@ -286,9 +300,9 @@ public class FacultyService {
         faculty.setClinicalExperiencePgYears(r.clinicalExperiencePgYears());
         faculty.setClinicalExperiencePhdYears(r.clinicalExperiencePhdYears());
         faculty.setCommissionAmount(r.commissionAmount());
-        faculty.setPlannedWeeklyHoursOverride(r.plannedWeeklyHoursOverride());
-        faculty.setPlannedDailyHoursOverride(r.plannedDailyHoursOverride());
-        faculty.setPlannedContinuousHoursOverride(r.plannedContinuousHoursOverride());
+        faculty.setPlannedWeeklySessionsOverride(r.plannedWeeklySessionsOverride());
+        faculty.setPlannedDailySessionsOverride(r.plannedDailySessionsOverride());
+        faculty.setPlannedContinuousSessionsOverride(r.plannedContinuousSessionsOverride());
     }
 
     private static String trim(String s) {
@@ -364,9 +378,9 @@ public class FacultyService {
             faculty.getUpdatedAt(),
             documentReviewSummary(faculty),
             faculty.getCommissionAmount(),
-            faculty.getPlannedWeeklyHoursOverride(),
-            faculty.getPlannedDailyHoursOverride(),
-            faculty.getPlannedContinuousHoursOverride()
+            faculty.getPlannedWeeklySessionsOverride(),
+            faculty.getPlannedDailySessionsOverride(),
+            faculty.getPlannedContinuousSessionsOverride()
         );
     }
 

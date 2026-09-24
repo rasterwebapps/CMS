@@ -20,11 +20,11 @@ public record DesignationRequest(
     Boolean isActive,
 
     @Min(value = 0, message = "Default weekly teaching hours cannot be negative")
-    Integer defaultWeeklyTeachingHours,
+    Integer defaultWeeklyTeachingSessions,
 
     @Min(value = 0, message = "Default daily teaching hours cannot be negative")
-    Integer defaultDailyTeachingHours,
+    Integer defaultDailyTeachingSessions,
 
     @Min(value = 0, message = "Default continuous teaching hours cannot be negative")
-    Integer defaultContinuousTeachingHours
+    Integer defaultContinuousTeachingSessions
 ) {}

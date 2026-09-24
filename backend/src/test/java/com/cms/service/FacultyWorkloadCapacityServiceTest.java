@@ -66,14 +66,14 @@ class FacultyWorkloadCapacityServiceTest {
         f.setFirstName(name);
         f.setLastName("");
         f.setDesignation(designation);
-        f.setPlannedWeeklyHoursOverride(override);
+        f.setPlannedWeeklySessionsOverride(override);
         return f;
     }
 
     private DesignationMaster designation(Integer defaultHours) {
         DesignationMaster d = new DesignationMaster("Professor", "PROF", null);
         d.setId(1L);
-        d.setDefaultWeeklyTeachingHours(defaultHours);
+        d.setDefaultWeeklyTeachingSessions(defaultHours);
         return d;
     }
 

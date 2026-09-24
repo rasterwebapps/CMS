@@ -163,20 +163,20 @@ public class Faculty {
     private BigDecimal commissionAmount;
 
     /** Advisory-only, for the faculty capacity-planning report. Wins over
-     *  {@link DesignationMaster#getDefaultWeeklyTeachingHours()} when set; null means "use the
+     *  {@link DesignationMaster#getDefaultWeeklyTeachingSessions()} when set; null means "use the
      *  designation default", not zero. */
-    @Column(name = "planned_weekly_hours_override")
-    private Integer plannedWeeklyHoursOverride;
+    @Column(name = "planned_weekly_sessions_override")
+    private Integer plannedWeeklySessionsOverride;
 
-    /** Same override precedence as {@link #plannedWeeklyHoursOverride}, but feeds the daily hard
+    /** Same override precedence as {@link #plannedWeeklySessionsOverride}, but feeds the daily hard
      *  cap ({@code timetable.faculty_max_daily_hours}) instead of the advisory weekly report. */
-    @Column(name = "planned_daily_hours_override")
-    private Integer plannedDailyHoursOverride;
+    @Column(name = "planned_daily_sessions_override")
+    private Integer plannedDailySessionsOverride;
 
-    /** Same override precedence as {@link #plannedWeeklyHoursOverride}, but feeds the continuous
+    /** Same override precedence as {@link #plannedWeeklySessionsOverride}, but feeds the continuous
      *  (unbroken run) hard cap ({@code timetable.faculty_max_continuous_hours}). */
-    @Column(name = "planned_continuous_hours_override")
-    private Integer plannedContinuousHoursOverride;
+    @Column(name = "planned_continuous_sessions_override")
+    private Integer plannedContinuousSessionsOverride;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -330,14 +330,14 @@ public class Faculty {
     public BigDecimal getCommissionAmount() { return commissionAmount; }
     public void setCommissionAmount(BigDecimal commissionAmount) { this.commissionAmount = commissionAmount; }
 
-    public Integer getPlannedWeeklyHoursOverride() { return plannedWeeklyHoursOverride; }
-    public void setPlannedWeeklyHoursOverride(Integer plannedWeeklyHoursOverride) { this.plannedWeeklyHoursOverride = plannedWeeklyHoursOverride; }
+    public Integer getPlannedWeeklySessionsOverride() { return plannedWeeklySessionsOverride; }
+    public void setPlannedWeeklySessionsOverride(Integer plannedWeeklySessionsOverride) { this.plannedWeeklySessionsOverride = plannedWeeklySessionsOverride; }
 
-    public Integer getPlannedDailyHoursOverride() { return plannedDailyHoursOverride; }
-    public void setPlannedDailyHoursOverride(Integer plannedDailyHoursOverride) { this.plannedDailyHoursOverride = plannedDailyHoursOverride; }
+    public Integer getPlannedDailySessionsOverride() { return plannedDailySessionsOverride; }
+    public void setPlannedDailySessionsOverride(Integer plannedDailySessionsOverride) { this.plannedDailySessionsOverride = plannedDailySessionsOverride; }
 
-    public Integer getPlannedContinuousHoursOverride() { return plannedContinuousHoursOverride; }
-    public void setPlannedContinuousHoursOverride(Integer plannedContinuousHoursOverride) { this.plannedContinuousHoursOverride = plannedContinuousHoursOverride; }
+    public Integer getPlannedContinuousSessionsOverride() { return plannedContinuousSessionsOverride; }
+    public void setPlannedContinuousSessionsOverride(Integer plannedContinuousSessionsOverride) { this.plannedContinuousSessionsOverride = plannedContinuousSessionsOverride; }
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }

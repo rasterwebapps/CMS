@@ -30,9 +30,9 @@ class FacultyWorkloadCapacityResolutionTest {
     @Test
     void resolveEffectiveDailyCapacity_facultyOverrideWinsOverDesignationDefault() {
         DesignationMaster designation = designation();
-        designation.setDefaultDailyTeachingHours(4);
+        designation.setDefaultDailyTeachingSessions(4);
         Faculty f = faculty(designation);
-        f.setPlannedDailyHoursOverride(7);
+        f.setPlannedDailySessionsOverride(7);
 
         assertThat(FacultyWorkloadCapacityService.resolveEffectiveDailyCapacity(f)).isEqualTo(7);
     }
@@ -40,7 +40,7 @@ class FacultyWorkloadCapacityResolutionTest {
     @Test
     void resolveEffectiveDailyCapacity_fallsBackToDesignationDefaultWhenNoFacultyOverride() {
         DesignationMaster designation = designation();
-        designation.setDefaultDailyTeachingHours(4);
+        designation.setDefaultDailyTeachingSessions(4);
         Faculty f = faculty(designation);
 
         assertThat(FacultyWorkloadCapacityService.resolveEffectiveDailyCapacity(f)).isEqualTo(4);
@@ -56,9 +56,9 @@ class FacultyWorkloadCapacityResolutionTest {
     @Test
     void resolveEffectiveContinuousCapacity_facultyOverrideWinsOverDesignationDefault() {
         DesignationMaster designation = designation();
-        designation.setDefaultContinuousTeachingHours(3);
+        designation.setDefaultContinuousTeachingSessions(3);
         Faculty f = faculty(designation);
-        f.setPlannedContinuousHoursOverride(5);
+        f.setPlannedContinuousSessionsOverride(5);
 
         assertThat(FacultyWorkloadCapacityService.resolveEffectiveContinuousCapacity(f)).isEqualTo(5);
     }
@@ -66,7 +66,7 @@ class FacultyWorkloadCapacityResolutionTest {
     @Test
     void resolveEffectiveContinuousCapacity_fallsBackToDesignationDefaultWhenNoFacultyOverride() {
         DesignationMaster designation = designation();
-        designation.setDefaultContinuousTeachingHours(3);
+        designation.setDefaultContinuousTeachingSessions(3);
         Faculty f = faculty(designation);
 
         assertThat(FacultyWorkloadCapacityService.resolveEffectiveContinuousCapacity(f)).isEqualTo(3);

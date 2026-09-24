@@ -7,7 +7,7 @@ import java.util.List;
  *  FacultyTightCapacity}, which only ever surface the faculty already in trouble. Exists so an
  *  admin can also see the opposite failure mode (a faculty sitting well under their configured
  *  capacity before assuming the institution is short-staffed) in the same place, before ever
- *  running the auto-scheduler. {@code plannedDailyHoursOverride} is the raw, editable per-faculty
+ *  running the auto-scheduler. {@code plannedDailySessionsOverride} is the raw, editable per-faculty
  *  override (null means "falls through to the designation/system default") — the same field
  *  {@code PATCH /faculty/{id}/daily-cap} (Faculty Detail's "Raise Cap") already edits, so this
  *  view and that action can never disagree on what's actually configured. */
@@ -15,7 +15,7 @@ public record FacultyWorkloadOverviewRow(
     Long facultyId,
     String facultyName,
     String designationName,
-    Integer plannedDailyHoursOverride,
+    Integer plannedDailySessionsOverride,
     boolean capacityConfigured,
     double effectiveDailyCapacityHours,
     String dailyCapacityTier,

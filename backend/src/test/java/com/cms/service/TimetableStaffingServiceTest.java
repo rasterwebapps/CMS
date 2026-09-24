@@ -649,8 +649,8 @@ class TimetableStaffingServiceTest {
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
-            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_hours", "1")));
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_sessions"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_sessions", "1")));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
             .thenReturn(List.of(existingSameDay));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
@@ -677,11 +677,11 @@ class TimetableStaffingServiceTest {
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_sessions"))
             .thenReturn(Optional.empty());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_weekly_hours"))
-            .thenReturn(Optional.of(configResponse("timetable.faculty_max_weekly_hours", "1")));
-        when(systemConfigurationService.findByKey("timetable.faculty_max_continuous_hours"))
+        when(systemConfigurationService.findByKey("timetable.faculty_max_weekly_sessions"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_weekly_sessions", "1")));
+        when(systemConfigurationService.findByKey("timetable.faculty_max_continuous_sessions"))
             .thenReturn(Optional.empty());
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
             .thenReturn(List.of(existingDifferentDay));
@@ -713,12 +713,12 @@ class TimetableStaffingServiceTest {
         when(facultyRepository.findById(1L)).thenReturn(Optional.of(eligibleFaculty));
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_sessions"))
             .thenReturn(Optional.empty());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_weekly_hours"))
+        when(systemConfigurationService.findByKey("timetable.faculty_max_weekly_sessions"))
             .thenReturn(Optional.empty());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_continuous_hours"))
-            .thenReturn(Optional.of(configResponse("timetable.faculty_max_continuous_hours", "1")));
+        when(systemConfigurationService.findByKey("timetable.faculty_max_continuous_sessions"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_continuous_sessions", "1")));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
             .thenReturn(List.of(precedingSameDay));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
@@ -726,7 +726,7 @@ class TimetableStaffingServiceTest {
 
         assertThatThrownBy(() -> service.staffCell(100L, request))
             .isInstanceOf(TimetableConstraintViolationException.class)
-            .hasMessageContaining("continuous-hours cap");
+            .hasMessageContaining("continuous-sessions cap");
     }
 
     @Test
@@ -734,7 +734,7 @@ class TimetableStaffingServiceTest {
         // No institution-wide daily-hours config at all -- the designation-tier default alone
         // must still be enough to hard-block, proving the same per-faculty-then-designation
         // precedence OC-119 already gave the weekly cap now also applies to daily.
-        eligibleFaculty.getDesignation().setDefaultDailyTeachingHours(1);
+        eligibleFaculty.getDesignation().setDefaultDailyTeachingSessions(1);
 
         Period newCellPeriod = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
         newCellPeriod.setId(2L);
@@ -769,8 +769,8 @@ class TimetableStaffingServiceTest {
         // Designation default alone (1 hour) would reject this 2-hour continuous run, but a
         // per-faculty override always wins over the designation tier -- same precedence as the
         // weekly cap already had, now extended to continuous.
-        eligibleFaculty.getDesignation().setDefaultContinuousTeachingHours(1);
-        eligibleFaculty.setPlannedContinuousHoursOverride(5);
+        eligibleFaculty.getDesignation().setDefaultContinuousTeachingSessions(1);
+        eligibleFaculty.setPlannedContinuousSessionsOverride(5);
 
         Period newCellPeriod = new Period("2nd Period", LocalTime.of(10, 0), LocalTime.of(11, 0), 2);
         newCellPeriod.setId(2L);
@@ -791,7 +791,7 @@ class TimetableStaffingServiceTest {
         when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_sessions"))
             .thenReturn(Optional.empty());
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
             .thenReturn(List.of(precedingSameDay));
@@ -832,6 +832,8 @@ class TimetableStaffingServiceTest {
 
     @Test
     void shouldAllowStaffingExactlyAtTheCapBoundary() {
+        // Caps are now a raw session count, not a hours sum -- 1 existing + 1 new = 2 sessions,
+        // exactly at a cap of 2, must not block (the check is strictly-greater-than).
         Period newCellPeriod = new Period("2nd Period", LocalTime.of(9, 30), LocalTime.of(10, 0), 2);
         newCellPeriod.setId(2L);
         cell.setPeriod(newCellPeriod);
@@ -851,8 +853,8 @@ class TimetableStaffingServiceTest {
         when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
-            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_hours", "1")));
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_sessions"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_sessions", "2")));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
             .thenReturn(List.of(existingSameDay));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
@@ -876,8 +878,8 @@ class TimetableStaffingServiceTest {
         when(classroomRepository.findById(1L)).thenReturn(Optional.of(classroom));
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
-            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_hours", "not-a-number")));
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_sessions"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_sessions", "not-a-number")));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.staffCell(100L, request);
@@ -966,8 +968,8 @@ class TimetableStaffingServiceTest {
             .thenReturn(List.of(cell, sibling));
         when(classScheduleRepository.findOverlapping(any(), any(), any(), any(), any(), any()))
             .thenReturn(Collections.emptyList());
-        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_hours"))
-            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_hours", "2")));
+        when(systemConfigurationService.findByKey("timetable.faculty_max_daily_sessions"))
+            .thenReturn(Optional.of(configResponse("timetable.faculty_max_daily_sessions", "2")));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.PUBLISHED, 1L))
             .thenReturn(List.of(existingSameDay));
         when(classScheduleRepository.findByTermInstanceIdAndStatusAndFacultyId(10L, ClassScheduleStatus.DRAFT, 1L))
