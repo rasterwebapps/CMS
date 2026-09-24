@@ -47,8 +47,10 @@ describe('CmsWeekNavigatorComponent', () => {
     expect(emitted).toBeUndefined();
   });
 
-  it('disables Previous once the prior week would fall outside min, and does not emit', () => {
-    fixture.componentInstance.min = '2026-09-15';
+  // min itself IS the current weekStart's Monday, so the prior week (Mon 2026-09-14 - Sat
+  // 2026-09-19) has no day on or after min at all -- correctly unreachable.
+  it('disables Previous once the entire prior week would fall outside min, and does not emit', () => {
+    fixture.componentInstance.min = '2026-09-21';
     fixture.detectChanges();
     let emitted: string | undefined;
     fixture.componentInstance.weekStartChange.subscribe((v) => { emitted = v; });
@@ -58,6 +60,24 @@ describe('CmsWeekNavigatorComponent', () => {
     prevBtn.nativeElement.click();
 
     expect(emitted).toBeUndefined();
+  });
+
+  // Real bug: min can fall mid-week (e.g. a term starting on a Thursday) so the week straddling it
+  // has its own Monday BEFORE min, even though that week's Thu-Sat are real, valid in-range days.
+  // Checking the prior week's Monday against min (instead of its Saturday) blocked Previous from
+  // ever reaching that week at all -- the term's own first few days became permanently unreachable
+  // from the Date-wise navigator once the default landing week skipped past them.
+  it('still allows Previous into a week straddling min, since that week has real in-range days', () => {
+    fixture.componentInstance.min = '2026-09-17'; // Thursday -- inside the prior Mon-Sat week
+    fixture.detectChanges();
+    let emitted: string | undefined;
+    fixture.componentInstance.weekStartChange.subscribe((v) => { emitted = v; });
+
+    const prevBtn = fixture.debugElement.query(By.css('button[aria-label="Previous week"]'));
+    expect(prevBtn.nativeElement.disabled).toBe(false);
+    prevBtn.nativeElement.click();
+
+    expect(emitted).toBe('2026-09-14');
   });
 
   it('clamps Today into [min, max] when the real current week falls outside the term', () => {
@@ -70,6 +90,24 @@ describe('CmsWeekNavigatorComponent', () => {
     fixture.debugElement.query(By.css('.week-navigator__today-btn')).nativeElement.click();
 
     expect(emitted).toBe('2020-01-13');
+  });
+
+  // Real bug: a term starting mid-week (e.g. a Thursday) has that week's own Monday fall BEFORE
+  // the term actually starts. Landing Today there put Mon-Wed on screen with no real occurrences
+  // at all (the term hadn't started), while a date-agnostic recurring view of the same timetable
+  // still showed those days occupied every week -- reading as if the app had silently lost that
+  // cohort's Monday-Wednesday sessions. Today should skip forward to the next Monday instead, so
+  // the landing week is fully inside the term.
+  it('skips Today forward a full week when min falls mid-week, instead of landing on its own partial week', () => {
+    fixture.componentInstance.min = '2030-05-02'; // a Thursday, far enough ahead that "today" is always earlier
+    fixture.componentInstance.max = '2031-01-01';
+    fixture.detectChanges();
+    let emitted: string | undefined;
+    fixture.componentInstance.weekStartChange.subscribe((v) => { emitted = v; });
+
+    fixture.debugElement.query(By.css('.week-navigator__today-btn')).nativeElement.click();
+
+    expect(emitted).toBe('2030-05-06'); // NOT '2030-04-29', the Monday before min
   });
 
   it('shows the Mon-Sat range label for the current weekStart', () => {

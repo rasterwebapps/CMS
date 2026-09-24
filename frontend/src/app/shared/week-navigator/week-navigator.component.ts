@@ -83,10 +83,15 @@ export class CmsWeekNavigatorComponent {
     return `${startLabel} – ${endLabel}`;
   });
 
+  // Checked against the previous week's Saturday (its last day), not its Monday: a term starting
+  // mid-week (e.g. a Thursday) has its very first week's Monday fall BEFORE min, but that week's
+  // Thu-Sat are still real, valid term days -- checking the Monday against min blocked Previous
+  // from ever reaching that week at all, even though it has real sessions to show.
   protected readonly canGoPrevious = computed(() => {
     const prev = addDays(this._weekStart(), -7);
+    const prevWeekEnd = addDays(prev, 5);
     const min = this._min();
-    return !min || prev >= min;
+    return !min || prevWeekEnd >= min;
   });
 
   protected readonly canGoNext = computed(() => {
@@ -113,7 +118,17 @@ export class CmsWeekNavigatorComponent {
     // weekStart Monday-aligned even when the term starts/ends mid-week -- clamping straight to a
     // mid-week boundary produces a Mon-Sat window that never reaches one or more weekdays, which
     // then render as silently blank instead of their real sessions or a cancellation marker.
-    if (min && iso < min) iso = toIso(mondayOf(new Date(`${min}T00:00:00`)));
+    //
+    // For `min` specifically, if that week's Monday still falls before `min`, skip forward a
+    // further week instead of landing there: those Mon-Wed days genuinely have no real occurrences
+    // (the term hadn't started yet), while a date-agnostic recurring view of the same data still
+    // shows them occupied every week -- landing there by default reads as lost data. No equivalent
+    // skip for `max`: that IS the term's real last week, partial or not, with no later week to
+    // skip forward to instead.
+    if (min && iso < min) {
+      const monday = toIso(mondayOf(new Date(`${min}T00:00:00`)));
+      iso = monday < min ? addDays(monday, 7) : monday;
+    }
     if (max && iso > max) iso = toIso(mondayOf(new Date(`${max}T00:00:00`)));
     this.weekStartChange.emit(iso);
   }

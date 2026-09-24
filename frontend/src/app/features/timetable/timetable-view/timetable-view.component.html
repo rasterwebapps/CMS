@@ -82,6 +82,7 @@
         </div>
       } @else {
         <cms-week-grid mode="browse" [sessions]="dateWiseSessions()" [weekStart]="weekStart()"
+          [termStartDate]="selectedTerm()?.startDate ?? null" [termEndDate]="selectedTerm()?.endDate ?? null"
           [workingSaturdayCount]="selectedTerm()?.workingSaturdayCount ?? null" />
       }
     } @else {

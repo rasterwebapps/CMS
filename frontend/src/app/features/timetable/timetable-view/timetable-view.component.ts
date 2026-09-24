@@ -35,6 +35,13 @@ function mondayOf(date: Date): string {
   return `${y}-${m}-${dd}`;
 }
 
+function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 @Component({
   selector: 'app-timetable-view',
   standalone: true,
@@ -94,15 +101,31 @@ export class TimetableViewComponent implements OnInit {
 
   /** Filter option lists are derived from the term's own loaded sessions rather than fetched
    *  from the Faculty/Classroom/Lab/Batch masters — keeps the dropdowns scoped to only what's
-   *  actually scheduled this term instead of every faculty/room in the college. */
-  protected readonly facultyOptions = computed(() =>
-    Array.from(new Set(this.sessions().map((s) => s.facultyName))).sort());
+   *  actually scheduled this term instead of every faculty/room in the college.
+   *
+   *  <p>Pulled from both {@link sessions} (Generic's recurring template) and {@link occurrences}
+   *  (Date-wise/Day's real dated occurrences), not just the former: a SUBSTITUTED occurrence's
+   *  stand-in faculty/room only ever appears in occurrences, never in the recurring template, so a
+   *  dropdown built from sessions alone stayed frozen on Generic's own faculty/room/batch list even
+   *  after switching to Date-wise/Day and loading a week with a real substitution -- reading as if
+   *  the filter dropdowns weren't refreshing at all when toggling between views. */
+  protected readonly facultyOptions = computed(() => {
+    const names = new Set(this.sessions().map((s) => s.facultyName));
+    for (const o of this.occurrences()) names.add(o.session.facultyName);
+    return Array.from(names).sort();
+  });
 
-  protected readonly roomOptions = computed(() =>
-    Array.from(new Set(this.sessions().map((s) => s.roomName))).sort());
+  protected readonly roomOptions = computed(() => {
+    const names = new Set(this.sessions().map((s) => s.roomName));
+    for (const o of this.occurrences()) names.add(o.session.roomName);
+    return Array.from(names).sort();
+  });
 
-  protected readonly batchOptions = computed(() =>
-    Array.from(new Set(this.sessions().flatMap((s) => s.batchName ? [s.batchName] : []))).sort());
+  protected readonly batchOptions = computed(() => {
+    const names = new Set(this.sessions().flatMap((s) => s.batchName ? [s.batchName] : []));
+    for (const o of this.occurrences()) if (o.session.batchName) names.add(o.session.batchName);
+    return Array.from(names).sort();
+  });
 
   protected readonly filteredSessions = computed(() => {
     const faculty = this.selectedFaculty();
@@ -245,7 +268,7 @@ export class TimetableViewComponent implements OnInit {
   }
 
   protected onWeekStartChange(iso: string): void {
-    const clamped = this.clampWeekStartToTerm(iso, this.selectedTerm());
+    const clamped = this.alignWeekStartToTerm(iso, this.selectedTerm());
     this.weekStart.set(clamped);
     this.loadDateWiseOccurrences(clamped);
   }
@@ -275,7 +298,7 @@ export class TimetableViewComponent implements OnInit {
     if (!term) return;
     const today = new Date().toISOString().slice(0, 10);
     this.dayDate.set(this.clampToTerm(today, term));
-    this.weekStart.set(this.clampWeekStartToTerm(mondayOf(new Date()), term));
+    this.weekStart.set(this.defaultWeekStartInTerm(mondayOf(new Date()), term));
   }
 
   private clampToTerm(date: string, term: TermInstance | null): string {
@@ -285,15 +308,36 @@ export class TimetableViewComponent implements OnInit {
     return date;
   }
 
-  /** clampToTerm alone can snap a Monday-aligned weekStart to a term.startDate/endDate that falls
-   *  mid-week (e.g. a term starting on a Thursday), producing a "week" window that never actually
-   *  reaches one or more weekdays -- those days then render as silently blank instead of showing
-   *  their real sessions or a cancellation marker. Re-aligning back to that week's Monday keeps the
-   *  Mon-Sat window loadDateWiseOccurrences requests intact even when it starts a few days before
-   *  the term technically begins. */
-  private clampWeekStartToTerm(date: string, term: TermInstance | null): string {
+  /** For a week-navigator-emitted or manually-picked weekStart (interactive navigation) -- never
+   *  second-guesses which week the user actually asked to see, unlike {@link
+   *  defaultWeekStartInTerm} below. cms-week-navigator's own Prev/Next already refuse to emit a
+   *  week with zero real days in the term (its canGoPrevious/canGoNext check the week's LAST day,
+   *  not its Monday, against the term bounds), so any value reaching here was already a week the
+   *  user could legitimately choose -- including the term's own partial first/last week. Only
+   *  clamps a stray out-of-range date (e.g. a raw date-picker value) back onto the nearest
+   *  in-range week, re-aligned to that week's own Monday. */
+  private alignWeekStartToTerm(date: string, term: TermInstance | null): string {
     const clamped = this.clampToTerm(date, term);
     return clamped === date ? clamped : mondayOf(new Date(`${clamped}T00:00:00`));
+  }
+
+  /** Only for the very first landing week, before the user has navigated anywhere -- see {@link
+   *  alignWeekStartToTerm} for why interactive Prev/Next/date-picker changes use the plain version
+   *  instead. clampToTerm alone can snap a Monday-aligned weekStart to a term.startDate that falls
+   *  mid-week (e.g. a term starting on a Thursday), defaulting the view onto that week's own
+   *  confusing partial Mon-Wed (blank, since the term hadn't started) while Timetable Builder's
+   *  date-agnostic recurring view still shows those days occupied every week -- reading as if the
+   *  app had silently lost that cohort's sessions. Skipping forward a further week keeps the
+   *  default view fully inside the term; the term's own partial first week stays reachable by
+   *  paging back with Previous. There's no equivalent skip for the endDate case: that IS the
+   *  term's real last week, partial or not, and there's no later week to skip forward to instead. */
+  private defaultWeekStartInTerm(date: string, term: TermInstance | null): string {
+    const clamped = this.clampToTerm(date, term);
+    if (clamped === date) return clamped;
+    const clampedMonday = mondayOf(new Date(`${clamped}T00:00:00`));
+    return clamped === term!.startDate && clampedMonday < term!.startDate
+      ? addDays(clampedMonday, 7)
+      : clampedMonday;
   }
 
   /** Lazy-loads exactly one Mon-Sat week's real occurrences at a time as the user pages through
@@ -305,8 +349,15 @@ export class TimetableViewComponent implements OnInit {
     to.setDate(to.getDate() + 5);
     const toIso = `${to.getFullYear()}-${String(to.getMonth() + 1).padStart(2, '0')}-${String(to.getDate()).padStart(2, '0')}`;
     this.occurrencesLoading.set(true);
-    this.timetableService.getOccurrences(this.selectedTermInstanceId, weekStartIso, toIso, 'browse', this.selectedCohortId).subscribe({
-      next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
+    const requestedCohortId = this.selectedCohortId;
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, weekStartIso, toIso, 'browse', requestedCohortId).subscribe({
+      // Same stale-response race loadPublished guards against -- discard if a newer cohort
+      // selection has already superseded the one this response answers.
+      next: (occs) => {
+        if (requestedCohortId !== this.selectedCohortId) return;
+        this.occurrences.set(occs);
+        this.occurrencesLoading.set(false);
+      },
       error: () => { this.toast.error('Failed to load date-wise view'); this.occurrencesLoading.set(false); },
     });
   }
@@ -314,8 +365,13 @@ export class TimetableViewComponent implements OnInit {
   private loadDayOccurrences(iso: string): void {
     if (!this.selectedTermInstanceId) return;
     this.occurrencesLoading.set(true);
-    this.timetableService.getOccurrences(this.selectedTermInstanceId, iso, iso, 'browse', this.selectedCohortId).subscribe({
-      next: (occs) => { this.occurrences.set(occs); this.occurrencesLoading.set(false); },
+    const requestedCohortId = this.selectedCohortId;
+    this.timetableService.getOccurrences(this.selectedTermInstanceId, iso, iso, 'browse', requestedCohortId).subscribe({
+      next: (occs) => {
+        if (requestedCohortId !== this.selectedCohortId) return;
+        this.occurrences.set(occs);
+        this.occurrencesLoading.set(false);
+      },
       error: () => { this.toast.error('Failed to load day view'); this.occurrencesLoading.set(false); },
     });
   }
@@ -351,11 +407,28 @@ export class TimetableViewComponent implements OnInit {
     });
   }
 
+  /** ngOnInit's academic-year/term-instance resolution and its separate all-cohorts-in-the-college
+   *  resolution (see {@link cohorts}'s own doc comment) are two independent HTTP chains racing each
+   *  other -- each can call this with a different {@link selectedCohortId} (the term chain calls it
+   *  directly once a term is preselected; the cohort chain calls it via {@link reloadCurrentViewData}
+   *  once a cohort is preselected), with no cancellation between them. The all-cohorts request is
+   *  the heavier query, so it's entirely possible for the earlier, unfiltered ({@code cohortId} still
+   *  null) request's response to arrive AFTER the later, correctly cohort-filtered one and silently
+   *  overwrite {@link sessions} with every published cohort's sessions merged together -- including
+   *  other cohorts' Clinical Shift entries alongside the selected cohort's own. The `requestedCohortId`
+   *  capture-and-compare below discards a response once it's no longer the answer to "what's
+   *  currently selected" -- the same guard {@link loadDateWiseOccurrences}/{@link loadDayOccurrences}
+   *  use for the identical race. */
   private loadPublished(termInstanceId: number): void {
     this.loading.set(true);
     this.resetFilters();
-    this.timetableService.getPublished(termInstanceId, this.selectedCohortId).subscribe({
-      next: (data) => { this.sessions.set(data); this.loading.set(false); },
+    const requestedCohortId = this.selectedCohortId;
+    this.timetableService.getPublished(termInstanceId, requestedCohortId).subscribe({
+      next: (data) => {
+        if (requestedCohortId !== this.selectedCohortId) return;
+        this.sessions.set(data);
+        this.loading.set(false);
+      },
       error: () => { this.toast.error('Failed to load timetable'); this.loading.set(false); },
     });
   }

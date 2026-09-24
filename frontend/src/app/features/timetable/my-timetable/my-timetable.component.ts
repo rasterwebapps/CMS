@@ -47,6 +47,13 @@ function mondayOf(date: Date): string {
   return `${y}-${m}-${dd}`;
 }
 
+function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 /**
  * Shared by two routes -- /my-timetable/student (MY_TIMETABLE_VIEW_STUDENT) and
  * /my-timetable/staff (MY_TIMETABLE_VIEW_STAFF) -- distinguished only by the `audience` route
@@ -155,12 +162,12 @@ export class MyTimetableComponent implements OnInit {
   }
 
   protected onWeekStartChange(): void {
-    this.weekStart = this.clampWeekStartToTerm(this.weekStart, this.selectedTerm());
+    this.weekStart = this.alignWeekStartToTerm(this.weekStart, this.selectedTerm());
     this.load();
   }
 
   protected onDateWiseWeekChange(iso: string): void {
-    this.weekStart = this.clampWeekStartToTerm(iso, this.selectedTerm());
+    this.weekStart = this.alignWeekStartToTerm(iso, this.selectedTerm());
     this.loadDateWiseOccurrences(this.weekStart);
   }
 
@@ -173,7 +180,7 @@ export class MyTimetableComponent implements OnInit {
   /** Today's Monday if it falls inside the term, otherwise the nearest term boundary --
    *  never defaults to a week the term hasn't reached yet or has already finished. */
   private defaultWeekStartFor(term: TermInstance): string {
-    return this.clampWeekStartToTerm(mondayOf(new Date()), term);
+    return this.defaultWeekStartInTerm(mondayOf(new Date()), term);
   }
 
   private clampToTerm(date: string, term: TermInstance | null): string {
@@ -183,15 +190,36 @@ export class MyTimetableComponent implements OnInit {
     return date;
   }
 
-  /** clampToTerm alone can snap a Monday-aligned weekStart to a term.startDate/endDate that falls
-   *  mid-week (e.g. a term starting on a Thursday), producing a "week" window that never actually
-   *  reaches one or more weekdays -- those days then render as silently blank instead of showing
-   *  their real sessions or a cancellation marker. Re-aligning back to that week's Monday keeps the
-   *  Mon-Sat window loadDateWiseOccurrences requests intact even when it starts a few days before
-   *  the term technically begins. */
-  private clampWeekStartToTerm(date: string, term: TermInstance | null): string {
+  /** For a week-navigator-emitted or manually-picked weekStart (interactive navigation) -- never
+   *  second-guesses which week the user actually asked to see, unlike {@link
+   *  defaultWeekStartInTerm} below. cms-week-navigator's own Prev/Next already refuse to emit a
+   *  week with zero real days in the term (its canGoPrevious/canGoNext check the week's LAST day,
+   *  not its Monday, against the term bounds), so any value reaching here was already a week the
+   *  user could legitimately choose -- including the term's own partial first/last week. Only
+   *  clamps a stray out-of-range date (e.g. a raw date-picker value) back onto the nearest
+   *  in-range week, re-aligned to that week's own Monday. */
+  private alignWeekStartToTerm(date: string, term: TermInstance | null): string {
     const clamped = this.clampToTerm(date, term);
     return clamped === date ? clamped : mondayOf(new Date(`${clamped}T00:00:00`));
+  }
+
+  /** Only for the very first landing week, before the user has navigated anywhere -- see {@link
+   *  alignWeekStartToTerm} for why interactive Prev/Next/date-picker changes use the plain version
+   *  instead. clampToTerm alone can snap a Monday-aligned weekStart to a term.startDate that falls
+   *  mid-week (e.g. a term starting on a Thursday), defaulting the view onto that week's own
+   *  confusing partial Mon-Wed (blank, since the term hadn't started) while Timetable Builder's
+   *  date-agnostic recurring view still shows those days occupied every week -- reading as if the
+   *  app had silently lost that cohort's sessions. Skipping forward a further week keeps the
+   *  default view fully inside the term; the term's own partial first week stays reachable by
+   *  paging back with Previous. There's no equivalent skip for the endDate case: that IS the
+   *  term's real last week, partial or not, and there's no later week to skip forward to instead. */
+  private defaultWeekStartInTerm(date: string, term: TermInstance | null): string {
+    const clamped = this.clampToTerm(date, term);
+    if (clamped === date) return clamped;
+    const clampedMonday = mondayOf(new Date(`${clamped}T00:00:00`));
+    return clamped === term!.startDate && clampedMonday < term!.startDate
+      ? addDays(clampedMonday, 7)
+      : clampedMonday;
   }
 
   protected setViewMode(mode: TimetableViewMode): void {
