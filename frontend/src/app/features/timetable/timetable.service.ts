@@ -13,6 +13,7 @@ import {
   ResourceGridCell,
   ResourceGridRow,
   ResourceGridType,
+  RoomKind,
   StaffSwapCandidate,
   SwapCandidate,
   SwapTarget,
@@ -115,12 +116,20 @@ export class TimetableService {
   /** Drills into one resource row of {@link getResourceGrid} — that resource's own full Mon-Sat
    *  week, across every cohort. `weekStart` omitted means Weekday/planning mode (the recurring
    *  template, no override resolution); a Monday date means Date mode, matching the single-day
-   *  grid's own Date/Weekday split. */
+   *  grid's own Date/Weekday split. `roomKind` is required for a CLASSROOM-type row (the resourceId
+   *  the row came with, e.g. `row.roomKind` from {@link ResourceGridRow}) — Classroom/Lab/
+   *  ClinicalVenue are three separate tables whose ids aren't a shared namespace and can
+   *  coincidentally collide, so the backend needs to know which table resourceId actually belongs
+   *  to (see ResourceGridService's own RoomKind-related doc comments). */
   getResourceWeekGrid(type: ResourceGridType, resourceId: number, termInstanceId: number,
-                       weekStart?: string): Observable<ResourceGridCell[]> {
+                       weekStart?: string, roomKind?: RoomKind | null): Observable<ResourceGridCell[]> {
     let params = new HttpParams().set('termInstanceId', termInstanceId);
     params = params.set(type === 'FACULTY' ? 'facultyId' : 'resourceId', resourceId);
     if (weekStart) params = params.set('weekStart', weekStart);
+    if (type === 'CLASSROOM') {
+      if (!roomKind) throw new Error('roomKind is required when type is CLASSROOM');
+      params = params.set('roomKind', roomKind);
+    }
     const path = type === 'FACULTY' ? 'resource-grid/faculty/week' : 'resource-grid/classroom/week';
     return this.http.get<ResourceGridCell[]>(`${this.baseUrl}/${path}`, { params });
   }

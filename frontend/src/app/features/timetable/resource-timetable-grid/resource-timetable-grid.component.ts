@@ -280,6 +280,7 @@ export class ResourceTimetableGridComponent implements OnInit {
       resourceId: row.resourceId,
       resourceName: row.resourceName,
       termInstanceId: this.selectedTermInstanceId,
+      roomKind: row.roomKind,
       termStartDate: term?.startDate ?? null,
       termEndDate: term?.endDate ?? null,
     };

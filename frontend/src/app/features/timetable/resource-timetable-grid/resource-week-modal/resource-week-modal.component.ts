@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TimetableService } from '../../timetable.service';
-import { ResourceGridType } from '../../timetable.model';
+import { ResourceGridType, RoomKind } from '../../timetable.model';
 import { CmsWeekGridComponent } from '../../../../shared/week-grid/week-grid.component';
 import { WeekGridPeriod, WeekGridSession } from '../../../../shared/week-grid/week-grid.model';
 import { CmsWeekNavigatorComponent } from '../../../../shared/week-navigator/week-navigator.component';
@@ -14,6 +14,10 @@ export interface ResourceWeekModalData {
   resourceId: number;
   resourceName: string;
   termInstanceId: number;
+  /** Required for a CLASSROOM-type resource -- see {@link RoomKind}'s own doc comment for why a
+   *  raw resourceId alone can't safely identify one specific room. Round-tripped straight from the
+   *  row's own {@code roomKind} (see resource-timetable-grid.component.ts's openWeekView). */
+  roomKind: RoomKind | null;
   /** The selected term's own real date bounds -- Date mode's week-navigator clamps to these (same
    *  as timetable-view.component.ts's own dayMin/dayMax), and the very first landing week defaults
    *  inside them too. Without this, Date mode defaulted to *today's* real-calendar week regardless
@@ -111,7 +115,7 @@ export class ResourceWeekModalComponent {
   private load(): void {
     this.loading.set(true);
     const weekStart = this.viewMode() === 'DATE' ? this.weekStart() : undefined;
-    this.timetableService.getResourceWeekGrid(this.data.resourceType, this.data.resourceId, this.data.termInstanceId, weekStart)
+    this.timetableService.getResourceWeekGrid(this.data.resourceType, this.data.resourceId, this.data.termInstanceId, weekStart, this.data.roomKind)
       .subscribe({
         next: (cells) => {
           this.sessions.set(cells.map((c): WeekGridSession => ({

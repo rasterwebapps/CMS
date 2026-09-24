@@ -111,18 +111,23 @@ public class TimetableController {
             @RequestParam Long termInstanceId,
             @RequestParam(required = false) LocalDate weekStart) {
         return ResponseEntity.ok(resourceGridService.getResourceWeekGrid(
-            ResourceGridService.ResourceType.FACULTY, facultyId, termInstanceId, weekStart));
+            ResourceGridService.ResourceType.FACULTY, facultyId, termInstanceId, weekStart, null));
     }
 
-    /** Classroom/Lab/Clinical-venue sibling of {@link #getFacultyResourceWeekGrid}. */
+    /** Classroom/Lab/Clinical-venue sibling of {@link #getFacultyResourceWeekGrid}.
+     *  @param roomKind which of the three folded-together room tables resourceId belongs to --
+     *      required, since Classroom/Lab/ClinicalVenue ids aren't a shared namespace and can
+     *      coincidentally collide (see {@code RoomKind}'s own doc comment). The frontend gets this
+     *      from the row it drilled into (see {@code ResourceGridRowResponse#roomKind}). */
     @GetMapping("/resource-grid/classroom/week")
     @PreAuthorize("@perm.has('TIMETABLE_CLASSROOM_GRID_VIEW')")
     public ResponseEntity<List<ResourceGridCellResponse>> getClassroomResourceWeekGrid(
             @RequestParam Long resourceId,
             @RequestParam Long termInstanceId,
-            @RequestParam(required = false) LocalDate weekStart) {
+            @RequestParam(required = false) LocalDate weekStart,
+            @RequestParam com.cms.model.enums.RoomKind roomKind) {
         return ResponseEntity.ok(resourceGridService.getResourceWeekGrid(
-            ResourceGridService.ResourceType.CLASSROOM, resourceId, termInstanceId, weekStart));
+            ResourceGridService.ResourceType.CLASSROOM, resourceId, termInstanceId, weekStart, roomKind));
     }
 
     @GetMapping("/me")

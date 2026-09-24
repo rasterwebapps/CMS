@@ -156,10 +156,19 @@ export interface ResourceGridCell {
   periodId: number | null;
 }
 
+/** Which of the three separate room tables (Classroom/Lab/ClinicalVenue) a CLASSROOM-type row's
+ *  resourceId belongs to -- those tables each have their own auto-increment id, so two unrelated
+ *  rooms' ids can coincidentally collide (e.g. a Classroom and a ClinicalVenue both landing on id
+ *  13). Null for a FACULTY row. Must be round-tripped back on openWeekView so the backend's "Full
+ *  Week" drill-down can disambiguate resourceId correctly -- see ResourceGridService's own
+ *  RoomKind-related doc comments for the bug this fixes. */
+export type RoomKind = 'CLASSROOM' | 'LAB' | 'CLINICAL_VENUE';
+
 export interface ResourceGridRow {
   resourceId: number;
   resourceName: string;
   sessions: ResourceGridCell[];
+  roomKind: RoomKind | null;
 }
 
 export type ResourceGridType = 'FACULTY' | 'CLASSROOM';

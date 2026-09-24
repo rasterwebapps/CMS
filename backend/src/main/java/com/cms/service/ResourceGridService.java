@@ -31,6 +31,7 @@ import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.LabStatus;
+import com.cms.model.enums.RoomKind;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
@@ -146,9 +147,14 @@ public class ResourceGridService {
      *  already does, but always displays under that column's real calendar weekday regardless of
      *  which day's schedule was actually borrowed. Loads every PUBLISHED row for the term once
      *  (cheap relative to a per-day query loop) and filters to this one resource in memory, since
-     *  unlike {@link #getResourceGrid} this never needs every other faculty/room's rows too. */
+     *  unlike {@link #getResourceGrid} this never needs every other faculty/room's rows too.
+     *  @param roomKind required (non-null) when {@code type} is CLASSROOM -- see {@link RoomKind}'s
+     *      own doc comment for why a raw resourceId alone can't safely identify one specific room. */
     public List<ResourceGridCellResponse> getResourceWeekGrid(ResourceType type, Long resourceId,
-                                                                Long termInstanceId, LocalDate weekStart) {
+                                                                Long termInstanceId, LocalDate weekStart, RoomKind roomKind) {
+        if (type == ResourceType.CLASSROOM && roomKind == null) {
+            throw new IllegalArgumentException("roomKind is required when type is CLASSROOM");
+        }
         List<ClassSchedule> allPublished = classScheduleRepository
             .findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
         Map<Long, ClassScheduleResponse> responseById = new HashMap<>();
@@ -158,8 +164,8 @@ public class ResourceGridService {
         List<ClinicalShiftGroup> activeShiftGroups = clinicalShiftGroupRepository
             .findByTermInstanceIdAndIsActiveTrue(termInstanceId);
 
-        java.util.function.Predicate<ClassSchedule> matchesResource = resourceMatcher(type, resourceId);
-        java.util.function.Predicate<Batch> matchesShiftResource = shiftResourceMatcher(type, resourceId);
+        java.util.function.Predicate<ClassSchedule> matchesResource = resourceMatcher(type, resourceId, roomKind);
+        java.util.function.Predicate<Batch> matchesShiftResource = shiftResourceMatcher(type, resourceId, roomKind);
 
         Map<Long, Integer> cohortTermNumberCache = new HashMap<>();
         List<ResourceGridCellResponse> cells = new ArrayList<>();
@@ -181,22 +187,33 @@ public class ResourceGridService {
         return cells;
     }
 
-    private java.util.function.Predicate<ClassSchedule> resourceMatcher(ResourceType type, Long resourceId) {
-        return switch (type) {
-            case FACULTY -> cs -> cs.getFaculty() != null && cs.getFaculty().getId().equals(resourceId);
-            case CLASSROOM -> cs -> (cs.getClassroom() != null && cs.getClassroom().getId().equals(resourceId))
-                || (cs.getLab() != null && cs.getLab().getId().equals(resourceId))
-                || (cs.getClinicalVenue() != null && cs.getClinicalVenue().getId().equals(resourceId));
+    /** Classroom, Lab, and ClinicalVenue are three separate tables, each with their own
+     *  auto-increment id -- matching resourceId against all three ORed together (the old behavior)
+     *  meant two unrelated rooms whose ids happened to coincide (e.g. Classroom 13 and ClinicalVenue
+     *  13) silently leaked each other's sessions into one room's "Full Week" drill-down. {@code
+     *  roomKind} pins the match to the one real table the row actually came from -- see {@link
+     *  RoomKind}'s own doc comment. */
+    private java.util.function.Predicate<ClassSchedule> resourceMatcher(ResourceType type, Long resourceId, RoomKind roomKind) {
+        if (type == ResourceType.FACULTY) {
+            return cs -> cs.getFaculty() != null && cs.getFaculty().getId().equals(resourceId);
+        }
+        return switch (roomKind) {
+            case CLASSROOM -> cs -> cs.getClassroom() != null && cs.getClassroom().getId().equals(resourceId);
+            case LAB -> cs -> cs.getLab() != null && cs.getLab().getId().equals(resourceId);
+            case CLINICAL_VENUE -> cs -> cs.getClinicalVenue() != null && cs.getClinicalVenue().getId().equals(resourceId);
         };
     }
 
-    private java.util.function.Predicate<Batch> shiftResourceMatcher(ResourceType type, Long resourceId) {
-        return switch (type) {
-            case FACULTY -> batch -> batch.getCoordinatorFaculty() != null
-                && batch.getCoordinatorFaculty().getId().equals(resourceId);
-            case CLASSROOM -> batch -> batch.getClinicalVenue() != null
-                && batch.getClinicalVenue().getId().equals(resourceId);
-        };
+    /** Same {@code roomKind}-pinned reasoning as {@link #resourceMatcher} -- a synthetic Clinical
+     *  Shift cell only ever matches a real ClinicalVenue row, never a Classroom/Lab whose id happens
+     *  to coincide with it. */
+    private java.util.function.Predicate<Batch> shiftResourceMatcher(ResourceType type, Long resourceId, RoomKind roomKind) {
+        if (type == ResourceType.FACULTY) {
+            return batch -> batch.getCoordinatorFaculty() != null && batch.getCoordinatorFaculty().getId().equals(resourceId);
+        }
+        return roomKind == RoomKind.CLINICAL_VENUE
+            ? batch -> batch.getClinicalVenue() != null && batch.getClinicalVenue().getId().equals(resourceId)
+            : batch -> false;
     }
 
     private List<ResourceGridRowResponse> facultyRows(List<ClassSchedule> daySchedules,
@@ -212,7 +229,7 @@ public class ResourceGridService {
                 .toList());
             cells.addAll(shiftCellsFor(shiftGroupsToday, displayDay,
                 batch -> batch.getCoordinatorFaculty() != null && batch.getCoordinatorFaculty().getId().equals(faculty.getId())));
-            rows.add(new ResourceGridRowResponse(faculty.getId(), faculty.getFullName(), cells));
+            rows.add(new ResourceGridRowResponse(faculty.getId(), faculty.getFullName(), cells, null));
         }
         return rows;
     }
@@ -228,7 +245,7 @@ public class ResourceGridService {
                 .filter(cs -> cs.getClassroom() != null && cs.getClassroom().getId().equals(classroom.getId()))
                 .map(cs -> toCell(cs, responseById.get(cs.getId()), displayDay, termInstanceId, cohortTermNumberCache))
                 .toList();
-            rows.add(new ResourceGridRowResponse(classroom.getId(), classroom.getName(), cells));
+            rows.add(new ResourceGridRowResponse(classroom.getId(), classroom.getName(), cells, RoomKind.CLASSROOM));
         }
         for (Lab lab : labRepository.findAll()) {
             if (lab.getStatus() == LabStatus.INACTIVE || lab.getStatus() == LabStatus.UNDER_MAINTENANCE) {
@@ -238,7 +255,7 @@ public class ResourceGridService {
                 .filter(cs -> cs.getLab() != null && cs.getLab().getId().equals(lab.getId()))
                 .map(cs -> toCell(cs, responseById.get(cs.getId()), displayDay, termInstanceId, cohortTermNumberCache))
                 .toList();
-            rows.add(new ResourceGridRowResponse(lab.getId(), lab.getName(), cells));
+            rows.add(new ResourceGridRowResponse(lab.getId(), lab.getName(), cells, RoomKind.LAB));
         }
         // R3 Phase 6: CLINICAL sessions live in their own ClinicalVenue master (never a
         // Classroom or Lab), so without this they'd silently never appear in this grid at all --
@@ -251,7 +268,7 @@ public class ResourceGridService {
                 .toList());
             cells.addAll(shiftCellsFor(shiftGroupsToday, displayDay,
                 batch -> batch.getClinicalVenue() != null && batch.getClinicalVenue().getId().equals(venue.getId())));
-            rows.add(new ResourceGridRowResponse(venue.getId(), venue.getName(), cells));
+            rows.add(new ResourceGridRowResponse(venue.getId(), venue.getName(), cells, RoomKind.CLINICAL_VENUE));
         }
         return rows;
     }

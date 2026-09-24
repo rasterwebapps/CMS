@@ -26,6 +26,7 @@ import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.RoomKind;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClassroomRepository;
@@ -267,7 +268,7 @@ class ResourceGridServiceTest {
         when(classScheduleService.toResponseList(published)).thenReturn(List.of(mondayResponse, otherResponse));
 
         List<com.cms.dto.ResourceGridCellResponse> cells = service.getResourceWeekGrid(
-            ResourceGridService.ResourceType.FACULTY, 1L, 10L, null);
+            ResourceGridService.ResourceType.FACULTY, 1L, 10L, null, null);
 
         assertThat(cells).hasSize(1);
         assertThat(cells.get(0).sessionId()).isEqualTo(100L);
@@ -301,11 +302,59 @@ class ResourceGridServiceTest {
         when(classScheduleService.toResponseList(published)).thenReturn(List.of(mondayResponse));
 
         List<com.cms.dto.ResourceGridCellResponse> cells = service.getResourceWeekGrid(
-            ResourceGridService.ResourceType.FACULTY, 1L, 10L, weekStart);
+            ResourceGridService.ResourceType.FACULTY, 1L, 10L, weekStart, null);
 
         // The real Monday column shows it under MONDAY (no override there), and the borrowed
         // Saturday column shows the *same* Monday-template row again, but under SATURDAY.
         assertThat(cells).hasSize(2);
         assertThat(cells).extracting(c -> c.dayOfWeek()).containsExactlyInAnyOrder(DayOfWeek.MONDAY, DayOfWeek.SATURDAY);
+    }
+
+    @Test
+    void weekGridShouldNotLeakSessionsFromAnotherRoomTableWhoseIdCoincides() {
+        // Classroom and ClinicalVenue are separate tables, each with their own auto-increment id --
+        // both landing on id 13 here is exactly the real-world collision reported against "Library
+        // Hall" (Classroom 13) silently pulling in "CHC 2" (ClinicalVenue 13)'s own Clinical Shift.
+        Classroom libraryHall = new Classroom("Library Hall", "Main Block", "L01", 60);
+        libraryHall.setId(13L);
+        ClinicalVenue chc2 = new ClinicalVenue("CHC 2", "Community Health Centre", "CHN");
+        chc2.setId(13L);
+
+        com.cms.model.ClassSchedule classroomSession = new com.cms.model.ClassSchedule();
+        classroomSession.setId(200L);
+        classroomSession.setClassroom(libraryHall);
+        classroomSession.setDayOfWeek(DayOfWeek.MONDAY);
+
+        com.cms.model.ClassSchedule clinicalVenueSession = new com.cms.model.ClassSchedule();
+        clinicalVenueSession.setId(201L);
+        clinicalVenueSession.setClinicalVenue(chc2);
+        clinicalVenueSession.setDayOfWeek(DayOfWeek.MONDAY);
+
+        ClassScheduleResponse classroomResponse = new ClassScheduleResponse(200L, ClassSessionType.LIBRARY,
+            ClassScheduleStatus.PUBLISHED, null, null, null, "Library", "LIB", null, null,
+            1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 13L, null, "Library Hall",
+            null, null, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+        ClassScheduleResponse clinicalVenueResponse = new ClassScheduleResponse(201L, ClassSessionType.CLINICAL,
+            ClassScheduleStatus.PUBLISHED, null, null, 1L, "Community Health Nursing", "CHN101", 1L, "John Doe",
+            1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), "Batch A", 1L, null, 13L, "CHC 2",
+            1L, 5, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+
+        List<com.cms.model.ClassSchedule> published = List.of(classroomSession, clinicalVenueSession);
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(published);
+        when(classScheduleService.toResponseList(published))
+            .thenReturn(List.of(classroomResponse, clinicalVenueResponse));
+
+        List<com.cms.dto.ResourceGridCellResponse> cells = service.getResourceWeekGrid(
+            ResourceGridService.ResourceType.CLASSROOM, 13L, 10L, null, RoomKind.CLASSROOM);
+
+        assertThat(cells).hasSize(1);
+        assertThat(cells.get(0).sessionId()).isEqualTo(200L);
+    }
+
+    @Test
+    void weekGridShouldRejectAMissingRoomKindForClassroomType() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+            () -> service.getResourceWeekGrid(ResourceGridService.ResourceType.CLASSROOM, 13L, 10L, null, null));
     }
 }
