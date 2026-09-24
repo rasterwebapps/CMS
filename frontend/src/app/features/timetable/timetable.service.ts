@@ -10,6 +10,7 @@ import {
   ConflictAcknowledgmentStatus,
   MyTimetableResponse,
   Page,
+  ResourceGridCell,
   ResourceGridRow,
   ResourceGridType,
   StaffSwapCandidate,
@@ -109,6 +110,19 @@ export class TimetableService {
     params = opts.date ? params.set('date', opts.date) : params.set('dayOfWeek', opts.dayOfWeek!);
     const path = type === 'FACULTY' ? 'resource-grid/faculty' : 'resource-grid/classroom';
     return this.http.get<ResourceGridRow[]>(`${this.baseUrl}/${path}`, { params });
+  }
+
+  /** Drills into one resource row of {@link getResourceGrid} — that resource's own full Mon-Sat
+   *  week, across every cohort. `weekStart` omitted means Weekday/planning mode (the recurring
+   *  template, no override resolution); a Monday date means Date mode, matching the single-day
+   *  grid's own Date/Weekday split. */
+  getResourceWeekGrid(type: ResourceGridType, resourceId: number, termInstanceId: number,
+                       weekStart?: string): Observable<ResourceGridCell[]> {
+    let params = new HttpParams().set('termInstanceId', termInstanceId);
+    params = params.set(type === 'FACULTY' ? 'facultyId' : 'resourceId', resourceId);
+    if (weekStart) params = params.set('weekStart', weekStart);
+    const path = type === 'FACULTY' ? 'resource-grid/faculty/week' : 'resource-grid/classroom/week';
+    return this.http.get<ResourceGridCell[]>(`${this.baseUrl}/${path}`, { params });
   }
 
   getStaffSwapCandidates(classScheduleId: number, date: string): Observable<StaffSwapCandidate[]> {

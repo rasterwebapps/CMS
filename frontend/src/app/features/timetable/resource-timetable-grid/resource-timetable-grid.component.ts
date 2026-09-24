@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
 import { AcademicYear, TermInstance } from '../../academic-year/academic-year.model';
@@ -16,6 +17,7 @@ import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infi
 import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { colorForSessionType, SessionTypeForColor } from '../../../shared/util/session-color.util';
+import { ResourceWeekModalComponent, ResourceWeekModalData } from './resource-week-modal/resource-week-modal.component';
 
 interface TimeColumn {
   key: string;
@@ -27,7 +29,7 @@ interface TimeColumn {
 @Component({
   selector: 'app-resource-timetable-grid',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
+  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, CmsEmptyStateComponent, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './resource-timetable-grid.component.html',
   styleUrl: './resource-timetable-grid.component.scss',
 })
@@ -37,6 +39,7 @@ export class ResourceTimetableGridComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly canViewFaculty = computed(() => this.permissionService.has('TIMETABLE_FACULTY_GRID_VIEW'));
   protected readonly canViewClassroom = computed(() => this.permissionService.has('TIMETABLE_CLASSROOM_GRID_VIEW'));
@@ -63,9 +66,27 @@ export class ResourceTimetableGridComponent implements OnInit {
 
   protected readonly rows = signal<ResourceGridRow[]>([]);
 
+  /** Narrows the grid to one faculty/room instead of the full active-resource comparison list --
+   *  options come from `rows()` itself (already every active resource of the current type,
+   *  regardless of the day, since the backend returns all of them whether or not they have a
+   *  session that day) rather than a separate master-list fetch. Reset whenever the Faculty/
+   *  Classroom toggle switches, since the previous selection belongs to the other resource type. */
+  protected readonly selectedResourceId = signal<number | null>(null);
+
+  protected readonly resourceFilterLabel = computed(() =>
+    this.resourceType() === 'FACULTY' ? 'All Faculty' : 'All Classrooms / Labs / Clinical Venues');
+
+  protected readonly resourceFetchPage = staticOptionsFetchPage(() =>
+    this.rows().map((r) => ({ id: r.resourceId, name: r.resourceName })));
+
+  protected readonly filteredRows = computed(() => {
+    const id = this.selectedResourceId();
+    return id == null ? this.rows() : this.rows().filter((r) => r.resourceId === id);
+  });
+
   protected readonly timeColumns = computed<TimeColumn[]>(() => {
     const seen = new Map<string, TimeColumn>();
-    for (const row of this.rows()) {
+    for (const row of this.filteredRows()) {
       for (const s of row.sessions) {
         const key = `${s.startTime}-${s.endTime}`;
         const label = s.slotName || `${s.startTime}–${s.endTime}`;
@@ -83,7 +104,7 @@ export class ResourceTimetableGridComponent implements OnInit {
     return Array.from(seen.values()).sort((a, b) => a.startTime.localeCompare(b.startTime));
   });
 
-  protected readonly isEmpty = computed(() => this.rows().every((r) => r.sessions.length === 0));
+  protected readonly isEmpty = computed(() => this.filteredRows().every((r) => r.sessions.length === 0));
 
   ngOnInit(): void {
     this.tourService.register('resource-timetable-grid', RESOURCE_TIMETABLE_GRID_TOUR);
@@ -125,7 +146,12 @@ export class ResourceTimetableGridComponent implements OnInit {
 
   protected setResourceType(type: ResourceGridType): void {
     this.resourceType.set(type);
+    this.selectedResourceId.set(null);
     this.load();
+  }
+
+  protected onResourceFilterChange(value: InfiniteSelectValue | null): void {
+    this.selectedResourceId.set(value != null ? Number(value) : null);
   }
 
   protected onDayChange(value: InfiniteSelectValue | null): void {
@@ -142,6 +168,20 @@ export class ResourceTimetableGridComponent implements OnInit {
   protected setViewMode(mode: 'DATE' | 'WEEKDAY'): void {
     this.viewMode.set(mode);
     this.load();
+  }
+
+  /** Drills into one row — that resource's own full Mon-Sat week, across every cohort. A second
+   *  mode alongside this screen's existing one-day, all-resources comparison view (not a
+   *  replacement for it), reached by clicking any row rather than a separate resource picker. */
+  protected openWeekView(row: ResourceGridRow): void {
+    if (!this.selectedTermInstanceId) return;
+    const data: ResourceWeekModalData = {
+      resourceType: this.resourceType(),
+      resourceId: row.resourceId,
+      resourceName: row.resourceName,
+      termInstanceId: this.selectedTermInstanceId,
+    };
+    this.dialog.open(ResourceWeekModalComponent, { data, width: '1200px', maxWidth: '95vw' });
   }
 
   protected cellsFor(row: ResourceGridRow, column: TimeColumn) {

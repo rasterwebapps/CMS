@@ -144,6 +144,12 @@ export interface ResourceGridCell {
   /** True only for a synthetic Clinical Shift cell (bus-depart through bus-return) — it has no
    *  backing ClassSchedule row, so `sessionId` is a negative, non-clickable placeholder id. */
   isOffCampusShift: boolean;
+  /** The column this cell renders under — see the backend's identically-named field on
+   *  ResourceGridCellResponse for what this means in Date mode vs Weekday mode. */
+  dayOfWeek: string;
+  /** Null for a synthetic Clinical Shift cell — matches WeekGridSession's own null-periodId
+   *  convention for an off-grid entry that cms-week-grid renders as a spanning block. */
+  periodId: number | null;
 }
 
 export interface ResourceGridRow {

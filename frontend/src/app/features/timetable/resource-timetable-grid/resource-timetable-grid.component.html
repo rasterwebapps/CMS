@@ -6,7 +6,7 @@
         <h1 class="mlp-title">Resource <em>Timetable</em></h1>
         <cms-tour-button tourKey="resource-timetable-grid" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="page-subtitle">See every faculty member's schedule, or every classroom/lab/clinical venue's schedule, for one day at once</p>
+      <p class="page-subtitle">See every faculty member's schedule, or every classroom/lab/clinical venue's schedule, for one day at once — click a row to see that resource's own full week</p>
     </div>
   </div>
 
@@ -30,13 +30,19 @@
       </div>
     }
 
+    <cms-infinite-select
+      [label]="resourceFilterLabel()" ariaLabel="Filter by resource" searchPlaceholder="Search…"
+      [fetchPage]="resourceFetchPage"
+      [selectedValue]="selectedResourceId()" (selectedValueChange)="onResourceFilterChange($event)"
+    />
+
     <div class="view-mode-toggle">
       <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'DATE'" (click)="setViewMode('DATE')">Date</button>
       <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'WEEKDAY'" (click)="setViewMode('WEEKDAY')">Weekday (planning)</button>
     </div>
 
     @if (viewMode() === 'DATE') {
-      <input type="date" class="field-input field-input--inline" [ngModel]="selectedDate" (ngModelChange)="onDateChange($event)" aria-label="Date" />
+      <input type="date" class="field-input field-input--inline field-input--narrow" [ngModel]="selectedDate" (ngModelChange)="onDateChange($event)" aria-label="Date" />
     } @else {
       <cms-infinite-select
         label="Day of week" ariaLabel="Day of week" searchPlaceholder="Search days…"
@@ -51,7 +57,7 @@
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading resource grid"></mat-spinner>
       </div>
-    } @else if (rows().length === 0 || isEmpty()) {
+    } @else if (filteredRows().length === 0 || isEmpty()) {
       <cms-empty-state icon="event_busy" title="Nothing scheduled" subtitle="No published sessions for this day." />
     } @else {
       <div class="resource-grid" [style.grid-template-columns]="'160px repeat(' + timeColumns().length + ', 1fr)'">
@@ -60,8 +66,9 @@
           <div class="resource-grid__col-hdr">{{ col.label }}</div>
         }
 
-        @for (row of rows(); track row.resourceId) {
-          <div class="resource-grid__row-label">{{ row.resourceName }}</div>
+        @for (row of filteredRows(); track row.resourceId) {
+          <button type="button" class="resource-grid__row-label resource-grid__row-label--clickable"
+            (click)="openWeekView(row)" [title]="'See ' + row.resourceName + '\'s full week'">{{ row.resourceName }}</button>
           @for (col of timeColumns(); track col.key) {
             <div class="resource-grid__cell">
               @for (cell of cellsFor(row, col); track cell.sessionId) {

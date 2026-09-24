@@ -187,4 +187,73 @@ class ResourceGridServiceTest {
         assertThat(row1.sessions()).hasSize(1);
         assertThat(row1.sessions().get(0).sessionId()).isEqualTo(100L);
     }
+
+    @Test
+    void weekGridWeekdayModeShouldReturnOnlyThisFacultysSessionsAcrossAllSixDays() {
+        com.cms.model.ClassSchedule mondaySession = new com.cms.model.ClassSchedule();
+        mondaySession.setId(100L);
+        mondaySession.setFaculty(faculty1);
+        mondaySession.setDayOfWeek(DayOfWeek.MONDAY);
+
+        com.cms.model.ClassSchedule otherFacultySession = new com.cms.model.ClassSchedule();
+        otherFacultySession.setId(101L);
+        otherFacultySession.setFaculty(faculty2);
+        otherFacultySession.setDayOfWeek(DayOfWeek.MONDAY);
+
+        ClassScheduleResponse mondayResponse = new ClassScheduleResponse(100L, ClassSessionType.THEORY,
+            ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 1L, "John Doe",
+            1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
+            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+        ClassScheduleResponse otherResponse = new ClassScheduleResponse(101L, ClassSessionType.THEORY,
+            ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 2L, "Jane Roe",
+            1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
+            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+
+        List<com.cms.model.ClassSchedule> published = List.of(mondaySession, otherFacultySession);
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(published);
+        when(classScheduleService.toResponseList(published)).thenReturn(List.of(mondayResponse, otherResponse));
+
+        List<com.cms.dto.ResourceGridCellResponse> cells = service.getResourceWeekGrid(
+            ResourceGridService.ResourceType.FACULTY, 1L, 10L, null);
+
+        assertThat(cells).hasSize(1);
+        assertThat(cells.get(0).sessionId()).isEqualTo(100L);
+        assertThat(cells.get(0).dayOfWeek()).isEqualTo(DayOfWeek.MONDAY);
+    }
+
+    @Test
+    void weekGridDateModeShouldDisplayABorrowedSessionUnderItsRealCalendarColumn() {
+        // Saturday 2024-08-10 of the displayed week borrows Monday's schedule.
+        java.time.LocalDate weekStart = java.time.LocalDate.of(2024, 8, 5); // a Monday
+        java.time.LocalDate borrowedSaturday = weekStart.plusDays(5);
+        com.cms.model.DayMappingOverride mapping = new com.cms.model.DayMappingOverride();
+        mapping.setBorrowedDayOfWeek(DayOfWeek.MONDAY);
+        // The other 5 real weekday lookups (Mon-Fri) hit no override -> fall back to their own actual weekday.
+        lenient().when(dayMappingOverrideRepository.findByMappedDate(any())).thenReturn(java.util.Optional.empty());
+        when(dayMappingOverrideRepository.findByMappedDate(borrowedSaturday)).thenReturn(java.util.Optional.of(mapping));
+
+        com.cms.model.ClassSchedule mondaySession = new com.cms.model.ClassSchedule();
+        mondaySession.setId(100L);
+        mondaySession.setFaculty(faculty1);
+        mondaySession.setDayOfWeek(DayOfWeek.MONDAY);
+
+        ClassScheduleResponse mondayResponse = new ClassScheduleResponse(100L, ClassSessionType.THEORY,
+            ClassScheduleStatus.PUBLISHED, null, null, 1L, "Nursing Foundations", "NF101", 1L, "John Doe",
+            1L, "1st Period", LocalTime.of(9, 0), LocalTime.of(10, 0), null, null, 1L, null, "Room 101",
+            1L, DayOfWeek.MONDAY, 10L, "ODD 2026", true, Instant.now(), Instant.now());
+
+        List<com.cms.model.ClassSchedule> published = List.of(mondaySession);
+        when(classScheduleRepository.findByTermInstanceIdAndStatus(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(published);
+        when(classScheduleService.toResponseList(published)).thenReturn(List.of(mondayResponse));
+
+        List<com.cms.dto.ResourceGridCellResponse> cells = service.getResourceWeekGrid(
+            ResourceGridService.ResourceType.FACULTY, 1L, 10L, weekStart);
+
+        // The real Monday column shows it under MONDAY (no override there), and the borrowed
+        // Saturday column shows the *same* Monday-template row again, but under SATURDAY.
+        assertThat(cells).hasSize(2);
+        assertThat(cells).extracting(c -> c.dayOfWeek()).containsExactlyInAnyOrder(DayOfWeek.MONDAY, DayOfWeek.SATURDAY);
+    }
 }

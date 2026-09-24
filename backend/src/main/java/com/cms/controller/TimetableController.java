@@ -26,6 +26,7 @@ import com.cms.dto.CohortTermStatusSummary;
 import com.cms.dto.ConflictAcknowledgmentStatusResponse;
 import com.cms.dto.MyTimetableResponse;
 import com.cms.dto.ProfileIdentity;
+import com.cms.dto.ResourceGridCellResponse;
 import com.cms.dto.ResourceGridRowResponse;
 import com.cms.dto.SwapCandidateResponse;
 import com.cms.dto.SwapRequest;
@@ -98,6 +99,30 @@ public class TimetableController {
             @RequestParam(required = false) LocalDate date) {
         return ResponseEntity.ok(resourceGridService.getResourceGrid(
             ResourceGridService.ResourceType.CLASSROOM, termInstanceId, dayOfWeek, date));
+    }
+
+    /** Drills into one faculty row of the grid above — that resource's own full Mon-Sat week,
+     *  across every cohort (not just one), which the cohort-scoped Timetable screen's Faculty
+     *  filter can't show since it only filters within whichever single cohort is selected there. */
+    @GetMapping("/resource-grid/faculty/week")
+    @PreAuthorize("@perm.has('TIMETABLE_FACULTY_GRID_VIEW')")
+    public ResponseEntity<List<ResourceGridCellResponse>> getFacultyResourceWeekGrid(
+            @RequestParam Long facultyId,
+            @RequestParam Long termInstanceId,
+            @RequestParam(required = false) LocalDate weekStart) {
+        return ResponseEntity.ok(resourceGridService.getResourceWeekGrid(
+            ResourceGridService.ResourceType.FACULTY, facultyId, termInstanceId, weekStart));
+    }
+
+    /** Classroom/Lab/Clinical-venue sibling of {@link #getFacultyResourceWeekGrid}. */
+    @GetMapping("/resource-grid/classroom/week")
+    @PreAuthorize("@perm.has('TIMETABLE_CLASSROOM_GRID_VIEW')")
+    public ResponseEntity<List<ResourceGridCellResponse>> getClassroomResourceWeekGrid(
+            @RequestParam Long resourceId,
+            @RequestParam Long termInstanceId,
+            @RequestParam(required = false) LocalDate weekStart) {
+        return ResponseEntity.ok(resourceGridService.getResourceWeekGrid(
+            ResourceGridService.ResourceType.CLASSROOM, resourceId, termInstanceId, weekStart));
     }
 
     @GetMapping("/me")

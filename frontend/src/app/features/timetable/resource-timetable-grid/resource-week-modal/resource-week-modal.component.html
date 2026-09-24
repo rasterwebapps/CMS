@@ -1,0 +1,26 @@
+<h2 mat-dialog-title>{{ data.resourceName }} — Full Week</h2>
+
+<mat-dialog-content class="rwm-content">
+  <div class="rwm-toolbar">
+    <div class="view-mode-toggle">
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'DATE'" (click)="setViewMode('DATE')">Date</button>
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="viewMode() === 'WEEKDAY'" (click)="setViewMode('WEEKDAY')">Weekday (planning)</button>
+    </div>
+
+    @if (viewMode() === 'DATE') {
+      <cms-week-navigator [weekStart]="weekStart()" (weekStartChange)="onWeekStartChange($event)" />
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="rwm-loading">
+      <mat-spinner diameter="36" aria-label="Loading resource week"></mat-spinner>
+    </div>
+  } @else {
+    <cms-week-grid mode="browse" [sessions]="sessions()" [weekStart]="viewMode() === 'DATE' ? weekStart() : null" />
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" class="btn-cancel" mat-dialog-close>Close</button>
+</mat-dialog-actions>

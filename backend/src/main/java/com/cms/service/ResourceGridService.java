@@ -42,6 +42,9 @@ import com.cms.repository.LabRepository;
  * from one grid ({@link com.cms.controller.TimetableController} browse endpoint already covers
  * that narrower case). One day at a time, since a full week × every faculty/room would be a very
  * wide grid; the frontend's own Week/Day toggle (Phase 4) supplies the date navigation UI.
+ * {@link #getResourceWeekGrid} covers the narrower single-resource case: drilling into one row of
+ * this grid to see that resource's own full week, across every cohort — not a replacement for this
+ * class's own multi-resource one-day view, but a second mode alongside it.
  */
 @Service
 @Transactional(readOnly = true)
@@ -113,20 +116,80 @@ public class ResourceGridService {
             .toList();
 
         return type == ResourceType.FACULTY
-            ? facultyRows(daySchedules, responseById, shiftGroupsToday)
-            : classroomAndLabRows(daySchedules, responseById, shiftGroupsToday);
+            ? facultyRows(daySchedules, responseById, shiftGroupsToday, effectiveDayOfWeek)
+            : classroomAndLabRows(daySchedules, responseById, shiftGroupsToday, effectiveDayOfWeek);
+    }
+
+    /** Full Mon-Sat week for exactly one faculty/room, drilled into from a single grid row —
+     *  {@code weekStart} null means WEEKDAY/planning mode (every day's own real recurring rows, no
+     *  override resolution); non-null means DATE mode, where each of the 6 columns resolves its own
+     *  calendar date through any {@link DayMappingOverride} the same way the single-day grid
+     *  already does, but always displays under that column's real calendar weekday regardless of
+     *  which day's schedule was actually borrowed. Loads every PUBLISHED row for the term once
+     *  (cheap relative to a per-day query loop) and filters to this one resource in memory, since
+     *  unlike {@link #getResourceGrid} this never needs every other faculty/room's rows too. */
+    public List<ResourceGridCellResponse> getResourceWeekGrid(ResourceType type, Long resourceId,
+                                                                Long termInstanceId, LocalDate weekStart) {
+        List<ClassSchedule> allPublished = classScheduleRepository
+            .findByTermInstanceIdAndStatus(termInstanceId, ClassScheduleStatus.PUBLISHED);
+        Map<Long, ClassScheduleResponse> responseById = new HashMap<>();
+        for (ClassScheduleResponse response : classScheduleService.toResponseList(allPublished)) {
+            responseById.put(response.id(), response);
+        }
+        List<ClinicalShiftGroup> activeShiftGroups = clinicalShiftGroupRepository
+            .findByTermInstanceIdAndIsActiveTrue(termInstanceId);
+
+        java.util.function.Predicate<ClassSchedule> matchesResource = resourceMatcher(type, resourceId);
+        java.util.function.Predicate<Batch> matchesShiftResource = shiftResourceMatcher(type, resourceId);
+
+        List<ResourceGridCellResponse> cells = new ArrayList<>();
+        DayOfWeek[] days = DayOfWeek.values();
+        for (int i = 0; i < days.length; i++) {
+            DayOfWeek displayDay = days[i];
+            DayOfWeek queryDay = weekStart != null ? resolveEffectiveDayOfWeek(weekStart.plusDays(i)) : displayDay;
+
+            for (ClassSchedule cs : allPublished) {
+                if (cs.getDayOfWeek() == queryDay && matchesResource.test(cs)) {
+                    cells.add(toCell(responseById.get(cs.getId()), displayDay));
+                }
+            }
+            List<ClinicalShiftGroup> shiftGroupsThatDay = activeShiftGroups.stream()
+                .filter(g -> g.getDayOfWeek() == queryDay)
+                .toList();
+            cells.addAll(shiftCellsFor(shiftGroupsThatDay, displayDay, matchesShiftResource));
+        }
+        return cells;
+    }
+
+    private java.util.function.Predicate<ClassSchedule> resourceMatcher(ResourceType type, Long resourceId) {
+        return switch (type) {
+            case FACULTY -> cs -> cs.getFaculty() != null && cs.getFaculty().getId().equals(resourceId);
+            case CLASSROOM -> cs -> (cs.getClassroom() != null && cs.getClassroom().getId().equals(resourceId))
+                || (cs.getLab() != null && cs.getLab().getId().equals(resourceId))
+                || (cs.getClinicalVenue() != null && cs.getClinicalVenue().getId().equals(resourceId));
+        };
+    }
+
+    private java.util.function.Predicate<Batch> shiftResourceMatcher(ResourceType type, Long resourceId) {
+        return switch (type) {
+            case FACULTY -> batch -> batch.getCoordinatorFaculty() != null
+                && batch.getCoordinatorFaculty().getId().equals(resourceId);
+            case CLASSROOM -> batch -> batch.getClinicalVenue() != null
+                && batch.getClinicalVenue().getId().equals(resourceId);
+        };
     }
 
     private List<ResourceGridRowResponse> facultyRows(List<ClassSchedule> daySchedules,
                                                         Map<Long, ClassScheduleResponse> responseById,
-                                                        List<ClinicalShiftGroup> shiftGroupsToday) {
+                                                        List<ClinicalShiftGroup> shiftGroupsToday,
+                                                        DayOfWeek displayDay) {
         List<ResourceGridRowResponse> rows = new ArrayList<>();
         for (Faculty faculty : facultyRepository.findByStatus(FacultyStatus.ACTIVE)) {
             List<ResourceGridCellResponse> cells = new ArrayList<>(daySchedules.stream()
                 .filter(cs -> cs.getFaculty() != null && cs.getFaculty().getId().equals(faculty.getId()))
-                .map(cs -> toCell(responseById.get(cs.getId())))
+                .map(cs -> toCell(responseById.get(cs.getId()), displayDay))
                 .toList());
-            cells.addAll(shiftCellsFor(shiftGroupsToday,
+            cells.addAll(shiftCellsFor(shiftGroupsToday, displayDay,
                 batch -> batch.getCoordinatorFaculty() != null && batch.getCoordinatorFaculty().getId().equals(faculty.getId())));
             rows.add(new ResourceGridRowResponse(faculty.getId(), faculty.getFullName(), cells));
         }
@@ -135,12 +198,13 @@ public class ResourceGridService {
 
     private List<ResourceGridRowResponse> classroomAndLabRows(List<ClassSchedule> daySchedules,
                                                                 Map<Long, ClassScheduleResponse> responseById,
-                                                                List<ClinicalShiftGroup> shiftGroupsToday) {
+                                                                List<ClinicalShiftGroup> shiftGroupsToday,
+                                                                DayOfWeek displayDay) {
         List<ResourceGridRowResponse> rows = new ArrayList<>();
         for (Classroom classroom : classroomRepository.findByIsActiveTrueOrderByNameAsc()) {
             List<ResourceGridCellResponse> cells = daySchedules.stream()
                 .filter(cs -> cs.getClassroom() != null && cs.getClassroom().getId().equals(classroom.getId()))
-                .map(cs -> toCell(responseById.get(cs.getId())))
+                .map(cs -> toCell(responseById.get(cs.getId()), displayDay))
                 .toList();
             rows.add(new ResourceGridRowResponse(classroom.getId(), classroom.getName(), cells));
         }
@@ -150,7 +214,7 @@ public class ResourceGridService {
             }
             List<ResourceGridCellResponse> cells = daySchedules.stream()
                 .filter(cs -> cs.getLab() != null && cs.getLab().getId().equals(lab.getId()))
-                .map(cs -> toCell(responseById.get(cs.getId())))
+                .map(cs -> toCell(responseById.get(cs.getId()), displayDay))
                 .toList();
             rows.add(new ResourceGridRowResponse(lab.getId(), lab.getName(), cells));
         }
@@ -161,9 +225,9 @@ public class ResourceGridService {
         for (ClinicalVenue venue : clinicalVenueRepository.findByIsActiveTrueOrderByNameAsc()) {
             List<ResourceGridCellResponse> cells = new ArrayList<>(daySchedules.stream()
                 .filter(cs -> cs.getClinicalVenue() != null && cs.getClinicalVenue().getId().equals(venue.getId()))
-                .map(cs -> toCell(responseById.get(cs.getId())))
+                .map(cs -> toCell(responseById.get(cs.getId()), displayDay))
                 .toList());
-            cells.addAll(shiftCellsFor(shiftGroupsToday,
+            cells.addAll(shiftCellsFor(shiftGroupsToday, displayDay,
                 batch -> batch.getClinicalVenue() != null && batch.getClinicalVenue().getId().equals(venue.getId())));
             rows.add(new ResourceGridRowResponse(venue.getId(), venue.getName(), cells));
         }
@@ -175,6 +239,7 @@ public class ResourceGridService {
      *  A group with no configured duration/buffer on its offering is skipped — its window can't be
      *  computed yet, matching {@link ClinicalShiftWindow#overlaps} treating that the same way. */
     private List<ResourceGridCellResponse> shiftCellsFor(List<ClinicalShiftGroup> shiftGroupsToday,
+                                                           DayOfWeek displayDay,
                                                            java.util.function.Predicate<Batch> matches) {
         List<ResourceGridCellResponse> cells = new ArrayList<>();
         for (ClinicalShiftGroup group : shiftGroupsToday) {
@@ -184,14 +249,15 @@ public class ResourceGridService {
             }
             for (Batch batch : batchRepository.findByClinicalShiftGroupId(group.getId())) {
                 if (Boolean.TRUE.equals(batch.getIsActive()) && matches.test(batch)) {
-                    cells.add(toShiftCell(group, window, batch));
+                    cells.add(toShiftCell(group, window, batch, displayDay));
                 }
             }
         }
         return cells;
     }
 
-    private ResourceGridCellResponse toShiftCell(ClinicalShiftGroup group, ClinicalShiftWindow window, Batch batch) {
+    private ResourceGridCellResponse toShiftCell(ClinicalShiftGroup group, ClinicalShiftWindow window,
+                                                  Batch batch, DayOfWeek displayDay) {
         CourseOffering offering = group.getCourseOffering();
         return new ResourceGridCellResponse(
             SHIFT_CELL_ID_BASE - batch.getId(),
@@ -205,7 +271,9 @@ public class ResourceGridService {
             group.getLabel(),
             ClassSessionType.CLINICAL,
             ClassScheduleStatus.PUBLISHED,
-            true);
+            true,
+            displayDay,
+            null);
     }
 
     private DayOfWeek resolveEffectiveDayOfWeek(LocalDate date) {
@@ -217,8 +285,9 @@ public class ResourceGridService {
             .orElseGet(() -> DayOfWeek.valueOf(date.getDayOfWeek().name()));
     }
 
-    private ResourceGridCellResponse toCell(ClassScheduleResponse r) {
+    private ResourceGridCellResponse toCell(ClassScheduleResponse r, DayOfWeek displayDay) {
         return new ResourceGridCellResponse(r.id(), r.subjectName(), r.subjectCode(), r.roomName(),
-            r.facultyName(), r.batchName(), r.startTime(), r.endTime(), r.slotName(), r.sessionType(), r.status(), false);
+            r.facultyName(), r.batchName(), r.startTime(), r.endTime(), r.slotName(), r.sessionType(), r.status(),
+            false, displayDay, r.periodId());
     }
 }
