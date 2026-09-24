@@ -99,60 +99,60 @@
               }
             </div>
 
-            <!-- Default weekly teaching hours (advisory, faculty capacity planning) -->
+            <!-- Default weekly teaching sessions (advisory, faculty capacity planning) -->
             <div class="field-group">
-              <label for="dsg-weekly-hours" class="field-label">Default Weekly Teaching Hours</label>
+              <label for="dsg-weekly-sessions" class="field-label">Default Weekly Teaching Sessions</label>
               <input
-                id="dsg-weekly-hours"
+                id="dsg-weekly-sessions"
                 type="number"
                 min="0"
                 class="field-input"
-                formControlName="defaultWeeklyTeachingHours"
+                formControlName="defaultWeeklyTeachingSessions"
                 placeholder="e.g., 18"
-                [class.field-input--error]="form.get('defaultWeeklyTeachingHours')?.invalid && form.get('defaultWeeklyTeachingHours')?.touched"
+                [class.field-input--error]="form.get('defaultWeeklyTeachingSessions')?.invalid && form.get('defaultWeeklyTeachingSessions')?.touched"
               />
-              @if (form.get('defaultWeeklyTeachingHours')?.invalid && form.get('defaultWeeklyTeachingHours')?.touched) {
-                <p class="field-error">{{ getErrorMessage('defaultWeeklyTeachingHours') }}</p>
+              @if (form.get('defaultWeeklyTeachingSessions')?.invalid && form.get('defaultWeeklyTeachingSessions')?.touched) {
+                <p class="field-error">{{ getErrorMessage('defaultWeeklyTeachingSessions') }}</p>
               } @else {
-                <p class="field-hint">Fallback tier for the Faculty Workload weekly hard cap — a per-faculty override wins over this. Leave blank if not yet configured.</p>
+                <p class="field-hint">Fallback tier for the Faculty Workload weekly hard cap (sessions/week) — a per-faculty override wins over this. Leave blank if not yet configured.</p>
               }
             </div>
 
-            <!-- Default daily teaching hours (designation-tier override for the daily hard cap) -->
+            <!-- Default daily teaching sessions (designation-tier override for the daily hard cap) -->
             <div class="field-group">
-              <label for="dsg-daily-hours" class="field-label">Default Daily Teaching Hours</label>
+              <label for="dsg-daily-sessions" class="field-label">Default Daily Teaching Sessions</label>
               <input
-                id="dsg-daily-hours"
+                id="dsg-daily-sessions"
                 type="number"
                 min="0"
                 class="field-input"
-                formControlName="defaultDailyTeachingHours"
+                formControlName="defaultDailyTeachingSessions"
                 placeholder="e.g., 6"
-                [class.field-input--error]="form.get('defaultDailyTeachingHours')?.invalid && form.get('defaultDailyTeachingHours')?.touched"
+                [class.field-input--error]="form.get('defaultDailyTeachingSessions')?.invalid && form.get('defaultDailyTeachingSessions')?.touched"
               />
-              @if (form.get('defaultDailyTeachingHours')?.invalid && form.get('defaultDailyTeachingHours')?.touched) {
-                <p class="field-error">{{ getErrorMessage('defaultDailyTeachingHours') }}</p>
+              @if (form.get('defaultDailyTeachingSessions')?.invalid && form.get('defaultDailyTeachingSessions')?.touched) {
+                <p class="field-error">{{ getErrorMessage('defaultDailyTeachingSessions') }}</p>
               } @else {
-                <p class="field-hint">Designation-tier override for the Faculty Workload daily hard cap — a per-faculty override wins over this. Leave blank to use the institution-wide value.</p>
+                <p class="field-hint">Designation-tier override for the Faculty Workload daily hard cap (sessions/day) — a per-faculty override wins over this. Leave blank to use the institution-wide value.</p>
               }
             </div>
 
-            <!-- Default continuous teaching hours (designation-tier override for the continuous hard cap) -->
+            <!-- Default continuous teaching sessions (designation-tier override for the continuous hard cap) -->
             <div class="field-group">
-              <label for="dsg-continuous-hours" class="field-label">Default Continuous Teaching Hours</label>
+              <label for="dsg-continuous-sessions" class="field-label">Default Continuous Teaching Sessions</label>
               <input
-                id="dsg-continuous-hours"
+                id="dsg-continuous-sessions"
                 type="number"
                 min="0"
                 class="field-input"
-                formControlName="defaultContinuousTeachingHours"
+                formControlName="defaultContinuousTeachingSessions"
                 placeholder="e.g., 3"
-                [class.field-input--error]="form.get('defaultContinuousTeachingHours')?.invalid && form.get('defaultContinuousTeachingHours')?.touched"
+                [class.field-input--error]="form.get('defaultContinuousTeachingSessions')?.invalid && form.get('defaultContinuousTeachingSessions')?.touched"
               />
-              @if (form.get('defaultContinuousTeachingHours')?.invalid && form.get('defaultContinuousTeachingHours')?.touched) {
-                <p class="field-error">{{ getErrorMessage('defaultContinuousTeachingHours') }}</p>
+              @if (form.get('defaultContinuousTeachingSessions')?.invalid && form.get('defaultContinuousTeachingSessions')?.touched) {
+                <p class="field-error">{{ getErrorMessage('defaultContinuousTeachingSessions') }}</p>
               } @else {
-                <p class="field-hint">Designation-tier override for the Faculty Workload continuous-hours hard cap — a per-faculty override wins over this. Leave blank to use the institution-wide value.</p>
+                <p class="field-hint">Designation-tier override for the Faculty Workload continuous-sessions hard cap — a per-faculty override wins over this. Leave blank to use the institution-wide value.</p>
               }
             </div>
 

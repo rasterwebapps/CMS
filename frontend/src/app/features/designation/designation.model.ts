@@ -16,11 +16,11 @@ export interface DesignationMaster {
   isActive: boolean;
   /** Advisory-only default for the faculty capacity-planning report; a per-faculty override wins
    *  over this when set. Undefined means unconfigured, not zero. */
-  defaultWeeklyTeachingHours?: number;
-  /** Same override precedence as {@link defaultWeeklyTeachingHours}, feeds the daily hard cap. */
-  defaultDailyTeachingHours?: number;
-  /** Same override precedence as {@link defaultWeeklyTeachingHours}, feeds the continuous hard cap. */
-  defaultContinuousTeachingHours?: number;
+  defaultWeeklyTeachingSessions?: number;
+  /** Same override precedence as {@link defaultWeeklyTeachingSessions}, feeds the daily hard cap. */
+  defaultDailyTeachingSessions?: number;
+  /** Same override precedence as {@link defaultWeeklyTeachingSessions}, feeds the continuous hard cap. */
+  defaultContinuousTeachingSessions?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,9 +30,9 @@ export interface DesignationRequest {
   code: string;
   description?: string;
   isActive?: boolean;
-  defaultWeeklyTeachingHours?: number;
-  defaultDailyTeachingHours?: number;
-  defaultContinuousTeachingHours?: number;
+  defaultWeeklyTeachingSessions?: number;
+  defaultDailyTeachingSessions?: number;
+  defaultContinuousTeachingSessions?: number;
 }
 
 export interface DesignationStatusUpdateRequest {

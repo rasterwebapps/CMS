@@ -247,14 +247,14 @@
                           @if (editingWorkloadRules()) {
                             <div class="gas-workload-edit">
                               <label>
-                                Max daily hours (institution-wide)
-                                <input type="number" min="0" step="0.5" name="draftMaxDailyHours"
-                                  [ngModel]="draftMaxDailyHours()" (ngModelChange)="draftMaxDailyHours.set($event)" />
+                                Max daily sessions (institution-wide)
+                                <input type="number" min="0" step="1" name="draftMaxDailySessions"
+                                  [ngModel]="draftMaxDailySessions()" (ngModelChange)="draftMaxDailySessions.set($event)" />
                               </label>
                               <label>
-                                Max weekly hours (institution-wide)
-                                <input type="number" min="0" step="0.5" name="draftMaxWeeklyHours"
-                                  [ngModel]="draftMaxWeeklyHours()" (ngModelChange)="draftMaxWeeklyHours.set($event)" />
+                                Max weekly sessions (institution-wide)
+                                <input type="number" min="0" step="1" name="draftMaxWeeklySessions"
+                                  [ngModel]="draftMaxWeeklySessions()" (ngModelChange)="draftMaxWeeklySessions.set($event)" />
                               </label>
                               @if (overriddenFacultyCount() > 0) {
                                 <label class="gas-workload-edit__checkbox">

@@ -832,7 +832,7 @@ export class CapacityPlannerComponent implements OnInit {
 
   protected openRaiseCap(row: FacultyWorkloadOverviewRow): void {
     if (!this.canManageFaculty()) return;
-    this.raiseCapTarget.set({ facultyId: row.facultyId, facultyName: row.facultyName, currentDailyCap: row.plannedDailyHoursOverride });
+    this.raiseCapTarget.set({ facultyId: row.facultyId, facultyName: row.facultyName, currentDailyCap: row.plannedDailySessionsOverride });
   }
 
   protected onRaiseCapClosed(): void {

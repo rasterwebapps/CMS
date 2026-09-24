@@ -176,8 +176,8 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
   }
   protected readonly workloadRules = signal<FacultyWorkloadRules | null>(null);
   protected readonly editingWorkloadRules = signal(false);
-  protected readonly draftMaxDailyHours = signal<number | null>(null);
-  protected readonly draftMaxWeeklyHours = signal<number | null>(null);
+  protected readonly draftMaxDailySessions = signal<number | null>(null);
+  protected readonly draftMaxWeeklySessions = signal<number | null>(null);
 
   protected readonly checklistItems = signal<ChecklistItem[]>([]);
   protected readonly acknowledged = signal(false);
@@ -945,8 +945,8 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
 
   protected openWorkloadRulesEditor(): void {
     const rules = this.workloadRules();
-    this.draftMaxDailyHours.set(rules?.maxDailyHours ?? null);
-    this.draftMaxWeeklyHours.set(rules?.maxWeeklyHours ?? null);
+    this.draftMaxDailySessions.set(rules?.maxDailySessions ?? null);
+    this.draftMaxWeeklySessions.set(rules?.maxWeeklySessions ?? null);
     this.bulkRaiseOverrides.set(this.overriddenFacultyCount() > 0);
     this.editingWorkloadRules.set(true);
   }
@@ -968,17 +968,18 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  only the full Faculty edit form; only the institution-wide weekly rule moves here. */
   protected saveWorkloadRules(): void {
     const current = this.workloadRules();
-    const newDaily = this.draftMaxDailyHours();
+    const newDaily = this.draftMaxDailySessions();
     this.facultyWorkloadRulesService.update({
-      maxDailyHours: newDaily,
-      maxWeeklyHours: this.draftMaxWeeklyHours(),
-      maxContinuousHours: current?.maxContinuousHours ?? null,
+      maxDailySessions: newDaily,
+      maxWeeklySessions: this.draftMaxWeeklySessions(),
+      maxContinuousSessions: current?.maxContinuousSessions ?? null,
+      minWeeklySessions: current?.minWeeklySessions ?? null,
     }).subscribe({
       next: (rules) => {
         this.workloadRules.set(rules);
         const toRaise = this.bulkRaiseOverrides() && newDaily != null
           ? (this.capacityOverview()?.rows ?? []).filter((r) =>
-              r.dailyCapacityTier === 'FACULTY_OVERRIDE' && (r.plannedDailyHoursOverride ?? 0) < newDaily)
+              r.dailyCapacityTier === 'FACULTY_OVERRIDE' && (r.plannedDailySessionsOverride ?? 0) < newDaily)
           : [];
         if (toRaise.length === 0) {
           this.editingWorkloadRules.set(false);

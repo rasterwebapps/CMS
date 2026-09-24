@@ -9,7 +9,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { FACULTY_WORKLOAD_RULES_TOUR, FACULTY_WORKLOAD_RULES_FLOW_MAP } from '../../../shared/tour/tours/faculty-workload-rules.tours';
 
-/** Scoped editor for the three global timetable.faculty_max_*_hours values -- per-designation and
+/** Scoped editor for the four global timetable.faculty_*_sessions values -- per-designation and
  *  per-faculty overrides are intentionally NOT duplicated here; they stay editable on the
  *  Designation Master / Faculty Master forms this screen links out to. */
 @Component({
@@ -27,9 +27,10 @@ export class FacultyWorkloadRulesComponent implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
 
-  protected maxDailyHours: number | null = null;
-  protected maxWeeklyHours: number | null = null;
-  protected maxContinuousHours: number | null = null;
+  protected maxDailySessions: number | null = null;
+  protected maxWeeklySessions: number | null = null;
+  protected maxContinuousSessions: number | null = null;
+  protected minWeeklySessions: number | null = null;
 
   ngOnInit(): void {
     this.tourService.register('faculty-workload-rules', FACULTY_WORKLOAD_RULES_TOUR);
@@ -46,22 +47,25 @@ export class FacultyWorkloadRulesComponent implements OnInit {
   }
 
   private applyRules(rules: FacultyWorkloadRules): void {
-    this.maxDailyHours = rules.maxDailyHours;
-    this.maxWeeklyHours = rules.maxWeeklyHours;
-    this.maxContinuousHours = rules.maxContinuousHours;
+    this.maxDailySessions = rules.maxDailySessions;
+    this.maxWeeklySessions = rules.maxWeeklySessions;
+    this.maxContinuousSessions = rules.maxContinuousSessions;
+    this.minWeeklySessions = rules.minWeeklySessions;
   }
 
   protected hasNegative(): boolean {
-    return [this.maxDailyHours, this.maxWeeklyHours, this.maxContinuousHours].some((v) => v != null && v < 0);
+    return [this.maxDailySessions, this.maxWeeklySessions, this.maxContinuousSessions, this.minWeeklySessions]
+      .some((v) => v != null && v < 0);
   }
 
   protected save(): void {
     if (this.hasNegative()) return;
     this.saving.set(true);
     this.rulesService.update({
-      maxDailyHours: this.maxDailyHours,
-      maxWeeklyHours: this.maxWeeklyHours,
-      maxContinuousHours: this.maxContinuousHours,
+      maxDailySessions: this.maxDailySessions,
+      maxWeeklySessions: this.maxWeeklySessions,
+      maxContinuousSessions: this.maxContinuousSessions,
+      minWeeklySessions: this.minWeeklySessions,
     }).subscribe({
       next: (rules) => {
         this.applyRules(rules);

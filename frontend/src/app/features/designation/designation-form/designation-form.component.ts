@@ -57,9 +57,9 @@ export class DesignationFormComponent implements OnInit {
     name:        ['', [Validators.required, trimmedMinLength(2), Validators.maxLength(100), noConsecutiveSpaces()]],
     code:        ['', [Validators.required, Validators.maxLength(50), noInternalSpaces()]],
     description: ['', [Validators.maxLength(500)]],
-    defaultWeeklyTeachingHours: [null, [Validators.min(0)]],
-    defaultDailyTeachingHours: [null, [Validators.min(0)]],
-    defaultContinuousTeachingHours: [null, [Validators.min(0)]],
+    defaultWeeklyTeachingSessions: [null, [Validators.min(0)]],
+    defaultDailyTeachingSessions: [null, [Validators.min(0)]],
+    defaultContinuousTeachingSessions: [null, [Validators.min(0)]],
   });
 
   constructor() {
@@ -125,9 +125,9 @@ export class DesignationFormComponent implements OnInit {
       name:        (this.form.value.name ?? '').trim(),
       code:        (this.form.value.code ?? '').trim().toUpperCase(),
       description: this.form.value.description?.trim() || undefined,
-      defaultWeeklyTeachingHours: this.form.value.defaultWeeklyTeachingHours ?? undefined,
-      defaultDailyTeachingHours: this.form.value.defaultDailyTeachingHours ?? undefined,
-      defaultContinuousTeachingHours: this.form.value.defaultContinuousTeachingHours ?? undefined,
+      defaultWeeklyTeachingSessions: this.form.value.defaultWeeklyTeachingSessions ?? undefined,
+      defaultDailyTeachingSessions: this.form.value.defaultDailyTeachingSessions ?? undefined,
+      defaultContinuousTeachingSessions: this.form.value.defaultContinuousTeachingSessions ?? undefined,
     };
 
     this.saving.set(true);
@@ -150,9 +150,9 @@ export class DesignationFormComponent implements OnInit {
 
   private static readonly FIELD_LABELS: Record<string, string> = {
     name: 'Name', code: 'Code', description: 'Description',
-    defaultWeeklyTeachingHours: 'Default weekly teaching hours',
-    defaultDailyTeachingHours: 'Default daily teaching hours',
-    defaultContinuousTeachingHours: 'Default continuous teaching hours',
+    defaultWeeklyTeachingSessions: 'Default weekly teaching sessions',
+    defaultDailyTeachingSessions: 'Default daily teaching sessions',
+    defaultContinuousTeachingSessions: 'Default continuous teaching sessions',
   };
 
   protected getErrorMessage(fieldName: string): string {
@@ -168,9 +168,9 @@ export class DesignationFormComponent implements OnInit {
           name: d.name,
           code: d.code,
           description: d.description || '',
-          defaultWeeklyTeachingHours: d.defaultWeeklyTeachingHours ?? null,
-          defaultDailyTeachingHours: d.defaultDailyTeachingHours ?? null,
-          defaultContinuousTeachingHours: d.defaultContinuousTeachingHours ?? null,
+          defaultWeeklyTeachingSessions: d.defaultWeeklyTeachingSessions ?? null,
+          defaultDailyTeachingSessions: d.defaultDailyTeachingSessions ?? null,
+          defaultContinuousTeachingSessions: d.defaultContinuousTeachingSessions ?? null,
         });
         this.loading.set(false);
       },

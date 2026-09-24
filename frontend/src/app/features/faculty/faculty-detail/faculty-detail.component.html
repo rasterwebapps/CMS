@@ -331,7 +331,7 @@
       <app-raise-cap-flyout
         [facultyId]="faculty()!.id"
         [facultyName]="faculty()!.fullName"
-        [currentDailyCap]="faculty()!.plannedDailyHoursOverride ?? null"
+        [currentDailyCap]="faculty()!.plannedDailySessionsOverride ?? null"
         (closed)="onRaiseCapClosed()"
         (saved)="onRaiseCapSaved()">
       </app-raise-cap-flyout>

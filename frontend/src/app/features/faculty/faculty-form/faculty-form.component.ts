@@ -214,6 +214,8 @@ export class FacultyFormComponent implements OnInit {
     }
 
     this.form.get('nrtsNumber')!.addAsyncValidators(this.nrtsUniqueValidator());
+    this.form.get('employeeCode')!.addAsyncValidators(this.employeeCodeUniqueValidator());
+    this.form.get('email')!.addAsyncValidators(this.emailUniqueValidator());
   }
 
   private nrtsUniqueValidator(): AsyncValidatorFn {
@@ -225,6 +227,32 @@ export class FacultyFormComponent implements OnInit {
           this.facultyService.nrtsNumberExists(trimmed, this.facultyId ?? undefined),
         ),
         map(exists => (exists ? { nrtsTaken: true } : null)),
+      );
+    };
+  }
+
+  private employeeCodeUniqueValidator(): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      const trimmed = (control.value ?? '').trim();
+      if (!trimmed) return of(null);
+      return timer(400).pipe(
+        switchMap(() =>
+          this.facultyService.employeeCodeExists(trimmed, this.facultyId ?? undefined),
+        ),
+        map(exists => (exists ? { employeeCodeTaken: true } : null)),
+      );
+    };
+  }
+
+  private emailUniqueValidator(): AsyncValidatorFn {
+    return (control: AbstractControl): Observable<ValidationErrors | null> => {
+      const trimmed = (control.value ?? '').trim();
+      if (!trimmed) return of(null);
+      return timer(400).pipe(
+        switchMap(() =>
+          this.facultyService.emailExists(trimmed, this.facultyId ?? undefined),
+        ),
+        map(exists => (exists ? { emailTaken: true } : null)),
       );
     };
   }
@@ -281,9 +309,9 @@ export class FacultyFormComponent implements OnInit {
       clinicalExperiencePgYears: this.numberOrUndefined(v.clinicalExperiencePgYears),
       clinicalExperiencePhdYears: this.numberOrUndefined(v.clinicalExperiencePhdYears),
       commissionAmount: this.numberOrUndefined(v.commissionAmount),
-      plannedWeeklyHoursOverride: this.numberOrUndefined(v.plannedWeeklyHoursOverride),
-      plannedDailyHoursOverride: this.numberOrUndefined(v.plannedDailyHoursOverride),
-      plannedContinuousHoursOverride: this.numberOrUndefined(v.plannedContinuousHoursOverride),
+      plannedWeeklySessionsOverride: this.numberOrUndefined(v.plannedWeeklyHoursOverride),
+      plannedDailySessionsOverride: this.numberOrUndefined(v.plannedDailyHoursOverride),
+      plannedContinuousSessionsOverride: this.numberOrUndefined(v.plannedContinuousHoursOverride),
     };
 
     this.saving.set(true);
@@ -418,6 +446,8 @@ export class FacultyFormComponent implements OnInit {
     if (control.errors['required']) return `${this.getFieldLabel(fieldName)} is required`;
     if (control.errors['email']) return 'Please enter a valid email address';
     if (control.errors['nrtsTaken']) return 'This NRTS number is already assigned to another faculty member';
+    if (control.errors['employeeCodeTaken']) return 'This employee code is already assigned to another faculty member';
+    if (control.errors['emailTaken']) return 'This email is already assigned to another faculty member';
     if (control.errors['maxlength']) {
       const maxLength = control.errors['maxlength'].requiredLength;
       return `${this.getFieldLabel(fieldName)} must be at most ${maxLength} characters`;
@@ -527,9 +557,9 @@ export class FacultyFormComponent implements OnInit {
           clinicalExperiencePgYears: faculty.clinicalExperiencePgYears ?? null,
           clinicalExperiencePhdYears: faculty.clinicalExperiencePhdYears ?? null,
           commissionAmount: faculty.commissionAmount ?? null,
-          plannedWeeklyHoursOverride: faculty.plannedWeeklyHoursOverride ?? null,
-          plannedDailyHoursOverride: faculty.plannedDailyHoursOverride ?? null,
-          plannedContinuousHoursOverride: faculty.plannedContinuousHoursOverride ?? null,
+          plannedWeeklyHoursOverride: faculty.plannedWeeklySessionsOverride ?? null,
+          plannedDailyHoursOverride: faculty.plannedDailySessionsOverride ?? null,
+          plannedContinuousHoursOverride: faculty.plannedContinuousSessionsOverride ?? null,
         });
         this.loading.set(false);
       },

@@ -5,7 +5,7 @@
         <h1 class="mlp-title">Faculty Workload <em>Rules</em></h1>
         <cms-tour-button tourKey="faculty-workload-rules" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="mlp-sub">Institution-wide teaching-hour caps enforced when staffing a session.</p>
+      <p class="mlp-sub">Institution-wide session caps (and a workload floor) applied when staffing a session.</p>
     </div>
   </div>
 
@@ -16,38 +16,53 @@
       </div>
     } @else {
       <p class="field-hint fwr-intro">
-        For each of the three caps below, a faculty member's own override on the
+        For each of the three maximum caps below, a faculty member's own override on the
         <a routerLink="/faculty">Faculty</a> screen wins first, then their
         <a routerLink="/designations">designation's default</a>, then the institution-wide value
-        set here. These three fields are only the last, institution-wide fallback tier.
+        set here. These fields are only the last, institution-wide fallback tier. Every cap counts
+        real sessions (period-rows), not hours.
       </p>
 
       <div class="field-group">
-        <label class="field-label" for="fwr-daily">Max Daily Teaching Hours</label>
-        <input id="fwr-daily" type="number" min="0" step="0.5" class="field-input"
-               [(ngModel)]="maxDailyHours" />
+        <label class="field-label" for="fwr-daily">Max Daily Sessions</label>
+        <input id="fwr-daily" type="number" min="0" step="1" class="field-input"
+               [(ngModel)]="maxDailySessions" />
         <p class="field-hint">Fallback only — a per-faculty or per-designation daily cap overrides this. Leave blank for no fallback cap.</p>
-        @if (maxDailyHours != null && maxDailyHours < 0) {
+        @if (maxDailySessions != null && maxDailySessions < 0) {
           <p class="field-error">Cannot be negative</p>
         }
       </div>
 
       <div class="field-group">
-        <label class="field-label" for="fwr-weekly">Max Weekly Teaching Hours</label>
-        <input id="fwr-weekly" type="number" min="0" step="0.5" class="field-input"
-               [(ngModel)]="maxWeeklyHours" />
+        <label class="field-label" for="fwr-weekly">Max Weekly Sessions</label>
+        <input id="fwr-weekly" type="number" min="0" step="1" class="field-input"
+               [(ngModel)]="maxWeeklySessions" />
         <p class="field-hint">Fallback only — a per-faculty or per-designation weekly cap overrides this. Leave blank for no fallback cap.</p>
-        @if (maxWeeklyHours != null && maxWeeklyHours < 0) {
+        @if (maxWeeklySessions != null && maxWeeklySessions < 0) {
           <p class="field-error">Cannot be negative</p>
         }
       </div>
 
       <div class="field-group">
-        <label class="field-label" for="fwr-continuous">Max Continuous Teaching Hours</label>
-        <input id="fwr-continuous" type="number" min="0" step="0.5" class="field-input"
-               [(ngModel)]="maxContinuousHours" />
-        <p class="field-hint">Longest unbroken back-to-back run of sessions in one day. Fallback only — a per-faculty or per-designation continuous-hours cap overrides this. Leave blank for no fallback cap.</p>
-        @if (maxContinuousHours != null && maxContinuousHours < 0) {
+        <label class="field-label" for="fwr-continuous">Max Continuous Sessions</label>
+        <input id="fwr-continuous" type="number" min="0" step="1" class="field-input"
+               [(ngModel)]="maxContinuousSessions" />
+        <p class="field-hint">Longest unbroken back-to-back run of sessions in one day. Fallback only — a per-faculty or per-designation continuous-sessions cap overrides this. Leave blank for no fallback cap.</p>
+        @if (maxContinuousSessions != null && maxContinuousSessions < 0) {
+          <p class="field-error">Cannot be negative</p>
+        }
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="fwr-min-weekly">Minimum Weekly Sessions</label>
+        <input id="fwr-min-weekly" type="number" min="0" step="1" class="field-input"
+               [(ngModel)]="minWeeklySessions" />
+        <p class="field-hint">
+          Advisory floor, not a hard cap — a faculty member below this many sessions/week shows as
+          under-loaded on Assign Faculty and the Faculty Workload report. Never blocks staffing.
+          Leave blank for no floor.
+        </p>
+        @if (minWeeklySessions != null && minWeeklySessions < 0) {
           <p class="field-error">Cannot be negative</p>
         }
       </div>

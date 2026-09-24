@@ -41,7 +41,10 @@
                 <input id="fac-code" class="field-input" formControlName="employeeCode"
                   placeholder="e.g., EMP001" autocomplete="off"
                   [class.field-input--error]="form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched" />
-                @if (form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched) {
+                @if (form.get('employeeCode')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                }
+                @if (form.get('employeeCode')?.invalid && form.get('employeeCode')?.touched && !form.get('employeeCode')?.pending) {
                   <p class="field-error">{{ getErrorMessage('employeeCode') }}</p>
                 }
               </div>
@@ -87,7 +90,10 @@
                 <input id="fac-email" type="email" class="field-input" formControlName="email"
                   placeholder="faculty@college.edu" autocomplete="off"
                   [class.field-input--error]="form.get('email')?.invalid && form.get('email')?.touched" />
-                @if (form.get('email')?.invalid && form.get('email')?.touched) {
+                @if (form.get('email')?.pending) {
+                  <p class="field-hint">Checking…</p>
+                }
+                @if (form.get('email')?.invalid && form.get('email')?.touched && !form.get('email')?.pending) {
                   <p class="field-error">{{ getErrorMessage('email') }}</p>
                 }
               </div>
@@ -150,7 +156,7 @@
 
             <div class="field-row">
               <div class="field-group">
-                <label for="fac-weekly-hours" class="field-label">Weekly Teaching Hours Override</label>
+                <label for="fac-weekly-hours" class="field-label">Weekly Teaching Sessions Override</label>
                 <input id="fac-weekly-hours" type="number" min="0" class="field-input"
                   formControlName="plannedWeeklyHoursOverride"
                   placeholder="Leave blank to use the designation default"
@@ -162,7 +168,7 @@
                 }
               </div>
               <div class="field-group">
-                <label for="fac-daily-hours" class="field-label">Daily Teaching Hours Override</label>
+                <label for="fac-daily-hours" class="field-label">Daily Teaching Sessions Override</label>
                 <input id="fac-daily-hours" type="number" min="0" class="field-input"
                   formControlName="plannedDailyHoursOverride"
                   placeholder="Leave blank to use the designation default"
@@ -177,7 +183,7 @@
 
             <div class="field-row">
               <div class="field-group">
-                <label for="fac-continuous-hours" class="field-label">Continuous Teaching Hours Override</label>
+                <label for="fac-continuous-hours" class="field-label">Continuous Teaching Sessions Override</label>
                 <input id="fac-continuous-hours" type="number" min="0" class="field-input"
                   formControlName="plannedContinuousHoursOverride"
                   placeholder="Leave blank to use the designation default"
@@ -185,7 +191,7 @@
                 @if (form.get('plannedContinuousHoursOverride')?.invalid && form.get('plannedContinuousHoursOverride')?.touched) {
                   <p class="field-error">{{ getErrorMessage('plannedContinuousHoursOverride') }}</p>
                 } @else {
-                  <p class="field-hint">Wins over the designation default and the institution-wide continuous-hours cap.</p>
+                  <p class="field-hint">Wins over the designation default and the institution-wide continuous-sessions cap.</p>
                 }
               </div>
               <div class="field-group"></div>

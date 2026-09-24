@@ -42,14 +42,14 @@ export interface FacultyWorkloadReport {
  *  hours bound to them across every cohort). Every active faculty appears here regardless of how
  *  close they are to a capacity problem — unlike the Global Auto-Schedule checklist's over/tight
  *  lists, which only ever surface faculty already in trouble — so an under-used faculty is just as
- *  visible as an over-committed one. `plannedDailyHoursOverride` is the raw editable value (null =
+ *  visible as an over-committed one. `plannedDailySessionsOverride` is the raw editable value (null =
  *  falls through to their designation's default); edited via the same `PATCH /faculty/{id}/daily-cap`
  *  Faculty Detail's "Raise Cap" already uses. */
 export interface FacultyWorkloadOverviewRow {
   facultyId: number;
   facultyName: string;
   designationName: string | null;
-  plannedDailyHoursOverride: number | null;
+  plannedDailySessionsOverride: number | null;
   capacityConfigured: boolean;
   effectiveDailyCapacityHours: number;
   dailyCapacityTier: string;
