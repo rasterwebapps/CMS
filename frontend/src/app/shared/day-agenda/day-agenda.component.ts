@@ -78,7 +78,16 @@ export class CmsDayAgendaComponent {
       }
     }
 
+    // A period with no exact periodId match can still be spanned by a leftover occurrence's
+    // wall-clock range (e.g. an off-campus clinical shift covering periods 1-5 by time, not by
+    // periodId, since it has no single period of its own). Such a period is not "Free" -- it's
+    // already represented by the leftover's own row -- so it's dropped rather than shown empty.
     const periodRows: DayAgendaRow[] = [...periodsList]
+      .filter((p) => {
+        const ownOccurrences = byPeriodId.get(p.id) ?? [];
+        if (ownOccurrences.length > 0) return true;
+        return !leftover.some((occ) => this.timeRangesOverlap(p.startTime, p.endTime, occ.session.startTime, occ.session.endTime));
+      })
       .sort((a, b) => (a.periodOrder ?? 0) - (b.periodOrder ?? 0) || a.startTime.localeCompare(b.startTime))
       .map((p) => ({
         key: `period-${p.id}`,
@@ -90,6 +99,10 @@ export class CmsDayAgendaComponent {
 
     return [...periodRows, ...this.groupByTime(leftover)].sort((a, b) => a.startTime.localeCompare(b.startTime));
   });
+
+  private timeRangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+    return aStart < bEnd && bStart < aEnd;
+  }
 
   private groupByTime(occurrences: ClassScheduleOccurrence[]): DayAgendaRow[] {
     const groups = new Map<string, DayAgendaRow>();

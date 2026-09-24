@@ -83,6 +83,35 @@ describe('CmsDayAgendaComponent', () => {
     expect(rows[1].queryAll(By.css('.day-agenda__item')).length).toBe(1);
   });
 
+  // Regression for a real user-reported bug: a long clinical shift (periodId null, wall-clock
+  // 06:00-14:10) spans periods 1-5 by time, but those periods still rendered as "Free" rows
+  // underneath the shift's own row because grouping only matched on exact periodId.
+  it('does not show a period as "Free" when a leftover occurrence\'s time range covers it', () => {
+    const periods: DayAgendaPeriod[] = [
+      { id: 1, name: 'Period 1', startTime: '09:00', endTime: '09:50', periodOrder: 1 },
+      { id: 2, name: 'Period 2', startTime: '09:50', endTime: '10:40', periodOrder: 2 },
+      { id: 6, name: 'Period 6', startTime: '14:10', endTime: '15:00', periodOrder: 6 },
+    ];
+    fixture.componentInstance.periods = periods;
+    fixture.componentInstance.occurrences = [
+      occurrence({
+        id: 1,
+        periodId: null,
+        subjectName: 'Community Health Nursing II — Off-campus Clinical Shift',
+        startTime: '06:00',
+        endTime: '14:10',
+      }),
+      occurrence({ id: 2, periodId: 6, startTime: '14:10', endTime: '15:00', subjectName: 'OBG Nursing II' }),
+    ];
+    fixture.detectChanges();
+
+    const rows = fixture.debugElement.queryAll(By.css('.day-agenda__row'));
+    // Only the clinical shift's own row and Period 6's row -- Periods 1 and 2 are dropped since
+    // they're fully covered by the shift's time range, not rendered as "Free".
+    expect(rows.length).toBe(2);
+    expect(fixture.debugElement.query(By.css('.day-agenda__free'))).toBeFalsy();
+  });
+
   it('shows the empty state when there are no occurrences and no periods list', () => {
     fixture.componentInstance.occurrences = [];
     fixture.detectChanges();

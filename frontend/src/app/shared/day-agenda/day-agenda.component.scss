@@ -19,18 +19,30 @@
 }
 
 // One row per period (or, without a periods list, per distinct start/end time) -- the time/label
-// column stays a fixed width so every row's sections column lines up underneath it.
+// column stays a fixed width so every row's sections column lines up underneath it. Stretch (the
+// flex default, set explicitly here since a sibling rule elsewhere could otherwise override it)
+// makes the label column and the session card(s) beside it always match the row's full height,
+// instead of the label sitting short at the top while a taller multi-line card fills the rest.
 .day-agenda__row {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 16px;
 }
 
+// A fixed width (not min-width) -- .day-agenda__row-range's time text is nowrap, and its exact
+// rendered width varies by a pixel or two between rows depending purely on which digits happen to
+// be in that row's time string (font kerning), which with only a min-width let some rows' label
+// column render marginally wider than others -- shrinking that row's card column by the same
+// amount and making cards across periods look inconsistently, if marginally, narrower.
 .day-agenda__row-time {
   display: flex;
   flex-direction: column;
-  min-width: 92px;
-  padding-top: 10px;
+  justify-content: center;
+  // Comfortably wider than the longest real time-range string ("HH:MM:SS – HH:MM:SS", nowrap) at
+  // this font size, so the fixed width above never clips text instead of merely varying by a
+  // pixel or two.
+  width: 104px;
+  flex-shrink: 0;
 }
 
 .day-agenda__row-label {
