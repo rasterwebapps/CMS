@@ -1452,7 +1452,14 @@ public class TimetableSkeletonService {
             cs.setPeriod(period);
             cs.setClassroom(classroom);
             cs.setBatch(batch);
-            cs.setBatchName(batch.getName());
+            // batch.getName() alone reads as this idle batch's *current* session -- but Capacity
+            // Auto-Plan bakes the batch's original Lab/Clinical split into its own name (e.g.
+            // "Clinical - Section 1 - Batch 2", see CohortRoomAllocationService's own comment on
+            // that naming scheme), so a Library filler cell showed a name that said "Clinical" on
+            // it, reading as though this were a real Clinical session. The " (Individual)" suffix
+            // marks it as one idle batch's own filler, distinct from #saveAudienceBlockCells' whole-
+            // section label just below -- without renaming/reparsing the batch's real identity.
+            cs.setBatchName(batch.getName() + " (Individual)");
             cs.setCohortSection(cohortSection);
             cs.setIsActive(true);
             cs.setSessionGroupId(sessionGroupId);
@@ -1504,6 +1511,11 @@ public class TimetableSkeletonService {
             cs.setPeriod(period);
             cs.setClassroom(classroom);
             cs.setCohortSection(cohortSection);
+            // No real Batch here -- the whole section/cohort attends together (unlike {@link
+            // #saveIdleBatchLibraryCells}'s single idle batch), so without an explicit label this
+            // rendered with no section/batch line at all on every timetable-shaped screen, reading
+            // as though that info was simply missing rather than "everyone, together."
+            cs.setBatchName(cohortSection != null ? cohortSection.getSectionLabel() + " — Whole Section" : "Whole Cohort");
             cs.setIsActive(true);
             cs.setSessionGroupId(sessionGroupId);
             ClassSchedule persisted = classScheduleRepository.save(cs);
