@@ -95,6 +95,7 @@ export class ResourceWeekModalComponent {
             startTime: c.startTime,
             endTime: c.endTime,
             slotName: c.slotName,
+            termNumber: c.termNumber,
           })));
           this.loading.set(false);
         },

@@ -108,7 +108,12 @@
       : ''"
     [matTooltipDisabled]="!session.occurrenceStatus || session.occurrenceStatus === 'HELD'"
     (click)="onSessionClick(session, day, row, $event)">
-    <span class="session-chip__subject">{{ session.subjectName }}</span>
+    <div class="session-chip__top">
+      <span class="session-chip__subject">{{ session.subjectName }}</span>
+      @if (session.termNumber) {
+        <span class="session-chip__term" [title]="'Term ' + session.termNumber">T{{ session.termNumber }}</span>
+      }
+    </div>
     @if (session.occurrenceStatus === 'CANCELLED') {
       <span class="session-chip__cancelled-label">Cancelled — {{ session.cancelReason }}</span>
     } @else {

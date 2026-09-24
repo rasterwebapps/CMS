@@ -201,11 +201,36 @@
   line-height: 1.2;
 }
 
+.session-chip__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  // .session-chip itself is a column flexbox with align-items: flex-start (no stretch), so without
+  // an explicit width this row would shrink-wrap to its own content and the term badge's
+  // justify-content: space-between push would have nothing to push against.
+  width: 100%;
+}
+
 .session-chip__subject {
   font-size: var(--cms-text-xs);
   font-weight: 700;
   color: var(--cms-text-primary);
   line-height: 1.25;
+}
+
+.session-chip__term {
+  flex: none;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  padding: 0 4px;
+  border-radius: 4px;
+  // Opaque text token, not --subject-color -- THEORY's own accent bakes in a 0.35 alpha
+  // (session-color.util.ts), so using it directly as text color reads near-illegible. Same fix as
+  // resource-timetable-grid.component.scss's identically-named badge.
+  color: var(--cms-text-secondary);
+  background: color-mix(in srgb, var(--subject-color, var(--cms-border-default)) 20%, transparent);
 }
 
 .session-chip__room,

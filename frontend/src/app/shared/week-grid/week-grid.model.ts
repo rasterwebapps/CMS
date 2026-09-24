@@ -31,6 +31,13 @@ export interface WeekGridSession {
    *  per-date HELD/SUBSTITUTED/CANCELLED fact and render every chip the same as before. */
   occurrenceStatus?: WeekGridOccurrenceStatus;
   cancelReason?: string | null;
+  /** The course offering's curriculum term/semester number (e.g. 1, 3, 5). Optional and omitted by
+   *  every cohort-scoped consumer (Timetable Builder, Day Agenda, My/Personal Timetable) since
+   *  they're already scoped to one term and a badge there would be redundant noise. Only Resource
+   *  Timetable's per-resource full-week drill-in (resource-week-modal.component.ts) supplies it --
+   *  that view pools sessions across every active cohort onto one faculty/room, the same reason its
+   *  own single-day grid shows this badge (resource-timetable-grid.component.html). */
+  termNumber?: number | null;
 }
 
 export type WeekGridMode = 'review' | 'personal' | 'browse';
