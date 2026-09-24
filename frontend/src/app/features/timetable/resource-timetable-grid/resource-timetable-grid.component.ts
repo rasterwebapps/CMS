@@ -274,11 +274,14 @@ export class ResourceTimetableGridComponent implements OnInit {
    *  replacement for it), reached by clicking any row rather than a separate resource picker. */
   protected openWeekView(row: ResourceGridRow): void {
     if (!this.selectedTermInstanceId) return;
+    const term = this.selectedTerm();
     const data: ResourceWeekModalData = {
       resourceType: this.resourceType(),
       resourceId: row.resourceId,
       resourceName: row.resourceName,
       termInstanceId: this.selectedTermInstanceId,
+      termStartDate: term?.startDate ?? null,
+      termEndDate: term?.endDate ?? null,
     };
     this.dialog.open(ResourceWeekModalComponent, { data, width: '1200px', maxWidth: '95vw' });
   }

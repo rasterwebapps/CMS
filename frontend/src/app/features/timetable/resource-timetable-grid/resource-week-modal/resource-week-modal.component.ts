@@ -14,6 +14,15 @@ export interface ResourceWeekModalData {
   resourceId: number;
   resourceName: string;
   termInstanceId: number;
+  /** The selected term's own real date bounds -- Date mode's week-navigator clamps to these (same
+   *  as timetable-view.component.ts's own dayMin/dayMax), and the very first landing week defaults
+   *  inside them too. Without this, Date mode defaulted to *today's* real-calendar week regardless
+   *  of whether the term had even started yet -- the recurring PUBLISHED template is keyed by
+   *  termInstanceId + dayOfWeek only, with no per-date bound of its own, so a faculty's Full Week
+   *  drill-in opened before a term's start date still rendered every recurring session under those
+   *  real (but not-yet-real) calendar dates, reading as though classes were already happening. */
+  termStartDate: string | null;
+  termEndDate: string | null;
 }
 
 function mondayOf(date: Date): string {
@@ -25,6 +34,26 @@ function mondayOf(date: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${dd}`;
+}
+
+function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/** Mirrors timetable-view.component.ts's identically-named private method -- see its own doc
+ *  comment for the full reasoning. Clamps `date` into [min, max] and, only when that clamp landed
+ *  on a mid-week term.startDate, skips forward to the next Monday so the default landing week isn't
+ *  a confusing partial Mon-Wed the term hadn't started for yet (that first partial week stays
+ *  reachable via Previous). No equivalent skip at the endDate boundary -- that IS the term's real
+ *  last week. */
+function defaultWeekStartInTerm(date: string, min: string | null, max: string | null): string {
+  const clamped = min && date < min ? min : max && date > max ? max : date;
+  if (clamped === date) return clamped;
+  const clampedMonday = mondayOf(new Date(`${clamped}T00:00:00`));
+  return clamped === min && clampedMonday < min ? addDays(clampedMonday, 7) : clampedMonday;
 }
 
 /** Drilled into from one row of the Resource Timetable's daily grid — this resource's own full
@@ -46,7 +75,11 @@ export class ResourceWeekModalComponent {
   private readonly toast = inject(ToastService);
 
   protected readonly viewMode = signal<'DATE' | 'WEEKDAY'>('WEEKDAY');
-  protected readonly weekStart = signal(mondayOf(new Date()));
+  /** Defaults inside the selected term's own real date range (see {@link ResourceWeekModalData}'s
+   *  termStartDate/termEndDate doc comment) rather than *today's* real-calendar week -- the modal
+   *  can be opened for a term that hasn't started yet or has already ended. */
+  protected readonly weekStart = signal(
+    defaultWeekStartInTerm(mondayOf(new Date()), this.data.termStartDate, this.data.termEndDate));
   protected readonly loading = signal(false);
   protected readonly sessions = signal<WeekGridSession[]>([]);
 

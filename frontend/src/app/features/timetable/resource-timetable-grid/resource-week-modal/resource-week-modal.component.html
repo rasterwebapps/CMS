@@ -8,7 +8,7 @@
     </div>
 
     @if (viewMode() === 'DATE') {
-      <cms-week-navigator [weekStart]="weekStart()" (weekStartChange)="onWeekStartChange($event)" />
+      <cms-week-navigator [weekStart]="weekStart()" [min]="data.termStartDate" [max]="data.termEndDate" (weekStartChange)="onWeekStartChange($event)" />
     }
   </div>
 
