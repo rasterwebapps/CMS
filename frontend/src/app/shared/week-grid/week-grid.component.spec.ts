@@ -87,6 +87,39 @@ describe('CmsWeekGridComponent', () => {
     expect(emitted).toBeUndefined();
   });
 
+  // Real bug: a Clinical Shift duty window (periodId null, its time window covering Periods 1-5,
+  // e.g. a 06:00-14:10 bus-departure/return buffer) used to mint its own extra column labeled with
+  // the raw time range instead of occupying the real Period 1-5 columns it actually blocks. Periods
+  // 1-5 only have real (periodId-bearing) sessions on THURSDAY here -- mirrors production, where a
+  // clinical day's own Periods 1-5 carry nothing else and the columns come from another day.
+  it('spans a periodId-null entry across the real Period columns its time window covers, instead of adding a new column', () => {
+    const periods = [
+      { periodId: 1, startTime: '09:00:00', endTime: '09:50:00', slotName: 'Period 1' },
+      { periodId: 2, startTime: '09:50:00', endTime: '10:40:00', slotName: 'Period 2' },
+      { periodId: 3, startTime: '10:40:00', endTime: '11:30:00', slotName: 'Period 3' },
+      { periodId: 4, startTime: '11:30:00', endTime: '12:20:00', slotName: 'Period 4' },
+      { periodId: 5, startTime: '12:20:00', endTime: '13:10:00', slotName: 'Period 5' },
+    ];
+    const thursdaySessions: WeekGridSession[] = periods.map((p, i) => ({
+      ...baseSession, id: 100 + i, dayOfWeek: 'THURSDAY', periodId: p.periodId,
+      startTime: p.startTime, endTime: p.endTime, slotName: p.slotName,
+    }));
+    const clinicalShift: WeekGridSession = {
+      ...baseSession, id: -1000001, sessionType: 'CLINICAL', dayOfWeek: 'MONDAY', periodId: null,
+      startTime: '06:00:00', endTime: '14:10:00', slotName: '', subjectName: 'Community Health Nursing II — Off-campus Clinical Shift',
+    };
+    fixture.componentInstance.sessions = [...thursdaySessions, clinicalShift];
+    fixture.detectChanges();
+
+    const columnHeaders = fixture.debugElement.queryAll(By.css('.week-grid__period-hdr'));
+    expect(columnHeaders.length).toBe(5); // no 6th "06:00:00–14:10:00" column
+
+    const shiftCells = fixture.debugElement.queryAll(By.css('.week-grid__cell--shift'));
+    expect(shiftCells.length).toBe(1);
+    expect(shiftCells[0].nativeElement.style.gridColumn).toBe('span 5');
+    expect(shiftCells[0].nativeElement.textContent).toContain('Community Health Nursing II');
+  });
+
   it('emits sessionClick for a real (positive-id) session', () => {
     fixture.componentInstance.sessions = [baseSession];
     fixture.detectChanges();
@@ -159,6 +192,68 @@ describe('CmsWeekGridComponent', () => {
       const chip = fixture.debugElement.query(By.css('.session-chip'));
       expect(chip.classes['session-chip--cancelled']).toBeFalsy();
       expect(chip.classes['session-chip--substituted']).toBeFalsy();
+    });
+  });
+
+  // Real user-reported gap: a term starting/ending mid-week (e.g. Thursday) still lets the week
+  // navigator page back to that partial week (Thu-Sat of a term starting mid-week has real
+  // sessions), but the Mon-Wed columns before the term started just rendered every period empty
+  // with no explanation -- reading as if the app had silently lost those days' sessions, when
+  // really the term just hadn't reached them yet. Same treatment as Holiday: a dimmed column plus
+  // a small badge, so it's clear at a glance those columns are outside the term, not missing data.
+  describe('isOutOfTerm ("Not in Term" tagging)', () => {
+    beforeEach(() => {
+      fixture.componentInstance.sessions = [baseSession]; // avoids the empty-state early return
+    });
+
+    it('tags Mon-Wed with "Not in Term" when the term starts Thursday of the viewed week', () => {
+      fixture.componentInstance.weekStart = '2026-09-28'; // Monday; term starts Thu 2026-10-01
+      fixture.componentInstance.termStartDate = '2026-10-01';
+      fixture.componentInstance.termEndDate = '2027-03-31';
+      fixture.detectChanges();
+
+      const dayCells = fixture.debugElement.queryAll(By.css('.week-grid__day-cell'));
+      const [mon, tue, wed, thu] = dayCells;
+      for (const cell of [mon, tue, wed]) {
+        expect(cell.classes['week-grid__day-cell--holiday']).toBe(true);
+        expect(cell.nativeElement.textContent).toContain('Not in Term');
+      }
+      expect(thu.classes['week-grid__day-cell--holiday']).toBeFalsy();
+      expect(thu.nativeElement.textContent).not.toContain('Not in Term');
+    });
+
+    it('tags Fri-Sat with "Not in Term" when the term ends Thursday of the viewed week', () => {
+      fixture.componentInstance.weekStart = '2027-03-29'; // Monday; term ends Thu 2027-04-01
+      fixture.componentInstance.termStartDate = '2026-10-01';
+      fixture.componentInstance.termEndDate = '2027-04-01';
+      fixture.detectChanges();
+
+      const dayCells = fixture.debugElement.queryAll(By.css('.week-grid__day-cell'));
+      const [mon, , , thu, fri, sat] = dayCells;
+      expect(mon.nativeElement.textContent).not.toContain('Not in Term');
+      expect(thu.nativeElement.textContent).not.toContain('Not in Term');
+      expect(fri.nativeElement.textContent).toContain('Not in Term');
+      expect(sat.nativeElement.textContent).toContain('Not in Term');
+    });
+
+    it('never tags any day when termStartDate/termEndDate are not passed (existing consumers unaffected)', () => {
+      fixture.componentInstance.weekStart = '2026-09-28';
+      fixture.detectChanges();
+
+      const dayCells = fixture.debugElement.queryAll(By.css('.week-grid__day-cell'));
+      expect(dayCells.some((d) => d.nativeElement.textContent.includes('Not in Term'))).toBe(false);
+    });
+
+    it('prefers the real Holiday badge over "Not in Term" if a day is somehow both', () => {
+      fixture.componentInstance.weekStart = '2026-09-28';
+      fixture.componentInstance.termStartDate = '2026-10-01';
+      fixture.componentInstance.termEndDate = '2027-03-31';
+      fixture.componentInstance.holidays = [{ dayIndex: 0, title: 'Gandhi Jayanti', category: 'GOVERNMENT' }];
+      fixture.detectChanges();
+
+      const monCell = fixture.debugElement.queryAll(By.css('.week-grid__day-cell'))[0];
+      expect(monCell.nativeElement.textContent).toContain('Holiday');
+      expect(monCell.nativeElement.textContent).not.toContain('Not in Term');
     });
   });
 

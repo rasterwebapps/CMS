@@ -49,7 +49,7 @@
       }
 
       @for (day of days(); track day; let i = $index) {
-        <div class="week-grid__day-cell" [class.week-grid__day-cell--holiday]="isHoliday()(i)">
+        <div class="week-grid__day-cell" [class.week-grid__day-cell--holiday]="isHoliday()(i) || isOutOfTerm(i)">
           {{ dayLabels[day] }}
           @if (dateLabelFor(i); as dateLabel) {
             <span class="week-grid__day-date">{{ dateLabel }}</span>
@@ -58,51 +58,71 @@
             <span class="week-grid__holiday-badge" [matTooltip]="holiday.title">
               Holiday@if (holiday.category) { &middot; {{ holidayCategoryLabels[holiday.category] }} }
             </span>
+          } @else if (isOutOfTerm(i)) {
+            <span class="week-grid__holiday-badge" matTooltip="This date falls outside the selected term's date range">
+              Not in Term
+            </span>
           }
         </div>
-        @for (row of rows(); track row.key) {
-          <div class="week-grid__cell"
-            [class.week-grid__cell--holiday]="isHoliday()(i)"
-            [class.week-grid__cell--candidate]="swapMode && candidateFor(day, row)"
-            [class.week-grid__cell--dimmed]="swapMode && !candidateFor(day, row) && !isSourceCell(day, row)"
-            (click)="onCellClick(day, row)">
-            @for (session of cell(day, row); track session.id) {
-              <button type="button"
-                class="session-chip"
-                [style.--subject-color]="sessionColor(session.sessionType)"
-                [class.session-chip--draft]="session.status === 'DRAFT'"
-                [class.session-chip--unstaffed]="!session.facultyName && session.sessionType !== 'LIBRARY'"
-                [class.session-chip--swap-source]="swapMode && session.id === swapSourceSessionId"
-                [class.session-chip--readonly]="isSynthetic(session)"
-                [class.session-chip--cancelled]="session.occurrenceStatus === 'CANCELLED'"
-                [class.session-chip--substituted]="session.occurrenceStatus === 'SUBSTITUTED'"
-                [matTooltip]="session.occurrenceStatus === 'CANCELLED' ? 'Cancelled — ' + session.cancelReason
-                  : session.occurrenceStatus === 'SUBSTITUTED' ? session.subjectName + ' — substituted by ' + session.facultyName
-                  : ''"
-                [matTooltipDisabled]="!session.occurrenceStatus || session.occurrenceStatus === 'HELD'"
-                (click)="onSessionClick(session, day, row, $event)">
-                <span class="session-chip__subject">{{ session.subjectName }}</span>
-                @if (session.occurrenceStatus === 'CANCELLED') {
-                  <span class="session-chip__cancelled-label">Cancelled — {{ session.cancelReason }}</span>
-                } @else {
-                  <span class="session-chip__room">{{ session.roomName || 'No room yet' }}</span>
-                  @if (session.batchName) {
-                    <span class="session-chip__batch">{{ session.batchName }}</span>
-                  }
-                  <!-- LIBRARY rows are deliberately never staffed (see TimetableGenerationService's
-                       own unstaffedCount gate) -- showing "needs staffing" here is a false alarm
-                       with no fix available anywhere in the app, since Library genuinely has no
-                       faculty concept. -->
-                  @if (session.sessionType !== 'LIBRARY') {
-                    <span class="session-chip__faculty">{{ session.facultyName || 'Unstaffed — needs staffing' }}</span>
-                  }
-                }
-              </button>
-            }
-          </div>
+        @for (seg of daySegments(day); track seg.key) {
+          @if (seg.kind === 'period') {
+            <div class="week-grid__cell"
+              [class.week-grid__cell--holiday]="isHoliday()(i) || isOutOfTerm(i)"
+              [class.week-grid__cell--candidate]="swapMode && candidateFor(day, seg.row)"
+              [class.week-grid__cell--dimmed]="swapMode && !candidateFor(day, seg.row) && !isSourceCell(day, seg.row)"
+              (click)="onCellClick(day, seg.row)">
+              @for (session of cell(day, seg.row); track session.id) {
+                <ng-container [ngTemplateOutlet]="chip" [ngTemplateOutletContext]="{ $implicit: session, day: day, row: seg.row }" />
+              }
+            </div>
+          } @else {
+            <!-- An off-grid entry (e.g. a Clinical Shift duty window) spans exactly the real Period
+                 columns its time overlaps, instead of sitting off to the side in its own column --
+                 see CmsWeekGridComponent#daySegments. Never a swap target: swapMode/candidate/click
+                 wiring only ever applies to real Period cells. -->
+            <div class="week-grid__cell week-grid__cell--shift" [style.grid-column]="'span ' + seg.span">
+              @for (session of seg.sessions; track session.id) {
+                <ng-container [ngTemplateOutlet]="chip" [ngTemplateOutletContext]="{ $implicit: session, day: day, row: null }" />
+              }
+            </div>
+          }
         }
       }
     </div>
   }
 
 </div>
+
+<ng-template #chip let-session let-day="day" let-row="row">
+  <button type="button"
+    class="session-chip"
+    [style.--subject-color]="sessionColor(session.sessionType)"
+    [class.session-chip--draft]="session.status === 'DRAFT'"
+    [class.session-chip--unstaffed]="!session.facultyName && session.sessionType !== 'LIBRARY'"
+    [class.session-chip--swap-source]="swapMode && session.id === swapSourceSessionId"
+    [class.session-chip--readonly]="isSynthetic(session)"
+    [class.session-chip--cancelled]="session.occurrenceStatus === 'CANCELLED'"
+    [class.session-chip--substituted]="session.occurrenceStatus === 'SUBSTITUTED'"
+    [matTooltip]="session.occurrenceStatus === 'CANCELLED' ? 'Cancelled — ' + session.cancelReason
+      : session.occurrenceStatus === 'SUBSTITUTED' ? session.subjectName + ' — substituted by ' + session.facultyName
+      : ''"
+    [matTooltipDisabled]="!session.occurrenceStatus || session.occurrenceStatus === 'HELD'"
+    (click)="onSessionClick(session, day, row, $event)">
+    <span class="session-chip__subject">{{ session.subjectName }}</span>
+    @if (session.occurrenceStatus === 'CANCELLED') {
+      <span class="session-chip__cancelled-label">Cancelled — {{ session.cancelReason }}</span>
+    } @else {
+      <span class="session-chip__room">{{ session.roomName || 'No room yet' }}</span>
+      @if (session.batchName) {
+        <span class="session-chip__batch">{{ session.batchName }}</span>
+      }
+      <!-- LIBRARY rows are deliberately never staffed (see TimetableGenerationService's
+           own unstaffedCount gate) -- showing "needs staffing" here is a false alarm
+           with no fix available anywhere in the app, since Library genuinely has no
+           faculty concept. -->
+      @if (session.sessionType !== 'LIBRARY') {
+        <span class="session-chip__faculty">{{ session.facultyName || 'Unstaffed — needs staffing' }}</span>
+      }
+    }
+  </button>
+</ng-template>

@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CmsEmptyStateComponent } from '../empty-state/empty-state.component';
 import { colorForSessionType, SessionTypeForColor } from '../util/session-color.util';
@@ -19,6 +20,17 @@ interface WeekGridRow {
   endTime: string;
 }
 
+/** One day's row, left to right: a real Period column renders individually (`kind: 'period'`,
+ *  unchanged); a run of consecutive Period columns covered by the same off-grid entry (e.g. a
+ *  Clinical Shift duty window, {@link CmsWeekGridComponent.isSynthetic}) collapses into one
+ *  `kind: 'shift'` segment spanning that many columns -- mirrors Timetable Builder's own
+ *  `rowSegments`/`shiftWindowFor` (timetable-builder.component.ts), just driven by the time
+ *  windows already present in `sessions` instead of a separately-fetched Period/ClinicalShiftWindow
+ *  model, since this shared component has neither. */
+type WeekGridSegment =
+  | { kind: 'period'; key: string; row: WeekGridRow }
+  | { kind: 'shift'; key: string; span: number; startTime: string; endTime: string; sessions: WeekGridSession[] };
+
 /**
  * The first calendar/week-grid component in this codebase — a day-columns x period-rows grid
  * shared by the timetable draft-review screen, the admin browse screen, and personal "my
@@ -29,7 +41,7 @@ interface WeekGridRow {
 @Component({
   selector: 'cms-week-grid',
   standalone: true,
-  imports: [CmsEmptyStateComponent, MatTooltipModule],
+  imports: [CmsEmptyStateComponent, MatTooltipModule, NgTemplateOutlet],
   templateUrl: './week-grid.component.html',
   styleUrl: './week-grid.component.scss',
 })
@@ -64,6 +76,16 @@ export class CmsWeekGridComponent {
   @Input() weekStart: string | null = null;
   @Input() generating = false;
   @Input() saving = false;
+
+  /** The selected term's own real bounds, in the same YYYY-MM-DD shape as {@link weekStart} --
+   *  both null (the default) for every consumer that doesn't pass them, which keeps the Generic/
+   *  Review views (no {@link weekStart} either) and any caller that hasn't opted in unaffected. Lets
+   *  {@link isOutOfTerm} flag a day column that falls outside the term (e.g. the Monday-Wednesday
+   *  of a week whose Thursday is the term's actual start date) with the same dimmed-column +
+   *  "Not in Term" badge treatment Holiday already uses, instead of that day silently rendering
+   *  every period as empty with no explanation. */
+  @Input() termStartDate: string | null = null;
+  @Input() termEndDate: string | null = null;
 
   /** Swap mode: the consuming screen has a session selected and is offering candidate target
    *  cells for it. Non-candidate cells dim out; candidate cells highlight and become clickable. */
@@ -112,9 +134,31 @@ export class CmsWeekGridComponent {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   }
 
+  /** True when day column `dayIndex`'s real calendar date falls outside [termStartDate,
+   *  termEndDate] -- e.g. Monday/Tuesday/Wednesday of a week whose Thursday is the term's actual
+   *  start date, still shown so the in-term Thu-Sat of that same week remain visible. Requires the
+   *  same {@link weekStart} {@link dateLabelFor} does plus both term bounds; false whenever any of
+   *  the three is missing, so Generic/Review consumers (no weekStart, no term bounds) are
+   *  unaffected. */
+  protected isOutOfTerm(dayIndex: number): boolean {
+    if (!this.weekStart || !this.termStartDate || !this.termEndDate) return false;
+    const date = new Date(`${this.weekStart}T00:00:00`);
+    date.setDate(date.getDate() + dayIndex);
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return iso < this.termStartDate || iso > this.termEndDate;
+  }
+
+  /** Columns come only from sessions/candidates tied to a real Period ({@code periodId != null}).
+   *  An off-grid entry (periodId null -- a Clinical Shift duty block, see {@link isSynthetic}) must
+   *  never mint its own column: its time window (e.g. a 06:00-14:10 bus-departure/return buffer)
+   *  doesn't match any single Period's exact start/end, so before this filter it always produced a
+   *  spurious extra column sitting off to the side instead of occupying the real Period columns it
+   *  actually covers -- see {@link daySegments}, which renders it as a spanning block over those
+   *  columns instead. */
   protected readonly rows = computed<WeekGridRow[]>(() => {
     const seen = new Map<string, WeekGridRow>();
     for (const s of this._sessions()) {
+      if (s.periodId == null) continue;
       const key = `${s.startTime}-${s.endTime}`;
       const label = s.slotName || `${s.startTime}–${s.endTime}`;
       const existing = seen.get(key);
@@ -122,14 +166,14 @@ export class CmsWeekGridComponent {
         seen.set(key, { key, label, startTime: s.startTime, endTime: s.endTime });
       } else if (existing.label !== label) {
         // A real Period's slotName is identical for every session that shares its time window, so
-        // a mismatch here only happens for time-window-only groupings with no shared master record
-        // (e.g. two distinct off-campus Clinical Shift groups that happen to run the same
-        // bus-depart/return window) -- keeping whichever session was seen first would mislabel
-        // every other session's column with a name that doesn't describe it.
+        // a mismatch here would only happen for two distinct Periods that coincidentally share one
+        // exact start/end -- keeping whichever session was seen first would mislabel every other
+        // session's column with a name that doesn't describe it.
         existing.label = `${s.startTime}–${s.endTime}`;
       }
     }
     for (const c of this._candidateCells()) {
+      if (c.periodId == null) continue;
       const key = `${c.startTime}-${c.endTime}`;
       if (!seen.has(key)) {
         seen.set(key, { key, label: `${c.startTime}–${c.endTime}`, startTime: c.startTime, endTime: c.endTime });
@@ -137,6 +181,58 @@ export class CmsWeekGridComponent {
     }
     return Array.from(seen.values()).sort((a, b) => a.startTime.localeCompare(b.startTime));
   });
+
+  /** Off-grid entries (periodId null) for one day, grouped by their exact time window -- two
+   *  entries sharing one window (e.g. a Clinical Shift group running in parallel at two venues,
+   *  see backend {@code TimetableSkeletonService#findClinicalShiftGridEntries}) render as chips
+   *  inside the same spanning block, the same way a normal Period cell already groups multiple
+   *  sessions together. */
+  private readonly shiftGroupsByDay = computed(() => {
+    const byDay = new Map<string, Map<string, WeekGridSession[]>>();
+    for (const s of this._sessions()) {
+      if (s.periodId != null) continue;
+      let byWindow = byDay.get(s.dayOfWeek);
+      if (!byWindow) byDay.set(s.dayOfWeek, (byWindow = new Map()));
+      const key = `${s.startTime}-${s.endTime}`;
+      const bucket = byWindow.get(key);
+      if (bucket) bucket.push(s); else byWindow.set(key, [s]);
+    }
+    return byDay;
+  });
+
+  /** Same overlap test Timetable Builder's {@link shiftWindowFor} uses (period.startTime <
+   *  window.endTime && window.startTime < period.endTime), just against the columns already
+   *  derived from real sessions instead of a fetched Period entity. */
+  private shiftWindowFor(day: string, row: WeekGridRow): { key: string; startTime: string; endTime: string; sessions: WeekGridSession[] } | null {
+    for (const [key, sessions] of this.shiftGroupsByDay().get(day) ?? []) {
+      const [startTime, endTime] = key.split('-');
+      if (row.startTime < endTime && startTime < row.endTime) {
+        return { key, startTime, endTime, sessions };
+      }
+    }
+    return null;
+  }
+
+  protected daySegments(day: string): WeekGridSegment[] {
+    const rows = this.rows();
+    const segments: WeekGridSegment[] = [];
+    let i = 0;
+    while (i < rows.length) {
+      const window = this.shiftWindowFor(day, rows[i]);
+      if (!window) {
+        segments.push({ kind: 'period', key: rows[i].key, row: rows[i] });
+        i++;
+        continue;
+      }
+      let span = 1;
+      while (i + span < rows.length && this.shiftWindowFor(day, rows[i + span])?.key === window.key) {
+        span++;
+      }
+      segments.push({ kind: 'shift', key: `shift-${window.key}-${day}`, span, startTime: window.startTime, endTime: window.endTime, sessions: window.sessions });
+      i += span;
+    }
+    return segments;
+  }
 
   protected readonly isEmpty = computed(() => this._sessions().length === 0);
 
@@ -176,8 +272,11 @@ export class CmsWeekGridComponent {
     return colorForSessionType(sessionType);
   }
 
-  protected onSessionClick(session: WeekGridSession, day: string, row: WeekGridRow, event: Event): void {
-    if (this.isSynthetic(session)) {
+  /** `row` is null for a chip inside a spanning shift segment ({@link daySegments}) -- always
+   *  paired with a synthetic session (see {@link isSynthetic}), which returns below before `row`
+   *  is ever dereferenced, so the null case never reaches the swap-mode/candidateFor logic. */
+  protected onSessionClick(session: WeekGridSession, day: string, row: WeekGridRow | null, event: Event): void {
+    if (this.isSynthetic(session) || row == null) {
       event.stopPropagation();
       return;
     }

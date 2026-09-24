@@ -99,6 +99,13 @@
   pointer-events: none;
 }
 
+// The merged cell for an off-grid entry (e.g. a Clinical Shift duty window) spanning the real
+// Period columns it covers -- see CmsWeekGridComponent#daySegments. Same muted background as
+// Timetable Builder's own .skeleton-grid__cell--shift, distinguishing it from a real Period cell.
+.week-grid__cell--shift {
+  background: var(--cms-bg-muted);
+}
+
 .session-chip {
   display: flex;
   flex-direction: column;
