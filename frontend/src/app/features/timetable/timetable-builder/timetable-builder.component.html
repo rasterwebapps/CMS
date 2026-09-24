@@ -26,6 +26,17 @@
         </div>
         <p class="page-subtitle">{{ skeleton()?.termInstanceLabel }}</p>
       </div>
+      @if (canGlobalAutoPlace() && selectedCohortId) {
+        <button type="button" class="btn-primary entry-form-header__action" [disabled]="toolbarRunChecking() || termTimetablePublished()"
+          [title]="termTimetablePublished() ? 'This cohort\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
+          (click)="confirmAndOpenGlobalAutoSchedule()">
+          @if (toolbarRunChecking()) {
+            <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+          } @else {
+            Run Automation
+          }
+        </button>
+      }
     </div>
   }
 
@@ -55,45 +66,53 @@
     </app-global-auto-schedule-report-flyout>
   }
 
-  <div id="tour-skel-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
-    @if (viewMode() === 'table') {
-      <cms-infinite-select
-        label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
-        [fetchPage]="academicYearFetchPage"
-        [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
-      />
-      <cms-infinite-select
-        label="Term" ariaLabel="Term" searchPlaceholder="Search terms…"
-        [fetchPage]="termFetchPage"
-        [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
-        [disabled]="termsLoading() || termInstances().length === 0"
-      />
-      <cms-infinite-select
-        label="Cohort" ariaLabel="Cohort" searchPlaceholder="Search cohorts…"
-        [fetchPage]="cohortSelectionFetchPage"
-        [selectedValue]="cohortSelection" (selectedValueChange)="onCohortSelectionChange($event)"
-        [disabled]="cohortsLoading() || cohorts().length === 0"
-      />
-    }
-    <!-- Grid view's term/cohort are already fixed by the Open Grid navigation that got here, and
-         its own back button now lives in the header card above -- the filter selects simply don't
-         render in this mode, leaving only the Run Automation button (toolbar-right below). -->
-    @if (selectedTermInstanceId && ((canGlobalAutoPlace() && (allCohortsSelected() || selectedCohortId)) || (canManageWorkingSaturdays() && viewMode() === 'table'))) {
-      <div class="toolbar-right">
-        @if (canManageWorkingSaturdays() && viewMode() === 'table') {
-          <button type="button" class="btn-secondary" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
-        }
-        @if (canGlobalAutoPlace() && (allCohortsSelected() || (selectedCohortId && viewMode() === 'grid'))) {
-          <button type="button" class="btn-primary" [disabled]="!allCohortsSelected() && termTimetablePublished()"
-            [title]="!allCohortsSelected() && termTimetablePublished() ? 'This cohort\'s timetable is already approved — only manual period/staff edits are allowed now' : ''"
-            (click)="confirmAndOpenGlobalAutoSchedule()">{{ allCohortsSelected() ? 'Run Global Auto-Schedule' : 'Run Automation' }}</button>
+  <!-- Grid view's term/cohort are already fixed by the Open Grid navigation that got here, and its
+       own back button + Run Automation now live in the header card above -- this toolbar (filter
+       selects, Configure Working Saturdays, Run Global Auto-Schedule) is entirely table-mode.
+       Toolbar + table share one relative wrapper so a single busy overlay ({@link tableBusy}) can
+       sit above both -- while any row's own operation is in flight, no other cohort's filter,
+       toolbar action, row action, or Open Grid link may be touched. -->
+  @if (viewMode() === 'table') {
+    <div class="tt-table-section">
+      <div id="tour-skel-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
+        <cms-infinite-select
+          label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
+          [fetchPage]="academicYearFetchPage"
+          [selectedValue]="selectedAcademicYearId" (selectedValueChange)="onAcademicYearChange($event)"
+          [disabled]="tableBusy()"
+        />
+        <cms-infinite-select
+          label="Term" ariaLabel="Term" searchPlaceholder="Search terms…"
+          [fetchPage]="termFetchPage"
+          [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
+          [disabled]="termsLoading() || termInstances().length === 0 || tableBusy()"
+        />
+        <cms-infinite-select
+          label="Cohort" ariaLabel="Cohort" searchPlaceholder="Search cohorts…"
+          [fetchPage]="cohortSelectionFetchPage"
+          [selectedValue]="cohortSelection" (selectedValueChange)="onCohortSelectionChange($event)"
+          [disabled]="cohortsLoading() || cohorts().length === 0 || tableBusy()"
+        />
+        @if (selectedTermInstanceId && (canManageWorkingSaturdays() || (canGlobalAutoPlace() && allCohortsSelected()))) {
+          <div class="toolbar-right">
+            @if (canManageWorkingSaturdays()) {
+              <button type="button" class="btn-secondary" [disabled]="tableBusy()" (click)="openWorkingSaturdays()">Configure Working Saturdays</button>
+            }
+            @if (canGlobalAutoPlace() && allCohortsSelected()) {
+              <button type="button" class="btn-primary" [disabled]="toolbarRunChecking() || tableBusy()"
+                (click)="confirmAndOpenGlobalAutoSchedule()">
+                @if (toolbarRunChecking()) {
+                  <mat-spinner diameter="16" class="btn-spinner"></mat-spinner>
+                } @else {
+                  Run Global Auto-Schedule
+                }
+              </button>
+            }
+          </div>
         }
       </div>
-    }
-  </div>
 
-  @if (viewMode() === 'table') {
-    <div class="content-card anim-rise anim-rise--d2">
+      <div class="content-card anim-rise anim-rise--d2">
       @if (cohortStatusSummaryLoading()) {
         <div class="loading-container">
           <mat-spinner diameter="36" aria-label="Loading cohort status summary"></mat-spinner>
@@ -139,41 +158,41 @@
                       @switch (row.status) {
                         @case ('PENDING') {
                           @if (canGlobalAutoPlace()) {
-                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Run Automation" ariaLabel="Run automation" [disabled]="bulkActionPending()" (clicked)="runRowAutomation(row, $event)">
+                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Run Automation" ariaLabel="Run automation" [disabled]="tableBusy()" (clicked)="runRowAutomation(row, $event)">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             </cms-row-action-btn>
                           }
                         }
                         @case ('DRAFTED') {
                           <cms-row-action-btn variant="neutral" [iconOnly]="true"
-                            [tooltip]="rowActionPendingCohortId() === row.cohortId ? 'Checking…' : 'Check & Resolve Conflicts'"
-                            ariaLabel="Check and resolve conflicts" [disabled]="rowActionPendingCohortId() === row.cohortId"
+                            tooltip="Check & Resolve Conflicts"
+                            ariaLabel="Check and resolve conflicts" [disabled]="tableBusy()"
                             (clicked)="checkAndResolveConflicts(row, $event)">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                           </cms-row-action-btn>
                         }
                         @case ('CONFLICTS_RESOLVED') {
                           @if (canPublish()) {
-                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Publish" ariaLabel="Publish" [disabled]="bulkActionPending()" (clicked)="publishRow(row, $event)">
+                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Publish" ariaLabel="Publish" [disabled]="tableBusy()" (clicked)="publishRow(row, $event)">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             </cms-row-action-btn>
                           }
                         }
                         @case ('PUBLISHED') {
                           @if (canRevertToDraft() && !row.attendanceRecorded) {
-                            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Revert to Draft" ariaLabel="Revert to draft" [disabled]="bulkActionPending()" (clicked)="revertRow(row, $event)">
+                            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Revert to Draft" ariaLabel="Revert to draft" [disabled]="tableBusy()" (clicked)="revertRow(row, $event)">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                             </cms-row-action-btn>
                           }
                         }
                         @case ('PARTIALLY_PUBLISHED') {
                           @if (canPublish()) {
-                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Publish Remaining" ariaLabel="Publish remaining" [disabled]="bulkActionPending()" (clicked)="publishRow(row, $event)">
+                            <cms-row-action-btn variant="accent" [iconOnly]="true" tooltip="Publish Remaining" ariaLabel="Publish remaining" [disabled]="tableBusy()" (clicked)="publishRow(row, $event)">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             </cms-row-action-btn>
                           }
                           @if (canRevertToDraft() && !row.attendanceRecorded) {
-                            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Revert to Draft" ariaLabel="Revert to draft" [disabled]="bulkActionPending()" (clicked)="revertRow(row, $event)">
+                            <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Revert to Draft" ariaLabel="Revert to draft" [disabled]="tableBusy()" (clicked)="revertRow(row, $event)">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                             </cms-row-action-btn>
                           }
@@ -186,11 +205,11 @@
                            refuses either action past that point, so offering the button would only
                            ever fail. -->
                       @if (canDiscardDraft() && row.status !== 'PUBLISHED' && row.status !== 'PENDING' && !row.attendanceRecorded) {
-                        <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Discard Draft" ariaLabel="Discard draft" [disabled]="bulkActionPending()" (clicked)="discardDraftRow(row, $event)">
+                        <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Discard Draft" ariaLabel="Discard draft" [disabled]="tableBusy()" (clicked)="discardDraftRow(row, $event)">
                           <cms-icon-delete [size]="14" />
                         </cms-row-action-btn>
                       }
-                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="Open Grid" [ariaLabel]="'Open ' + row.cohortName + ' grid'" (clicked)="openCohortGrid(row, $event)">
+                      <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="Open Grid" [ariaLabel]="'Open ' + row.cohortName + ' grid'" [disabled]="tableBusy()" (clicked)="openCohortGrid(row, $event)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                       </cms-row-action-btn>
                     </div>
@@ -205,9 +224,17 @@
           [pageIndex]="cohortStatusSummaryPageIndex()"
           [pageSize]="cohortStatusSummaryPageSize()"
           [pageSizeOptions]="[10, 25, 50, 100]"
+          [disabled]="tableBusy()"
           showFirstLastButtons
           (page)="onCohortStatusPageChange($event)">
         </mat-paginator>
+      }
+      </div>
+
+      @if (tableBusy()) {
+        <div class="tt-busy-overlay" role="status" aria-live="polite">
+          <mat-spinner diameter="40"></mat-spinner>
+        </div>
       }
     </div>
   } @else if (skeletonLoading()) {

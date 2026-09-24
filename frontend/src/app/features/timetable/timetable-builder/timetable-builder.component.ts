@@ -206,10 +206,20 @@ export class TimetableBuilderComponent implements OnInit {
   protected readonly cohortStatusSummaryTotal = signal(0);
   protected readonly cohortStatusSummaryPageIndex = signal(0);
   protected readonly cohortStatusSummaryPageSize = signal(25);
-  /** Set for the duration of one row's own "Check & Resolve Conflicts" call. */
-  protected readonly rowActionPendingCohortId = signal<number | null>(null);
-  /** Set for the duration of a bulk Publish/Revert/Discard call. */
-  protected readonly bulkActionPending = signal(false);
+  /** Set for the duration of any row's own async action -- Check & Resolve Conflicts, Publish,
+   *  Revert to Draft, or Discard Draft. One cohort's operation must never overlap with a selection
+   *  or action on any other cohort in this table (two publishes racing, or a filter change pulling
+   *  the table's data out from under an in-flight request), so this single flag drives one
+   *  table-wide busy overlay ({@link tableBusy}) instead of a separate spinner per row/button. */
+  protected readonly rowOperationPending = signal(false);
+  /** Set only for the "All cohorts…" toolbar Run button's own async pre-check (does this term
+   *  already have draft content?) before the confirm dialog / Global Auto-Schedule flyout opens —
+   *  the single-cohort path answers that synchronously from the already-loaded grid, so it never
+   *  needs this. */
+  protected readonly toolbarRunChecking = signal(false);
+  /** Drives the table-wide busy overlay -- while true, every toolbar filter, row action, and Open
+   *  Grid link is locked so no other cohort can be touched until the in-flight operation settles. */
+  protected readonly tableBusy = computed(() => this.rowOperationPending() || this.toolbarRunChecking());
   /** The cohort name a Pending row's own "Run" button opened the Global Auto-Schedule flyout for --
    *  the flyout's cohortName input otherwise reads {@link skeleton}, which stays null in table mode
    *  (a per-row Run never opens that cohort's grid, see {@link runRowAutomation}). */
@@ -558,15 +568,17 @@ export class TimetableBuilderComponent implements OnInit {
     if (this.allCohortsSelected()) {
       const termInstanceId = this.selectedTermInstanceId;
       if (!termInstanceId) return;
+      this.toolbarRunChecking.set(true);
       this.skeletonService.hasExistingDraftContent(termInstanceId).subscribe({
         next: (hasExisting) => {
+          this.toolbarRunChecking.set(false);
           if (hasExisting) {
             this.confirmOverwrite('This term already has draft sessions placed for one or more cohorts.');
           } else {
             this.openGlobalAutoSchedule();
           }
         },
-        error: () => this.toast.error('Failed to check for existing draft sessions'),
+        error: () => { this.toolbarRunChecking.set(false); this.toast.error('Failed to check for existing draft sessions'); },
       });
       return;
     }
@@ -907,15 +919,15 @@ export class TimetableBuilderComponent implements OnInit {
     event.stopPropagation();
     const termInstanceId = this.selectedTermInstanceId;
     if (!termInstanceId) return;
-    this.rowActionPendingCohortId.set(row.cohortId);
+    this.rowOperationPending.set(true);
     this.timetableService.acknowledgeCohortConflicts(termInstanceId, row.cohortId).subscribe({
       next: () => {
         this.toast.success(`${row.cohortName}: no conflicts found — ready to publish`);
-        this.rowActionPendingCohortId.set(null);
+        this.rowOperationPending.set(false);
         this.loadCohortStatusSummary(termInstanceId);
       },
       error: (err) => {
-        this.rowActionPendingCohortId.set(null);
+        this.rowOperationPending.set(false);
         this.toast.error(violationText(err) ?? `${row.cohortName} still has unresolved conflicts`);
       },
     });
@@ -929,15 +941,15 @@ export class TimetableBuilderComponent implements OnInit {
   private publishCohort(cohortId: number, cohortName: string, overrideIncompleteCoverage = false, overrideReason?: string): void {
     const termInstanceId = this.selectedTermInstanceId;
     if (!termInstanceId) return;
-    this.bulkActionPending.set(true);
+    this.rowOperationPending.set(true);
     this.timetableService.approve(termInstanceId, [cohortId], overrideIncompleteCoverage, overrideReason).subscribe({
       next: (response) => {
         this.toast.success(`Published ${response.affectedCount} session(s) for ${cohortName}`);
-        this.bulkActionPending.set(false);
+        this.rowOperationPending.set(false);
         this.loadCohortStatusSummary(termInstanceId);
       },
       error: (err) => {
-        this.bulkActionPending.set(false);
+        this.rowOperationPending.set(false);
         const gaps = err?.error?.gaps as TimetableCoverageGap[] | undefined;
         if (gaps?.length) {
           if (this.permissionService.has('TIMETABLE_APPROVE_INCOMPLETE_OVERRIDE')) {
@@ -973,15 +985,15 @@ export class TimetableBuilderComponent implements OnInit {
       },
     }).afterClosed().subscribe((confirmed) => {
       if (!confirmed) return;
-      this.bulkActionPending.set(true);
+      this.rowOperationPending.set(true);
       this.timetableService.revertToDraft(termInstanceId, [cohortId]).subscribe({
         next: (response) => {
           this.toast.success(`Reverted ${response.affectedCount} session(s) to draft`);
-          this.bulkActionPending.set(false);
+          this.rowOperationPending.set(false);
           this.loadCohortStatusSummary(termInstanceId);
         },
         error: (err) => {
-          this.bulkActionPending.set(false);
+          this.rowOperationPending.set(false);
           this.toast.error(err?.error?.message ?? 'Failed to revert to draft');
         },
       });
@@ -1005,15 +1017,15 @@ export class TimetableBuilderComponent implements OnInit {
       },
     }).afterClosed().subscribe((confirmed) => {
       if (!confirmed) return;
-      this.bulkActionPending.set(true);
+      this.rowOperationPending.set(true);
       this.timetableService.clear(termInstanceId, [cohortId]).subscribe({
         next: () => {
           this.toast.success('Draft discarded');
-          this.bulkActionPending.set(false);
+          this.rowOperationPending.set(false);
           this.loadCohortStatusSummary(termInstanceId);
         },
         error: (err) => {
-          this.bulkActionPending.set(false);
+          this.rowOperationPending.set(false);
           this.toast.error(err?.error?.message ?? 'Failed to discard draft');
         },
       });

@@ -705,3 +705,23 @@
     filter: brightness(0.97);
   }
 }
+
+// Table-mode toolbar + cohort table share this wrapper so one busy overlay can sit above both --
+// while any single cohort's row action is in flight, every other cohort's filter/toolbar/row
+// action/Open Grid must be locked too, not just the one that was clicked.
+.tt-table-section {
+  position: relative;
+}
+
+.tt-busy-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--cms-bg-card) 70%, transparent);
+  backdrop-filter: blur(1px);
+  border-radius: 16px;
+  z-index: 5;
+  cursor: wait;
+}
