@@ -2274,7 +2274,12 @@ public class TimetableGlobalAutoScheduleService {
                         offeringB.getId(), ClassSessionType.LAB, day, primary.getId(), batchB0.getId(), cohortId,
                         batchB0.getCohortSection() != null ? batchB0.getCohortSection().getId() : null, spanPeriodIds));
                 } catch (TimetableConstraintViolationException | LifecycleConflictException | IllegalArgumentException ex) {
-                    timetableSkeletonService.removeCell(placedA.id());
+                    // placedA is already staffed at this point (its own staffCell try block above
+                    // succeeded, or we'd already have `continue`d out) -- ordinary #removeCell refuses
+                    // to remove a staffed cell (LifecycleConflictException, SKELETON_CELL_NOT_REMOVABLE
+                    // -- "Only an unstaffed draft skeleton cell can be removed here"), so tearing it
+                    // down here needs the same escape hatch attemptBacktrack uses.
+                    timetableSkeletonService.forceRemoveCell(placedA.id());
                     continue;
                 }
                 try {
@@ -2285,8 +2290,10 @@ public class TimetableGlobalAutoScheduleService {
                     // DRAFT cell that silently occupies this exact day/period/venue for the rest of
                     // this cohort's pairing search (this was the actual bug behind the DIAG log: 18
                     // single removeCell calls tearing down only the "A" side while "B" leaked unlogged).
+                    // placedB itself is still unstaffed (its own staffCell above just failed), but
+                    // placedA is staffed -- same forceRemoveCell reasoning as the branch above.
                     timetableSkeletonService.removeCell(placedB.id());
-                    timetableSkeletonService.removeCell(placedA.id());
+                    timetableSkeletonService.forceRemoveCell(placedA.id());
                     continue;
                 }
 
@@ -2308,8 +2315,10 @@ public class TimetableGlobalAutoScheduleService {
                 try {
                     rotationGroupService.create(request, "system:global-auto-schedule");
                 } catch (RuntimeException ex) {
-                    timetableSkeletonService.removeCell(placedB.id());
-                    timetableSkeletonService.removeCell(placedA.id());
+                    // Both cells are staffed by this point -- forceRemoveCell, not removeCell (see
+                    // the two branches above).
+                    timetableSkeletonService.forceRemoveCell(placedB.id());
+                    timetableSkeletonService.forceRemoveCell(placedA.id());
                     continue;
                 }
 
@@ -2519,7 +2528,9 @@ public class TimetableGlobalAutoScheduleService {
                     ? saveIdleBatchLibraryCell(librarySubject, term, day, block, section, libRoom, batch1)
                     : saveIdleBatchSelfStudyCell(cohortId, context.skeleton(), term, day, block, section, batch1, termDemand);
                 if (partner == null) {
-                    timetableSkeletonService.removeCell(labCell.id());
+                    // labCell is already staffed (the staffCell try block above succeeded) --
+                    // ordinary #removeCell refuses a staffed cell, same as tryPairOfferings above.
+                    timetableSkeletonService.forceRemoveCell(labCell.id());
                     continue;
                 }
 
@@ -2541,8 +2552,12 @@ public class TimetableGlobalAutoScheduleService {
                 try {
                     rotationGroupService.create(request, "system:global-auto-schedule");
                 } catch (RuntimeException ex) {
-                    timetableSkeletonService.removeCell(partner.cellId());
-                    timetableSkeletonService.removeCell(labCell.id());
+                    // labCell is always staffed by this point. partner may or may not be (a Library
+                    // cell is never staffed; a Self-Study cell is, via saveIdleBatchSelfStudyCell's
+                    // own tryStaffWithFallback) -- forceRemoveCell works either way, so use it
+                    // unconditionally rather than branching on which fallback partner turned out to be.
+                    timetableSkeletonService.forceRemoveCell(partner.cellId());
+                    timetableSkeletonService.forceRemoveCell(labCell.id());
                     continue;
                 }
 
