@@ -28,8 +28,9 @@ import { ToastService } from '../../../core/toast/toast.service';
 import { AppDatePipe } from '../../../shared/pipes/app-date.pipe';
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
+import { of } from 'rxjs';
 import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
-import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
+import { InfiniteSelectResolveLabel, InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { FACULTY_DETAIL_TOUR, FACULTY_DETAIL_FLOW_MAP } from '../../../shared/tour/tours/faculty-detail.tours';
 
@@ -234,6 +235,16 @@ export class FacultyDetailComponent implements OnInit {
     this.academicYears().map(ay => ({ id: ay.id, name: ay.name })));
   protected readonly workloadTermFetchPage = staticOptionsFetchPage(() =>
     this.termInstances().map(t => ({ id: t.id, name: `${t.termType} · ${t.status}` })));
+  /** Without this, switching Academic Year leaves the Term pill showing the raw new term id
+   *  (e.g. "3") until manually reopened — cms-infinite-select's own cached `options` still hold
+   *  the *old* year's terms, so it can't resolve the newly-preselected id's label and falls back
+   *  to the raw value (see CmsInfiniteSelectComponent.updateSelectedLabel). Reads termInstances()
+   *  directly instead, which loadTermInstances() already refreshes before reassigning
+   *  selectedTermInstanceId, so this always resolves correctly on the same tick. */
+  protected readonly workloadTermResolveLabel: InfiniteSelectResolveLabel = (value) => {
+    const term = this.termInstances().find(t => t.id === Number(value));
+    return of(term ? `${term.termType} · ${term.status}` : String(value));
+  };
 
   protected onAcademicYearChange(value: InfiniteSelectValue | null): void {
     this.selectedAcademicYearId = value != null ? Number(value) : null;

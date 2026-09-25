@@ -27,6 +27,7 @@ import com.cms.dto.ScheduleConflictResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.ClassSchedule;
+import com.cms.model.CourseOffering;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.Speciality;
@@ -66,6 +67,7 @@ class ClassScheduleServiceTest {
     @Mock private PeriodRepository periodRepository;
     @Mock private ClinicalVenueRepository clinicalVenueRepository;
     @Mock private CourseOfferingRepository courseOfferingRepository;
+    @Mock private TimetableSkeletonService timetableSkeletonService;
 
     private ClassScheduleService classScheduleService;
 
@@ -82,7 +84,8 @@ class ClassScheduleServiceTest {
         classScheduleService = new ClassScheduleService(
             classScheduleRepository, labRepository, subjectRepository,
             facultyRepository, termInstanceRepository, batchRepository,
-            classroomRepository, periodRepository, clinicalVenueRepository, courseOfferingRepository
+            classroomRepository, periodRepository, clinicalVenueRepository, courseOfferingRepository,
+            timetableSkeletonService
         );
 
         testSpeciality = new Speciality("Computer Science", "CS", "CS Dept", null, null);
@@ -505,6 +508,14 @@ class ClassScheduleServiceTest {
     }
 
     @Test
+    private CourseOffering courseOfferingWithClinicalDuration(Long id, Integer durationMinutes) {
+        CourseOffering offering = new CourseOffering();
+        offering.setId(id);
+        offering.setClinicalShiftDurationMinutes(durationMinutes);
+        return offering;
+    }
+
+    @Test
     void getScheduleWorkloadSumsRealHoursPerDay_countingBothPublishedAndDraft() {
         Period period60 = new Period("Slot 2", LocalTime.of(11, 0), LocalTime.of(12, 0), 2);
         period60.setId(2L);
@@ -524,6 +535,8 @@ class ClassScheduleServiceTest {
         when(classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(1L, 1L,
             List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)))
             .thenReturn(List.of(monday90, monday60Draft, wednesday90));
+        when(timetableSkeletonService.findClinicalShiftGridEntries(1L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of());
 
         var result = classScheduleService.getScheduleWorkload(1L, 1L);
 
@@ -537,10 +550,65 @@ class ClassScheduleServiceTest {
         assertThat(result.weeklyTotalHours()).isEqualTo(4.0);
     }
 
+    /** OC-263: Clinical Shift Group duty (see ClinicalShiftOccurrenceService) never produces a real
+     *  ClassSchedule row, so a coordinating faculty's Real Weekly Schedule silently read as ~0
+     *  Clinical hours no matter how much duty they actually carried. Both consumers below must fold
+     *  in TimetableSkeletonService#findClinicalShiftGridEntries the same way TimetableController's
+     *  /draft and / (published) endpoints already do. */
+    private ClassScheduleResponse clinicalShiftEntry(Long id, Long facultyId, DayOfWeek dayOfWeek,
+                                                       LocalTime start, LocalTime end) {
+        return new ClassScheduleResponse(id, ClassSessionType.CLINICAL, ClassScheduleStatus.DRAFT,
+            null, null,
+            5L, "Child Health Nursing I", "N-CHN-I",
+            facultyId, "Shiva Kumar",
+            null, "N-CHN-I-301 Clinical Shift (Monday)", start, end,
+            "Clinical - Section 1 - Batch 1", 305L,
+            null, 3L, "SKS Hospital Ward 4",
+            73L, 3,
+            dayOfWeek, 1L, null, true, null, null);
+    }
+
+    @Test
+    void getScheduleWorkload_foldsInClinicalShiftGridEntriesForThisFaculty() {
+        when(facultyRepository.existsById(1L)).thenReturn(true);
+        when(classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(1L, 1L,
+            List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)))
+            .thenReturn(List.of());
+        // Row's own startTime/endTime (7:00-16:00, a 9h bus-inclusive window) is deliberately
+        // wider than the raw 480min/8h clinicalShiftDurationMinutes below -- the fix must use the
+        // raw curriculum duration for hours, not Duration.between(startTime, endTime).
+        when(timetableSkeletonService.findClinicalShiftGridEntries(1L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(
+                clinicalShiftEntry(-1L, 1L, DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(16, 0)), // this faculty
+                clinicalShiftEntry(-2L, 2L, DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(16, 0)))); // a different faculty -- excluded
+        when(courseOfferingRepository.findById(73L)).thenReturn(java.util.Optional.of(courseOfferingWithClinicalDuration(73L, 480)));
+
+        var result = classScheduleService.getScheduleWorkload(1L, 1L);
+
+        assertThat(result.byDay()).filteredOn(d -> d.dayOfWeek().equals("MONDAY"))
+            .extracting(com.cms.dto.FacultyScheduleWorkload.DayHours::hours).containsExactly(8.0);
+        assertThat(result.weeklyTotalHours()).isEqualTo(8.0);
+    }
+
     @Test
     void findByFacultyIdAndTermInstanceId_throwsWhenFacultyNotFound() {
         when(facultyRepository.existsById(999L)).thenReturn(false);
         assertThatThrownBy(() -> classScheduleService.findByFacultyIdAndTermInstanceId(999L, 1L))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void findByFacultyIdAndTermInstanceId_includesClinicalShiftGridEntriesForThisFaculty() {
+        when(facultyRepository.existsById(1L)).thenReturn(true);
+        when(classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(1L, 1L,
+            List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)))
+            .thenReturn(List.of());
+        ClassScheduleResponse shiftEntry = clinicalShiftEntry(-1L, 1L, DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(15, 0));
+        when(timetableSkeletonService.findClinicalShiftGridEntries(1L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(shiftEntry));
+
+        List<ClassScheduleResponse> result = classScheduleService.findByFacultyIdAndTermInstanceId(1L, 1L);
+
+        assertThat(result).containsExactly(shiftEntry);
     }
 }

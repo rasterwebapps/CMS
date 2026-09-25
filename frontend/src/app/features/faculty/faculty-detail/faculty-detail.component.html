@@ -147,7 +147,7 @@
               <p class="field-hint">You don't have permission to view workload details.</p>
             </div>
           } @else {
-            <div class="content-card padded-card workload-toolbar">
+            <div class="workload-toolbar">
               <cms-infinite-select
                 label="Academic year" ariaLabel="Academic year" searchPlaceholder="Search years…"
                 [fetchPage]="workloadAcademicYearFetchPage"
@@ -155,7 +155,8 @@
               />
               <cms-infinite-select
                 label="Term" ariaLabel="Term" searchPlaceholder="Search terms…"
-                [fetchPage]="workloadTermFetchPage"
+                [fetchPage]="workloadTermFetchPage" [resolveLabel]="workloadTermResolveLabel"
+                [reloadKey]="selectedAcademicYearId"
                 [selectedValue]="selectedTermInstanceId" (selectedValueChange)="onTermChange($event)"
                 [disabled]="termsLoading() || termInstances().length === 0"
               />
@@ -169,14 +170,13 @@
               </div>
             } @else if (workload(); as w) {
               <div class="content-card padded-card workload-summary">
-                <span class="cms-badge" [class.cms-badge--soft-red]="w.overCapacity" [class.cms-badge--soft-green]="!w.overCapacity">
-                  {{ w.overCapacity ? 'Over capacity' : 'Within capacity' }}
-                </span>
+                <div class="workload-summary__hdr">
+                  <p class="form-section-title">Term Capacity</p>
+                  <span class="cms-badge" [class.cms-badge--soft-red]="w.overCapacity" [class.cms-badge--soft-green]="!w.overCapacity">
+                    {{ w.overCapacity ? 'Over capacity' : 'Within capacity' }}
+                  </span>
+                </div>
                 <div class="workload-stats">
-                  <div class="profile-stat">
-                    <span class="profile-stat__value">{{ w.totalDemandHours | number: '1.0-1' }}h</span>
-                    <span class="profile-stat__label">Total Hours Assigned</span>
-                  </div>
                   <div class="profile-stat">
                     <span class="profile-stat__value">{{ w.workingDaysInTerm }}</span>
                     <span class="profile-stat__label">Working Days</span>
@@ -186,15 +186,19 @@
                     <span class="profile-stat__label">Capacity Hours</span>
                   </div>
                   <div class="profile-stat">
+                    <span class="profile-stat__value">{{ w.totalDemandHours | number: '1.0-1' }}h</span>
+                    <span class="profile-stat__label">Total Hours Assigned</span>
+                  </div>
+                  <div class="profile-stat">
                     <span class="profile-stat__value">{{ w.effectiveDailyCapacityHours | number: '1.0-1' }}h/day</span>
                     <span class="profile-stat__label">Daily Cap ({{ tierLabel(w.dailyCapacityTier) }})</span>
                   </div>
+                  @if (canManageFaculty()) {
+                    <button type="button" class="btn-secondary workload-stats__action" (click)="openRaiseCap()">Raise Cap…</button>
+                  }
                 </div>
                 @if (w.overCapacity) {
                   <p class="field-hint workload-warning">Short by {{ w.shortfallHours | number: '1.0-1' }}h.</p>
-                }
-                @if (canManageFaculty()) {
-                  <button type="button" class="btn-secondary" (click)="openRaiseCap()">Raise Cap…</button>
                 }
               </div>
 
@@ -216,6 +220,9 @@
               </div>
 
               <div class="content-card table-card">
+                <div class="table-card__hdr">
+                  <p class="form-section-title">Assigned Courses</p>
+                </div>
                 @if (w.assignments.length === 0) {
                   <cms-empty-state
                     icon="menu_book"
@@ -273,6 +280,9 @@
             </div>
           } @else {
             <div class="content-card table-card">
+              <div class="table-card__hdr">
+                <p class="form-section-title">Lab Sessions</p>
+              </div>
               @if (labSchedules().length === 0) {
                 <cms-empty-state
                   icon="schedule"

@@ -17,7 +17,9 @@ import com.cms.model.CohortSection;
 import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
 import com.cms.model.Student;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.OccurrenceStatus;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
@@ -61,6 +63,7 @@ public class BatchService {
     @Transactional
     public BatchDto updateBatch(Long id, BatchRequest request) {
         Batch batch = getOrThrow(id);
+        requireTermNotLocked(batch.getTermInstance());
         requireCurrentVersion(batch.getVersion(), request.version(), batch.getName());
 
         if (!batch.getName().equalsIgnoreCase(request.name())
@@ -278,6 +281,7 @@ public class BatchService {
     @Transactional
     public void reassignCoordinator(Long batchId, Long facultyId, Long requestVersion) {
         Batch batch = getOrThrow(batchId);
+        requireTermNotLocked(batch.getTermInstance());
         requireCurrentVersion(batch.getVersion(), requestVersion, batch.getName());
         applyCoordinator(batch, facultyId);
         batchRepository.save(batch);
@@ -286,6 +290,20 @@ public class BatchService {
     private Batch getOrThrow(Long id) {
         return batchRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Batch not found with id: " + id));
+    }
+
+    /** Blanket rule shared with every other lifecycle guard in the app (see {@code
+     *  CourseOfferingSectionFacultyService#requireTermNotLocked}, {@code
+     *  CourseRegistrationServiceImpl#requireTermNotLocked}, {@code
+     *  TimetableGenerationService#requireNotLocked}): a LOCKED term is frozen, full stop. Covers
+     *  every batch mutation this service exposes (rename/recapacity/coordinator reassignment/
+     *  deactivate all go through {@link #updateBatch}; {@link #reassignCoordinator} is the
+     *  narrower coordinator-only path {@code confirmSubstitutions} uses) -- creation itself is
+     *  already excluded entirely from manual reach (see {@code CohortRoomAllocationService}). */
+    private void requireTermNotLocked(TermInstance term) {
+        if (term.getStatus() == TermInstanceStatus.LOCKED) {
+            throw new IllegalArgumentException("Cannot modify this batch -- this term is locked.");
+        }
     }
 
     private BatchDto toDto(Batch b) {

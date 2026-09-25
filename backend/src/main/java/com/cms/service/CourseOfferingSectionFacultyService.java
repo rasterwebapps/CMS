@@ -34,9 +34,11 @@ import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
 import com.cms.model.Subject;
+import com.cms.model.TermInstance;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.OfferingAssignmentStatus;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortSectionRepository;
@@ -298,6 +300,7 @@ public class CourseOfferingSectionFacultyService {
     public SectionFacultyAssignment upsert(Long offeringId, Long cohortSectionId, Long facultyId, Long requestVersion) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
+        requireTermNotLocked(offering.getTermInstance());
 
         List<Cohort> cohorts = resolveCohorts(offering);
         CohortSection section = cohorts.stream()
@@ -442,6 +445,18 @@ public class CourseOfferingSectionFacultyService {
         return cohortId + "|" + cohortSectionId;
     }
 
+    /** Blanket rule shared with every other lifecycle guard in the app (see {@code
+     *  CourseRegistrationServiceImpl#requireTermNotLocked}, {@code
+     *  TimetableGenerationService#requireNotLocked}): a LOCKED term is frozen, full stop. Applies
+     *  to both {@link #upsert}/{@link #upsertForCohort} directly (manual Reassign) and, through
+     *  them, to {@link #autoAssignTheory}/{@link #confirmSubstitutions} -- there is no separate
+     *  bypass for an automated or batch-confirmed reassignment. */
+    private void requireTermNotLocked(TermInstance term) {
+        if (term.getStatus() == TermInstanceStatus.LOCKED) {
+            throw new IllegalArgumentException("Cannot reassign faculty -- this term is locked.");
+        }
+    }
+
     /** Same optimistic-lock check {@link com.cms.service.BatchService} uses -- rejects a stale
      *  save (including one whose client thought no row existed yet, but one now does) instead of
      *  silently overwriting a concurrent change. */
@@ -460,6 +475,7 @@ public class CourseOfferingSectionFacultyService {
     public SectionFacultyAssignment upsertForCohort(Long offeringId, Long cohortId, Long facultyId, Long requestVersion) {
         CourseOffering offering = courseOfferingRepository.findById(offeringId)
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + offeringId));
+        requireTermNotLocked(offering.getTermInstance());
 
         Cohort cohort = resolveCohorts(offering).stream()
             .filter(c -> c.getId().equals(cohortId))

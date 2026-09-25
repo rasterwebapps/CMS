@@ -39,6 +39,7 @@ import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.CohortRepository;
 import com.cms.repository.CohortSectionRepository;
@@ -292,6 +293,26 @@ class CourseOfferingSectionFacultyServiceTest {
         assertThat(summaries).hasSize(1);
         assertThat(summaries.get(0).assignedFacultyNames()).isEmpty();
         assertThat(summaries.get(0).assignmentStatus()).isEqualTo(com.cms.model.enums.OfferingAssignmentStatus.NONE);
+    }
+
+    @Test
+    void upsert_rejectsOnLockedTerm() {
+        termInstance.setStatus(TermInstanceStatus.LOCKED);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+
+        assertThatThrownBy(() -> service.upsert(100L, 201L, 1L, null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("locked");
+    }
+
+    @Test
+    void upsertForCohort_rejectsOnLockedTerm() {
+        termInstance.setStatus(TermInstanceStatus.LOCKED);
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+
+        assertThatThrownBy(() -> service.upsertForCohort(100L, 1L, 1L, null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("locked");
     }
 
     @Test

@@ -52,6 +52,7 @@ public class ClassScheduleService {
     private final PeriodRepository periodRepository;
     private final ClinicalVenueRepository clinicalVenueRepository;
     private final CourseOfferingRepository courseOfferingRepository;
+    private final TimetableSkeletonService timetableSkeletonService;
 
     public ClassScheduleService(ClassScheduleRepository classScheduleRepository,
                                LabRepository labRepository,
@@ -62,7 +63,8 @@ public class ClassScheduleService {
                                ClassroomRepository classroomRepository,
                                PeriodRepository periodRepository,
                                ClinicalVenueRepository clinicalVenueRepository,
-                               CourseOfferingRepository courseOfferingRepository) {
+                               CourseOfferingRepository courseOfferingRepository,
+                               TimetableSkeletonService timetableSkeletonService) {
         this.classScheduleRepository = classScheduleRepository;
         this.labRepository = labRepository;
         this.subjectRepository = subjectRepository;
@@ -73,6 +75,7 @@ public class ClassScheduleService {
         this.periodRepository = periodRepository;
         this.clinicalVenueRepository = clinicalVenueRepository;
         this.courseOfferingRepository = courseOfferingRepository;
+        this.timetableSkeletonService = timetableSkeletonService;
     }
 
     @Transactional
@@ -221,14 +224,24 @@ public class ClassScheduleService {
     /** This faculty's real sessions for one term — both PUBLISHED and DRAFT, matching the same
      *  convention {@link FacultyWorkloadCapacityService} already uses so this can never disagree
      *  with the hard workload-cap gate: an unpublished DRAFT still represents a real committed
-     *  slot, not a hypothetical one. Backs the Faculty Detail Lab Schedules tab. */
+     *  slot, not a hypothetical one. Backs the Faculty Detail Lab Schedules tab.
+     *
+     *  <p>Also merges this faculty's Clinical Shift Group coordination entries (see {@link
+     *  #clinicalShiftEntriesForFaculty}) -- without this, a faculty coordinating Clinical batches
+     *  for a shift-scheduled program (see {@code Program#getUsesClinicalShiftScheduling}) looked
+     *  like they had no Clinical sessions at all, since that duty never produces a real {@link
+     *  ClassSchedule} row (same root cause fixed for Timetable Date-wise/Day in the "fix missing
+     *  Clinical occurrences" commit -- this endpoint was the one consumer that commit missed). */
     public List<ClassScheduleResponse> findByFacultyIdAndTermInstanceId(Long facultyId, Long termInstanceId) {
         if (!facultyRepository.existsById(facultyId)) {
             throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
         }
-        return classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(termInstanceId, facultyId,
-            List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT))
-            .stream().map(this::toResponse).toList();
+        List<ClassScheduleResponse> rows = new ArrayList<>(
+            classScheduleRepository.findByTermInstanceIdAndFacultyIdAndStatusInAndIsActiveTrue(termInstanceId, facultyId,
+                List.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT))
+                .stream().map(this::toResponse).toList());
+        rows.addAll(clinicalShiftEntriesForFaculty(facultyId, termInstanceId));
+        return rows;
     }
 
     /** Real, actually-placed per-day/per-week hours for one faculty in a term -- distinct from
@@ -236,7 +249,8 @@ public class ClassScheduleService {
      *  a subject's hours *should* add up to, not what's actually on the real timetable. Same
      *  PUBLISHED+DRAFT convention and {@code Period.getDurationMinutes() / 60.0} per-row hours
      *  calculation as {@link FacultyWorkloadCapacityService#getTermWorkloadReport}, reused here
-     *  rather than re-derived so the two can never disagree. */
+     *  rather than re-derived so the two can never disagree. Clinical Shift coordination hours
+     *  (see {@link #findByFacultyIdAndTermInstanceId}'s javadoc) are folded in the same way. */
     public FacultyScheduleWorkload getScheduleWorkload(Long facultyId, Long termInstanceId) {
         if (!facultyRepository.existsById(facultyId)) {
             throw new ResourceNotFoundException("Faculty not found with id: " + facultyId);
@@ -257,11 +271,55 @@ public class ClassScheduleService {
             byDay.merge(cs.getDayOfWeek(), hours, Double::sum);
             total += hours;
         }
+        for (ClassScheduleResponse shift : clinicalShiftEntriesForFaculty(facultyId, termInstanceId)) {
+            if (shift.dayOfWeek() == null) {
+                continue;
+            }
+            double hours = clinicalShiftRawHours(shift);
+            byDay.merge(shift.dayOfWeek(), hours, Double::sum);
+            total += hours;
+        }
 
         List<FacultyScheduleWorkload.DayHours> dayHours = byDay.entrySet().stream()
             .map(e -> new FacultyScheduleWorkload.DayHours(e.getKey().name(), e.getValue()))
             .toList();
         return new FacultyScheduleWorkload(facultyId, termInstanceId, dayHours, total);
+    }
+
+    /** Synthetic Clinical Shift grid entries (see {@link TimetableSkeletonService#findClinicalShiftGridEntries})
+     *  coordinated by this faculty -- {@code DRAFT} unconditionally returns every active shift
+     *  group's batch entries regardless of the batch's cohort's real publish state (see that
+     *  method's javadoc), so a single DRAFT-status call is the complete set; calling PUBLISHED too
+     *  would double-count every already-published cohort's entries under both labels. Matches the
+     *  same "an unpublished DRAFT still represents a real committed slot" reasoning this class
+     *  already applies to real {@link ClassSchedule} rows above -- neither caller here renders the
+     *  returned {@code status} field, so the DRAFT label on an actually-published cohort's entry is
+     *  inconsequential. */
+    private List<ClassScheduleResponse> clinicalShiftEntriesForFaculty(Long facultyId, Long termInstanceId) {
+        return timetableSkeletonService.findClinicalShiftGridEntries(termInstanceId, ClassScheduleStatus.DRAFT).stream()
+            .filter(r -> facultyId.equals(r.facultyId()))
+            .toList();
+    }
+
+    /** This shift's real clinical duty duration alone -- deliberately NOT {@code
+     *  Duration.between(shift.startTime(), shift.endTime())}, which is the bus-inclusive window
+     *  (raw clinical time +/- {@code CourseOffering#getClinicalTravelBufferMinutes()} travel
+     *  buffer each way, see {@code ClinicalShiftWindow}). Workload/committed-hours figures must
+     *  stay on the same footing as {@code computeTermDemand}'s curriculum-derived demand (which
+     *  also uses raw {@code clinicalHours}, never bus-inclusive) so a fully-staffed faculty's
+     *  committed hours land close to their demand instead of permanently running high by the
+     *  travel buffer -- per explicit product direction (2026-09-25). The row's own displayed
+     *  {@code startTime}/{@code endTime} stay bus-inclusive everywhere else (Lab Schedules tab,
+     *  Timetable/Draft Review grids) since those correctly represent when the faculty is actually
+     *  away, not just teaching. */
+    private double clinicalShiftRawHours(ClassScheduleResponse shift) {
+        if (shift.courseOfferingId() == null) {
+            return 0;
+        }
+        Integer durationMinutes = courseOfferingRepository.findById(shift.courseOfferingId())
+            .map(CourseOffering::getClinicalShiftDurationMinutes)
+            .orElse(null);
+        return durationMinutes == null ? 0 : durationMinutes / 60.0;
     }
 
     public List<ClassScheduleResponse> findByBatchName(String batchName) {

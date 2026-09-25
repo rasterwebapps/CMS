@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.FacultyWorkloadReportResponse;
 import com.cms.dto.FacultyWorkloadRow;
 import com.cms.exception.ResourceNotFoundException;
@@ -20,11 +21,14 @@ import com.cms.model.CourseOffering;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyAvailability;
+import com.cms.model.Period;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.PeriodRepository;
 import com.cms.repository.TermInstanceRepository;
 
 /**
@@ -48,6 +52,9 @@ public class FacultyWorkloadCapacityService {
     private final FacultyAvailabilityRepository facultyAvailabilityRepository;
     private final TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
     private final SystemConfigurationService systemConfigurationService;
+    private final TimetableSkeletonService timetableSkeletonService;
+    private final PeriodRepository periodRepository;
+    private final CourseOfferingRepository courseOfferingRepository;
 
     private static final String MIN_WEEKLY_SESSIONS_KEY = "timetable.faculty_min_weekly_sessions";
 
@@ -56,13 +63,19 @@ public class FacultyWorkloadCapacityService {
                                            FacultyRepository facultyRepository,
                                            FacultyAvailabilityRepository facultyAvailabilityRepository,
                                            TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService,
-                                           SystemConfigurationService systemConfigurationService) {
+                                           SystemConfigurationService systemConfigurationService,
+                                           TimetableSkeletonService timetableSkeletonService,
+                                           PeriodRepository periodRepository,
+                                           CourseOfferingRepository courseOfferingRepository) {
         this.termInstanceRepository = termInstanceRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.facultyRepository = facultyRepository;
         this.facultyAvailabilityRepository = facultyAvailabilityRepository;
         this.timetableGlobalAutoScheduleService = timetableGlobalAutoScheduleService;
         this.systemConfigurationService = systemConfigurationService;
+        this.timetableSkeletonService = timetableSkeletonService;
+        this.periodRepository = periodRepository;
+        this.courseOfferingRepository = courseOfferingRepository;
     }
 
     public FacultyWorkloadReportResponse getTermWorkloadReport(Long termInstanceId) {
@@ -86,8 +99,10 @@ public class FacultyWorkloadCapacityService {
         // sessions floor is configured in (2026-09-24), kept alongside committedByFaculty's real
         // HOURS figure rather than replacing it: hours stay the honest INC/university-reporting
         // number (derived from each session's own real Period duration), while the floor check
-        // below needs a plain count, not a sum of variable-length periods.
-        Map<Long, Integer> sessionCountByFaculty = new HashMap<>();
+        // below needs a plain count, not a sum of variable-length periods. Fractional since
+        // 2026-09-25 (see the Clinical Shift merge below) -- a real ClassSchedule row still always
+        // contributes exactly 1.0.
+        Map<Long, Double> sessionCountByFaculty = new HashMap<>();
         for (ClassSchedule schedule : Stream.of(ClassScheduleStatus.PUBLISHED, ClassScheduleStatus.DRAFT)
                 .flatMap(status -> classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(termInstanceId, status).stream())
                 .toList()) {
@@ -97,7 +112,35 @@ public class FacultyWorkloadCapacityService {
             }
             double hours = schedule.getPeriod().getDurationMinutes() / 60.0;
             committedByFaculty.merge(faculty.getId(), hours, Double::sum);
-            sessionCountByFaculty.merge(faculty.getId(), 1, Integer::sum);
+            sessionCountByFaculty.merge(faculty.getId(), 1.0, Double::sum);
+        }
+
+        // Clinical Shift Group duty (see ClinicalShiftOccurrenceService) never produces a real
+        // ClassSchedule row, so without this both committed hours and session count silently read
+        // as if a shift-scheduled faculty's Clinical coordination didn't exist. Uses the shift's
+        // raw clinical duration (CourseOffering#getClinicalShiftDurationMinutes), NOT the
+        // bus-inclusive startTime/endTime window findClinicalShiftGridEntries returns for display
+        // (that includes travel buffer each way) -- committed hours must stay on the same footing
+        // as demandByFaculty above, which is also raw curriculum clinicalHours, never
+        // bus-inclusive (2026-09-25 product direction). Periods-equivalent is fractional, not
+        // rounded (CurriculumHoursCalculator#clinicalShiftPeriodsEquivalent) -- e.g. a 370-minute
+        // shift against a 50-minute period is 7.4, not 7 or 8.
+        double periodDurationMinutes = CurriculumHoursCalculator.averageDurationMinutes(
+            periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc().stream().map(Period::getDurationMinutes).toList());
+        Map<Long, Integer> clinicalShiftDurationByOffering = new HashMap<>();
+        for (ClassScheduleResponse shift : timetableSkeletonService.findClinicalShiftGridEntries(termInstanceId, ClassScheduleStatus.DRAFT)) {
+            if (shift.facultyId() == null || shift.courseOfferingId() == null) {
+                continue;
+            }
+            Integer durationMinutes = clinicalShiftDurationByOffering.computeIfAbsent(shift.courseOfferingId(),
+                id -> courseOfferingRepository.findById(id).map(CourseOffering::getClinicalShiftDurationMinutes).orElse(null));
+            if (durationMinutes == null || durationMinutes <= 0) {
+                continue;
+            }
+            double hours = durationMinutes / 60.0;
+            double periods = CurriculumHoursCalculator.clinicalShiftPeriodsEquivalent(durationMinutes, periodDurationMinutes);
+            committedByFaculty.merge(shift.facultyId(), hours, Double::sum);
+            sessionCountByFaculty.merge(shift.facultyId(), periods, Double::sum);
         }
 
         Set<Long> facultyIds = new HashSet<>(demandByFaculty.keySet());
@@ -122,7 +165,7 @@ public class FacultyWorkloadCapacityService {
             double demand = demandByFaculty.getOrDefault(faculty.getId(), 0.0);
             double committed = committedByFaculty.getOrDefault(faculty.getId(), 0.0);
             double blocked = blockedByFaculty.getOrDefault(faculty.getId(), 0.0);
-            int actualSessions = sessionCountByFaculty.getOrDefault(faculty.getId(), 0);
+            double actualSessions = sessionCountByFaculty.getOrDefault(faculty.getId(), 0.0);
 
             Integer effective = resolveEffectiveCapacity(faculty);
             boolean configured = effective != null;

@@ -79,6 +79,22 @@ public final class CurriculumHoursCalculator {
         return (int) Math.max(1, Math.ceil(totalHours / hoursPerOccurrence));
     }
 
+    /** Clinical Shift duty's period-equivalent, for the same unit the weekly-sessions floor/
+     *  ceiling ({@code FacultyWorkloadCapacityService}) is configured in — fractional, not
+     *  rounded, since a shift's real-world duration rarely lines up with a whole number of
+     *  periods (e.g. a 370-minute shift against a 50-minute period is 7.4, not 7 or 8 — per
+     *  explicit product direction, the fraction is kept rather than ceiling/floor-ing it, unlike
+     *  {@link #weeksNeededFor}'s deliberate whole-week rounding for a different purpose). {@code
+     *  periodDurationMinutes} should be {@link #averageDurationMinutes} of the institution's
+     *  active Period pool, matching every other hours&lt;-&gt;periods conversion in this class.
+     *  Zero when either input is non-positive. */
+    public static double clinicalShiftPeriodsEquivalent(long durationMinutes, double periodDurationMinutes) {
+        if (durationMinutes <= 0 || periodDurationMinutes <= 0) {
+            return 0;
+        }
+        return durationMinutes / periodDurationMinutes;
+    }
+
     /** One representative duration for a pool of periods (a single duration, not exact per-slot
      *  minute accumulation) — correct today since every period in this system is configured
      *  uniformly, and a reasonable approximation if that ever changes. Falls back to 60 minutes

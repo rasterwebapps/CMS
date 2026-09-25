@@ -260,7 +260,7 @@
                       <span class="cap-fw-unconfigured">Not configured</span>
                     }
                   </td>
-                  <td class="cell-align-right">{{ row.actualSessionsPerWeek }}</td>
+                  <td class="cell-align-right">{{ row.actualSessionsPerWeek | number:'1.0-1' }}</td>
                   <td class="cell-align-right">
                     @if (row.minSessionsConfigured) {
                       {{ row.effectiveMinSessions }}

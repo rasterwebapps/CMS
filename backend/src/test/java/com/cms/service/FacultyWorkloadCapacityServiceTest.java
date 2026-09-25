@@ -16,19 +16,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.FacultyWorkloadReportResponse;
 import com.cms.dto.FacultyWorkloadRow;
 import com.cms.model.ClassSchedule;
+import com.cms.model.CourseOffering;
 import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.FacultyAvailability;
 import com.cms.model.Period;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
+import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyAvailabilityRepository;
 import com.cms.repository.FacultyRepository;
+import com.cms.repository.PeriodRepository;
 import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +45,9 @@ class FacultyWorkloadCapacityServiceTest {
     @Mock private FacultyAvailabilityRepository facultyAvailabilityRepository;
     @Mock private TimetableGlobalAutoScheduleService timetableGlobalAutoScheduleService;
     @Mock private SystemConfigurationService systemConfigurationService;
+    @Mock private TimetableSkeletonService timetableSkeletonService;
+    @Mock private PeriodRepository periodRepository;
+    @Mock private CourseOfferingRepository courseOfferingRepository;
 
     private FacultyWorkloadCapacityService service;
     private TermInstance term;
@@ -48,7 +56,7 @@ class FacultyWorkloadCapacityServiceTest {
     void setUp() {
         service = new FacultyWorkloadCapacityService(termInstanceRepository,
             classScheduleRepository, facultyRepository, facultyAvailabilityRepository, timetableGlobalAutoScheduleService,
-            systemConfigurationService);
+            systemConfigurationService, timetableSkeletonService, periodRepository, courseOfferingRepository);
 
         term = new TermInstance();
         term.setId(10L);
@@ -60,6 +68,26 @@ class FacultyWorkloadCapacityServiceTest {
         lenient().when(timetableGlobalAutoScheduleService.getTermTotalDemandByFaculty(10L)).thenReturn(Map.of());
         lenient().when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(eq(10L), org.mockito.ArgumentMatchers.any()))
             .thenReturn(List.of());
+        lenient().when(timetableSkeletonService.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of());
+        Period uniformPeriod = new Period();
+        uniformPeriod.setDurationMinutes(50);
+        lenient().when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(uniformPeriod));
+    }
+
+    private ClassScheduleResponse clinicalShiftEntry(Long facultyId, DayOfWeek dayOfWeek, LocalTime start, LocalTime end) {
+        return new ClassScheduleResponse(-1L, ClassSessionType.CLINICAL, ClassScheduleStatus.DRAFT,
+            null, null, 5L, "Child Health Nursing I", "N-CHN-I",
+            facultyId, "Faculty", null, "Clinical Shift (Monday)", start, end,
+            "Clinical - Section 1 - Batch 1", 305L, null, 3L, "SKS Hospital Ward 4",
+            73L, 3, dayOfWeek, 10L, null, true, null, null);
+    }
+
+    private CourseOffering courseOfferingWithClinicalDuration(Long id, Integer durationMinutes) {
+        CourseOffering offering = new CourseOffering();
+        offering.setId(id);
+        offering.setClinicalShiftDurationMinutes(durationMinutes);
+        return offering;
     }
 
     private Faculty faculty(Long id, String name, DesignationMaster designation, Integer override) {
@@ -255,6 +283,36 @@ class FacultyWorkloadCapacityServiceTest {
         FacultyWorkloadRow row = report.rows().get(0);
         assertThat(row.effectiveMinSessions()).isEqualTo(10);
         assertThat(row.belowMinimum()).isTrue();
+    }
+
+    /** OC-263: Clinical Shift Group duty never produces a real ClassSchedule row (see
+     *  ClinicalShiftOccurrenceService), so without folding in findClinicalShiftGridEntries, a
+     *  faculty coordinating one read as if they had no committed hours/sessions at all no matter
+     *  how much duty they actually carried. Periods-equivalent is fractional (370min / 50min-period
+     *  = 7.4), per explicit product direction -- not rounded to 7 or 8. */
+    @Test
+    void shouldFoldClinicalShiftDutyIntoCommittedHoursAndFractionalSessionCount() {
+        DesignationMaster designation = designation(20);
+        Faculty f = faculty(11L, "Shiva", designation, null);
+
+        // Row's own startTime/endTime (7:00-15:00, a 8h bus-inclusive window) is deliberately
+        // wider than the raw 370min/6h10m clinicalShiftDurationMinutes stubbed below -- the fix
+        // must use the raw curriculum duration for hours/periods, not the displayed window.
+        when(timetableSkeletonService.findClinicalShiftGridEntries(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(
+                clinicalShiftEntry(11L, DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(15, 0)), // this faculty
+                clinicalShiftEntry(99L, DayOfWeek.MONDAY, LocalTime.of(7, 0), LocalTime.of(15, 0)))); // a different faculty -- excluded
+        when(courseOfferingRepository.findById(73L)).thenReturn(java.util.Optional.of(
+            courseOfferingWithClinicalDuration(73L, 370)));
+        when(facultyRepository.findAllById(java.util.Set.of(11L, 99L))).thenReturn(List.of(f));
+        lenient().when(facultyAvailabilityRepository.findByFacultyIdInOrderByDayOfWeekAscStartTimeAsc(org.mockito.ArgumentMatchers.anyList()))
+            .thenReturn(List.of());
+
+        FacultyWorkloadReportResponse report = service.getTermWorkloadReport(10L);
+
+        FacultyWorkloadRow row = report.rows().get(0);
+        assertThat(row.committedHoursPerWeek()).isEqualTo(370.0 / 60.0);
+        assertThat(row.actualSessionsPerWeek()).isEqualTo(7.4, org.assertj.core.data.Offset.offset(0.001));
     }
 
     @Test

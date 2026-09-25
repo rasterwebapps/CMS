@@ -23,6 +23,7 @@ import com.cms.model.CourseOffering;
 import com.cms.model.Faculty;
 import com.cms.model.Student;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.CourseOfferingRepository;
@@ -245,6 +246,38 @@ class BatchServiceTest {
         service.deleteOrphanedInactiveBatches(java.util.Set.of(289L));
 
         verify(batchRepository, never()).delete(any());
+    }
+
+    @Test
+    void shouldRejectUpdateBatchOnLockedTerm() {
+        testOffering.getTermInstance().setStatus(TermInstanceStatus.LOCKED);
+        Batch batch = new Batch(testOffering, "Batch A", 20, testOffering.getTermInstance());
+        batch.setId(1L);
+
+        when(batchRepository.findById(1L)).thenReturn(Optional.of(batch));
+
+        BatchRequest request = new BatchRequest(1L, "Batch A", 20, null, null);
+
+        assertThatThrownBy(() -> service.updateBatch(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("locked");
+
+        verify(batchRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectReassignCoordinatorOnLockedTerm() {
+        testOffering.getTermInstance().setStatus(TermInstanceStatus.LOCKED);
+        Batch batch = new Batch(testOffering, "Batch A", 20, testOffering.getTermInstance());
+        batch.setId(1L);
+
+        when(batchRepository.findById(1L)).thenReturn(Optional.of(batch));
+
+        assertThatThrownBy(() -> service.reassignCoordinator(1L, 28L, null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("locked");
+
+        verify(batchRepository, never()).save(any());
     }
 
     @Test
