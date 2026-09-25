@@ -24,6 +24,13 @@ export class RaiseCapFlyoutComponent implements OnInit {
   readonly facultyId = input.required<number>();
   readonly facultyName = input.required<string>();
   readonly currentDailyCap = input<number | null>(null);
+  /** Pre-fills the field with a number already known to clear a specific block (e.g. the Global
+   *  Auto-Schedule capacity error's own "raise their cap to at least N period(s)/day" figure)
+   *  instead of leaving the admin to work that out from {@link currentDailyCap} themselves.
+   *  Ignored (falls back to {@link currentDailyCap}, this flyout's original behavior) when unset —
+   *  Faculty Detail/Capacity Planner don't pass it, since neither opens this for a specific
+   *  known-insufficient block. */
+  readonly suggestedDailyCap = input<number | null>(null);
 
   readonly closed = output<void>();
   readonly saved = output<void>();
@@ -33,7 +40,7 @@ export class RaiseCapFlyoutComponent implements OnInit {
 
   /** Signal inputs aren't guaranteed bound until ngOnInit — reading them any earlier throws NG0950. */
   ngOnInit(): void {
-    this.newDailyCap = this.currentDailyCap();
+    this.newDailyCap = this.suggestedDailyCap() ?? this.currentDailyCap();
   }
 
   protected onSave(): void {

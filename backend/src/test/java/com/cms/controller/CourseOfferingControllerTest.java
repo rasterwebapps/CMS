@@ -136,7 +136,7 @@ class CourseOfferingControllerTest {
     @Test
     void checkFacultyCapacityForCohort() throws Exception {
         com.cms.dto.FacultyCapacityCheckResult check =
-            new com.cms.dto.FacultyCapacityCheckResult(false, 0, 10, 10, 100, 5, "NONE", 100, 0, List.of());
+            new com.cms.dto.FacultyCapacityCheckResult(false, 0, 10, 10, 100, 5, "NONE", 100, 0, 0, List.of());
         when(timetableGlobalAutoScheduleService.checkFacultyCapacityForCohort(1L, 9L, 42L)).thenReturn(check);
 
         mockMvc.perform(get("/course-offerings/1/cohort-faculty-capacity-check")

@@ -1,0 +1,36 @@
+<h2 mat-dialog-title>Swap Faculty</h2>
+
+<mat-dialog-content class="ssm-content">
+  <p class="ssm-summary">
+    <strong>{{ data.occurrence.session.subjectName }}</strong>
+    on {{ data.occurrence.date }}, {{ data.occurrence.session.startTime }}–{{ data.occurrence.session.endTime }}
+  </p>
+  <p class="ssm-current">Current faculty: <strong>{{ data.occurrence.session.facultyName || '—' }}</strong></p>
+
+  @if (loading()) {
+    <div class="ssm-loading">
+      <mat-spinner diameter="28" aria-label="Loading swap candidates"></mat-spinner>
+    </div>
+  } @else if (candidates().length === 0) {
+    <p class="ssm-empty">No mutually-available session to swap with on this date.</p>
+  } @else {
+    <div class="field-group">
+      <label class="field-label" for="ssm-candidate">Swap With</label>
+      <select id="ssm-candidate" class="field-select" [(ngModel)]="selectedClassScheduleId">
+        <option [ngValue]="null">Select a session</option>
+        @for (c of candidates(); track c.classScheduleId) {
+          <option [ngValue]="c.classScheduleId">
+            {{ c.subjectName }} — {{ c.facultyName }} ({{ c.startTime }}–{{ c.endTime }})
+          </option>
+        }
+      </select>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" class="btn-cancel" (click)="close()" [disabled]="saving()">Close</button>
+  <button type="button" class="btn-primary" [disabled]="!selectedClassScheduleId || saving()" (click)="confirmSwap()">
+    @if (saving()) { <span class="btn-spinner"></span> Swapping… } @else { Swap }
+  </button>
+</mat-dialog-actions>

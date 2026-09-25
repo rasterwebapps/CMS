@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.cms.model.SessionOccurrence;
+import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.OccurrenceSource;
 import com.cms.model.enums.OccurrenceStatus;
 import com.cms.model.enums.SpecialClassApprovalStatus;
@@ -73,6 +74,13 @@ public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurr
     /** Every occurrence (any source -- REGULAR relocation, SPECIAL_CLASS, DAY_REPEAT) on one
      *  date, used by {@code RoomRelocationService}'s date-specific room-conflict check. */
     List<SessionOccurrence> findByOccurrenceDate(LocalDate occurrenceDate);
+
+    /** Every REGULAR occurrence that Reschedule has moved onto a date within this window --
+     *  {@code TimetableOccurrenceService.findOccurrences}' per-schedule natural-date walk can never
+     *  discover these on its own, since by definition the target date isn't one of that schedule's
+     *  own recurring dates; fetched directly by date range + status instead. */
+    List<SessionOccurrence> findByOccurrenceStatusAndOccurrenceDateBetweenAndClassSchedule_TermInstance_IdAndClassSchedule_Status(
+        OccurrenceStatus occurrenceStatus, LocalDate from, LocalDate to, Long termInstanceId, ClassScheduleStatus status);
 
     // ---- OC-175: CLINICAL_SHIFT idempotent-generation existence checks ----
 

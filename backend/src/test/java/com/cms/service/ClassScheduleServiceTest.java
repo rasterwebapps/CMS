@@ -229,6 +229,39 @@ class ClassScheduleServiceTest {
     }
 
     @Test
+    void shouldFindPageOfClassSchedules() {
+        ClassSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
+            testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
+        org.springframework.data.domain.Pageable pageable =
+            org.springframework.data.domain.PageRequest.of(0, 25);
+        when(classScheduleRepository.findAll(
+                org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<ClassSchedule>>any(),
+                org.mockito.ArgumentMatchers.eq(pageable)))
+            .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(schedule)));
+
+        org.springframework.data.domain.Page<ClassScheduleResponse> page =
+            classScheduleService.findPage(null, null, null, null, null, null, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).batchName()).isEqualTo("Batch-A");
+    }
+
+    @Test
+    void shouldFindAllMatchingForExport() {
+        ClassSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
+            testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);
+        when(classScheduleRepository.findAll(
+                org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<ClassSchedule>>any(),
+                org.mockito.ArgumentMatchers.<org.springframework.data.domain.Sort>any()))
+            .thenReturn(List.of(schedule));
+
+        List<ClassScheduleResponse> responses = classScheduleService.findAllMatching(
+            "data", null, null, null, null, null, org.springframework.data.domain.Sort.by("dayOrder"));
+
+        assertThat(responses).hasSize(1);
+    }
+
+    @Test
     void shouldFindClassScheduleById() {
         ClassSchedule schedule = createLabSchedule(1L, testLab, testCourse, testFaculty,
             testPeriod, "Batch-A", DayOfWeek.MONDAY, testTermInstance, true);

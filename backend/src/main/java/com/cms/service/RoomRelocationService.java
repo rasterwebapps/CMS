@@ -193,7 +193,7 @@ public class RoomRelocationService {
             if (existingOccurrenceId != null && other.getId().equals(existingOccurrenceId)) {
                 continue;
             }
-            Period otherPeriod = effectivePeriod(other);
+            Period otherPeriod = other.getEffectivePeriod();
             if (otherPeriod == null || !otherPeriod.getId().equals(period.getId())) {
                 continue;
             }
@@ -210,12 +210,6 @@ public class RoomRelocationService {
             }
         }
         return violations;
-    }
-
-    private static Period effectivePeriod(SessionOccurrence occurrence) {
-        return occurrence.getOccurrenceSource() == OccurrenceSource.REGULAR
-            ? occurrence.getClassSchedule().getPeriod()
-            : occurrence.getPeriod();
     }
 
     private static ClassSessionType effectiveSessionType(SessionOccurrence occurrence) {

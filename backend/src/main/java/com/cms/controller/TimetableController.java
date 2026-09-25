@@ -35,6 +35,7 @@ import com.cms.dto.TimetableApproveRequest;
 import com.cms.dto.TimetableCohortActionRequest;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.service.ClassScheduleExportService;
 import com.cms.service.ClassScheduleService;
 import com.cms.service.PersonalTimetableService;
 import com.cms.service.ProfileService;
@@ -44,6 +45,8 @@ import com.cms.service.TimetableGenerationService;
 import com.cms.service.TimetableOccurrenceService;
 import com.cms.service.TimetableSkeletonService;
 import com.cms.service.TimetableSwapService;
+import com.cms.util.export.ExportMetadata;
+import com.cms.util.export.ExportResponseFactory;
 
 import jakarta.validation.Valid;
 
@@ -60,6 +63,7 @@ public class TimetableController {
     private final ResourceGridService resourceGridService;
     private final TimetableSkeletonService timetableSkeletonService;
     private final TimetableConflictInspectorService timetableConflictInspectorService;
+    private final ClassScheduleExportService classScheduleExportService;
 
     public TimetableController(TimetableGenerationService timetableGenerationService,
                                 TimetableSwapService timetableSwapService,
@@ -69,7 +73,8 @@ public class TimetableController {
                                 TimetableOccurrenceService timetableOccurrenceService,
                                 ResourceGridService resourceGridService,
                                 TimetableSkeletonService timetableSkeletonService,
-                                TimetableConflictInspectorService timetableConflictInspectorService) {
+                                TimetableConflictInspectorService timetableConflictInspectorService,
+                                ClassScheduleExportService classScheduleExportService) {
         this.timetableGenerationService = timetableGenerationService;
         this.timetableSwapService = timetableSwapService;
         this.classScheduleService = classScheduleService;
@@ -79,6 +84,7 @@ public class TimetableController {
         this.resourceGridService = resourceGridService;
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableConflictInspectorService = timetableConflictInspectorService;
+        this.classScheduleExportService = classScheduleExportService;
     }
 
     @GetMapping("/resource-grid/faculty")
@@ -154,6 +160,25 @@ public class TimetableController {
         ProfileIdentity identity = profileService.resolveCurrentUser();
         return ResponseEntity.ok(
             timetableOccurrenceService.findOccurrences(identity, termInstanceId, from, to, scope, cohortId));
+    }
+
+    /** Same data the Class Schedules date-wise browser shows (a single day's occurrences, {@code
+     *  scope=browse}, unscoped by cohort) — export always reflects exactly what's on screen, same
+     *  convention as every other export endpoint in the app. */
+    @GetMapping("/occurrences/export")
+    @PreAuthorize("@perm.has('TIMETABLE_OCCURRENCE_EXPORT')")
+    public ResponseEntity<byte[]> exportOccurrences(
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam Long termInstanceId,
+            @RequestParam LocalDate date) {
+        ProfileIdentity identity = profileService.resolveCurrentUser();
+        List<ClassScheduleOccurrenceResponse> data =
+            timetableOccurrenceService.findOccurrences(identity, termInstanceId, date, date, "browse");
+
+        ExportMetadata meta = ExportMetadata.of("Class Schedules Export").filter("Date", date.toString());
+        return ExportResponseFactory.respond(format, "class-schedules",
+            () -> classScheduleExportService.toExcelOccurrences(data, meta),
+            () -> classScheduleExportService.toPdfOccurrences(data, meta));
     }
 
     @GetMapping("/draft")

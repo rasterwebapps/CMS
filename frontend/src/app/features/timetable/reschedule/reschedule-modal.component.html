@@ -1,0 +1,57 @@
+<h2 mat-dialog-title>Reschedule Session</h2>
+
+<mat-dialog-content class="rsm-content">
+  <p class="rsm-summary">
+    <strong>{{ data.occurrence.session.subjectName }}</strong>
+    currently on {{ sourceDate }}, {{ data.occurrence.session.startTime }}–{{ data.occurrence.session.endTime }}
+    in {{ data.occurrence.session.roomName || '—' }}
+  </p>
+
+  <div class="field-group">
+    <label class="field-label" for="rsm-date">New Date</label>
+    <input
+      id="rsm-date"
+      class="field-input"
+      type="date"
+      [(ngModel)]="targetDate"
+      (ngModelChange)="onTargetChanged()"
+    />
+  </div>
+
+  <div class="field-group">
+    <label class="field-label" for="rsm-period">New Period</label>
+    <select id="rsm-period" class="field-select" [(ngModel)]="selectedPeriodId" (ngModelChange)="onTargetChanged()">
+      <option [ngValue]="null">Select a period</option>
+      @for (p of periods(); track p.id) {
+        <option [ngValue]="p.id">{{ p.name }} ({{ p.startTime }}–{{ p.endTime }})</option>
+      }
+    </select>
+  </div>
+
+  @if (targetDate && selectedPeriodId) {
+    @if (loadingCandidates()) {
+      <div class="rsm-loading">
+        <mat-spinner diameter="28" aria-label="Loading candidate rooms"></mat-spinner>
+      </div>
+    } @else if (candidates().length === 0) {
+      <p class="rsm-empty">No conflict-free rooms of this session's type are available at that date and period.</p>
+    } @else {
+      <div class="field-group">
+        <label class="field-label" for="rsm-venue">New Room</label>
+        <select id="rsm-venue" class="field-select" [(ngModel)]="selectedVenueId">
+          <option [ngValue]="null">Select a room</option>
+          @for (c of candidates(); track c.id) {
+            <option [ngValue]="c.id">{{ c.name }}@if (c.capacity) { &nbsp;(seats {{ c.capacity }}) }</option>
+          }
+        </select>
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" class="btn-cancel" (click)="close()" [disabled]="saving()">Close</button>
+  <button type="button" class="btn-primary" [disabled]="!selectedVenueId || saving()" (click)="confirmReschedule()">
+    @if (saving()) { <span class="btn-spinner"></span> Rescheduling… } @else { Reschedule }
+  </button>
+</mat-dialog-actions>

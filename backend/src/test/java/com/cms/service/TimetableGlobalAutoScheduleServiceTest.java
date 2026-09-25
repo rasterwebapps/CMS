@@ -2666,6 +2666,8 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.projectedTotalHours()).isEqualTo(240.0);
         assertThat(result.overCapacity()).isTrue();
         assertThat(result.suggestedMinDailyHours()).isEqualTo(3.0); // ceil(240/100)
+        // 1-hour periods (usePreciseOneHourPeriodFixture) -- sessions and hours coincide exactly.
+        assertThat(result.suggestedMinDailySessions()).isEqualTo(3);
     }
 
     @Test
@@ -3205,6 +3207,15 @@ class TimetableGlobalAutoScheduleServiceTest {
 
         assertThat(result.overCapacity()).isTrue();
         assertThat(result.offeringHours()).isEqualTo(50.0);
+        // Regression for the real-world confusion this caused: with 50-minute periods (period1,
+        // this suite's default fixture -- NOT the one-hour override other tests opt into), a
+        // plausible-looking round number of hours does not translate 1:1 to sessions/periods, the
+        // unit the Raise Cap field (Faculty#plannedDailySessionsOverride) actually accepts. Asserts
+        // the conversion invariant directly (ceil against the real period duration) rather than a
+        // hardcoded session count, since this test doesn't otherwise pin workingDaysInTerm.
+        double avgPeriodHours = 50.0 / 60.0;
+        assertThat(result.suggestedMinDailySessions())
+            .isEqualTo((int) Math.ceil(result.suggestedMinDailyHours() / avgPeriodHours));
     }
 
     @Test

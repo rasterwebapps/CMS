@@ -482,7 +482,27 @@ export class TeachingAssignmentDialogComponent implements OnInit {
     });
   }
 
+  /** Warns before discarding staged-but-unsaved picks (Theory dropdowns, batch fields) instead of
+   *  silently dropping them -- this dialog's own `tad-prefill-banner` already promises "nothing is
+   *  changed until you save", but that promise wasn't backed by an actual guard: an admin who
+   *  picked a substitute here (e.g. via a Global Auto-Schedule capacity-suggestion deep link) and
+   *  clicked Close instead of Save Changes lost the pick with zero feedback. Only guards the Close
+   *  *button* -- backdrop click / Escape still close immediately, matching every other dialog in
+   *  the app and this dialog's own pre-existing behavior for those paths. */
   protected onClose(): void {
-    this.dialogRef.close();
+    if (!this.isDirty()) {
+      this.dialogRef.close();
+      return;
+    }
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Discard unsaved changes?',
+        message: 'You picked a faculty member or edited a batch field here but haven’t saved. Closing now discards those changes.',
+        confirmText: 'Discard',
+        cancelText: 'Keep editing',
+      },
+    }).afterClosed().subscribe((confirmed) => {
+      if (confirmed) this.dialogRef.close();
+    });
   }
 }

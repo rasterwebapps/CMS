@@ -21,6 +21,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.cms.dto.ErrorResponse;
 import com.cms.dto.LifecycleConflictResponse;
 import com.cms.dto.ModuleNotEnabledResponse;
+import com.cms.dto.SectionFacultyCapacityResponse;
 import com.cms.dto.TimetableConstraintViolationResponse;
 import com.cms.dto.TimetableCoverageGapResponse;
 
@@ -100,6 +101,17 @@ public class GlobalExceptionHandler {
             HttpStatus.CONFLICT.value(),
             ex.getMessage(),
             ex.getViolations(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(SectionFacultyCapacityException.class)
+    public ResponseEntity<SectionFacultyCapacityResponse> handleSectionFacultyCapacity(SectionFacultyCapacityException ex) {
+        SectionFacultyCapacityResponse error = new SectionFacultyCapacityResponse(
+            HttpStatus.CONFLICT.value(),
+            ex.getMessage(),
+            ex.getFailures(),
             Instant.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);

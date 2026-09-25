@@ -1,121 +1,168 @@
-<div class="list-page mlp-page">
+<div class="mlp-page">
   <div class="mlp-hdr anim-rise">
     <div class="mlp-hdr-left">
       <div class="page-title-row">
-        <h1 class="mlp-title">Lab <em>Schedules</em></h1>
+        <h1 class="mlp-title">Class <em>Schedules</em></h1>
         <cms-tour-button tourKey="lab-schedule-list" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="mlp-sub">Manage lab session timetables, faculty, and batch assignments</p>
+      <p class="mlp-sub">
+        Every real session on a given date, across every room and faculty
+        @if (termLabel()) { — {{ termLabel() }} }
+      </p>
     </div>
+    @if (canExport()) {
+      <div class="mlp-hdr-actions">
+        <cms-export-button
+          [disabled]="exporting() || totalCount() === 0"
+          (export)="onExport($event)"
+          tooltip="Export this date's schedules as Excel or PDF"
+        />
+      </div>
+    }
   </div>
 
-  <div id="tour-labsch-toolbar" class="command-bar mlp-toolbar">
-    <div class="command-bar__left">
-      <div class="search-bar" role="search">
-        <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input
-          class="search-bar__input"
-          [value]="searchValue()"
-          (input)="applyFilter($event)"
-          placeholder="Search schedules..."
-          type="text"
-          aria-label="Search schedules"
-        />
-        @if (searchValue()) {
-          <button class="search-bar__clear" (click)="clearFilter()" aria-label="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        }
-      </div>
-      @if (!loading()) {
-        <span class="count-badge" aria-live="polite">
-          @if (dataSource.filteredData.length < dataSource.data.length) {
-            {{ dataSource.filteredData.length }} of {{ dataSource.data.length }}
-          } @else {
-            {{ dataSource.data.length }}
-          }
-          schedules
-        </span>
+  <div id="tour-labsch-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="date-picker-group">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <input
+        class="date-input"
+        type="date"
+        [ngModel]="selectedDate()"
+        (ngModelChange)="selectedDate.set($event); onDateChanged()"
+        aria-label="Date"
+      />
+    </div>
+
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="onSearch($event)"
+        placeholder="Search by subject, room, or faculty…"
+        type="text"
+        aria-label="Search schedules"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       }
     </div>
+
+    <cms-infinite-select
+      label="All Types" ariaLabel="Filter by session type" searchPlaceholder="Search types…"
+      [fetchPage]="typeFetchPage"
+      [selectedValue]="selectedType() || null" (selectedValueChange)="onTypeFilterChange($event)"
+    />
+
+    <cms-infinite-select
+      label="All Rooms" ariaLabel="Filter by room" searchPlaceholder="Search rooms…"
+      [fetchPage]="roomFetchPage"
+      [selectedValue]="selectedRoom() || null" (selectedValueChange)="onRoomFilterChange($event)"
+    />
+
+    <cms-infinite-select
+      label="All Faculty" ariaLabel="Filter by faculty" searchPlaceholder="Search faculty…"
+      [fetchPage]="facultyFetchPage"
+      [selectedValue]="selectedFaculty() || null" (selectedValueChange)="onFacultyFilterChange($event)"
+    />
+
+    <cms-infinite-select
+      label="All Statuses" ariaLabel="Filter by status" searchPlaceholder="Search statuses…"
+      [fetchPage]="statusFetchPage"
+      [selectedValue]="selectedStatus() || null" (selectedValueChange)="onStatusFilterChange($event)"
+    />
+
+    @if (hasActiveFilters()) {
+      <button class="btn-clear-filters btn-toolbar--icon-only" (click)="clearFilters()" aria-label="Clear all filters" title="Clear all filters">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    }
     <div class="toolbar-right">
       <cms-wrap-text-toggle [state]="colState" />
       <cms-column-picker [state]="colState" (pinChange)="onPinChange()" />
     </div>
   </div>
 
-  <div id="tour-labsch-table" class="content-card mlp-table-card">
+  <div class="content-card mlp-table-card">
     @if (loading()) {
       <div class="loading-container">
         <mat-spinner diameter="36" aria-label="Loading schedules"></mat-spinner>
       </div>
+    } @else if (noTermForDate()) {
+      <cms-empty-state
+        icon="event_busy"
+        title="No active term for this date"
+        subtitle="Pick a date that falls within an existing academic term."
+      />
     } @else {
       <div class="table-wrapper">
-        <table mat-table [dataSource]="dataSource" matSort [cmsResizableColumns]="colState" class="modern-table">
-          <ng-container matColumnDef="dayOfWeek" [sticky]="colState.isSticky('dayOfWeek')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Day</th>
-            <td mat-cell *matCellDef="let row">
-              <cms-type-badge [value]="row.dayOfWeek" />
-            </td>
+        <table id="tour-labsch-table" mat-table [dataSource]="dataSource" [cmsResizableColumns]="colState" class="modern-table">
+
+          <ng-container matColumnDef="time" [sticky]="colState.isSticky('time')">
+            <th mat-header-cell *matHeaderCellDef>Time</th>
+            <td mat-cell *matCellDef="let row">{{ row.session.startTime }}–{{ row.session.endTime }}</td>
           </ng-container>
 
           <ng-container matColumnDef="sessionType" [sticky]="colState.isSticky('sessionType')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+            <th mat-header-cell *matHeaderCellDef>Type</th>
             <td mat-cell *matCellDef="let row">
-              <cms-type-badge [value]="row.sessionType" />
+              <cms-type-badge [value]="row.session.sessionType" />
             </td>
           </ng-container>
 
           <ng-container matColumnDef="roomName" [sticky]="colState.isSticky('roomName')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Room</th>
+            <th mat-header-cell *matHeaderCellDef>Room</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-name">{{ row.roomName }}</span>
+              <span class="cell-name">{{ row.session.roomName || '—' }}</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="subjectName" [sticky]="colState.isSticky('subjectName')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Subject</th>
-            <td mat-cell *matCellDef="let row">{{ row.subjectName }}</td>
+            <th mat-header-cell *matHeaderCellDef>Subject</th>
+            <td mat-cell *matCellDef="let row">{{ row.session.subjectName }}</td>
           </ng-container>
 
           <ng-container matColumnDef="subjectCode" [sticky]="colState.isSticky('subjectCode')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Code</th>
+            <th mat-header-cell *matHeaderCellDef>Code</th>
             <td mat-cell *matCellDef="let row">
-              <span class="cell-code">{{ row.subjectCode }}</span>
+              <span class="cell-code">{{ row.session.subjectCode }}</span>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="facultyName" [sticky]="colState.isSticky('facultyName')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Faculty</th>
-            <td mat-cell *matCellDef="let row">{{ row.facultyName }}</td>
+            <th mat-header-cell *matHeaderCellDef>Faculty</th>
+            <td mat-cell *matCellDef="let row">{{ row.session.facultyName || '—' }}</td>
           </ng-container>
 
           <ng-container matColumnDef="batchName" [sticky]="colState.isSticky('batchName')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Batch</th>
-            <td mat-cell *matCellDef="let row">{{ row.batchName || '—' }}</td>
+            <th mat-header-cell *matHeaderCellDef>Batch</th>
+            <td mat-cell *matCellDef="let row">{{ row.session.batchName || '—' }}</td>
           </ng-container>
 
-          <ng-container matColumnDef="startTime" [sticky]="colState.isSticky('startTime')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>Start Time</th>
-            <td mat-cell *matCellDef="let row">{{ row.startTime }}</td>
+          <ng-container matColumnDef="occurrenceStatus" [sticky]="colState.isSticky('occurrenceStatus')">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <cms-type-badge [value]="row.occurrenceStatus" [matTooltip]="row.cancelReason || ''" />
+            </td>
           </ng-container>
 
-          <ng-container matColumnDef="endTime" [sticky]="colState.isSticky('endTime')">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header>End Time</th>
-            <td mat-cell *matCellDef="let row">{{ row.endTime }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
+          <ng-container matColumnDef="actions" stickyEnd>
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let row">
-              @if (canManage()) {
+              @if (canActOn(row)) {
                 <div class="row-actions">
-                  <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Delete" ariaLabel="Delete schedule" (clicked)="delete(row)">
-                    <cms-icon-delete />
-                  </cms-row-action-btn>
-                  <cms-row-action-btn variant="success" [iconOnly]="true" tooltip="Edit" ariaLabel="Edit schedule" (clicked)="edit(row)">
-                    <cms-icon-edit />
-                  </cms-row-action-btn>
+                  @if (canReschedule()) {
+                    <cms-row-action-btn variant="info" tooltip="Reschedule" ariaLabel="Reschedule this session" (clicked)="openReschedule(row)">
+                      Reschedule
+                    </cms-row-action-btn>
+                  }
+                  @if (canSwap()) {
+                    <cms-row-action-btn variant="success" tooltip="Swap Faculty" ariaLabel="Swap faculty for this session" (clicked)="openSwap(row)">
+                      Swap
+                    </cms-row-action-btn>
+                  }
                 </div>
               }
             </td>
@@ -125,24 +172,19 @@
           <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="table-row"></tr>
 
           <tr class="mat-row" *matNoDataRow>
-            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0; border: none;">
+            <td class="mat-cell" [attr.colspan]="displayedColumns().length" style="padding: 0">
               <cms-empty-state
                 icon="event_busy"
-                [title]="searchValue() ? 'No lab schedules found' : 'No lab schedules yet'"
-                [subtitle]="searchValue() ? 'No lab schedules match your search.' : 'Lab schedules will appear here once planned.'"
+                [title]="hasActiveFilters() ? 'No schedules match your filters' : 'No sessions on this date'"
+                [subtitle]="hasActiveFilters() ? 'Try adjusting or clearing your filters.' : 'Nothing is scheduled for the selected date.'"
+                [actionLabel]="hasActiveFilters() ? 'Clear Filters' : ''"
+                (actionClick)="clearFilters()"
               />
             </td>
           </tr>
         </table>
       </div>
-
-      <div class="pagination-wrapper">
-        <mat-paginator
-          [pageSizeOptions]="[5, 10, 25, 50]"
-          [pageSize]="25"
-          showFirstLastButtons
-        ></mat-paginator>
-      </div>
+      <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="25" showFirstLastButtons />
     }
   </div>
 </div>

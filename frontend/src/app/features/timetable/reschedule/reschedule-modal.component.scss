@@ -1,0 +1,23 @@
+.rsm-content {
+  min-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rsm-summary {
+  margin: 0;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-secondary);
+}
+
+.rsm-loading {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+.rsm-empty {
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+}

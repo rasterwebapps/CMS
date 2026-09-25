@@ -265,28 +265,28 @@
         </div>
       </mat-tab>
 
-      <!-- Tab 4: Lab Schedules (real term-scoped data) -->
-      <mat-tab label="Lab Schedules">
+      <!-- Tab 4: Class Schedules (real term-scoped data) -->
+      <mat-tab label="Class Schedules">
         <div class="tab-content">
           @if (!canViewLabSchedules()) {
             <div class="content-card padded-card">
-              <p class="field-hint">You don't have permission to view lab schedules.</p>
+              <p class="field-hint">You don't have permission to view class schedules.</p>
             </div>
           } @else if (labSchedulesLoading()) {
             <div class="content-card">
               <div class="loading-container">
-                <mat-spinner diameter="36" aria-label="Loading lab schedules"></mat-spinner>
+                <mat-spinner diameter="36" aria-label="Loading class schedules"></mat-spinner>
               </div>
             </div>
           } @else {
             <div class="content-card table-card">
               <div class="table-card__hdr">
-                <p class="form-section-title">Lab Sessions</p>
+                <p class="form-section-title">Class Sessions</p>
               </div>
               @if (labSchedules().length === 0) {
                 <cms-empty-state
                   icon="schedule"
-                  title="No lab schedules this term"
+                  title="No class schedules this term"
                   subtitle="Sessions will appear here once this faculty is placed on the timetable for the selected term."
                 />
               } @else {

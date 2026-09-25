@@ -73,9 +73,15 @@ export class FacultyService {
   }
 
   /** Minimal single-field update — backend loads the faculty, sets only this field, saves.
-   *  Deliberately not routed through `update()` (which requires the full FacultyRequest payload). */
-  updateDailyCap(facultyId: number, plannedDailyHoursOverride: number | null): Observable<Faculty> {
-    return this.http.patch<Faculty>(`${this.baseUrl}/${facultyId}/daily-cap`, { plannedDailyHoursOverride });
+   *  Deliberately not routed through `update()` (which requires the full FacultyRequest payload).
+   *  The field is a count of sessions/periods per day, not hours — matches the backend's
+   *  `DailyCapUpdateRequest(Integer plannedDailySessionsOverride)` exactly. A prior version of
+   *  this method sent the key as `plannedDailyHoursOverride`, which the backend DTO doesn't
+   *  recognize (no `@JsonProperty` alias, and Jackson isn't configured to fail on unknown
+   *  properties) — it silently deserialized as null every time, so every "Raise Cap" Save always
+   *  cleared the override instead of setting it. */
+  updateDailyCap(facultyId: number, plannedDailySessionsOverride: number | null): Observable<Faculty> {
+    return this.http.patch<Faculty>(`${this.baseUrl}/${facultyId}/daily-cap`, { plannedDailySessionsOverride });
   }
 
   getBySpecialityId(specialityId: number): Observable<Faculty[]> {

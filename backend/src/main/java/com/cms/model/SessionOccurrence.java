@@ -367,6 +367,19 @@ public class SessionOccurrence {
         this.period = period;
     }
 
+    /** The period this occurrence actually happens in -- for a REGULAR row, its own {@link
+     *  #period} when Reschedule has overridden it, falling back to the recurring {@link
+     *  #classSchedule}'s period otherwise; for SPECIAL_CLASS/DAY_REPEAT/CLINICAL_SHIFT rows,
+     *  always its own {@link #period} (they have no backing ClassSchedule to fall back to). Single
+     *  source of truth for this resolution -- previously duplicated as a private static helper in
+     *  {@code RoomRelocationService}. */
+    public Period getEffectivePeriod() {
+        if (period != null) {
+            return period;
+        }
+        return classSchedule != null ? classSchedule.getPeriod() : null;
+    }
+
     public ClassSessionType getSessionType() {
         return sessionType;
     }

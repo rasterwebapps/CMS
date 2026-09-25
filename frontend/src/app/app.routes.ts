@@ -1968,7 +1968,7 @@ export const routes: Routes = [
   },
   {
     path: 'lab-schedules',
-    canActivate: withPermission('LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_MANAGE'),
+    canActivate: withPermission('TIMETABLE_VIEW'),
     loadComponent: () =>
       import('./features/lab-schedule/lab-schedule-list/lab-schedule-list.component').then(
         (m) => m.LabScheduleListComponent

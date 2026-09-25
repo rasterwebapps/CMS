@@ -27,6 +27,7 @@ import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/r
 import { FacultyWorkloadRulesService } from '../faculty-workload-rules/faculty-workload-rules.service';
 import { FacultyWorkloadRules } from '../faculty-workload-rules/faculty-workload-rules.model';
 import { FacultyService } from '../../faculty/faculty.service';
+import { RaiseCapFlyoutComponent } from '../../faculty/faculty-detail/raise-cap-flyout.component';
 import { VenueRebalancePanelComponent } from '../capacity-planner/venue-rebalance-panel/venue-rebalance-panel.component';
 
 type Step = 'checking-prerequisites' | 'checklist' | 'running' | 'success' | 'run-failed';
@@ -41,6 +42,20 @@ interface SingleShortfallSubject {
   courseOfferingId: number;
   subjectName: string;
   sessionType: SpecialClassSessionType;
+}
+
+/** Mirrors backend `SectionFacultyCapacityFailure` (a 409 body's `failures` array) — one
+ *  over-capacity substitute rejected by {@code confirmSubstitutions}, attributable back to the
+ *  exact tip it came from via (courseOfferingId, facultyId). See {@link submitSubstitutions}. */
+interface SectionFacultyCapacityFailure {
+  courseOfferingId: number;
+  facultyId: number;
+  message: string;
+  alternateFacultyId: number | null;
+  /** The actual number the Raise Cap flyout's field accepts (a period/session count, not hours) --
+   *  the same figure named in `message`'s "...raise their cap to at least N period(s)/day..."
+   *  clause. Pre-fills that flyout with a number that genuinely clears this block. */
+  suggestedMinDailySessions: number;
 }
 
 /** One milestone on the pre-run checklist, mirroring TermAdvanceChecklistDialogComponent's own
@@ -78,7 +93,7 @@ interface ChecklistItem {
 @Component({
   selector: 'app-global-auto-schedule-report-flyout',
   standalone: true,
-  imports: [CmsFlyoutPanelComponent, DecimalPipe, RouterLink, FormsModule, MatProgressSpinnerModule, MatDialogModule, MatCheckboxModule, MatIconModule, CmsRowActionButtonComponent, WorkingSaturdaysFlyoutComponent, SpecialClassRequestFlyoutComponent, VenueRebalancePanelComponent],
+  imports: [CmsFlyoutPanelComponent, DecimalPipe, RouterLink, FormsModule, MatProgressSpinnerModule, MatDialogModule, MatCheckboxModule, MatIconModule, CmsRowActionButtonComponent, WorkingSaturdaysFlyoutComponent, SpecialClassRequestFlyoutComponent, VenueRebalancePanelComponent, RaiseCapFlyoutComponent],
   templateUrl: './global-auto-schedule-report-flyout.component.html',
   styleUrl: './global-auto-schedule-report-flyout.component.scss',
 })
@@ -447,6 +462,36 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
     return tips.some((tip) => confirmed.has(this.tipKey(tip)) && !submitted.has(this.tipKey(tip)));
   });
 
+  /** Keyed by `${courseOfferingId}-${facultyId}` (matching a tip's own `courseOfferingId`/
+   *  `substituteFacultyId`, NOT the full {@link tipKey} — the backend failure doesn't carry
+   *  `originalFacultyId`) — populated from the 409 `SectionFacultyCapacityFailure[]` body {@link
+   *  submitSubstitutions} gets when one or more ticked tips would put their substitute over
+   *  capacity, so {@link capacityFailureFor} can render a fix (Raise Cap / Reassign) right on that
+   *  specific tip's own card instead of just a plain-text toast with no next step. */
+  protected readonly capacityFailures = signal<Map<string, SectionFacultyCapacityFailure>>(new Map());
+
+  private capacityFailureKey(courseOfferingId: number, facultyId: number): string {
+    return `${courseOfferingId}-${facultyId}`;
+  }
+
+  protected capacityFailureFor(tip: FacultySubstitutionTip): SectionFacultyCapacityFailure | null {
+    return this.capacityFailures().get(this.capacityFailureKey(tip.courseOfferingId, tip.substituteFacultyId)) ?? null;
+  }
+
+  /** Raising one faculty's cap is relevant to every failed tip that named THEM as the
+   *  over-capacity substitute, not just whichever tip's "Raise Cap…" button was clicked — a
+   *  faculty over capacity for one offering is necessarily over capacity for any other offering's
+   *  tip too, since the check is against their whole term load, not a per-offering one. */
+  private clearCapacityFailuresForFaculty(facultyId: number): void {
+    this.capacityFailures.update((map) => {
+      const next = new Map(map);
+      for (const [key, failure] of next) {
+        if (failure.facultyId === facultyId) next.delete(key);
+      }
+      return next;
+    });
+  }
+
   /** Batch-applies every ticked, not-yet-submitted tip in one all-or-nothing call (see backend
    *  `CourseOfferingSectionFacultyService#confirmSubstitutions`) — a single Submit rather than the
    *  old per-tip "make it official" dialog+save. On success, those tips lock as submitted; on
@@ -459,6 +504,7 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
       .filter((tip) => confirmed.has(this.tipKey(tip)) && !submitted.has(this.tipKey(tip)));
     if (tips.length === 0) return;
 
+    this.capacityFailures.set(new Map());
     this.submittingSubstitutions.set(true);
     this.academicYearService.confirmFacultySubstitutions({
       items: tips.map((tip) => ({
@@ -482,8 +528,78 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
       },
       error: (err) => {
         this.submittingSubstitutions.set(false);
+        const failures = err?.error?.failures as SectionFacultyCapacityFailure[] | undefined;
+        if (failures?.length) {
+          this.capacityFailures.set(new Map(failures.map((f) => [this.capacityFailureKey(f.courseOfferingId, f.facultyId), f])));
+          this.toast.error(`${failures.length} ticked substitution(s) would put a faculty member over capacity — see below.`);
+          return;
+        }
         this.toast.error(violationText(err) ?? err?.error?.message ?? 'Failed to confirm substitutions — nothing was changed');
       },
+    });
+  }
+
+  /** `SectionFacultyCapacityFailure.facultyId` (the tip's `substituteFacultyId`) IS who needs a
+   *  higher cap — fetches their current cap fresh (never trusted stale) so {@link
+   *  RaiseCapFlyoutComponent} shows the real current value, same as Faculty Detail/Capacity
+   *  Planner. `suggestedDailyCap` pre-fills the field itself with the exact period count the
+   *  backend already computed as clearing this specific block (see {@link
+   *  SectionFacultyCapacityFailure.suggestedMinDailySessions}) -- a Save with no further edits is
+   *  enough; the admin doesn't have to convert an hours figure into periods by hand. */
+  protected readonly raiseCapTarget = signal<{ facultyId: number; facultyName: string; currentDailyCap: number | null; suggestedDailyCap: number } | null>(null);
+
+  protected openRaiseCapForTip(tip: FacultySubstitutionTip, suggestedMinDailySessions: number): void {
+    this.facultyService.getById(tip.substituteFacultyId).subscribe({
+      next: (faculty) => this.raiseCapTarget.set({
+        facultyId: faculty.id,
+        facultyName: `${faculty.firstName} ${faculty.lastName}`,
+        currentDailyCap: faculty.plannedDailySessionsOverride ?? null,
+        suggestedDailyCap: suggestedMinDailySessions,
+      }),
+      error: () => this.toast.error('Failed to load faculty details'),
+    });
+  }
+
+  protected onRaiseCapClosed(): void {
+    this.raiseCapTarget.set(null);
+  }
+
+  /** Doesn't re-run the failed Submit automatically — raising the cap doesn't guarantee this
+   *  faculty now fits (other tips in the same batch, or other load, could still push them over)
+   *  and re-validating is exactly what clicking Submit again already does. Clearing their banner(s)
+   *  just reflects that the admin acted on it; a fresh Submit re-checks for real. */
+  protected onRaiseCapSaved(facultyId: number): void {
+    this.raiseCapTarget.set(null);
+    this.clearCapacityFailuresForFaculty(facultyId);
+    this.toast.success('Daily cap updated — tick and Submit again to retry this substitution');
+  }
+
+  /** Opens the same merged Assign Faculty dialog {@link onAssignFaculty} uses, pre-scoped to this
+   *  tip's offering with the check's own top spread-load alternate (if any) pre-highlighted —
+   *  reassigning here is a genuine alternative to raising the cap, not a duplicate of ticking the
+   *  substitution tip itself (that would still confirm the SAME over-capacity substitute).
+   *
+   * <p>Deliberately does NOT clear this tip's capacity-failure banner on close: unlike {@link
+   *  RaiseCapFlyoutComponent}'s `(saved)` output (which only fires after a real successful PATCH),
+   *  {@link TeachingAssignmentDialogComponent#afterClosed} fires on ANY close -- Escape, backdrop
+   *  click, its own Close button -- whether or not the admin actually changed and saved anything
+   *  inside it (it doesn't even close itself on a successful save; the admin closes it manually
+   *  afterward). Clearing on that event previously made the banner vanish for a tip that was still
+   *  genuinely over capacity the moment the admin opened and then closed the dialog without
+   *  changing anything -- looking like it had silently "fixed itself." The banner now only ever
+   *  clears from a real outcome: {@link onRaiseCapSaved}'s actual save, or the next real Submit
+   *  (which repopulates {@link capacityFailures} from a fresh check either way). */
+  protected openReassignForTip(tip: FacultySubstitutionTip, suggestedFacultyId: number | null): void {
+    this.academicYearService.getCourseOfferingById(tip.courseOfferingId).subscribe({
+      next: (offering) => {
+        const data: TeachingAssignmentDialogData = { offering, suggestedFacultyId };
+        this.dialog.open(TeachingAssignmentDialogComponent, {
+          data,
+          width: '1100px',
+          maxWidth: '95vw',
+        });
+      },
+      error: () => this.toast.error('Failed to load offering details'),
     });
   }
 
@@ -770,9 +886,13 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  (see CourseOfferingSectionFacultyService#getAssignmentSummaryForTermInstance), so a
    *  Theory-only dialog could never clear an offering that also needs a coordinator assigned.
    *
-   * <p>Only ever called for offerings still missing faculty entirely (the 'faculty' checklist
-   *  item's own "Assign faculty" links) — faculty-substitution tips no longer route through here at
-   *  all, see {@link submitSubstitutions} for that batch-confirm path instead. */
+   * <p>Called for offerings still missing faculty entirely (the 'faculty' checklist item's own
+   *  "Assign faculty" links, with no suggested pick) and, separately, by {@link
+   *  openReassignForTip} for a substitution tip {@link submitSubstitutions} rejected as over
+   *  capacity (pre-scoped to that tip's offering with the capacity check's own top alternate
+   *  suggested) — ticking the substitution tip itself always re-confirms the SAME over-capacity
+   *  substitute, so reassigning here to someone else is the actual alternative, not a duplicate
+   *  path to the same outcome. */
   protected onAssignFaculty(courseOfferingId: number): void {
     this.academicYearService.getCourseOfferingById(courseOfferingId).subscribe({
       next: (offering) => {

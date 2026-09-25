@@ -35,6 +35,7 @@ import com.cms.dto.TimetableActionResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.service.ClassScheduleExportService;
 import com.cms.service.ClassScheduleService;
 import com.cms.service.PersonalTimetableService;
 import com.cms.service.ProfileService;
@@ -78,6 +79,9 @@ class TimetableControllerTest {
 
     @MockitoBean
     private TimetableConflictInspectorService timetableConflictInspectorService;
+
+    @MockitoBean
+    private ClassScheduleExportService classScheduleExportService;
 
     @Test
     void shouldFindDraftRows() throws Exception {
@@ -290,5 +294,20 @@ class TimetableControllerTest {
             .andExpect(status().isNoContent());
 
         verify(timetableSwapService).swap(eq(10L), eq(55L), any(), anyString());
+    }
+
+    @Test
+    void shouldExportOccurrencesAsExcel() throws Exception {
+        when(profileService.resolveCurrentUser()).thenReturn(null);
+        when(timetableOccurrenceService.findOccurrences(any(), eq(10L),
+                eq(java.time.LocalDate.of(2026, 9, 25)), eq(java.time.LocalDate.of(2026, 9, 25)), eq("browse")))
+            .thenReturn(List.of());
+        when(classScheduleExportService.toExcelOccurrences(any(), any())).thenReturn(new byte[] { 1, 2, 3 });
+
+        mockMvc.perform(get("/timetables/occurrences/export")
+                .param("format", "excel").param("termInstanceId", "10").param("date", "2026-09-25"))
+            .andExpect(status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .string("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
     }
 }

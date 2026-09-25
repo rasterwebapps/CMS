@@ -33,6 +33,10 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.repository.FacultyRepository;
+import com.cms.repository.LabRepository;
+import com.cms.repository.TermInstanceRepository;
+import com.cms.service.ClassScheduleExportService;
 import com.cms.service.ClassScheduleService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -48,6 +52,18 @@ class ClassScheduleControllerTest {
 
     @MockitoBean
     private ClassScheduleService classScheduleService;
+
+    @MockitoBean
+    private ClassScheduleExportService classScheduleExportService;
+
+    @MockitoBean
+    private LabRepository labRepository;
+
+    @MockitoBean
+    private FacultyRepository facultyRepository;
+
+    @MockitoBean
+    private TermInstanceRepository termInstanceRepository;
 
     private ClassScheduleRequest labRequest(String batchName, DayOfWeek dayOfWeek) {
         return new ClassScheduleRequest(
@@ -219,6 +235,47 @@ class ClassScheduleControllerTest {
             .andExpect(status().isNotFound());
 
         verify(classScheduleService).delete(999L);
+    }
+
+    @Test
+    void shouldFindPageOfClassSchedules() throws Exception {
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
+        org.springframework.data.domain.Page<ClassScheduleResponse> page =
+            new org.springframework.data.domain.PageImpl<>(List.of(response));
+
+        when(classScheduleService.findPage(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(page);
+
+        mockMvc.perform(get("/lab-schedules/page").param("search", "data"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].id").value(1));
+    }
+
+    @Test
+    void shouldExportClassSchedulesAsExcel() throws Exception {
+        ClassScheduleResponse response = createResponse(1L, "Batch-A", DayOfWeek.MONDAY);
+
+        when(classScheduleService.findAllMatching(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(List.of(response));
+        when(classScheduleExportService.toExcel(any(), any())).thenReturn(new byte[] { 1, 2, 3 });
+
+        mockMvc.perform(get("/lab-schedules/export").param("format", "excel"))
+            .andExpect(status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .string("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
+
+    @Test
+    void shouldExportClassSchedulesAsPdf() throws Exception {
+        when(classScheduleService.findAllMatching(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(List.of());
+        when(classScheduleExportService.toPdf(any(), any())).thenReturn(new byte[] { 1, 2, 3 });
+
+        mockMvc.perform(get("/lab-schedules/export").param("format", "pdf"))
+            .andExpect(status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                .string("Content-Type", MediaType.APPLICATION_PDF_VALUE));
     }
 
     private ClassScheduleResponse createResponse(Long id, String batchName, DayOfWeek dayOfWeek) {

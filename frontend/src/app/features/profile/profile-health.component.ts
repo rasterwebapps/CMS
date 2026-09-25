@@ -108,7 +108,7 @@ export class ProfileHealthComponent implements OnInit, OnDestroy {
     if (id.entityType === 'FACULTY') return [
       { icon: 'calendar_month',  label: 'Academic Calendar', route: '/academic-calendar', color: '#FF6B6B' },
       { icon: 'checklist',       label: 'Attendance',        route: '/attendance',        color: '#4ECDC4' },
-      { icon: 'science',         label: 'Lab Schedule',      route: '/lab-schedules',     color: '#A78BFA' },
+      { icon: 'science',         label: 'Class Schedules',   route: '/lab-schedules',     color: '#A78BFA' },
       { icon: 'folder_open',     label: 'My Documents',      route: '/profile',           color: '#F59E0B' },
     ];
     if (id.entityType === 'STUDENT') return [

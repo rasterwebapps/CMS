@@ -69,15 +69,27 @@
 }
 
 .flyout-panel__footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid var(--cms-border-default);
   flex-shrink: 0;
 
   &:empty { display: none; }
+
+  // `<ng-content select="[flyoutFooter]">` (flyout-panel.component.html) projects the consumer's
+  // whole `<div flyoutFooter>` wrapper as ONE node here, not its buttons as direct siblings of
+  // this element -- a plain `display:flex; gap` on `.flyout-panel__footer` itself therefore has
+  // nothing to space (it only ever has that single child), so every consumer's footer buttons
+  // rendered with no gap at all between them, just default inline whitespace. `::ng-deep` is
+  // required, not optional, here: the projected `<div flyoutFooter>` keeps its CONSUMER
+  // component's own ViewEncapsulation attribute, not this component's, so a plain scoped `> *`
+  // selector (no `::ng-deep`) silently never matches it at all -- same class of boundary this
+  // codebase already documents for `@extend` across components, just for selectors instead.
+  ::ng-deep > * {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
 }
 
 @keyframes cms-flyout-fade-in {

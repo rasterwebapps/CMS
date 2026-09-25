@@ -169,6 +169,86 @@ class TimetableOccurrenceServiceTest {
         assertThat(result.get(0).session().id()).isEqualTo(-1000068L);
     }
 
+    /** Regression: a same-date reschedule (period changes, date doesn't -- see
+     *  SessionRescheduleService's {@code sameDate} branch) previously appeared TWICE for that
+     *  date -- once as a plain HELD entry from the natural-date walk (which only checked for
+     *  SUBSTITUTED/CANCELLED overlays, missing RESCHEDULED), and once from the "moved-in"
+     *  supplemental query. Found via live testing against real data, not just unit tests. */
+    @Test
+    void shouldNotDuplicateASameDateRescheduleOverlay() {
+        SessionOccurrence rescheduled = new SessionOccurrence(schedule, LocalDate.of(2024, 8, 5));
+        rescheduled.setOccurrenceStatus(OccurrenceStatus.RESCHEDULED);
+        com.cms.model.Period newPeriod = new com.cms.model.Period(
+            "2nd Period", LocalTime.of(10, 5), LocalTime.of(10, 55), 2);
+        newPeriod.setId(2L);
+        rescheduled.setPeriod(newPeriod);
+
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(schedule));
+        when(occurrenceService.occurrenceDatesForSchedules(List.of(schedule), LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31)))
+            .thenReturn(Map.of(100L, List.of(LocalDate.of(2024, 8, 5))));
+        when(occurrenceService.cancelledDatesForSchedules(List.of(schedule), LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31)))
+            .thenReturn(Map.of(100L, List.of()));
+        when(classScheduleService.toResponseList(List.of(schedule))).thenReturn(List.of(response));
+        when(sessionOccurrenceRepository.findByClassSchedule_TermInstance_IdAndClassSchedule_Status(
+            10L, ClassScheduleStatus.PUBLISHED)).thenReturn(List.of(rescheduled));
+        when(sessionOccurrenceRepository.findByOccurrenceStatusAndOccurrenceDateBetweenAndClassSchedule_TermInstance_IdAndClassSchedule_Status(
+            OccurrenceStatus.RESCHEDULED, LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31), 10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(rescheduled));
+
+        List<ClassScheduleOccurrenceResponse> result = service.findOccurrences(
+            null, 10L, LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31), "browse");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).date()).isEqualTo(LocalDate.of(2024, 8, 5));
+        assertThat(result.get(0).occurrenceStatus()).isEqualTo(OccurrenceStatus.RESCHEDULED);
+        assertThat(result.get(0).session().periodId()).isEqualTo(2L);
+        assertThat(result.get(0).session().startTime()).isEqualTo(LocalTime.of(10, 5));
+    }
+
+    /** A reschedule to a genuinely different date must appear on the new date (with the period/
+     *  room override applied) and be reported CANCELLED, not HELD, on the original date. */
+    @Test
+    void shouldShowARescheduledOccurrenceOnItsTargetDateAndCancelledOnItsSourceDate() {
+        SessionOccurrence cancelledOriginal = new SessionOccurrence(schedule, LocalDate.of(2024, 8, 5));
+        cancelledOriginal.setOccurrenceStatus(OccurrenceStatus.CANCELLED);
+        cancelledOriginal.setRemarks("Rescheduled to 2024-08-07 2nd Period");
+
+        SessionOccurrence movedTarget = new SessionOccurrence(schedule, LocalDate.of(2024, 8, 7));
+        movedTarget.setOccurrenceStatus(OccurrenceStatus.RESCHEDULED);
+        com.cms.model.Period newPeriod = new com.cms.model.Period(
+            "2nd Period", LocalTime.of(10, 5), LocalTime.of(10, 55), 2);
+        newPeriod.setId(2L);
+        movedTarget.setPeriod(newPeriod);
+
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(schedule));
+        when(occurrenceService.occurrenceDatesForSchedules(List.of(schedule), LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31)))
+            .thenReturn(Map.of(100L, List.of(LocalDate.of(2024, 8, 5))));
+        when(occurrenceService.cancelledDatesForSchedules(List.of(schedule), LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31)))
+            .thenReturn(Map.of(100L, List.of()));
+        when(classScheduleService.toResponseList(List.of(schedule))).thenReturn(List.of(response));
+        when(sessionOccurrenceRepository.findByClassSchedule_TermInstance_IdAndClassSchedule_Status(
+            10L, ClassScheduleStatus.PUBLISHED)).thenReturn(List.of(cancelledOriginal, movedTarget));
+        when(sessionOccurrenceRepository.findByOccurrenceStatusAndOccurrenceDateBetweenAndClassSchedule_TermInstance_IdAndClassSchedule_Status(
+            OccurrenceStatus.RESCHEDULED, LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31), 10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(movedTarget));
+
+        List<ClassScheduleOccurrenceResponse> result = service.findOccurrences(
+            null, 10L, LocalDate.of(2024, 8, 1), LocalDate.of(2024, 8, 31), "browse");
+
+        assertThat(result).hasSize(2);
+        ClassScheduleOccurrenceResponse source = result.stream()
+            .filter(r -> r.date().equals(LocalDate.of(2024, 8, 5))).findFirst().orElseThrow();
+        ClassScheduleOccurrenceResponse target = result.stream()
+            .filter(r -> r.date().equals(LocalDate.of(2024, 8, 7))).findFirst().orElseThrow();
+
+        assertThat(source.occurrenceStatus()).isEqualTo(OccurrenceStatus.CANCELLED);
+        assertThat(source.cancelReason()).isEqualTo("Rescheduled to 2024-08-07 2nd Period");
+        assertThat(target.occurrenceStatus()).isEqualTo(OccurrenceStatus.RESCHEDULED);
+        assertThat(target.session().periodId()).isEqualTo(2L);
+    }
+
     @Test
     void shouldNotExplodeClinicalShiftTemplatesForPersonalScope() {
         when(personalTimetableService.findPublishedSchedules(null, 10L)).thenReturn(List.of());

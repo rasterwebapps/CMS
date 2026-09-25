@@ -42,7 +42,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   'curriculum-mappings': 'CO/PO Mapping',
   'curriculum-versions': 'Curriculum Versions',
   'curriculum-map': 'Curriculum Map',
-  'lab-schedules': 'Lab Schedules',
+  'lab-schedules': 'Class Schedules',
   reports: 'Reports',
   'student-fees': 'Student Fees',
   inventory: 'Inventory',

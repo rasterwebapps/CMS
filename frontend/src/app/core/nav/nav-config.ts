@@ -141,10 +141,13 @@ export const NAV_ENTRIES: NavEntry[] = [
       // any leftover unstaffed cell is fixed in-grid via Timetable Builder's Reassign Faculty dialog.
       { label: 'Timetable',           icon: 'event_note',         route: '/timetable',           permissions: ['TIMETABLE_VIEW'] },
       { label: 'Resource Timetable',  icon: 'grid_view',          route: '/timetable/resource-grid', permissions: ['TIMETABLE_FACULTY_GRID_VIEW', 'TIMETABLE_CLASSROOM_GRID_VIEW'] },
-      // Lab Schedules is a manual CRUD screen over the same ClassSchedule rows the timetable
-      // screens above place/publish (see ClassScheduleController's route-naming comment) -- it
-      // sits after them, not up in the Term-offering group before that data exists.
-      { label: 'Lab Schedules',       icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['LAB_SCHEDULE_VIEW', 'LAB_SCHEDULE_CREATE', 'LAB_SCHEDULE_EDIT', 'LAB_SCHEDULE_DELETE', 'LAB_SCHEDULE_EXPORT', 'LAB_SCHEDULE_MANAGE'] },
+      // Class Schedules is a date-wise occurrence browser (GET /timetables/occurrences) over the
+      // same ClassSchedule rows the timetable screens above place/publish -- it sits after them,
+      // not up in the Term-offering group before that data exists. No Edit/Delete/Create here --
+      // only Swap and Reschedule act on one occurrence at a time, never the recurring template
+      // (see SessionRescheduleService). The old LAB_SCHEDULE_* template-CRUD permissions still
+      // gate the unlinked lab-schedule-form edit route, kept as a dormant safety valve.
+      { label: 'Class Schedules',     icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['TIMETABLE_VIEW'] },
       // -- Timetable ops (on-demand, after publish) --
       { label: 'Faculty Absence',     icon: 'person_off',         route: '/faculty-absence',     permissions: ['FACULTY_ABSENCE_MARK', 'FACULTY_ABSENCE_SUBSTITUTE_APPLY'] },
       { label: 'Staff Session Swap',  icon: 'swap_horiz',         route: '/timetable/staff-swap', permissions: ['TIMETABLE_STAFF_SWAP'] },

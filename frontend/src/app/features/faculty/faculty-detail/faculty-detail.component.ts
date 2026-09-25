@@ -107,7 +107,7 @@ export class FacultyDetailComponent implements OnInit {
     }
 
     if (this.canViewWorkload() || this.canViewLabSchedules()) {
-      // Both Courses (FACULTY_WORKLOAD_VIEW) and Lab Schedules (LAB_SCHEDULE_VIEW) share this one
+      // Both Courses (FACULTY_WORKLOAD_VIEW) and Class Schedules (LAB_SCHEDULE_VIEW) share this one
       // term selector, so either permission alone is enough to need it loaded — each tab's own
       // content still individually gates on its own permission below.
       // Deep-linked from e.g. the Global Auto-Schedule flyout's over-capacity card, which already

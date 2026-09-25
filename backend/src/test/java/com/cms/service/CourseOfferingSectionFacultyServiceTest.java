@@ -126,7 +126,7 @@ class CourseOfferingSectionFacultyServiceTest {
     }
 
     private FacultyCapacityCheckResult fitsWithinCapacity() {
-        return new FacultyCapacityCheckResult(false, 0, 0, 0, 100, 5, "NONE", 100, 0, List.of());
+        return new FacultyCapacityCheckResult(false, 0, 0, 0, 100, 5, "NONE", 100, 0, 0, List.of());
     }
 
     private Faculty faculty(Long id, Speciality speciality) {
@@ -462,7 +462,7 @@ class CourseOfferingSectionFacultyServiceTest {
         Faculty overCapacityFaculty = faculty(6L, subject.getSpeciality());
         when(facultyRepository.findById(6L)).thenReturn(Optional.of(overCapacityFaculty));
         when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L))
-            .thenReturn(new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, List.of()));
+            .thenReturn(new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, 3, List.of()));
 
         assertThatThrownBy(() -> service.upsert(100L, 201L, 6L, null))
             .isInstanceOf(com.cms.exception.TimetableConstraintViolationException.class);
@@ -505,6 +505,11 @@ class CourseOfferingSectionFacultyServiceTest {
         when(facultyRepository.findById(6L)).thenReturn(Optional.of(substituteA));
         when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));
         when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L)).thenReturn(fitsWithinCapacity());
+        // Stubbed even though tipToSubstituteB ends up skipped (row 201 was already won by
+        // tipToSubstituteA) -- confirmSubstitutions' own capacity pre-pass (checkCapacityForSubstitutions)
+        // checks every submitted item up front, before any in-batch skip is resolved, since it runs
+        // before the apply loop even starts working out which tip wins a contested row.
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 7L)).thenReturn(fitsWithinCapacity());
 
         com.cms.dto.SubstitutionAffectedSection affected = new com.cms.dto.SubstitutionAffectedSection(1L, 201L, null);
         com.cms.dto.ConfirmFacultySubstitutionItem tipToSubstituteA =
@@ -550,6 +555,140 @@ class CourseOfferingSectionFacultyServiceTest {
         assertThat(result.sectionsSkipped()).isEqualTo(0);
         verify(batchService).reassignCoordinator(501L, 33L, 0L);
         verify(sectionFacultyRepository, never()).save(any());
+    }
+
+    /** The capacity pre-pass ({@code checkCapacityForSubstitutions}) must check every ticked item
+     *  before applying any of them, and report every over-capacity substitute together -- not just
+     *  the first -- so the admin sees every problem on one Submit instead of a fix-one-resubmit
+     *  loop. Nothing gets applied when any item fails. */
+    @Test
+    void confirmSubstitutions_reportsEveryOverCapacityTipInOneBatchInsteadOfOnlyTheFirst() {
+        Faculty overCapacityFacultyA = faculty(6L, subject.getSpeciality());
+        Faculty overCapacityFacultyB = faculty(7L, subject.getSpeciality());
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(facultyRepository.findById(6L)).thenReturn(Optional.of(overCapacityFacultyA));
+        when(facultyRepository.findById(7L)).thenReturn(Optional.of(overCapacityFacultyB));
+        var spreadLoadToFacultyEight = new com.cms.dto.SpreadLoadSuggestion(8L, "Divya Krishnan", 40.0, 100L, "Adult Health Nursing I", 201L, null);
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L))
+            .thenReturn(new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, 3, List.of(spreadLoadToFacultyEight)));
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 202L, 7L))
+            .thenReturn(new FacultyCapacityCheckResult(true, 80, 30, 110, 90, 4.5, "FACULTY_OVERRIDE", 100, 3, 4, List.of()));
+
+        com.cms.dto.ConfirmFacultySubstitutionItem tipA = new com.cms.dto.ConfirmFacultySubstitutionItem(
+            100L, 9L, 6L, List.of(new com.cms.dto.SubstitutionAffectedSection(1L, 201L, null)));
+        com.cms.dto.ConfirmFacultySubstitutionItem tipB = new com.cms.dto.ConfirmFacultySubstitutionItem(
+            100L, 9L, 7L, List.of(new com.cms.dto.SubstitutionAffectedSection(1L, 202L, null)));
+
+        assertThatThrownBy(() -> service.confirmSubstitutions(List.of(tipA, tipB)))
+            .isInstanceOf(com.cms.exception.SectionFacultyCapacityException.class)
+            .satisfies(ex -> {
+                List<com.cms.dto.SectionFacultyCapacityFailure> failures =
+                    ((com.cms.exception.SectionFacultyCapacityException) ex).getFailures();
+                assertThat(failures).hasSize(2);
+                assertThat(failures).extracting(com.cms.dto.SectionFacultyCapacityFailure::facultyId)
+                    .containsExactlyInAnyOrder(6L, 7L);
+                assertThat(failures).extracting(com.cms.dto.SectionFacultyCapacityFailure::courseOfferingId)
+                    .containsOnly(100L);
+                com.cms.dto.SectionFacultyCapacityFailure failureA = failures.stream()
+                    .filter(f -> f.facultyId().equals(6L)).findFirst().orElseThrow();
+                assertThat(failureA.alternateFacultyId()).isEqualTo(8L);
+                assertThat(failureA.message()).contains("Divya Krishnan");
+                com.cms.dto.SectionFacultyCapacityFailure failureB = failures.stream()
+                    .filter(f -> f.facultyId().equals(7L)).findFirst().orElseThrow();
+                assertThat(failureB.alternateFacultyId()).isNull();
+            });
+
+        verify(sectionFacultyRepository, never()).save(any());
+        verify(batchService, never()).reassignCoordinator(any(), any(), any());
+    }
+
+    /** Regression test: {@code checkFacultyCapacityForSection} re-queries a faculty's CURRENT
+     *  (pre-transaction) demand fresh on every call, so two tips sharing the same substitute would
+     *  each independently look within capacity even though applying BOTH together pushes that
+     *  substitute over -- exactly the real-world shape of a Global Auto-Schedule run, which
+     *  routinely falls back to the same one or two available substitutes across several different
+     *  subjects at once. The capacity pre-pass must accumulate each item's own offering-hours onto
+     *  the shared substitute's running total as it works through the batch, not just re-check each
+     *  tip in isolation. */
+    @Test
+    void confirmSubstitutions_catchesCombinedOverCapacityWhenTwoTipsShareTheSameSubstitute() {
+        Faculty sharedSubstitute = faculty(6L, subject.getSpeciality());
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(facultyRepository.findById(6L)).thenReturn(Optional.of(sharedSubstitute));
+        // Each call independently reports "just fits" (70h existing + 20h this offering = 90h,
+        // under the 100h cap) -- neither call itself knows about the other tip in this same batch.
+        FacultyCapacityCheckResult fitsAlone =
+            new FacultyCapacityCheckResult(false, 70, 20, 90, 100, 5, "FACULTY_OVERRIDE", 100, 0, 0, List.of());
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L)).thenReturn(fitsAlone);
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 202L, 6L)).thenReturn(fitsAlone);
+
+        com.cms.dto.ConfirmFacultySubstitutionItem tipA = new com.cms.dto.ConfirmFacultySubstitutionItem(
+            100L, 9L, 6L, List.of(new com.cms.dto.SubstitutionAffectedSection(1L, 201L, null)));
+        com.cms.dto.ConfirmFacultySubstitutionItem tipB = new com.cms.dto.ConfirmFacultySubstitutionItem(
+            100L, 10L, 6L, List.of(new com.cms.dto.SubstitutionAffectedSection(1L, 202L, null)));
+
+        assertThatThrownBy(() -> service.confirmSubstitutions(List.of(tipA, tipB)))
+            .isInstanceOf(com.cms.exception.SectionFacultyCapacityException.class)
+            .satisfies(ex -> {
+                List<com.cms.dto.SectionFacultyCapacityFailure> failures =
+                    ((com.cms.exception.SectionFacultyCapacityException) ex).getFailures();
+                // Only the second tip newly fails once the first tip's 20h is already committed
+                // (90h + 20h = 110h > 100h cap) -- the first tip alone still fits.
+                assertThat(failures).hasSize(1);
+                assertThat(failures.get(0).facultyId()).isEqualTo(6L);
+            });
+
+        verify(sectionFacultyRepository, never()).save(any());
+    }
+
+    /** Regression test for the real bug this whole capacity pre-pass was found chasing (confirmed
+     *  live against a real Global Auto-Schedule run before this fix): a substitute who fills in
+     *  across several subjects at once routinely picks up a MIX of Theory and Lab/Clinical
+     *  fallbacks in the same batch. A Lab/Clinical item is never itself capacity-gated (matches
+     *  {@code confirmSubstitutions}'s own apply loop, which sends it straight to {@code
+     *  batchService#reassignCoordinator}), but it still genuinely adds to that substitute's real
+     *  demand once applied -- so a LATER Theory item for the same substitute, checked only against
+     *  their pre-transaction baseline, would wrongly look like it still fits unless the earlier
+     *  Lab/Clinical item's own hours are folded into the running total first. */
+    @Test
+    void confirmSubstitutions_catchesOverCapacityFromAnEarlierLabClinicalItemPlusALaterTheoryItem() {
+        Faculty sharedSubstitute = faculty(6L, subject.getSpeciality());
+        com.cms.model.CurriculumSemesterCourse curriculumSemesterCourse = new com.cms.model.CurriculumSemesterCourse();
+        curriculumSemesterCourse.setClinicalHours(15);
+        offering.setCurriculumSemesterCourse(curriculumSemesterCourse);
+
+        com.cms.model.Batch batch = new com.cms.model.Batch(offering, "Clinical - Section 1", 20, termInstance);
+        batch.setId(501L);
+        Faculty originalCoordinator = faculty(31L, subject.getSpeciality());
+        batch.setCoordinatorFaculty(originalCoordinator);
+        batch.setVersion(0L);
+
+        when(courseOfferingRepository.findById(100L)).thenReturn(Optional.of(offering));
+        when(batchRepository.findById(501L)).thenReturn(Optional.of(batch));
+        when(facultyRepository.findById(6L)).thenReturn(Optional.of(sharedSubstitute));
+        // 70h existing + 20h this offering = 90h, under the 100h cap -- fits when checked alone,
+        // with no knowledge of the 15h Lab/Clinical item the batch also confirms for this same
+        // substitute.
+        when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L))
+            .thenReturn(new FacultyCapacityCheckResult(false, 70, 20, 90, 100, 5, "FACULTY_OVERRIDE", 100, 0, 0, List.of()));
+
+        com.cms.dto.ConfirmFacultySubstitutionItem labClinicalTip = new com.cms.dto.ConfirmFacultySubstitutionItem(
+            100L, 31L, 6L, List.of(new com.cms.dto.SubstitutionAffectedSection(1L, 201L, 501L)));
+        com.cms.dto.ConfirmFacultySubstitutionItem theoryTip = new com.cms.dto.ConfirmFacultySubstitutionItem(
+            100L, 9L, 6L, List.of(new com.cms.dto.SubstitutionAffectedSection(1L, 201L, null)));
+
+        assertThatThrownBy(() -> service.confirmSubstitutions(List.of(labClinicalTip, theoryTip)))
+            .isInstanceOf(com.cms.exception.SectionFacultyCapacityException.class)
+            .satisfies(ex -> {
+                List<com.cms.dto.SectionFacultyCapacityFailure> failures =
+                    ((com.cms.exception.SectionFacultyCapacityException) ex).getFailures();
+                // 90h (Theory alone) + 15h (the Lab/Clinical item's own, committed first) = 105h > 100h cap.
+                assertThat(failures).hasSize(1);
+                assertThat(failures.get(0).facultyId()).isEqualTo(6L);
+            });
+
+        verify(sectionFacultyRepository, never()).save(any());
+        verify(batchService, never()).reassignCoordinator(any(), any(), any());
     }
 
     @Test
@@ -679,7 +818,7 @@ class CourseOfferingSectionFacultyServiceTest {
         when(sectionFacultyRepository.findByCourseOfferingIdAndCohortSectionId(100L, 201L)).thenReturn(Optional.empty());
         when(facultyRepository.findById(6L)).thenReturn(Optional.of(onlyCandidate));
         when(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(100L, 201L, 6L))
-            .thenReturn(new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, List.of()));
+            .thenReturn(new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, 3, List.of()));
         when(facultyRepository.getReferenceById(6L)).thenReturn(onlyCandidate);
         when(cohortSectionRepository.getReferenceById(201L)).thenReturn(targetSection);
         when(sectionFacultyRepository.save(any(CourseOfferingSectionFaculty.class))).thenAnswer(inv -> inv.getArgument(0));

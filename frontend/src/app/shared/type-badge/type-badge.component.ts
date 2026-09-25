@@ -112,6 +112,20 @@ export class CmsTypeBadgeComponent {
         return 'cms-badge--soft-accent';
       case 'CLINICAL':
         return 'cms-badge--soft-green';
+      case 'LIBRARY':
+        return 'cms-badge--soft-gray';
+      case 'SPORTS':
+        return 'cms-badge--soft-amber';
+
+      // ── Session occurrence status (Class Schedules date-wise browser) ────
+      case 'HELD':
+        return 'cms-badge--soft-green';
+      case 'SUBSTITUTED':
+        return 'cms-badge--soft-amber';
+      case 'RESCHEDULED':
+        return 'cms-badge--soft-purple';
+      case 'CANCELLED':
+        return 'cms-badge--soft-red';
 
       // ── Fee quota ─────────────────────────────────────────────────────────
       case 'MANAGEMENT':

@@ -394,8 +394,10 @@ public class TimetableGlobalAutoScheduleService {
 
         List<SpreadLoadSuggestion> spreadLoad = List.of();
         double suggestedMinDailyHours = 0;
+        int suggestedMinDailySessions = 0;
         if (overCapacity) {
             suggestedMinDailyHours = Math.ceil(projectedTotal / demand.workingDaysInTerm());
+            suggestedMinDailySessions = minDailySessionsFor(suggestedMinDailyHours);
             if (offering.getSubject() != null) {
                 OverageContributor asContributor = new OverageContributor(offeringId, offering.getSubject().getName(),
                     cohortId, null, cohortHours, null, null, null, null, null);
@@ -406,7 +408,8 @@ public class TimetableGlobalAutoScheduleService {
 
         return new FacultyCapacityCheckResult(overCapacity, currentDemand, cohortHours, projectedTotal,
             capacity != null ? capacity.termCapacityHours() : 0, capacity != null ? capacity.dailyCapForDisplay() : 0,
-            capacity != null ? capacity.tier() : "NONE", demand.workingDaysInTerm(), suggestedMinDailyHours, spreadLoad);
+            capacity != null ? capacity.tier() : "NONE", demand.workingDaysInTerm(), suggestedMinDailyHours,
+            suggestedMinDailySessions, spreadLoad);
     }
 
     /** One faculty's full, real term workload — every offering/section/batch contributing to their
@@ -613,8 +616,10 @@ public class TimetableGlobalAutoScheduleService {
 
         List<SpreadLoadSuggestion> spreadLoad = List.of();
         double suggestedMinDailyHours = 0;
+        int suggestedMinDailySessions = 0;
         if (overCapacity) {
             suggestedMinDailyHours = Math.ceil(projectedTotal / demand.workingDaysInTerm());
+            suggestedMinDailySessions = minDailySessionsFor(suggestedMinDailyHours);
             if (offering.getSubject() != null) {
                 OverageContributor asContributor = new OverageContributor(offeringId, offering.getSubject().getName(),
                     null, null, sectionHours, cohortSectionId, null, null, null, "THEORY");
@@ -625,7 +630,20 @@ public class TimetableGlobalAutoScheduleService {
 
         return new FacultyCapacityCheckResult(overCapacity, currentDemand, sectionHours, projectedTotal,
             capacity != null ? capacity.termCapacityHours() : 0, capacity != null ? capacity.dailyCapForDisplay() : 0,
-            capacity != null ? capacity.tier() : "NONE", demand.workingDaysInTerm(), suggestedMinDailyHours, spreadLoad);
+            capacity != null ? capacity.tier() : "NONE", demand.workingDaysInTerm(), suggestedMinDailyHours,
+            suggestedMinDailySessions, spreadLoad);
+    }
+
+    /** Converts an hours/day target into the session count an admin can actually type into the
+     *  Raise Cap field (Faculty's {@code plannedDailySessionsOverride}) -- rounds up so the result
+     *  genuinely clears the target rather than landing just short of it (see {@link
+     *  FacultyCapacityCheckResult#suggestedMinDailySessions}'s own javadoc for why this exists).
+     *  Public (not just this class's own two capacity-check callers) so {@link
+     *  CourseOfferingSectionFacultyService#withExtraCommittedHours} can recompute a session count
+     *  for a capacity result it adjusts after the fact, rather than duplicating this conversion. */
+    public int minDailySessionsFor(double minDailyHours) {
+        double avgPeriodHours = averagePeriodDurationHours(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc());
+        return avgPeriodHours > 0 ? (int) Math.ceil(minDailyHours / avgPeriodHours) : 0;
     }
 
     /** This section's current faculty -- its own {@link CourseOfferingSectionFaculty} override, or

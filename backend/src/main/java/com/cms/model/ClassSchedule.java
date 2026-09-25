@@ -67,6 +67,16 @@ public class ClassSchedule {
     @Column(name = "day_of_week", nullable = false)
     private DayOfWeek dayOfWeek;
 
+    /** Read-only, Monday-first ordinal for {@link #dayOfWeek} — the column itself is a plain
+     *  VARCHAR (see V17), so a bare {@code ORDER BY day_of_week} sorts alphabetically
+     *  (Friday, Monday, Saturday, ...) rather than how a weekly timetable is actually read.
+     *  Sort by this instead wherever "Day" needs to read Monday→Saturday. */
+    @org.hibernate.annotations.Formula(
+        "CASE day_of_week " +
+        "WHEN 'MONDAY' THEN 1 WHEN 'TUESDAY' THEN 2 WHEN 'WEDNESDAY' THEN 3 " +
+        "WHEN 'THURSDAY' THEN 4 WHEN 'FRIDAY' THEN 5 WHEN 'SATURDAY' THEN 6 ELSE 7 END")
+    private Integer dayOrder;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "term_instance_id", nullable = false)
     private TermInstance termInstance;

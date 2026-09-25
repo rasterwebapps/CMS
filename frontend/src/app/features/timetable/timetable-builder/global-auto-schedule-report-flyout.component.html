@@ -507,6 +507,13 @@
                       <span class="field-hint">✓ Confirmed — {{ tip.substituteFacultyName }} is now the official {{ tipRoleLabel(tip) }} for the rest of the term.</span>
                     </div>
                   }
+                  @if (capacityFailureFor(tip); as failure) {
+                    <p class="gas-warning">{{ failure.message }}</p>
+                    <div class="gas-shortfall__actions">
+                      <button type="button" class="btn-secondary" (click)="openRaiseCapForTip(tip, failure.suggestedMinDailySessions)">Raise Cap…</button>
+                      <button type="button" class="btn-secondary" (click)="openReassignForTip(tip, failure.alternateFacultyId)">Reassign…</button>
+                    </div>
+                  }
                 </div>
               }
               <div class="gas-shortfall__actions">
@@ -697,4 +704,15 @@
     (closed)="onSpecialClassClosed()"
     (saved)="onSpecialClassSaved()">
   </app-special-class-request-flyout>
+}
+
+@if (raiseCapTarget(); as rc) {
+  <app-raise-cap-flyout
+    [facultyId]="rc.facultyId"
+    [facultyName]="rc.facultyName"
+    [currentDailyCap]="rc.currentDailyCap"
+    [suggestedDailyCap]="rc.suggestedDailyCap"
+    (closed)="onRaiseCapClosed()"
+    (saved)="onRaiseCapSaved(rc.facultyId)">
+  </app-raise-cap-flyout>
 }

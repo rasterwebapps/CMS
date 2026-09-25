@@ -494,6 +494,28 @@ app-root {
   z-index: 1;
 }
 
+// `ToastHostComponent` portals itself into `.cdk-overlay-container` (a sibling of
+// `app-root`, appended directly under `<body>` by Angular CDK) specifically so its
+// z-index isn't clamped inside app-root's own stacking context above -- see that
+// component's doc comment. Every CDK overlay pane defaults to the same z-index
+// (1000, overlay-prebuilt.css), so same-z-index panes otherwise stack by DOM attach
+// order; since the toast host mounts once at bootstrap, its pane is normally the
+// *first* attached and would sit behind any flyout/dialog opened afterward without
+// this override. Raising just `.cms-toast-overlay-pane` is not enough on its own --
+// a global-position overlay (which this is, and which `CmsFlyoutPanelComponent` also
+// is) is wrapped by CDK in its own `.cdk-global-overlay-wrapper`, itself a
+// z-index:1000 stacking context, so two such wrappers tie at the *wrapper* level
+// regardless of either wrapper's own pane's z-index -- the `:has()` selector reaches
+// up to raise this pane's own wrapper specifically, without touching any other
+// overlay's wrapper.
+.cms-toast-overlay-pane {
+  z-index: 1100; // Above mat-dialog scrim / other overlay panes (1000)
+}
+
+.cdk-global-overlay-wrapper:has(> .cms-toast-overlay-pane) {
+  z-index: 1100;
+}
+
 // Remove Angular Material's default border-radius on the sidenav/drawer panel
 .mat-drawer.app-sidenav {
   border-radius: 0 !important;

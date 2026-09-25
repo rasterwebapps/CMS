@@ -120,7 +120,7 @@ export interface MyTimetableResponse {
   holidays: WeekGridHolidayInfo[];
 }
 
-export type OccurrenceStatus = 'HELD' | 'SUBSTITUTED' | 'CANCELLED';
+export type OccurrenceStatus = 'HELD' | 'SUBSTITUTED' | 'CANCELLED' | 'RESCHEDULED';
 
 /** One calendar-dated firing of a recurring ClassSchedule row -- the projection behind
  *  Month/Week/Day calendar views, from GET /timetables/occurrences. occurrenceStatus is CANCELLED

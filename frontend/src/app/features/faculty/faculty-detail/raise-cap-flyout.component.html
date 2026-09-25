@@ -1,12 +1,12 @@
-<cms-flyout-panel width="420px" ariaLabel="Raise daily session cap" (closed)="onClose()">
+<cms-flyout-panel width="420px" ariaLabel="Raise daily period cap" (closed)="onClose()">
   <div flyoutHeader>Raise Daily Cap — {{ facultyName() }}</div>
 
   <div flyoutBody>
     <p class="field-hint">
-      Current cap: {{ currentDailyCap() != null ? currentDailyCap() + 'h/day' : 'not configured' }}.
+      Current cap: {{ currentDailyCap() != null ? currentDailyCap() + ' period(s)/day' : 'not configured' }}.
     </p>
     <div class="field-group">
-      <label class="field-label" for="raise-cap-input">New daily cap (sessions)</label>
+      <label class="field-label" for="raise-cap-input">New daily cap (periods)</label>
       <input id="raise-cap-input" class="field-select" type="number" min="0" step="1"
         [(ngModel)]="newDailyCap" placeholder="Leave blank to clear the override" />
     </div>

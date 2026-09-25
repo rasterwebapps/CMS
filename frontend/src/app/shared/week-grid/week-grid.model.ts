@@ -4,7 +4,7 @@ export type WeekGridSessionStatus = 'DRAFT' | 'PUBLISHED';
 /** Mirrors the feature-level OccurrenceStatus (see timetable.model.ts) -- duplicated locally the
  *  same way WeekGridSessionType/WeekGridSessionStatus already are, so this shared component never
  *  imports from a feature folder. */
-export type WeekGridOccurrenceStatus = 'HELD' | 'SUBSTITUTED' | 'CANCELLED';
+export type WeekGridOccurrenceStatus = 'HELD' | 'SUBSTITUTED' | 'CANCELLED' | 'RESCHEDULED';
 
 /** Session-type-neutral shape a week-grid cell renders — matches the backend's
  *  ClassScheduleResponse fields that stay meaningful regardless of THEORY vs LAB. */

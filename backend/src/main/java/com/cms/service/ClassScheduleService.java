@@ -6,6 +6,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +34,7 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.repository.BatchRepository;
 import com.cms.repository.ClassScheduleRepository;
+import com.cms.repository.ClassScheduleSpecification;
 import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClinicalVenueRepository;
 import com.cms.repository.CourseOfferingRepository;
@@ -201,6 +207,40 @@ public class ClassScheduleService {
 
     public List<ClassScheduleResponse> findAll() {
         return classScheduleRepository.findByIsActiveTrue().stream().map(this::toResponse).toList();
+    }
+
+    /** Server-side paginated/filtered/sorted sibling of {@link #findAll()} backing the Class
+     *  Schedules list screen — {@link #findAll()} itself stays untouched since it's also used,
+     *  unfiltered, wherever a plain "every active row" list is still needed. */
+    public Page<ClassScheduleResponse> findPage(
+            String search, Long labId, Long facultyId, Long termInstanceId,
+            DayOfWeek dayOfWeek, ClassSessionType sessionType, Pageable pageable) {
+        Specification<ClassSchedule> spec = buildSpec(search, labId, facultyId, termInstanceId, dayOfWeek, sessionType);
+        Page<ClassSchedule> page = classScheduleRepository.findAll(spec, pageable);
+        List<ClassScheduleResponse> content = page.getContent().stream().map(this::toResponse).toList();
+        return new PageImpl<>(content, pageable, page.getTotalElements());
+    }
+
+    /** Unpaged sibling of {@link #findPage} — same filter set, for export so downloaded rows
+     *  always match the on-screen filtered/sorted list. */
+    public List<ClassScheduleResponse> findAllMatching(
+            String search, Long labId, Long facultyId, Long termInstanceId,
+            DayOfWeek dayOfWeek, ClassSessionType sessionType, Sort sort) {
+        Specification<ClassSchedule> spec = buildSpec(search, labId, facultyId, termInstanceId, dayOfWeek, sessionType);
+        return classScheduleRepository.findAll(spec, sort).stream().map(this::toResponse).toList();
+    }
+
+    private Specification<ClassSchedule> buildSpec(
+            String search, Long labId, Long facultyId, Long termInstanceId,
+            DayOfWeek dayOfWeek, ClassSessionType sessionType) {
+        Specification<ClassSchedule> spec = Specification.where(ClassScheduleSpecification.byIsActiveTrue());
+        if (search != null && !search.isBlank()) spec = spec.and(ClassScheduleSpecification.bySearch(search));
+        if (labId != null)                       spec = spec.and(ClassScheduleSpecification.byLabId(labId));
+        if (facultyId != null)                   spec = spec.and(ClassScheduleSpecification.byFacultyId(facultyId));
+        if (termInstanceId != null)               spec = spec.and(ClassScheduleSpecification.byTermInstanceId(termInstanceId));
+        if (dayOfWeek != null)                    spec = spec.and(ClassScheduleSpecification.byDayOfWeek(dayOfWeek));
+        if (sessionType != null)                  spec = spec.and(ClassScheduleSpecification.bySessionType(sessionType));
+        return spec;
     }
 
     public ClassScheduleResponse findById(Long id) {

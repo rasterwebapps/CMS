@@ -78,11 +78,11 @@ class TimetableStaffingAutoAssignServiceTest {
     }
 
     private FacultyCapacityCheckResult fitsWithinCapacity() {
-        return new FacultyCapacityCheckResult(false, 0, 0, 0, 100, 5, "NONE", 100, 0, List.of());
+        return new FacultyCapacityCheckResult(false, 0, 0, 0, 100, 5, "NONE", 100, 0, 0, List.of());
     }
 
     private FacultyCapacityCheckResult overCapacity() {
-        return new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, List.of());
+        return new FacultyCapacityCheckResult(true, 90, 40, 130, 100, 5, "FACULTY_OVERRIDE", 100, 2, 3, List.of());
     }
 
     private Faculty faculty(Long id) {

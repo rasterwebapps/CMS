@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -18,6 +19,7 @@ import com.cms.dto.ClassScheduleResponse;
 import com.cms.dto.ProfileIdentity;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Faculty;
+import com.cms.model.Period;
 import com.cms.model.SessionOccurrence;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.DayOfWeek;
@@ -85,48 +87,59 @@ public class TimetableOccurrenceService {
         }
 
         Set<Long> scheduleIds = schedules.stream().map(ClassSchedule::getId).collect(Collectors.toSet());
-        List<SessionOccurrence> substitutedOccurrences = sessionOccurrenceRepository
+        // One row per (schedule, date) -- SUBSTITUTED (faculty/room override), CANCELLED (a
+        // Reschedule's vacated original date, the only place a CANCELLED SessionOccurrence is
+        // consulted at all -- every other cancellation reported below comes from a BlockedPeriod
+        // match instead, a wholly separate mechanism), or RESCHEDULED (this same date is also
+        // this row's own *target* date -- the "moved to a different period, same day" case).
+        // The DB's own (class_schedule_id, occurrence_date) unique constraint guarantees at most
+        // one row per key, so a plain (non-multi-valued) toMap is safe.
+        Map<Long, Map<LocalDate, SessionOccurrence>> overlayByScheduleAndDate = sessionOccurrenceRepository
             .findByClassSchedule_TermInstance_IdAndClassSchedule_Status(termInstanceId, ClassScheduleStatus.PUBLISHED)
             .stream()
-            .filter(occ -> occ.getOccurrenceStatus() == OccurrenceStatus.SUBSTITUTED)
             .filter(occ -> scheduleIds.contains(occ.getClassSchedule().getId()))
-            .toList();
-
-        // A SUBSTITUTED occurrence can carry a faculty override, a room relocation (BR-55
-        // Room Relocation), both, or -- transiently, mid-revert -- neither; Collectors.toMap
-        // forbids null values, so each map is independently filtered to rows that actually
-        // carry that specific override rather than every SUBSTITUTED row.
-        Map<Long, Map<LocalDate, Faculty>> substituteFacultyByScheduleAndDate = substitutedOccurrences.stream()
-            .filter(occ -> occ.getEffectiveFaculty() != null)
+            .filter(occ -> occ.getOccurrenceStatus() != OccurrenceStatus.HELD)
             .collect(Collectors.groupingBy(occ -> occ.getClassSchedule().getId(),
-                Collectors.toMap(SessionOccurrence::getOccurrenceDate, SessionOccurrence::getEffectiveFaculty)));
-        Map<Long, Map<LocalDate, VenueResolution>> roomOverrideByScheduleAndDate = substitutedOccurrences.stream()
-            .map(occ -> Map.entry(occ, SessionOccurrenceVenue.fromOccurrence(occ)))
-            .filter(entry -> entry.getValue().venueId() != null)
-            .collect(Collectors.groupingBy(entry -> entry.getKey().getClassSchedule().getId(),
-                Collectors.toMap(entry -> entry.getKey().getOccurrenceDate(), Map.Entry::getValue)));
+                Collectors.toMap(SessionOccurrence::getOccurrenceDate, occ -> occ)));
 
         List<ClassScheduleOccurrenceResponse> result = new ArrayList<>();
         for (ClassSchedule schedule : schedules) {
             ClassScheduleResponse response = responseById.get(schedule.getId());
-            Map<LocalDate, Faculty> substitutesByDate =
-                substituteFacultyByScheduleAndDate.getOrDefault(schedule.getId(), Map.of());
-            Map<LocalDate, VenueResolution> roomOverridesByDate =
-                roomOverrideByScheduleAndDate.getOrDefault(schedule.getId(), Map.of());
+            Map<LocalDate, SessionOccurrence> overlayByDate =
+                overlayByScheduleAndDate.getOrDefault(schedule.getId(), Map.of());
             for (LocalDate date : datesBySchedule.getOrDefault(schedule.getId(), List.of())) {
-                Faculty substitute = substitutesByDate.get(date);
-                VenueResolution roomOverride = roomOverridesByDate.get(date);
-                if (substitute != null || roomOverride != null) {
-                    result.add(new ClassScheduleOccurrenceResponse(
-                        date, withOverrides(response, substitute, roomOverride), OccurrenceStatus.SUBSTITUTED, null));
-                } else {
-                    result.add(new ClassScheduleOccurrenceResponse(date, response, OccurrenceStatus.HELD, null));
-                }
+                SessionOccurrence overlay = overlayByDate.get(date);
+                result.add(toOccurrenceResponse(date, response, overlay));
             }
             for (ClassScheduleOccurrenceService.CancelledOccurrence cancelled
                     : cancelledBySchedule.getOrDefault(schedule.getId(), List.of())) {
                 result.add(new ClassScheduleOccurrenceResponse(cancelled.date(), response, OccurrenceStatus.CANCELLED, cancelled.reason()));
             }
+        }
+
+        // Reschedule's other half: a REGULAR occurrence moved ONTO a date its own schedule
+        // doesn't naturally recur on -- the per-schedule natural-date walk above can never
+        // discover these (by definition the target date isn't one of that schedule's own dates),
+        // so they're fetched directly by date range + RESCHEDULED status instead. Excludes dates
+        // that ARE natural for their schedule (the "moved to a different period, same day" case,
+        // where target == source) since the natural-date loop above already emitted that row --
+        // without this exclusion it would appear twice. Bounded and cheap since callers of this
+        // whole method only ever pass a single-day or single-week window (see the class javadoc).
+        for (SessionOccurrence moved : sessionOccurrenceRepository
+                .findByOccurrenceStatusAndOccurrenceDateBetweenAndClassSchedule_TermInstance_IdAndClassSchedule_Status(
+                    OccurrenceStatus.RESCHEDULED, from, to, termInstanceId, ClassScheduleStatus.PUBLISHED)) {
+            Long scheduleId = moved.getClassSchedule().getId();
+            if (!scheduleIds.contains(scheduleId)) {
+                continue;
+            }
+            if (datesBySchedule.getOrDefault(scheduleId, List.of()).contains(moved.getOccurrenceDate())) {
+                continue;
+            }
+            ClassScheduleResponse base = responseById.get(scheduleId);
+            if (base == null) {
+                continue;
+            }
+            result.add(toOccurrenceResponse(moved.getOccurrenceDate(), base, moved));
         }
 
         // CLINICAL hours are delivered off-grid via ClinicalShiftGroup/Batch and never produce a real
@@ -165,12 +178,36 @@ public class TimetableOccurrenceService {
         return dates;
     }
 
-    /** Independently overrides the faculty fields (if {@code substitute != null}) and/or the room
-     *  fields (if {@code roomOverride != null}) for a SUBSTITUTED occurrence — the recurring
-     *  {@link ClassSchedule#getFaculty()}/venue are never mutated by substitution or relocation, so
-     *  every other occurrence of the same schedule must keep showing the originals. A date can have
-     *  either override, both, or (handled by the caller) neither. */
-    private static ClassScheduleResponse withOverrides(ClassScheduleResponse r, Faculty substitute, VenueResolution roomOverride) {
+    /** Builds one occurrence entry for a (date, base template, overlay row) triple -- {@code
+     *  overlay} is null for a plain HELD date. Branches on the overlay's own status: CANCELLED
+     *  reports the vacated date with its remark as the reason; SUBSTITUTED/RESCHEDULED apply
+     *  whichever of faculty/room/period the row actually carries (a SUBSTITUTED row never has a
+     *  period override -- see {@link SessionOccurrence#getEffectivePeriod()} -- so passing it
+     *  through unconditionally is safe for both statuses). */
+    private static ClassScheduleOccurrenceResponse toOccurrenceResponse(
+            LocalDate date, ClassScheduleResponse response, SessionOccurrence overlay) {
+        if (overlay == null) {
+            return new ClassScheduleOccurrenceResponse(date, response, OccurrenceStatus.HELD, null);
+        }
+        if (overlay.getOccurrenceStatus() == OccurrenceStatus.CANCELLED) {
+            String reason = overlay.getRemarks() != null ? overlay.getRemarks() : "Cancelled";
+            return new ClassScheduleOccurrenceResponse(date, response, OccurrenceStatus.CANCELLED, reason);
+        }
+        VenueResolution roomOverride = SessionOccurrenceVenue.fromOccurrence(overlay);
+        ClassScheduleResponse withOverrides = withOverrides(response, overlay.getEffectiveFaculty(),
+            roomOverride.venueId() != null ? roomOverride : null,
+            overlay.getPeriod() != null ? overlay.getEffectivePeriod() : null);
+        return new ClassScheduleOccurrenceResponse(date, withOverrides, overlay.getOccurrenceStatus(), overlay.getRemarks());
+    }
+
+    /** Independently overrides the faculty fields (if {@code substitute != null}), the room fields
+     *  (if {@code roomOverride != null}), and the period/time fields (if {@code periodOverride !=
+     *  null}, set only by Reschedule — SUBSTITUTED occurrences never touch period) — the recurring
+     *  {@link ClassSchedule#getFaculty()}/venue/period are never mutated by substitution, relocation,
+     *  or reschedule, so every other occurrence of the same schedule must keep showing the
+     *  originals. A date can have any combination of these, or (handled by the caller) none. */
+    private static ClassScheduleResponse withOverrides(ClassScheduleResponse r, Faculty substitute,
+                                                         VenueResolution roomOverride, Period periodOverride) {
         Long facultyId = substitute != null ? substitute.getId() : r.facultyId();
         String facultyName = substitute != null ? substitute.getFullName() : r.facultyName();
 
@@ -189,12 +226,23 @@ public class TimetableOccurrenceService {
                 : roomOverride.clinicalVenue() != null ? roomOverride.clinicalVenue().getName() : null;
         }
 
+        Long periodId = r.periodId();
+        String slotName = r.slotName();
+        LocalTime startTime = r.startTime();
+        LocalTime endTime = r.endTime();
+        if (periodOverride != null) {
+            periodId = periodOverride.getId();
+            slotName = periodOverride.getName();
+            startTime = periodOverride.getStartTime();
+            endTime = periodOverride.getEndTime();
+        }
+
         return new ClassScheduleResponse(
             r.id(), r.sessionType(), r.status(),
             labId, labName,
             r.subjectId(), r.subjectName(), r.subjectCode(),
             facultyId, facultyName,
-            r.periodId(), r.slotName(), r.startTime(), r.endTime(),
+            periodId, slotName, startTime, endTime,
             r.batchName(), r.batchId(),
             classroomId, clinicalVenueId, roomName,
             r.courseOfferingId(), r.termNumber(),

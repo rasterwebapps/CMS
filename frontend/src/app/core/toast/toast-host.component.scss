@@ -1,10 +1,13 @@
 // ─── Toast host container ─────────────────────────────────────
-// Fixed top-right stack used by ToastService.
+// Fixed top-right stack used by ToastService. The CDK overlay pane this renders into
+// (`.cms-toast-overlay-pane`, styles.scss) is what actually wins the stacking fight
+// against other overlays (flyouts/dialogs) -- this z-index only matters among this
+// pane's own descendants, but is kept in sync with that value for clarity.
 .cms-toast-host {
   position: fixed;
   top: 80px; // Sit below the toolbar
   right: 20px;
-  z-index: 1100; // Above mat-dialog scrim (1000) so toasts remain visible while a dialog is open
+  z-index: 1100;
   display: flex;
   flex-direction: column;
   gap: 10px;

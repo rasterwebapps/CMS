@@ -1,5 +1,15 @@
-export type ClassSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY';
+export type ClassSessionType = 'THEORY' | 'LAB' | 'CLINICAL' | 'LIBRARY' | 'SPORTS';
 export type ClassScheduleStatus = 'DRAFT' | 'PUBLISHED';
+
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+}
 
 export interface LabSchedule {
   id: number;

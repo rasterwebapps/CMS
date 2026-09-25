@@ -1,15 +1,15 @@
 import { TourDefinition, TourFlowMap } from '../tour.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Lab Schedule List
+// Class Schedule List — date-wise occurrence browser
 // ─────────────────────────────────────────────────────────────────────────────
 export const LAB_SCHEDULE_LIST_TOUR: TourDefinition = {
   steps: [
     {
       popover: {
-        title: '🧪 Lab Schedules',
+        title: '🧪 Class Schedules',
         description:
-          'Manage lab session timetables — day, time, room, subject, faculty, and batch assignments for every lab session.',
+          'See every real session that actually happens on one calendar date — across every room, faculty, and cohort — not just the weekly recurring pattern.',
         side: 'over',
         align: 'center',
       },
@@ -17,8 +17,8 @@ export const LAB_SCHEDULE_LIST_TOUR: TourDefinition = {
     {
       element: '#tour-labsch-toolbar',
       popover: {
-        title: 'Search',
-        description: 'Search schedules by subject, room, or faculty name.',
+        title: 'Date & Filters',
+        description: 'Pick a date to browse, then narrow by session type, room, faculty, status, or search.',
         side: 'bottom',
         align: 'start',
       },
@@ -26,9 +26,9 @@ export const LAB_SCHEDULE_LIST_TOUR: TourDefinition = {
     {
       element: '#tour-labsch-table',
       popover: {
-        title: 'Schedule Records',
+        title: 'Session Records',
         description:
-          'Each row is one lab session — day, session type, room, subject, faculty, batch, and start/end time. New sessions come from Timetable Builder or the Special Class Scheduler; edit an existing row here to correct it.',
+          'Each row is one real session on the picked date — time, type, room, subject, faculty, batch, and status (Held, Substituted, Rescheduled, or Cancelled). Swap or Reschedule one session here without touching its recurring weekly template.',
         side: 'top',
         align: 'start',
       },
@@ -38,11 +38,11 @@ export const LAB_SCHEDULE_LIST_TOUR: TourDefinition = {
 
 export const LAB_SCHEDULE_LIST_FLOW_MAP: TourFlowMap = {
   funnel: [
-    { label: 'Lab Schedules', description: 'Day, time, room, subject, faculty, and batch assignments for every lab session.' },
+    { label: 'Class Schedules', description: 'Every real session on one date, across every room and faculty.' },
   ],
   currentIndex: 0,
   steps: [
-    { label: 'Search', icon: 'search', detail: 'Search schedules by subject, room, or faculty name.' },
-    { label: 'Schedule Records', icon: 'checklist', detail: 'Each row is one lab session with its day, time, room, subject, faculty, and batch.' },
+    { label: 'Date & Filters', icon: 'search', detail: 'Pick a date, then narrow by type, room, faculty, status, or search.' },
+    { label: 'Session Records', icon: 'checklist', detail: 'Each row is one real session with its time, room, subject, faculty, batch, and status.' },
   ],
 };

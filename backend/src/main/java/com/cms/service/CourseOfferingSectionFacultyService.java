@@ -23,8 +23,10 @@ import com.cms.dto.CourseOfferingFacultySummaryDto;
 import com.cms.dto.CourseOfferingSectionFacultyResponse;
 import com.cms.dto.FacultyCapacityCheckResult;
 import com.cms.dto.SectionFacultyAssignment;
+import com.cms.dto.SectionFacultyCapacityFailure;
 import com.cms.dto.SubstitutionAffectedSection;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.exception.SectionFacultyCapacityException;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Batch;
 import com.cms.model.Cohort;
@@ -375,9 +377,20 @@ public class CourseOfferingSectionFacultyService {
      *  later tip in the same batch reaches one already in that map, that's this batch's own earlier
      *  write, not an external conflict — the first-ticked tip to reach it wins, and the later tip's
      *  claim on that one row/batch is skipped (counted in {@code sectionsSkipped}) rather than
-     *  throwing and rolling back the whole batch. */
+     *  throwing and rolling back the whole batch.
+     *
+     * <p>{@link #checkCapacityForSubstitutions} validates every item's capacity up front, before
+     *  anything below is applied, collecting every over-capacity substitute in one
+     *  {@link com.cms.exception.SectionFacultyCapacityException} instead of {@link #upsert}'s own
+     *  fail-on-first capacity gate (still in effect below as a safety net, not the primary path --
+     *  it would only matter if the same substitute appears in two tips of one batch, where applying
+     *  the first shifts their load enough to newly fail the second; that rarer case still throws
+     *  and rolls back correctly, just via the older single-message {@code
+     *  TimetableConstraintViolationException} rather than the richer per-tip one). */
     @Transactional
     public ConfirmFacultySubstitutionsResult confirmSubstitutions(List<ConfirmFacultySubstitutionItem> items) {
+        checkCapacityForSubstitutions(items);
+
         int rowsReassigned = 0;
         int sectionsSkipped = 0;
         Map<String, Long> appliedRows = new HashMap<>();
@@ -435,6 +448,112 @@ public class CourseOfferingSectionFacultyService {
             }
         }
         return new ConfirmFacultySubstitutionsResult(offeringIdsTouched.size(), rowsReassigned, sectionsSkipped);
+    }
+
+    /** Validates every ticked item's capacity *before* {@link #confirmSubstitutions} applies
+     *  anything, collecting every over-capacity substitute in one pass instead of the apply loop's
+     *  own fail-on-first-throw (which would only ever report one problem per Submit click, forcing
+     *  a fix-one-resubmit-see-the-next-one loop). Checked using each item's first non-Lab/Clinical
+     *  affected section (batchId null) -- capacity is a whole-faculty total, so every Theory-
+     *  affected section within the same item necessarily agrees on whether this item's substitute
+     *  goes over. An item with no such section (Lab/Clinical only) is never itself capacity-gated
+     *  here -- matching {@link #confirmSubstitutions}'s own apply loop, which routes a Lab/Clinical
+     *  reassignment straight to {@code batchService#reassignCoordinator} with no capacity check at
+     *  all -- but its own Lab/Clinical hours still count toward {@code
+     *  committedExtraHoursByFaculty} below, since a coordinator reassignment genuinely adds to that
+     *  faculty's real demand once applied, it's just never blocked on it.
+     *
+     * <p>{@code committedExtraHoursByFaculty} accumulates each substitute's own hours across every
+     *  item processed so far *in this same batch*, Lab/Clinical and Theory alike -- {@link
+     *  TimetableGlobalAutoScheduleService#checkFacultyCapacityForSection}/{@code ForCohort} each
+     *  independently re-query that faculty's CURRENT (pre-transaction) demand fresh from the DB, so
+     *  checking every item in isolation would miss a substitute who only goes over capacity from
+     *  the *combined* weight of several tips in the same Submit -- confirmed live against real
+     *  Global Auto-Schedule output: a substitute who fills in across several subjects at once
+     *  routinely picks up a MIX of Theory and Lab/Clinical fallbacks together, and the apply loop
+     *  processes items (and so writes Lab/Clinical coordinator changes) in the same order this
+     *  pre-pass does, so a later Theory item's own {@code upsert} capacity gate sees exactly the
+     *  load this accumulation predicts. */
+    private void checkCapacityForSubstitutions(List<ConfirmFacultySubstitutionItem> items) {
+        List<SectionFacultyCapacityFailure> failures = new ArrayList<>();
+        Map<Long, Double> committedExtraHoursByFaculty = new HashMap<>();
+        for (ConfirmFacultySubstitutionItem item : items) {
+            double itemHours = 0;
+            FacultyCapacityCheckResult rawCheck = null;
+            for (SubstitutionAffectedSection affected : item.affectedSections()) {
+                if (affected.batchId() != null) {
+                    itemHours += batchOfferingHours(item.courseOfferingId(), affected.batchId());
+                } else if (rawCheck == null) {
+                    rawCheck = affected.cohortSectionId() != null
+                        ? timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(
+                            item.courseOfferingId(), affected.cohortSectionId(), item.substituteFacultyId())
+                        : timetableGlobalAutoScheduleService.checkFacultyCapacityForCohort(
+                            item.courseOfferingId(), affected.cohortId(), item.substituteFacultyId());
+                    itemHours += rawCheck.offeringHours();
+                }
+            }
+            double alreadyCommitted = committedExtraHoursByFaculty.getOrDefault(item.substituteFacultyId(), 0.0);
+            committedExtraHoursByFaculty.merge(item.substituteFacultyId(), itemHours, Double::sum);
+            if (rawCheck == null) {
+                continue; // Lab/Clinical-only item -- ungated, but its hours are now committed above.
+            }
+
+            FacultyCapacityCheckResult check = withExtraCommittedHours(rawCheck, alreadyCommitted);
+            String message = buildOverCapacityMessage(item.courseOfferingId(), item.substituteFacultyId(), check);
+            if (message != null) {
+                Long alternateFacultyId = check.spreadLoad().isEmpty() ? null : check.spreadLoad().get(0).alternateFacultyId();
+                failures.add(new SectionFacultyCapacityFailure(item.courseOfferingId(), item.substituteFacultyId(), message,
+                    alternateFacultyId, check.suggestedMinDailySessions()));
+            }
+        }
+        if (!failures.isEmpty()) {
+            throw new SectionFacultyCapacityException(failures);
+        }
+    }
+
+    /** This offering's Lab hours if {@code batchId} is a Lab batch, else its Clinical hours --
+     *  mirrors the frontend's own {@code TeachingAssignmentDialogComponent#computeHourAdjustments}
+     *  reasoning (a Lab-linked batch owes {@code offering.labHours}, a Clinical-linked batch owes
+     *  {@code offering.clinicalHours}) since there's no {@code FacultyCapacityCheckResult}-shaped
+     *  check for a coordinator reassignment to read this off of. 0 if the offering, batch, or its
+     *  curriculum row can't be resolved. */
+    private double batchOfferingHours(Long offeringId, Long batchId) {
+        CourseOffering offering = courseOfferingRepository.findById(offeringId).orElse(null);
+        Batch batch = batchRepository.findById(batchId).orElse(null);
+        if (offering == null || batch == null || offering.getCurriculumSemesterCourse() == null) {
+            return 0;
+        }
+        Integer hours = batch.getLab() != null
+            ? offering.getCurriculumSemesterCourse().getLabHours()
+            : offering.getCurriculumSemesterCourse().getClinicalHours();
+        return hours != null ? hours : 0;
+    }
+
+    /** Re-derives {@code overCapacity}/{@code projectedTotalHours}/{@code suggestedMinDailyHours}
+     *  as if {@code extraHours} (some earlier item's own offering-hours, for the same faculty in
+     *  the same batch) had already landed on top of {@code check}'s own live snapshot -- everything
+     *  else on {@code check} (capacity/tier/spreadLoad/etc.) is unaffected by that and passed
+     *  through unchanged. A "NONE" tier (no cap configured at all) is never flagged over capacity,
+     *  same rule {@link TimetableGlobalAutoScheduleService#checkFacultyCapacityForSection} itself
+     *  applies -- mirrored here via {@code capacityTier}, since a null underlying {@code
+     *  CapacityResolution} is exactly what produces "NONE" there. */
+    private FacultyCapacityCheckResult withExtraCommittedHours(FacultyCapacityCheckResult check, double extraHours) {
+        if (extraHours <= 0) {
+            return check;
+        }
+        double adjustedProjected = check.projectedTotalHours() + extraHours;
+        // Same floating-point safety margin as TimetableGlobalAutoScheduleService's own
+        // CAPACITY_EPSILON (0.001h) -- not exposed across classes for a value this small.
+        boolean overCapacity = !"NONE".equals(check.capacityTier()) && adjustedProjected > check.capacityHours() + 0.001;
+        double suggestedMinDailyHours = overCapacity && check.workingDaysInTerm() > 0
+            ? Math.ceil(adjustedProjected / check.workingDaysInTerm())
+            : check.suggestedMinDailyHours();
+        int suggestedMinDailySessions = overCapacity
+            ? timetableGlobalAutoScheduleService.minDailySessionsFor(suggestedMinDailyHours)
+            : check.suggestedMinDailySessions();
+        return new FacultyCapacityCheckResult(overCapacity, check.currentDemandHours(), check.offeringHours(),
+            adjustedProjected, check.capacityHours(), check.dailyCap(), check.capacityTier(),
+            check.workingDaysInTerm(), suggestedMinDailyHours, suggestedMinDailySessions, check.spreadLoad());
     }
 
     private static String rowKey(SectionFacultyAssignment s) {
@@ -564,7 +683,8 @@ public class CourseOfferingSectionFacultyService {
         if (facultyId == null || facultyId.equals(previousFacultyId)) {
             return;
         }
-        raiseIfOverCapacity(timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(offeringId, cohortSectionId, facultyId));
+        raiseIfOverCapacity(offeringId, facultyId,
+            timetableGlobalAutoScheduleService.checkFacultyCapacityForSection(offeringId, cohortSectionId, facultyId));
     }
 
     /** Cohort-scoped counterpart of {@link #requireWithinCapacityForSection}, via {@link
@@ -573,25 +693,60 @@ public class CourseOfferingSectionFacultyService {
         if (facultyId == null || facultyId.equals(previousFacultyId)) {
             return;
         }
-        raiseIfOverCapacity(timetableGlobalAutoScheduleService.checkFacultyCapacityForCohort(offeringId, cohortId, facultyId));
+        raiseIfOverCapacity(offeringId, facultyId,
+            timetableGlobalAutoScheduleService.checkFacultyCapacityForCohort(offeringId, cohortId, facultyId));
     }
 
-    private void raiseIfOverCapacity(FacultyCapacityCheckResult check) {
-        if (!check.overCapacity()) {
-            return;
+    /** Throwing wrapper around {@link #buildOverCapacityMessage} for the single-item manual
+     *  Reassign path ({@link #requireWithinCapacityForSection}/{@link
+     *  #requireWithinCapacityForCohort}) -- {@link #checkCapacityForSubstitutions} calls the
+     *  message-builder directly instead, since it needs to collect every failure across a whole
+     *  batch rather than throw on the first. */
+    private void raiseIfOverCapacity(Long offeringId, Long facultyId, FacultyCapacityCheckResult check) {
+        String message = buildOverCapacityMessage(offeringId, facultyId, check);
+        if (message != null) {
+            throw new TimetableConstraintViolationException(List.of(
+                new ConstraintViolation("SECTION_FACULTY_OVER_CAPACITY", message)));
         }
+    }
+
+    /** Null when {@code check} isn't actually over capacity. {@code offeringId}/{@code facultyId}
+     *  exist only to name the assignment in the message ("Assigning X to Y would put them at...")
+     *  -- the capacity numbers themselves come entirely from {@code check}, already computed by
+     *  the caller. Without naming the subject and faculty, this message was ambiguous in any
+     *  context showing more than one pending assignment at once (e.g. the Global Auto-Schedule
+     *  "confirm substitutions" flyout, which can list several tips at a time) -- "this assignment"
+     *  / "them" gave no way to tell which one had actually failed. */
+    private String buildOverCapacityMessage(Long offeringId, Long facultyId, FacultyCapacityCheckResult check) {
+        if (!check.overCapacity()) {
+            return null;
+        }
+        String facultyName = facultyRepository.findById(facultyId).map(Faculty::getFullName).orElse("This faculty member");
+        String subjectName = courseOfferingRepository.findById(offeringId)
+            .map(offering -> offering.getSubject().getName())
+            .orElse("this subject");
+        // Term-total demand/capacity stay in hours -- that's curriculum workload's own native unit
+        // (Theory/Lab/Clinical hours are defined per curriculum row independent of period length),
+        // and nothing here is a field an admin types a term total into. Every *daily* figure below
+        // is periods, not hours, though: Raise Cap's own field (Faculty's plannedDailySessionsOverride)
+        // is a period COUNT, and stating a daily target in hours instead left the admin to convert it
+        // themselves against each Period's real (non-1-hour) duration -- a plausible-looking round
+        // number (e.g. entering "6" when periods run 50 minutes, 0.83h each) could land short of the
+        // real target instead of clearing it. Naming the period count directly means the number
+        // that's actually typed into that field is stated explicitly, never left implied via hours.
+        int dailyCapPeriods = timetableGlobalAutoScheduleService.minDailySessionsFor(check.dailyCap());
         StringBuilder message = new StringBuilder()
-            .append("This assignment would put them at ").append(formatHours(check.projectedTotalHours()))
+            .append("Assigning ").append(facultyName).append(" to ").append(subjectName)
+            .append(" would put them at ").append(formatHours(check.projectedTotalHours()))
             .append(" against a capacity of ").append(formatHours(check.capacityHours()))
-            .append(" (").append(formatHours(check.dailyCap())).append("/day) — raise their cap to at least ")
-            .append(formatHours(check.suggestedMinDailyHours())).append("/day");
+            .append(" (").append(dailyCapPeriods).append(" period(s)/day) — raise their cap to at least ")
+            .append(check.suggestedMinDailySessions()).append(" period(s)/day");
         if (!check.spreadLoad().isEmpty()) {
             var alt = check.spreadLoad().get(0);
             message.append(", or assign ").append(alt.alternateFacultyName())
                 .append(" instead (").append(formatHours(alt.alternateSpareCapacityHours())).append(" spare capacity)");
         }
-        throw new TimetableConstraintViolationException(List.of(
-            new ConstraintViolation("SECTION_FACULTY_OVER_CAPACITY", message.toString())));
+        return message.toString();
     }
 
     private static String formatHours(double hours) {

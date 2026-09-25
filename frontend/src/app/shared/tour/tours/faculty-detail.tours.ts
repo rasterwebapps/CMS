@@ -2,7 +2,7 @@ import { TourDefinition, TourFlowMap } from '../tour.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Faculty View (Faculty List's detail screen — 5 tabs built across several
-// tickets: Profile / Professional / Courses / Lab Schedules / Documents)
+// tickets: Profile / Professional / Courses / Class Schedules / Documents)
 // ─────────────────────────────────────────────────────────────────────────────
 export const FACULTY_DETAIL_TOUR: TourDefinition = {
   steps: [
@@ -10,7 +10,7 @@ export const FACULTY_DETAIL_TOUR: TourDefinition = {
       popover: {
         title: '🧑‍🏫 Faculty Profile',
         description:
-          'A complete record for one faculty member — identity, professional details, term workload, lab schedule, and documents.',
+          'A complete record for one faculty member — identity, professional details, term workload, class schedule, and documents.',
         side: 'over',
         align: 'center',
       },
@@ -28,9 +28,9 @@ export const FACULTY_DETAIL_TOUR: TourDefinition = {
     {
       element: '#tour-fac-detail-tabs',
       popover: {
-        title: 'Profile, Professional, Courses, Lab Schedules, Documents',
+        title: 'Profile, Professional, Courses, Class Schedules, Documents',
         description:
-          'Profile and Professional hold static details. Courses shows this term\'s real teaching workload (hours assigned vs. capacity, with a Raise Cap option). Lab Schedules shows their actual placed timetable sessions. Documents manages uploaded files. Courses and Lab Schedules only show if you have workload/lab-schedule view access.',
+          'Profile and Professional hold static details. Courses shows this term\'s real teaching workload (hours assigned vs. capacity, with a Raise Cap option). Class Schedules shows their actual placed timetable sessions. Documents manages uploaded files. Courses and Class Schedules only show if you have workload/schedule view access.',
         side: 'top',
         align: 'start',
       },
@@ -55,7 +55,7 @@ export const FACULTY_DETAIL_FLOW_MAP: TourFlowMap = {
   steps: [
     { label: 'Identity & Status', icon: 'checklist', detail: 'Name, employee code, designation, speciality, and current status badge.' },
     { label: 'Profile & Professional', icon: 'open', detail: 'Contact details, qualifications, specialization, and lab expertise.' },
-    { label: 'Courses & Lab Schedules', icon: 'search', detail: 'Real term workload (hours vs. capacity) and actual placed timetable sessions, where permitted.' },
+    { label: 'Courses & Class Schedules', icon: 'search', detail: 'Real term workload (hours vs. capacity) and actual placed timetable sessions, where permitted.' },
     { label: 'Documents', icon: 'receipt', detail: 'Uploaded documents for this faculty member.' },
   ],
 };
