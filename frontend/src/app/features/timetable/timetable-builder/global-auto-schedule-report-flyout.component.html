@@ -655,15 +655,6 @@
             </div>
           }
           }
-
-          <!-- OC-260: Draft Review is retired into this same screen -- closing the flyout already
-               shows the cohort list with each row's own Check-Conflicts/Publish action below, UNLESS
-               this run was launched from inside a single cohort's own grid (OC-265), where closing
-               lands back on that already-populated grid instead -- "review cohorts below" would be
-               wrong there, so the label is scoped to whichever is actually true. -->
-          <button type="button" class="btn-primary" (click)="onClose()">
-            {{ fromGridView() ? 'Done' : 'Close and review cohorts below' }}
-          </button>
         }
       }
 
@@ -674,7 +665,18 @@
   </div>
 
   <div flyoutFooter>
-    <button type="button" class="btn-cancel" [disabled]="step() === 'running'" (click)="onClose()">Close</button>
+    @if (step() === 'success') {
+      <!-- OC-260: Draft Review is retired into this same screen -- closing the flyout already
+           shows the cohort list with each row's own Check-Conflicts/Publish action below, UNLESS
+           this run was launched from inside a single cohort's own grid (OC-265), where closing
+           lands back on that already-populated grid instead -- "review cohorts below" would be
+           wrong there, so the label is scoped to whichever is actually true. -->
+      <button type="button" class="btn-primary" (click)="onClose()">
+        {{ fromGridView() ? 'Done' : 'Close and review cohorts below' }}
+      </button>
+    } @else {
+      <button type="button" class="btn-cancel" [disabled]="step() === 'running'" (click)="onClose()">Close</button>
+    }
     @if (step() === 'checklist' || step() === 'run-failed') {
       <button type="button" class="btn-secondary" (click)="runCheckPrerequisites()">Re-check</button>
     }
