@@ -26,6 +26,14 @@ export interface FacultyWorkloadRow {
   netCapacityHours: number | null;
   overDemand: boolean;
   overCommitted: boolean;
+  /** Real session (period-row) count this faculty currently has this week — the same unit
+   *  effectiveMinSessions is configured in, so this and the floor are directly comparable, unlike
+   *  committedHoursPerWeek (variable-length periods). */
+  actualSessionsPerWeek: number;
+  minSessionsConfigured: boolean;
+  effectiveMinSessions: number | null;
+  /** Advisory only — never blocks anything, unlike overCommitted's hard-cap counterpart. */
+  belowMinimum: boolean;
 }
 
 export interface FacultyWorkloadReport {

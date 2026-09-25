@@ -240,6 +240,8 @@
                 <th class="cell-align-right">Committed/wk</th>
                 <th class="cell-align-right">Blocked/wk</th>
                 <th class="cell-align-right">Net Capacity/wk</th>
+                <th class="cell-align-right">Sessions/wk</th>
+                <th class="cell-align-right">Min Sessions/wk</th>
                 <th class="cell-align-center">Status</th>
               </tr>
             </thead>
@@ -258,19 +260,32 @@
                       <span class="cap-fw-unconfigured">Not configured</span>
                     }
                   </td>
-                  <td class="cell-align-center">
-                    @if (row.overCommitted) {
-                      <span class="cap-fw-badge cap-fw-badge--danger">Over committed</span>
-                    } @else if (row.overDemand) {
-                      <span class="cap-fw-badge cap-fw-badge--warn">Over demand</span>
-                    } @else if (row.capacityConfigured) {
-                      <span class="cap-fw-badge cap-fw-badge--ok">OK</span>
+                  <td class="cell-align-right">{{ row.actualSessionsPerWeek }}</td>
+                  <td class="cell-align-right">
+                    @if (row.minSessionsConfigured) {
+                      {{ row.effectiveMinSessions }}
+                    } @else {
+                      <span class="cap-fw-unconfigured">Not configured</span>
                     }
+                  </td>
+                  <td class="cell-align-center">
+                    <span class="cap-fw-badge-group">
+                      @if (row.overCommitted) {
+                        <span class="cap-fw-badge cap-fw-badge--danger">Over committed</span>
+                      } @else if (row.overDemand) {
+                        <span class="cap-fw-badge cap-fw-badge--warn">Over demand</span>
+                      } @else if (row.capacityConfigured) {
+                        <span class="cap-fw-badge cap-fw-badge--ok">OK</span>
+                      }
+                      @if (row.belowMinimum) {
+                        <span class="cap-fw-badge cap-fw-badge--info">Under-loaded</span>
+                      }
+                    </span>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7">
+                  <td colspan="9">
                     <cms-empty-state icon="groups" title="No faculty involved yet"
                       subtitle="No faculty has curriculum offerings or placed sessions in this term yet."></cms-empty-state>
                   </td>

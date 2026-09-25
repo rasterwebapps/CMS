@@ -101,6 +101,13 @@
   font-style: italic;
 }
 
+.cap-fw-badge-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+
 .cap-fw-badge {
   display: inline-flex;
   align-items: center;
@@ -123,6 +130,11 @@
   &--danger {
     background: var(--cms-danger-light);
     color: var(--cms-danger);
+  }
+
+  &--info {
+    background: var(--cms-info-light);
+    color: var(--cms-info);
   }
 }
 
