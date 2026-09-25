@@ -81,6 +81,15 @@ public class AppRoleService {
             .toList();
     }
 
+    /** Role names have no rename flow (set once at creation), so this never needs an excludeId --
+     *  kept as a plain name check rather than matching the excludeId-shaped signature other
+     *  masters' *Exists methods use, since there is no edit case to exclude. */
+    public boolean nameExists(String name) {
+        String value = name != null ? name.trim() : null;
+        if (value == null || value.isEmpty()) return false;
+        return appRoleRepository.existsByName(value);
+    }
+
     /**
      * Creates a new (non-system) role. The role is assigned a hierarchy_level one greater
      * than the requester's level, placing it just below the requester.

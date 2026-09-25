@@ -1,8 +1,8 @@
 export interface Examination {
   id: number;
   name: string;
-  courseId: number;
-  courseName: string;
+  subjectId: number;
+  subjectName: string;
   examType: string;
   date?: string;
   duration?: number;
@@ -13,7 +13,7 @@ export interface Examination {
 
 export interface ExaminationRequest {
   name: string;
-  courseId: number;
+  subjectId: number;
   examType: string;
   date?: string;
   duration?: number;

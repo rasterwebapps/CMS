@@ -13,6 +13,7 @@ Welcome to the College Management System documentation. This directory contains 
 | [RELEASE_2_MILESTONES.md](RELEASE_2_MILESTONES.md) | Release 2 milestone tracker — Phase 6 (library, hostel, transport, LMS, placement, etc.) |
 | [RELEASE_3_MILESTONES.md](RELEASE_3_MILESTONES.md) | Release 3 milestone tracker — Inventory Management (standalone, industry-agnostic module) |
 | [BUSINESS_REQUIREMENTS.md](BUSINESS_REQUIREMENTS.md) | Business rules, workflow definitions, and functional requirements — must be updated for any business/workflow changes |
+| [requirements/](requirements/README.md) | SRS/BRD/FRD per built module, in delivery-phase order, reverse-engineered from shipped code — see also [requirements/FINDINGS.md](requirements/FINDINGS.md) for issues surfaced while writing them |
 | [TECHNICAL_STANDARDS.md](TECHNICAL_STANDARDS.md) | Technical standards & architecture guide — frontend, backend, UI/UX, security, database, testing, AI code generation quality |
 | [skills/](skills/) | Copilot skill templates for code generation (Angular, Spring Boot, Flyway, Keycloak) |
 | [manual-test-cases/](manual-test-cases/) | Manual test case templates and completed test documentation |

@@ -40,16 +40,16 @@ export class ExaminationFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly pageTitle = signal('Add Examination');
-  protected readonly courses = signal<{ id: number; name: string }[]>([]);
+  protected readonly subjects = signal<{ id: number; name: string }[]>([]);
 
   // Preview signals
-  protected readonly previewName     = signal('');
-  protected readonly previewCourseId = signal<number | null>(null);
-  protected readonly previewType     = signal('');
-  protected readonly previewDate     = signal<string | null>(null);
-  protected readonly previewDuration = signal<number | null>(null);
-  protected readonly previewMaxMarks = signal<number | null>(null);
-  protected readonly previewCourseName = computed(() => this.courses().find(c => c.id === this.previewCourseId())?.name ?? '');
+  protected readonly previewName      = signal('');
+  protected readonly previewSubjectId = signal<number | null>(null);
+  protected readonly previewType      = signal('');
+  protected readonly previewDate      = signal<string | null>(null);
+  protected readonly previewDuration  = signal<number | null>(null);
+  protected readonly previewMaxMarks  = signal<number | null>(null);
+  protected readonly previewSubjectName = computed(() => this.subjects().find(s => s.id === this.previewSubjectId())?.name ?? '');
 
   protected readonly TIPS: CmsTip[] = [
     { icon: 'edit_note',  title: 'Naming',   subtitle: 'Use descriptive names (e.g., "Mid-Sem Theory") so students can identify exams in the calendar.' },
@@ -61,7 +61,7 @@ export class ExaminationFormComponent implements OnInit {
 
   protected readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(255), trimmedMinLength(2), noConsecutiveSpaces()]],
-    courseId: [null, Validators.required],
+    subjectId: [null, Validators.required],
     examType: ['', Validators.required],
     date: [''],
     duration: [null, [Validators.min(1)]],
@@ -73,7 +73,7 @@ export class ExaminationFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(v => {
         this.previewName.set((v.name ?? '').trim());
-        this.previewCourseId.set(v.courseId ?? null);
+        this.previewSubjectId.set(v.subjectId ?? null);
         this.previewType.set(v.examType ?? '');
         this.previewDate.set(v.date || null);
         this.previewDuration.set(v.duration ? Number(v.duration) : null);
@@ -82,8 +82,8 @@ export class ExaminationFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/courses`).subscribe({
-      next: (data) => this.courses.set(data),
+    this.http.get<{ id: number; name: string }[]>(`${environment.apiUrl}/subjects`).subscribe({
+      next: (data) => this.subjects.set(data),
     });
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -93,7 +93,7 @@ export class ExaminationFormComponent implements OnInit {
       this.loading.set(true);
       this.examinationService.getById(this.itemId).subscribe({
         next: (item) => {
-          this.form.patchValue({ name: item.name, courseId: item.courseId, examType: item.examType, date: item.date || '', duration: item.duration, maxMarks: item.maxMarks });
+          this.form.patchValue({ name: item.name, subjectId: item.subjectId, examType: item.examType, date: item.date || '', duration: item.duration, maxMarks: item.maxMarks });
           this.loading.set(false);
         },
         error: () => { this.toast.error('Failed to load'); void this.router.navigate(['/examinations']); },
@@ -104,7 +104,7 @@ export class ExaminationFormComponent implements OnInit {
   protected onSubmit(): void {
     if (this.form.invalid) { scrollToFirstInvalid(this.form); return; }
     const v = this.form.value;
-    const request: ExaminationRequest = { name: v.name.trim(), courseId: v.courseId, examType: v.examType, date: v.date || undefined, duration: v.duration || undefined, maxMarks: v.maxMarks ?? undefined };
+    const request: ExaminationRequest = { name: v.name.trim(), subjectId: v.subjectId, examType: v.examType, date: v.date || undefined, duration: v.duration || undefined, maxMarks: v.maxMarks ?? undefined };
     this.saving.set(true);
     const op$ = this.isEditMode() ? this.examinationService.update(this.itemId!, request) : this.examinationService.create(request);
     op$.subscribe({
@@ -116,7 +116,7 @@ export class ExaminationFormComponent implements OnInit {
   protected getFieldError(field: string): string {
     const labels: Record<string, string> = {
       name: 'Examination Name',
-      courseId: 'Course',
+      subjectId: 'Subject',
       examType: 'Exam Type',
       duration: 'Duration',
       maxMarks: 'Max Marks',

@@ -406,6 +406,25 @@ class AppRoleServiceTest {
         verify(appRoleRepository).save(any(AppRole.class));
     }
 
+    @Test
+    void nameExists_returnsFalseForBlankValue() {
+        assertThat(appRoleService.nameExists("  ")).isFalse();
+        assertThat(appRoleService.nameExists(null)).isFalse();
+        verify(appRoleRepository, never()).existsByName(any());
+    }
+
+    @Test
+    void nameExists_returnsTrueWhenTaken() {
+        when(appRoleRepository.existsByName("FRONT_DESK")).thenReturn(true);
+        assertThat(appRoleService.nameExists("FRONT_DESK")).isTrue();
+    }
+
+    @Test
+    void nameExists_returnsFalseWhenAvailable() {
+        when(appRoleRepository.existsByName("BRAND_NEW")).thenReturn(false);
+        assertThat(appRoleService.nameExists("BRAND_NEW")).isFalse();
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

@@ -48,6 +48,10 @@ export class UserRoleService {
     return this.http.post<AppRoleResponse>(`${this.base}/role-management`, req);
   }
 
+  roleNameExists(name: string): Observable<boolean> {
+    return this.http.get<boolean>(`${this.base}/role-management/name-exists`, { params: { value: name } });
+  }
+
   updateRolePermissions(id: number, permissionCodes: string[]): Observable<AppRoleResponse> {
     return this.http.put<AppRoleResponse>(`${this.base}/role-management/${id}/permissions`, permissionCodes);
   }

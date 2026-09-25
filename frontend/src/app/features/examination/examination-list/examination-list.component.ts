@@ -57,7 +57,7 @@ export class ExaminationListComponent implements OnInit {
     storageKey: 'examination-list-cols',
     columns: [
       { key: 'name', label: 'Name', mandatory: true },
-      { key: 'courseName', label: 'Course' },
+      { key: 'subjectName', label: 'Subject' },
       { key: 'examType', label: 'Type' },
       { key: 'date', label: 'Date' },
       { key: 'duration', label: 'Duration' },

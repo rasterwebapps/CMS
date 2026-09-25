@@ -16,8 +16,8 @@ export class ExaminationService {
     return this.http.get<Examination[]>(this.examinationUrl);
   }
 
-  getByCourse(courseId: number): Observable<Examination[]> {
-    return this.http.get<Examination[]>(`${this.examinationUrl}?courseId=${courseId}`);
+  getBySubject(subjectId: number): Observable<Examination[]> {
+    return this.http.get<Examination[]>(`${this.examinationUrl}/subject/${subjectId}`);
   }
 
   getById(id: number): Observable<Examination> {

@@ -13,6 +13,8 @@ public interface AppRoleRepository extends JpaRepository<AppRole, Long> {
 
     Optional<AppRole> findByName(String name);
 
+    boolean existsByName(String name);
+
     List<AppRole> findByHierarchyLevelGreaterThan(int level);
 
     List<AppRole> findByIsSystemRoleFalse();

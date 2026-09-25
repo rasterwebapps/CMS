@@ -2,7 +2,7 @@ import { TourDefinition, TourFlowMap } from '../tour.service';
 
 // Manage Exams → Exam Results, a small local funnel (schedule an exam, then review its results).
 export const EXAMINATION_FUNNEL = [
-  { label: 'Manage Exams', description: 'Schedule and manage course examinations — name, type, date, duration, and max marks.' },
+  { label: 'Manage Exams', description: 'Schedule and manage subject examinations — name, type, date, duration, and max marks.' },
   { label: 'Exam Results', description: 'View and filter recorded results for an examination.' },
 ];
 
@@ -14,7 +14,7 @@ export const EXAMINATION_LIST_TOUR: TourDefinition = {
     {
       popover: {
         title: '📝 Examination Schedule',
-        description: 'Schedule and manage every course examination — name, type, date, duration, and max marks.',
+        description: 'Schedule and manage every subject examination — name, type, date, duration, and max marks.',
         side: 'over',
         align: 'center',
       },
@@ -23,7 +23,7 @@ export const EXAMINATION_LIST_TOUR: TourDefinition = {
       element: '#tour-exam-toolbar',
       popover: {
         title: 'Search',
-        description: 'Search examinations by name or course.',
+        description: 'Search examinations by name or subject.',
         side: 'bottom',
         align: 'start',
       },
@@ -44,7 +44,7 @@ export const EXAMINATION_LIST_FLOW_MAP: TourFlowMap = {
   funnel: EXAMINATION_FUNNEL,
   currentIndex: 0,
   steps: [
-    { label: 'Search', icon: 'search', detail: 'Find an examination by name or course.' },
+    { label: 'Search', icon: 'search', detail: 'Find an examination by name or subject.' },
     { label: 'Review Schedule', icon: 'checklist', detail: 'Each row is one exam: type, date, duration, and max marks.' },
     { label: 'Add / Edit', icon: 'open', detail: 'Schedule a new examination or edit an existing one.' },
   ],

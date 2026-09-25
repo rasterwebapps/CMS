@@ -1,5 +1,7 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -45,6 +47,7 @@ export class RoleManagementComponent implements OnInit {
   private readonly perm  = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly roles    = signal<AppRoleResponse[]>([]);
   protected readonly allPerms = signal<AllPermissionsResponse[]>([]);
@@ -57,6 +60,11 @@ export class RoleManagementComponent implements OnInit {
   protected createForm = { name: '', displayName: '', description: '' };
   protected readonly editPermCodes = signal<Set<string>>(new Set());
 
+  // ── Role Code live uniqueness check ─────────────────────────────
+  protected readonly nameChecking = signal(false);
+  protected readonly nameTaken = signal(false);
+  private readonly nameCheck$ = new Subject<string>();
+
   /** Which accordion categories are collapsed in the editor */
   protected readonly collapsedGroups = signal<Set<string>>(new Set<string>());
 
@@ -65,6 +73,9 @@ export class RoleManagementComponent implements OnInit {
 
   protected readonly canCreate = computed(() => this.perm.has('ROLE_CREATE'));
   protected readonly canEdit   = computed(() => this.perm.has('ROLE_EDIT'));
+  /** Gates the permission matrix itself — a distinct, dev-tier operation from ROLE_EDIT
+   *  (dashboard widgets). Backend enforces the same split on PUT /{id}/permissions. */
+  protected readonly canAssignPermissions = computed(() => this.perm.has('PERMISSION_ASSIGN'));
 
   // ── Widget picker state ───────────────────────────────────────
   protected widgetEditTarget: AppRoleResponse | null = null;
@@ -101,6 +112,27 @@ export class RoleManagementComponent implements OnInit {
     this.tourService.register('role-management', ROLE_MANAGEMENT_TOUR);
     this.tourService.registerFlowMap('role-management', ROLE_MANAGEMENT_FLOW_MAP);
     this.loadAll();
+
+    this.nameCheck$
+      .pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        switchMap(value => (value ? this.svc.roleNameExists(value) : of(false))),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(taken => {
+        this.nameTaken.set(taken);
+        this.nameChecking.set(false);
+      });
+  }
+
+  /** Checks against the same uppercase/underscore form {@link submitCreate} actually submits,
+   *  so the live check reflects what will really be persisted. */
+  protected onNameInput(): void {
+    const transformed = this.createForm.name.toUpperCase().replace(/\s+/g, '_');
+    this.nameTaken.set(false);
+    this.nameChecking.set(!!transformed);
+    this.nameCheck$.next(transformed);
   }
 
   private loadAll(): void {
@@ -160,6 +192,8 @@ export class RoleManagementComponent implements OnInit {
   // ── Panel open / close ────────────────────────────────────────
   protected openCreate(): void {
     this.createForm = { name: '', displayName: '', description: '' };
+    this.nameTaken.set(false);
+    this.nameChecking.set(false);
     this.editTarget.set(null);
     this.panelMode.set('create');
   }
@@ -214,6 +248,7 @@ export class RoleManagementComponent implements OnInit {
   protected isPermChecked(code: string): boolean { return this.editPermCodes().has(code); }
 
   protected togglePerm(code: string): void {
+    if (!this.canAssignPermissions()) return;
     this.editPermCodes.update(set => {
       const next = new Set(set);
       if (next.has(code)) next.delete(code); else next.add(code);
@@ -232,6 +267,7 @@ export class RoleManagementComponent implements OnInit {
   }
 
   protected toggleGroup(group: PermissionGroup): void {
+    if (!this.canAssignPermissions()) return;
     const all = this.allInGroupChecked(group);
     this.editPermCodes.update(set => {
       const next = new Set(set);
@@ -266,6 +302,10 @@ export class RoleManagementComponent implements OnInit {
   protected submitCreate(): void {
     if (!this.createForm.name || !this.createForm.displayName) {
       this.toast.error('Name and display name are required');
+      return;
+    }
+    if (this.nameTaken()) {
+      this.toast.error('This role code is already in use');
       return;
     }
     this.saving.set(true);

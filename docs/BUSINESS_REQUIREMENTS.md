@@ -193,7 +193,7 @@ FeeStructureYearAmount:
 
 ## BR-3: Fee Structure Guideline on Enquiry Screen
 
-> **⚠️ Amended by BR-30.** Fee lookup now requires 6 fields (program, course, quota, state, gender, student type). The old 2-field flow (program + course) is superseded. See [BR-30](#br-30-multi-dimension-fee-structure-quota--state--gender--student-type) for the full current rule.
+> **⚠️ Amended by BR-30, then BR-30 itself partially superseded (V170) — corrected 2026-09-24.** Fee lookup no longer uses `studentType` as one of the group-selection dimensions — see the correction notice on [BR-30](#br-30-multi-dimension-fee-structure-quota--state--gender--student-type) for what changed and why. The 6-field flow below (program, course, quota, state, gender, student type) is stale on the student-type point specifically; lookup is effectively 5 dimensions today (student type no longer participates in group selection, only in post-lookup `HOSTEL_FEE` filtering — see BR-23's correction notice).
 
 ### Business Rule
 
@@ -571,7 +571,7 @@ All students created through the enquiry-to-admission process (and other admissi
 
 ## BR-12: Student Type on Enquiry
 
-> **⚠️ Amended by BR-30.** Student type is no longer the sole fee dimension — it is one of four (quota, state, gender, studentType). The post-lookup filtering by fee type (HOSTEL_FEE / TRANSPORT_FEE) described below is superseded. Fee lookup now uses a dedicated group per studentType; filtering happens at configuration time, not at lookup time.
+> **⚠️ Amended by BR-30, then BR-30 itself was reverted (V170) — corrected 2026-09-24.** BR-30's 4-dimension group (including `studentType`) was later removed by `V170__remove_student_type_from_fee_structure_groups.sql` — see the correction notice on BR-30 itself. Current actual behavior is close to this BR-12 entry's *original* design (post-lookup filtering by fee type, not a dedicated group per student type) — **except only the HOSTEL_FEE half of the rule below still applies**. `TRANSPORT_FEE` is no longer filtered by student type at all in the current guideline lookup (point 3 and the TRANSPORT_FEE row below are stale — Day Scholars and Hostelers both now see `TRANSPORT_FEE` in their totals). This further drift was not previously documented anywhere in this file. See `docs/requirements/fee-structure-collection/BRD.md` for the current, as-built rules.
 
 ### Business Rule
 
@@ -945,11 +945,11 @@ The `FeeType` enum was expanded to support paramedical and vocational programs t
 | `MISCELLANEOUS` | Generic | |
 | `LATE_FEE` | Generic | Penalty for late payment |
 | `HOSTEL_FEE` | Additional | Excluded from day-scholar totals |
-| `TRANSPORT_FEE` | Additional | Excluded from hosteler totals |
+| `TRANSPORT_FEE` | Additional | ~~Excluded from hosteler totals~~ — stale as of 2026-09-24; see BR-12's and BR-23's correction notices. `TRANSPORT_FEE` is no longer filtered by student type in the current guideline lookup at all. |
 
 ### Key Points
 
-1. All Generic fee types contribute to the **Course Total** subject to student-type rules (BR-1, BR-12).
+1. All Generic fee types contribute to the **Course Total** subject to student-type rules (BR-1, BR-12) — the `TRANSPORT_FEE` half of that rule is stale, see the row note above.
 2. `HOSTEL_FEE` and `TRANSPORT_FEE` remain Additional — excluded from the course total and displayed separately.
 3. `LAB_FEE` has been **renamed to `LABORATORY_FEE`** — any existing stored data must be migrated via Flyway (see `V99__rename_lab_fee_add_new_fee_types.sql`).
 
@@ -1068,7 +1068,7 @@ This is enforced via a dynamic Angular validator updated after each program chan
 
 ## BR-23: Authoritative Fee Calculation & Penny-Safe Numeric Rules
 
-> **BR-30 Update:** Points 2 and 4 below are superseded for new enquiries. Under BR-30, fee lookup now uses a 6-field key (`programId + courseId + quota + feeStateId + gender + studentType`) against `FeeStructureGroup`. The HOSTEL_FEE / TRANSPORT_FEE filter in point 4 no longer applies — the correct group for the student's type is selected at lookup time. All other penny-safe arithmetic rules remain unchanged.
+> **BR-30 Update, itself now superseded — corrected 2026-09-24:** This note originally said point 4 no longer applied because BR-30's group-based lookup selected the right group per student type. BR-30's `studentType` dimension was later removed by `V170__remove_student_type_from_fee_structure_groups.sql` (see BR-30's own correction notice), so lookup is post-filtered by fee type again — but **only for `HOSTEL_FEE`**. Point 4's `TRANSPORT_FEE` line is stale: `TRANSPORT_FEE` is no longer filtered by student type in the current guideline lookup at all (both Day Scholars and Hostelers see it). All other penny-safe arithmetic rules remain unchanged. See `docs/requirements/fee-structure-collection/BRD.md` for the current, as-built rules.
 
 ### Business Rule
 
@@ -1551,6 +1551,8 @@ Default channel for all roles: **In-App only**.
 ---
 
 ## BR-30: Multi-Dimension Fee Structure (Quota × State × Gender × Student Type)
+
+> **⚠️ Partially superseded — corrected 2026-09-24.** Migration `V170__remove_student_type_from_fee_structure_groups.sql` later removed `studentType` from `FeeStructureGroup` entirely (cleared the data and dropped the column). The unique key described below is stale — the current `FeeStructureGroup` entity has only **three** admission dimensions (`quota`, `feeState`, `gender`), not four. Day Scholar vs. Hosteler no longer selects a different fee structure group; it now only filters the `HOSTEL_FEE` line item out of the guideline response for Day Scholars. Everything below this notice describes the **original 2026 design as shipped**, kept for historical context — it is not what the system does today. See `docs/requirements/fee-structure-collection/BRD.md` for the current, as-built business rules, and `docs/requirements/FINDINGS.md` for how this drift was found.
 
 ### Business Rule
 

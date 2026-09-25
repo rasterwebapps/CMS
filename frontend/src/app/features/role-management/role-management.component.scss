@@ -513,6 +513,7 @@ textarea.field-input { height: auto; padding: 10px 12px; resize: vertical; }
 .perm-checkbox {
   width: 16px; height: 16px; margin-top: 1px;
   accent-color: var(--cms-primary); flex-shrink: 0; cursor: pointer;
+  &:disabled { cursor: not-allowed; opacity: 0.6; }
 }
 
 // ── Button helpers ────────────────────────────────────────────────────────────

@@ -120,8 +120,14 @@
           <div class="rm-create__body">
             <div class="field-group">
               <label class="field-label">Role Code <span class="req">*</span></label>
-              <input class="field-input" type="text" [(ngModel)]="createForm.name" placeholder="e.g. FRONT_DESK" autocomplete="off" />
-              <p class="field-hint">Stored as uppercase with underscores.</p>
+              <input class="field-input" type="text" [(ngModel)]="createForm.name" (ngModelChange)="onNameInput()" placeholder="e.g. FRONT_DESK" autocomplete="off" />
+              @if (nameChecking()) {
+                <p class="field-hint">Checking…</p>
+              } @else if (nameTaken()) {
+                <p class="field-error">This role code is already in use</p>
+              } @else {
+                <p class="field-hint">Stored as uppercase with underscores.</p>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Display Name <span class="req">*</span></label>
@@ -169,11 +175,13 @@
             <span class="sep">·</span>
             <button class="link-btn" (click)="collapseAll()">Collapse all</button>
             <span class="sep">·</span>
-            <button class="link-btn link-btn--accent" (click)="openWidgetPicker(editTarget()!)"
-                    matTooltip="Configure dashboard widgets for this role">
-              <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle">dashboard_customize</mat-icon>
-              Dashboard
-            </button>
+            @if (canEdit()) {
+              <button class="link-btn link-btn--accent" (click)="openWidgetPicker(editTarget()!)"
+                      matTooltip="Configure dashboard widgets for this role">
+                <mat-icon style="font-size:13px;width:13px;height:13px;vertical-align:middle">dashboard_customize</mat-icon>
+                Dashboard
+              </button>
+            }
             <button class="panel-close" (click)="closePanel()" aria-label="Close editor" matTooltip="Close">
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -201,6 +209,7 @@
                   <input type="checkbox" class="perm-checkbox"
                          [checked]="allInGroupChecked(group)"
                          [indeterminate]="someInGroupChecked(group)"
+                         [disabled]="!canAssignPermissions()"
                          (change)="toggleGroup(group)" />
                 </label>
 
@@ -231,6 +240,7 @@
                         <label class="perm-item" [class.perm-item--checked]="isPermChecked(p.code)">
                           <input type="checkbox" class="perm-checkbox"
                                  [checked]="isPermChecked(p.code)"
+                                 [disabled]="!canAssignPermissions()"
                                  (change)="togglePerm(p.code)" />
                           <div class="perm-item__text">
                             <span class="perm-item__name">{{ p.displayName }}</span>
@@ -252,11 +262,13 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             {{ editPermCodes().size }} of {{ allPerms().length }} permissions selected
           </span>
-          <button class="btn-ghost" (click)="closePanel()">Cancel</button>
-          <button class="btn-primary" [disabled]="saving()" (click)="submitEdit()">
-            @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
-            Save Permissions
-          </button>
+          <button class="btn-ghost" (click)="closePanel()">{{ canAssignPermissions() ? 'Cancel' : 'Close' }}</button>
+          @if (canAssignPermissions()) {
+            <button class="btn-primary" [disabled]="saving()" (click)="submitEdit()">
+              @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
+              Save Permissions
+            </button>
+          }
         </div>
 
       } @else if (panelMode() === 'widgets') {

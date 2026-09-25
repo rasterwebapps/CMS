@@ -23,7 +23,7 @@
           </div>
           <div>
             <div class="entry-form-card__hdr-title">Examination Information</div>
-            <div class="entry-form-card__hdr-sub">Course, type, schedule & marks</div>
+            <div class="entry-form-card__hdr-sub">Subject, type, schedule & marks</div>
           </div>
         </div>
 
@@ -42,16 +42,16 @@
 
             <div class="field-row">
               <div class="field-group">
-                <label for="ex-course" class="field-label">Course <span class="required-star">*</span></label>
-                <select id="ex-course" class="field-select" formControlName="courseId"
-                  [class.field-select--error]="form.get('courseId')?.invalid && form.get('courseId')?.touched">
-                  <option [ngValue]="null" disabled>Select a course</option>
-                  @for (c of courses(); track c.id) {
-                    <option [ngValue]="c.id">{{ c.name }}</option>
+                <label for="ex-subject" class="field-label">Subject <span class="required-star">*</span></label>
+                <select id="ex-subject" class="field-select" formControlName="subjectId"
+                  [class.field-select--error]="form.get('subjectId')?.invalid && form.get('subjectId')?.touched">
+                  <option [ngValue]="null" disabled>Select a subject</option>
+                  @for (s of subjects(); track s.id) {
+                    <option [ngValue]="s.id">{{ s.name }}</option>
                   }
                 </select>
-                @if (getFieldError('courseId')) {
-                  <p class="field-error">{{ getFieldError('courseId') }}</p>
+                @if (getFieldError('subjectId')) {
+                  <p class="field-error">{{ getFieldError('subjectId') }}</p>
                 }
               </div>
 
@@ -107,7 +107,7 @@
           <div class="prev-name" [class.prev-name--empty]="!previewName()">
             {{ previewName() || 'Examination name will appear here' }}
           </div>
-          @if (previewCourseName()) { <div class="prev-sub">{{ previewCourseName() }}</div> }
+          @if (previewSubjectName()) { <div class="prev-sub">{{ previewSubjectName() }}</div> }
           @if (previewDate()) { <div class="prev-sub">{{ previewDate() | appDate }}</div> }
           <div class="prev-meta-row">
             @if (previewType()) { <span class="prev-pill prev-pill--primary">{{ previewType() }}</span> }

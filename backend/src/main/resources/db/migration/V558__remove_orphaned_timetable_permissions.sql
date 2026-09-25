@@ -1,0 +1,23 @@
+-- TIMETABLE_SKELETON_AUTO_PLACE (V372) was seeded for a planned per-cohort "auto-place remaining
+-- skeleton cells" action, meant to be backed by a TimetableSkeletonAutoPlaceService. That service
+-- was never built -- it exists only as a hypothetical caller name in a javadoc comment on
+-- TimetableSkeletonService#placeCell. The feature it was meant for was superseded before shipping
+-- by the broader, term-wide TimetableGlobalAutoScheduleService, gated by the separate
+-- TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE permission (V390) which IS wired into
+-- TimetableSkeletonController's /global-auto-place endpoints. No controller has ever referenced
+-- TIMETABLE_SKELETON_AUTO_PLACE. Its sibling from the same V372 migration,
+-- TIMETABLE_STAFFING_AUTO_STAFF, is unaffected -- that one is live and used by
+-- TimetableStaffingController's /auto-staff endpoint.
+--
+--
+-- Also removing TIMETABLE_CAPACITY_PLANNER_BATCH_CREATE (V346, "Create Suggested Batches") in the
+-- same pass -- same orphaned-permission shape, and per this project's CLAUDE.md ("Batches are
+-- created by Capacity Auto-Plan alone" hard gate), the manual "create batch" UI button and its
+-- POST /batches / BatchService.createBatch backend path were already intentionally removed as
+-- dead code (OC-191); this permission is the last leftover from that removal. V414 referenced its
+-- tier at insert time only (a one-time comparison during that migration's own INSERT), so it has
+-- no forward dependency on this row continuing to exist.
+--
+-- Same cleanup pattern as V550 (TIMETABLE_CONFLICT_INSPECTOR_VIEW/_ACKNOWLEDGE): plain DELETE,
+-- no separate role_permissions cleanup needed since that FK is ON DELETE CASCADE (V87).
+DELETE FROM permissions WHERE code IN ('TIMETABLE_SKELETON_AUTO_PLACE', 'TIMETABLE_CAPACITY_PLANNER_BATCH_CREATE');

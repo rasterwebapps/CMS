@@ -31,7 +31,7 @@ public class ExaminationController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
+    @PreAuthorize("@perm.hasAny('EXAMINATION_CREATE', 'EXAMINATION_MANAGE')")
     public ResponseEntity<ExaminationResponse> create(@Valid @RequestBody ExaminationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(examinationService.create(request));
     }
@@ -55,14 +55,14 @@ public class ExaminationController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
+    @PreAuthorize("@perm.hasAny('EXAMINATION_EDIT', 'EXAMINATION_MANAGE')")
     public ResponseEntity<ExaminationResponse> update(@PathVariable Long id,
                                                        @Valid @RequestBody ExaminationRequest request) {
         return ResponseEntity.ok(examinationService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("@perm.has('EXAMINATION_MANAGE')")
+    @PreAuthorize("@perm.hasAny('EXAMINATION_DELETE', 'EXAMINATION_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         examinationService.delete(id);
         return ResponseEntity.noContent().build();

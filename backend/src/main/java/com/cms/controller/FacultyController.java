@@ -75,7 +75,7 @@ public class FacultyController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.hasAny('FACULTY_CREATE', 'FACULTY_MANAGE')")
     public ResponseEntity<FacultyResponse> create(@Valid @RequestBody FacultyRequest request) {
         FacultyResponse response = facultyService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -130,7 +130,7 @@ public class FacultyController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.hasAny('FACULTY_EDIT', 'FACULTY_MANAGE')")
     public ResponseEntity<FacultyResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody FacultyRequest request) {
@@ -147,7 +147,7 @@ public class FacultyController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("@perm.has('FACULTY_MANAGE')")
+    @PreAuthorize("@perm.hasAny('FACULTY_DELETE', 'FACULTY_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         facultyService.delete(id);
         return ResponseEntity.noContent().build();

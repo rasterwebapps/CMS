@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.cms.dto.AppRoleRequest;
@@ -57,8 +58,16 @@ public class RoleManagementController {
         return ResponseEntity.ok(appRoleService.findById(id));
     }
 
+    /** Live uniqueness check backing the Create Role form's name field. Role names have no rename
+     *  flow, so there is no excludeId case to support. */
+    @GetMapping("/name-exists")
+    public ResponseEntity<Boolean> nameExists(@RequestParam String value) {
+        return ResponseEntity.ok(appRoleService.nameExists(value));
+    }
+
     /** Creates a new custom role. */
     @PostMapping
+    @PreAuthorize("@perm.has('ROLE_CREATE')")
     public ResponseEntity<AppRoleResponse> createRole(
             @Valid @RequestBody AppRoleRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -70,6 +79,7 @@ public class RoleManagementController {
 
     /** Replaces the ordered dashboard widget list for a role. */
     @PutMapping("/{id}/dashboard-widgets")
+    @PreAuthorize("@perm.has('ROLE_EDIT')")
     public ResponseEntity<AppRoleResponse> updateDashboardWidgets(
             @PathVariable Long id,
             @RequestBody List<WidgetConfigDto> configs,
@@ -81,6 +91,7 @@ public class RoleManagementController {
 
     /** Replaces the permission set of an existing role. */
     @PutMapping("/{id}/permissions")
+    @PreAuthorize("@perm.has('PERMISSION_ASSIGN')")
     public ResponseEntity<AppRoleResponse> updatePermissions(
             @PathVariable Long id,
             @RequestBody List<String> permissionCodes,

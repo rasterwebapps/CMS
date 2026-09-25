@@ -76,6 +76,28 @@ class RoleManagementControllerTest {
     }
 
     @Test
+    void shouldReturnTrueWhenRoleNameExists() throws Exception {
+        when(appRoleService.nameExists("FRONT_DESK")).thenReturn(true);
+
+        mockMvc.perform(get("/role-management/name-exists")
+                .param("value", "FRONT_DESK")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").value(true));
+    }
+
+    @Test
+    void shouldReturnFalseWhenRoleNameDoesNotExist() throws Exception {
+        when(appRoleService.nameExists("BRAND_NEW")).thenReturn(false);
+
+        mockMvc.perform(get("/role-management/name-exists")
+                .param("value", "BRAND_NEW")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").value(false));
+    }
+
+    @Test
     void shouldListAssignableRoles() throws Exception {
         when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
         when(appRoleService.findAssignableRoles(3)).thenReturn(

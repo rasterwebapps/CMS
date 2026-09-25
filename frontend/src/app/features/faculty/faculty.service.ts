@@ -106,6 +106,18 @@ export class FacultyService {
     return this.http.get<boolean>(`${this.baseUrl}/nrts-exists`, { params });
   }
 
+  employeeCodeExists(value: string, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${this.baseUrl}/employee-code-exists`, { params });
+  }
+
+  emailExists(value: string, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${this.baseUrl}/email-exists`, { params });
+  }
+
   // ── Faculty Document Type Requirements (config) ───────────────
   getDocumentTypeRequirements(): Observable<FacultyDocumentTypeRequirement[]> {
     return this.http.get<FacultyDocumentTypeRequirement[]>(this.requirementsUrl);

@@ -36,18 +36,20 @@ public class CurriculumVersionController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.has('CURRICULUM_CREATE')")
+    @PreAuthorize("@perm.hasAny('CURRICULUM_CREATE', 'CURRICULUM_MANAGE')")
     public ResponseEntity<CurriculumVersionDto> create(@Valid @RequestBody CurriculumVersionRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(curriculumVersionService.createCurriculumVersion(request));
     }
 
     @GetMapping
+    @PreAuthorize("@perm.hasAny('CURRICULUM_VIEW', 'CURRICULUM_CREATE', 'CURRICULUM_EDIT', 'CURRICULUM_MANAGE')")
     public ResponseEntity<List<CurriculumVersionDto>> getByProgram(@RequestParam Long programId) {
         return ResponseEntity.ok(curriculumVersionService.getCurriculumVersionsByProgram(programId));
     }
 
     @GetMapping("/page")
+    @PreAuthorize("@perm.hasAny('CURRICULUM_VIEW', 'CURRICULUM_CREATE', 'CURRICULUM_EDIT', 'CURRICULUM_MANAGE')")
     public ResponseEntity<Page<CurriculumVersionDto>> findPage(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long programId,
@@ -57,6 +59,7 @@ public class CurriculumVersionController {
     }
 
     @GetMapping("/name-exists")
+    @PreAuthorize("@perm.hasAny('CURRICULUM_VIEW', 'CURRICULUM_CREATE', 'CURRICULUM_EDIT', 'CURRICULUM_MANAGE')")
     public ResponseEntity<Boolean> nameExists(
             @RequestParam Long programId,
             @RequestParam(required = false) Long courseId,
@@ -66,12 +69,13 @@ public class CurriculumVersionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.hasAny('CURRICULUM_VIEW', 'CURRICULUM_CREATE', 'CURRICULUM_EDIT', 'CURRICULUM_MANAGE')")
     public ResponseEntity<CurriculumVersionDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(curriculumVersionService.getById(id));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@perm.has('CURRICULUM_EDIT')")
+    @PreAuthorize("@perm.hasAny('CURRICULUM_EDIT', 'CURRICULUM_MANAGE')")
     public ResponseEntity<CurriculumVersionDto> update(
             @PathVariable Long id,
             @Valid @RequestBody CurriculumVersionRequest request) {
@@ -79,14 +83,14 @@ public class CurriculumVersionController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("@perm.has('CURRICULUM_DELETE')")
+    @PreAuthorize("@perm.hasAny('CURRICULUM_DELETE', 'CURRICULUM_MANAGE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         curriculumVersionService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/clone")
-    @PreAuthorize("@perm.has('CURRICULUM_CREATE')")
+    @PreAuthorize("@perm.hasAny('CURRICULUM_CREATE', 'CURRICULUM_MANAGE')")
     public ResponseEntity<CurriculumVersionDto> clone(
             @PathVariable Long id,
             @RequestParam String newVersionName,

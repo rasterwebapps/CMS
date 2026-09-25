@@ -70,7 +70,7 @@ export class ExamResultListComponent implements OnInit {
   }
 
   protected readonly examinationFetchPage = staticOptionsFetchPage(() =>
-    this.examinations().map(e => ({ id: e.id, name: `${e.name} (${e.courseName})` })));
+    this.examinations().map(e => ({ id: e.id, name: `${e.name} (${e.subjectName})` })));
 
   protected onExaminationChange(value: InfiniteSelectValue | null): void {
     const examId = value != null ? Number(value) : null;
