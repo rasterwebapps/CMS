@@ -26,7 +26,7 @@ public final class CurriculumHoursCalculator {
     }
 
     /** Total term hours are 60-minute CLOCK hours delivered by a recurring weekly SESSION whose
-     *  own duration is {@code blockSizePeriods} consecutive periods (1 for THEORY, potentially
+     *  own duration is {@code blockSizePeriods} consecutive periods (1-2 for THEORY, potentially
      *  more for a multi-period Lab/Clinical block — see {@link #resolveBlockSize}) of {@code
      *  slotDurationMinutes} each. Converts totalHours to minutes, divides by one full session's
      *  actual clock duration ({@code slotDurationMinutes * blockSizePeriods}, NOT a single period
@@ -107,10 +107,11 @@ public final class CurriculumHoursCalculator {
     }
 
     /** How many consecutive periods one single session of this subject/sessionType must occupy
-     *  ({@link Subject#getLabSessionBlockPeriods()}/{@link Subject#getClinicalSessionBlockPeriods()})
-     *  — always 1 for THEORY, and defensively clamped to at least 1 for LAB/CLINICAL in case a
-     *  subject's configured value is ever null/invalid. Shared by {@link
-     *  TimetableGlobalAutoScheduleService} (per-session placement chunking) and {@link
+     *  ({@link Subject#getLabSessionBlockPeriods()}/{@link Subject#getClinicalSessionBlockPeriods()}/
+     *  {@link Subject#getTheorySessionBlockPeriods()}), defensively clamped in case a subject's
+     *  configured value is ever null/invalid: at least 1 for LAB/CLINICAL (no upper bound), and
+     *  1-2 for THEORY (DB-enforced max of 2 already, this just also guards a null). Shared by
+     *  {@link TimetableGlobalAutoScheduleService} (per-session placement chunking) and {@link
      *  TimetableCapacityPlanningService} (weekly demand-period totals) so both agree on exactly
      *  the same block size for the same subject. */
     public static int resolveBlockSize(Subject subject, ClassSessionType sessionType) {
@@ -120,12 +121,15 @@ public final class CurriculumHoursCalculator {
         Integer configured = switch (sessionType) {
             case LAB -> subject.getLabSessionBlockPeriods();
             case CLINICAL -> subject.getClinicalSessionBlockPeriods();
-            case THEORY -> 1;
+            case THEORY -> subject.getTheorySessionBlockPeriods();
             case LIBRARY, SPORTS -> throw new IllegalStateException(
                 "Library/Sports have no curriculum Subject/block-size — their block sizes come from the "
                     + "timetable.library_block_size_periods / timetable.sports_block_size_periods system configuration, "
                     + "not CurriculumHoursCalculator.");
         };
+        if (sessionType == ClassSessionType.THEORY) {
+            return configured != null && configured >= 1 && configured <= 2 ? configured : 1;
+        }
         return configured != null && configured >= 1 ? configured : 1;
     }
 }

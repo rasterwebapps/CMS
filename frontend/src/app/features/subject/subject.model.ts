@@ -41,6 +41,9 @@ export interface Subject {
    *  single-period placements). Default 1 = independent single-period placements. */
   labSessionBlockPeriods: number;
   clinicalSessionBlockPeriods: number;
+  /** Same as {@link labSessionBlockPeriods}, for THEORY sessions -- capped at 2 (not 12): no
+   *  Theory subject may run more than 2 back-to-back periods. */
+  theorySessionBlockPeriods: number;
   createdAt: string;
   updatedAt: string;
   /** Labs/Clinical Venues suitable for this subject's practical sessions — a soft preference for
@@ -66,6 +69,7 @@ export interface SubjectRequest {
   isActive?: boolean;
   labSessionBlockPeriods?: number;
   clinicalSessionBlockPeriods?: number;
+  theorySessionBlockPeriods?: number;
   eligibleLabIds?: number[];
   eligibleClinicalVenueIds?: number[];
   eligibleFacultyIds?: number[];

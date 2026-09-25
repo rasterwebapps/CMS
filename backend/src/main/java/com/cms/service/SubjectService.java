@@ -156,6 +156,9 @@ public class SubjectService {
         if (request.clinicalSessionBlockPeriods() != null) {
             subject.setClinicalSessionBlockPeriods(request.clinicalSessionBlockPeriods());
         }
+        if (request.theorySessionBlockPeriods() != null) {
+            subject.setTheorySessionBlockPeriods(request.theorySessionBlockPeriods());
+        }
         subject.setEligibleLabs(resolveLabs(request.eligibleLabIds()));
         subject.setEligibleClinicalVenues(resolveClinicalVenues(request.eligibleClinicalVenueIds()));
         subject.setEligibleFaculty(resolveFaculty(request.eligibleFacultyIds()));
@@ -300,6 +303,9 @@ public class SubjectService {
         }
         if (request.clinicalSessionBlockPeriods() != null) {
             subject.setClinicalSessionBlockPeriods(request.clinicalSessionBlockPeriods());
+        }
+        if (request.theorySessionBlockPeriods() != null) {
+            subject.setTheorySessionBlockPeriods(request.theorySessionBlockPeriods());
         }
         subject.setEligibleLabs(resolveLabs(request.eligibleLabIds()));
         subject.setEligibleClinicalVenues(resolveClinicalVenues(request.eligibleClinicalVenueIds()));
@@ -447,6 +453,7 @@ public class SubjectService {
             subject.getIsActive(),
             subject.getLabSessionBlockPeriods(),
             subject.getClinicalSessionBlockPeriods(),
+            subject.getTheorySessionBlockPeriods(),
             subject.getCreatedAt(),
             subject.getUpdatedAt(),
             eligibleLabs,

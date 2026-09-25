@@ -60,6 +60,12 @@ public record SubjectRequest(
     @Max(value = 12, message = "Clinical session length must not exceed 12 periods")
     Integer clinicalSessionBlockPeriods,
 
+    /** Same as {@link #labSessionBlockPeriods}, for THEORY sessions -- capped at 2 (not 12): no
+     *  Theory subject may run more than 2 back-to-back periods. Optional, defaults to 1. */
+    @Min(value = 1, message = "Theory session length must be at least 1 period")
+    @Max(value = 2, message = "Theory session length must not exceed 2 periods")
+    Integer theorySessionBlockPeriods,
+
     /** Labs/Clinical Venues suitable for this subject's practical sessions -- a soft preference,
      *  optional. Null/empty means no preference configured, matching pre-existing behavior. */
     List<Long> eligibleLabIds,

@@ -241,3 +241,39 @@
 |-------------|-------|
 | **Action**  | Open Skeleton Builder as an admin who holds `TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE`. Note the cohort dropdown and the toolbar's right-hand button. Switch to a single cohort that already has draft sessions placed (pinned or not) and click the button; Cancel, then click again and confirm. Switch back to **All cohorts…** on a term where at least one cohort already has draft content and click the button; Cancel, then confirm. Finally pick a cohort/term combination with an empty grid and click the button. Repeat the initial page load as an admin who holds `TIMETABLE_WORKING_SATURDAYS_MANAGE` but not `TIMETABLE_SKELETON_GLOBAL_AUTO_PLACE` |
 | **Expected**| On load, the cohort dropdown defaults to **All cohorts…** and the toolbar's right-hand button reads **Run Global Auto-Schedule**, in the same slot next to the card border as **Configure Working Saturdays**. Selecting a single cohort relabels that same button **Run Automation**, still in the same slot. Clicking it against a cohort with existing draft content shows an "Overwrite Existing Draft?" confirmation naming that cohort; Cancel leaves the grid untouched and opens nothing; confirming opens the usual prerequisite checklist. The same confirmation, worded for the whole term, appears for an **All cohorts** run when any cohort in the term already has draft content. Against an empty grid, the checklist opens directly with no confirmation. The centered "Global Auto-Schedule" card in All-cohorts view no longer has its own action button — only the toolbar one. For the admin without the Global Auto-Place permission, the dropdown has no "All cohorts…" option and defaults to the first individual cohort, matching pre-existing behavior. |
+
+---
+
+### TC-GAS-027: A single offering split into two batches on one lab rotates Lab against Library
+
+| Field       | Value |
+|-------------|-------|
+| **Action**  | Run automation on a cohort where one subject's section splits into exactly two batches sharing ONE lab (no second offering to pair with, e.g. the BSc Nursing N-AHN-I-215 case), with a Library room configured and free. Open Skeleton Builder and inspect that subject's cell. |
+| **Expected**| Both batches appear at the same day/period: one in the Lab, the other in Library, each showing a "⟳ … rotation" label naming both batches (hover shows "Rotates: Batch 1 / Batch 2"). No batch is left with an empty period at that slot. |
+
+---
+
+### TC-GAS-028: The next occurrence swaps which batch is in the Lab
+
+| Field       | Value |
+|-------------|-------|
+| **Action**  | For the rotation from TC-GAS-027, open the rotation group (or check Attendance/Class Schedule for two different calendar weeks of the same recurring slot) |
+| **Expected**| The batch that had the Lab in week 1 has Library in week 2, and vice versa — never the same batch in the Lab every week. Over the whole term, both batches end up with an equal (or as close to equal as an odd number of occurrences allows) count of Lab sessions. |
+
+---
+
+### TC-GAS-029: No Library or Self-Study available — falls back safely with an advisory, not a gap
+
+| Field       | Value |
+|-------------|-------|
+| **Action**  | Same single-lab, two-batch shape as TC-GAS-027, but with no Library classroom configured and no Self-Study curriculum offering for that cohort. Run automation and open the run report. |
+| **Expected**| Both batches still get placed independently (on different days, via the existing per-batch placement — no student is left with nothing), no rotation group is created, and the report shows a grey advisory line — not an orange warning — naming the subject and recommending a second lab be provisioned via Capacity Auto-Plan. |
+
+---
+
+### TC-GAS-030: Genuine Self-Study is capped, and bonus Theory hours favor Core/Foundational subjects
+
+| Field       | Value |
+|-------------|-------|
+| **Action**  | Run automation on a term with spare periods after Library and Sports are placed. Compare the real Self-Study subject's total hours against `timetable.self_study_sessions_per_week` (default 1 session/week), and compare which Theory subjects received bonus hours first. |
+| **Expected**| Self-Study never exceeds its configured weekly cap (default one 2-period session), even when many periods are still free — the remaining leftover periods go to the uncapped bonus-Theory filler instead. Among the bonus-Theory subjects, every Core/Foundational subject reaches an equal share of extra hours before any Elective subject receives its first bonus session. |

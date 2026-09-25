@@ -203,6 +203,13 @@ public class TimetableGlobalAutoScheduleService {
     private static final String CONFIG_SPORTS_BLOCK_SIZE_PERIODS = "timetable.sports_block_size_periods";
     private static final int DEFAULT_SPORTS_SESSIONS_PER_WEEK = 1;
     private static final int DEFAULT_SPORTS_BLOCK_SIZE_PERIODS = 2;
+    /** User's rule: leftover periods go Library -> Sports -> genuine Self-Study (capped, here) ->
+     *  only THEN the uncapped bonus-Theory filler ({@link #fillSelfStudyGaps}). Same config pattern
+     *  as Library/Sports above -- see {@link #fillGenuineSelfStudyGaps}. */
+    private static final String CONFIG_SELF_STUDY_SESSIONS_PER_WEEK = "timetable.self_study_sessions_per_week";
+    private static final String CONFIG_SELF_STUDY_BLOCK_SIZE_PERIODS = "timetable.self_study_block_size_periods";
+    private static final int DEFAULT_SELF_STUDY_SESSIONS_PER_WEEK = 1;
+    private static final int DEFAULT_SELF_STUDY_BLOCK_SIZE_PERIODS = 2;
 
     /** Guards {@link #runGlobalAutoSchedule} against two overlapping runs on the same {@link
      *  com.cms.model.TermInstance} — a real production failure mode (a user double-clicking "Run"
@@ -1445,6 +1452,10 @@ public class TimetableGlobalAutoScheduleService {
         List<String> pairingSkipReasons = new ArrayList<>();
         for (CohortRunContext context : contexts) {
             rotationGroupsCreated += attemptCrossOfferingPairing(context, term, periods, globalLabClinicalQueue, pairingSkipReasons);
+            // Rules 3/4/5 (user's hierarchy) -- runs over the SAME, now Phase-B-reduced queue, right
+            // after it for the identical reason (claims rows before the main sort/consume loop below
+            // can independently re-place them). See #attemptSingleOfferingBatchRotation's javadoc.
+            rotationGroupsCreated += attemptSingleOfferingBatchRotation(context, term, periods, globalLabClinicalQueue, termDemand);
         }
 
         // Sibling batches (same cohort, same offering, same LAB/CLINICAL session type -- a section
@@ -1580,6 +1591,15 @@ public class TimetableGlobalAutoScheduleService {
             }
             context.placedThisCohortRun().addAll(fillExtraLibrarySession(context.cohortId(), term, periods,
                 context.dayLoad(), context.skeleton().cells(), context.placedThisCohortRun(), saturdayIsWorkingDay(term)));
+        }
+
+        // Genuine, capped Self-Study (user's rule: Library -> Sports -> Self-Study(capped) -> only
+        // THEN the uncapped bonus-Theory filler below). Same most-constrained-cohort-first order as
+        // Library/Sports, same theoryStillOwedRuns gate -- see #fillGenuineSelfStudyGaps.
+        for (CohortRunContext context : libraryFillOrder) {
+            fillGenuineSelfStudyGaps(context.cohortId(), term, periods, context.dayLoad(), context.skeleton(),
+                context.skeleton().cells(), context.placedThisCohortRun(), saturdayIsWorkingDay(term),
+                context.theoryStillOwedRuns(), termDemand);
         }
 
         for (CohortRunContext context : contexts) {
@@ -2311,6 +2331,235 @@ public class TimetableGlobalAutoScheduleService {
         return null;
     }
 
+    /** Rules 3/4/5 (user's hierarchy) — the single-offering counterpart of {@link
+     *  #attemptCrossOfferingPairing} (Phase B, cross-OFFERING pairing — rule 2, already implemented,
+     *  unchanged by this method). Runs immediately after it, per cohort, over the SAME (already
+     *  Phase-B-reduced) {@code queue}: every remaining LAB shortfall row whose offering's exactly-2
+     *  active batches already share ONE lab (Phase B's own "pairable" gate — see that method's
+     *  identical filter, reused verbatim here) but found no cross-offering partner to pair with (so
+     *  it's still sitting in the queue) is this method's target — the screenshot's N-AHN-I-215 case:
+     *  one offering, one lab, two batches, nothing else to pair with.
+     *
+     * <p>Rather than leave the "off-duty" batch idle at that slot (the OLD behavior — Phase 1.5's
+     *  generic {@link #fillIdleBatchGaps} covering it fresh, with zero memory of which batch got
+     *  Library last time, the exact gap the user reported), this places the off-duty batch into
+     *  Library — or Self-Study if no Library room is free, same fallback order the user confirmed —
+     *  at the SAME slot, and wraps both cells in a {@link RotationGroup} that swaps the two batches
+     *  week to week. Rules 4 (alternation) and 5 (equal term-end totals) fall out of {@link
+     *  RotationGroupService}'s existing week-parity math for free, exactly like Phase B's own
+     *  rotation already does — no changes needed there.
+     *
+     * <p>When neither a Library room nor a Self-Study fallback is available at ANY candidate
+     *  day/block, this leaves the row untouched in {@code queue} (no regression — Phase 1's
+     *  ordinary placement and Phase 1.5's per-run idle-batch fallback still cover it exactly as
+     *  before) and records one advisory recommendation (not a warning — a capacity-planning
+     *  suggestion, not a placement failure) that a second lab be provisioned via Capacity Auto-Plan.
+     *  Returns how many {@link RotationGroup}s this cohort's pass created. */
+    private int attemptSingleOfferingBatchRotation(CohortRunContext context, TermInstance term, List<Period> periods,
+                                                     List<TaggedShortfallRow> queue, TermDemandAggregation termDemand) {
+        Long cohortId = context.cohortId();
+        List<TaggedShortfallRow> candidates = queue.stream()
+            .filter(t -> t.cohortId().equals(cohortId))
+            .filter(t -> t.row().budget().sessionType() == ClassSessionType.LAB)
+            .filter(t -> t.row().shortfall() == 1 && t.row().budget().requiredSessionsPerWeek() == 1)
+            .filter(t -> t.row().budget().batchId() != null && t.row().budget().cohortSectionId() != null)
+            .toList();
+
+        Map<String, List<TaggedShortfallRow>> byOfferingWithinSection = candidates.stream()
+            .collect(Collectors.groupingBy(
+                t -> t.row().budget().cohortSectionId() + ":" + t.row().offering().getId(),
+                LinkedHashMap::new, Collectors.toList()));
+
+        int created = 0;
+        for (List<TaggedShortfallRow> rows : byOfferingWithinSection.values()) {
+            if (rows.size() != 2) {
+                continue; // this run's queue doesn't show exactly 2 shortfall rows for the offering -- not this shape
+            }
+            Long sectionId = rows.get(0).row().budget().cohortSectionId();
+            CourseOffering offering = rows.get(0).row().offering();
+            List<Batch> activeBatches = batchRepository.findByCourseOfferingId(offering.getId()).stream()
+                .filter(b -> Boolean.TRUE.equals(b.getIsActive()))
+                .filter(b -> b.getCohortSection() != null && b.getCohortSection().getId().equals(sectionId))
+                .toList();
+            if (activeBatches.size() != 2) {
+                continue; // real active batch count doesn't match -- never guess, skip
+            }
+            Batch batch0 = activeBatches.get(0);
+            Batch batch1 = activeBatches.get(1);
+            if (batch0.getLab() == null || batch1.getLab() == null
+                    || !batch0.getLab().getId().equals(batch1.getLab().getId())) {
+                continue; // not this shape -- either not sharing one lab, or Phase B already paired it
+            }
+            int blockSize = rows.get(0).row().blockSize();
+            if (rows.get(1).row().blockSize() != blockSize) {
+                continue;
+            }
+
+            RotationPairingOutcome outcome = tryRotateSingleOfferingBatches(cohortId, offering,
+                rows.get(0).row().facultyId(), batch0, batch1, blockSize, term, periods, context, termDemand);
+            if (outcome == null) {
+                context.unplacedForCohort().add(new AutoPlaceUnplacedItem("Lab capacity", ClassSessionType.LAB, null,
+                    offering.getSubject().getName() + ": only 1 lab provisioned for " + activeBatches.size()
+                        + " batches, and no free Library room or eligible Self-Study faculty was found to cover "
+                        + "the other batch at any candidate slot — consider provisioning a second lab via "
+                        + "Capacity Auto-Plan", offering.getId(), false, true));
+                continue;
+            }
+            context.placedThisCohortRun().add(outcome.placementA());
+            context.placedThisCohortRun().add(outcome.placementB());
+            TaggedShortfallRow row0 = rows.get(0);
+            TaggedShortfallRow row1 = rows.get(1);
+            queue.removeIf(t -> t == row0 || t == row1);
+            // Same partial-week leftover handling as Phase B (#attemptCrossOfferingPairing) -- a day
+            // that runs less often than every week (a partial working-Saturday pattern) leaves each
+            // row owing the hours that day didn't deliver.
+            for (TaggedShortfallRow paired : List.of(row0, row1)) {
+                int leftover = paired.row().remainingRuns()
+                    - runsFor(outcome.placementA().dayOfWeek(), term, paired.row().budget());
+                if (leftover > 0) {
+                    queue.add(new TaggedShortfallRow(paired.cohortId(), paired.row().withRemainingRuns(leftover)));
+                }
+            }
+            created++;
+        }
+        return created;
+    }
+
+    /** Day/block search for {@link #attemptSingleOfferingBatchRotation}, mirroring {@link
+     *  #tryPairOfferings}'s exact search/teardown-on-failure discipline: places {@code batch0} in
+     *  the shared Lab, then tries Library for {@code batch1} at the SAME slot (falling back to
+     *  Self-Study if no Library room is free — {@link #saveIdleBatchLibraryCell}/{@link
+     *  #saveIdleBatchSelfStudyCell}, the exact same fallback the per-run idle-batch path already
+     *  uses), and on success wraps both cells in a 2-slot/2-member {@link RotationGroup} that swaps
+     *  {@code batch0}/{@code batch1} between the Lab and the Library/Self-Study slot week to week.
+     *  Verifies {@code batch1} has no OTHER cell at the candidate slot first — unlike {@link
+     *  #tryPairOfferings}'s two real offerings (each independently conflict-checked by {@link
+     *  TimetableSkeletonService#placeCell}), {@link #saveIdleBatchLibraryCell}/{@link
+     *  #saveIdleBatchSelfStudyCell} deliberately bypass {@code placeCell}'s own conflict checks (see
+     *  their own javadoc), so this method must check {@code batch1}'s freeness itself before calling
+     *  either. Returns {@code null} if no day/block in the whole week works for both halves. */
+    private RotationPairingOutcome tryRotateSingleOfferingBatches(Long cohortId, CourseOffering offering, Long facultyId,
+            Batch batch0, Batch batch1, int blockSize, TermInstance term, List<Period> periods,
+            CohortRunContext context, TermDemandAggregation termDemand) {
+        CohortSection section = batch0.getCohortSection();
+        Subject librarySubject = subjectRepository.findByCode(LIBRARY_SUBJECT_CODE).orElse(null);
+        List<Classroom> libraryClassrooms = librarySubject == null ? List.of()
+            : classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(RoomPurposeCategoryCode.LIBRARY);
+        // Self-Study's row (which offering/budget, if any) doesn't vary by day/block -- only whether
+        // ITS STAFFING succeeds does, so this is resolved once here rather than inside the loop below.
+        // If BOTH fallbacks are structurally absent for this section (no Library classroom configured
+        // AND no Self-Study curriculum offering at all), there is nothing any day/block could ever
+        // find -- bail immediately rather than exhaustively placeCell+staffCell+removeCell-cycling
+        // through every candidate for no reason (real waste in production, and what made
+        // pairingSkipsWhenBatchCountsMismatch_realIncidentFixtureNumbers's "always succeeds" Lab stub
+        // balloon this into dozens of pointless placements in the test that caught it).
+        boolean selfStudyRowExists = resolveSelfStudyRowForFallback(cohortId, section, context.skeleton(), termDemand) != null;
+        if (libraryClassrooms.isEmpty() && !selfStudyRowExists) {
+            return null;
+        }
+        int batch1Headcount = realBatchHeadcount(batch1);
+        List<ClassSchedule> batch1ExistingCells = classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(batch1.getId()));
+
+        List<DayOfWeek> candidateDays = workingDays(term).stream()
+            .sorted(Comparator.comparingInt(d -> context.dayLoad().getOrDefault(d, 0)))
+            .toList();
+
+        for (DayOfWeek day : candidateDays) {
+            for (int startIdx = 0; startIdx + blockSize <= periods.size(); startIdx++) {
+                List<Period> block = periods.subList(startIdx, startIdx + blockSize);
+                boolean hasGap = false;
+                for (int k = 1; k < block.size(); k++) {
+                    if (!block.get(k - 1).getEndTime().equals(block.get(k).getStartTime())) {
+                        hasGap = true;
+                        break;
+                    }
+                }
+                if (hasGap) {
+                    continue;
+                }
+                boolean anyBlocked = false;
+                for (Period p : block) {
+                    if (blockedPeriodChecker.blockReason(day, p.getStartTime(), p.getEndTime(), term).isPresent()) {
+                        anyBlocked = true;
+                        break;
+                    }
+                }
+                if (anyBlocked) {
+                    continue;
+                }
+                Set<Long> blockPeriodIds = block.stream().map(Period::getId).collect(Collectors.toSet());
+                boolean batch1Busy = batch1ExistingCells.stream().anyMatch(cs -> cs.getDayOfWeek() == day
+                    && cs.getPeriod() != null && blockPeriodIds.contains(cs.getPeriod().getId()));
+                if (batch1Busy) {
+                    continue;
+                }
+
+                Period primary = block.get(0);
+                List<Long> spanPeriodIds = block.size() > 1
+                    ? block.subList(1, block.size()).stream().map(Period::getId).toList() : null;
+
+                SkeletonCellResponse labCell;
+                try {
+                    labCell = timetableSkeletonService.placeCell(new SkeletonCellPlacementRequest(
+                        offering.getId(), ClassSessionType.LAB, day, primary.getId(), batch0.getId(), cohortId,
+                        section != null ? section.getId() : null, spanPeriodIds));
+                } catch (TimetableConstraintViolationException | LifecycleConflictException | IllegalArgumentException ex) {
+                    continue;
+                }
+                try {
+                    timetableStaffingService.staffCell(labCell.id(), new StaffingAssignmentRequest(facultyId, null));
+                } catch (TimetableConstraintViolationException | LifecycleConflictException | IllegalArgumentException ex) {
+                    timetableSkeletonService.removeCell(labCell.id());
+                    continue;
+                }
+
+                Classroom libRoom = librarySubject == null ? null
+                    : firstFreeLibraryClassroomForCapacity(libraryClassrooms, term.getId(), day, block, batch1Headcount);
+                Placement partner = libRoom != null
+                    ? saveIdleBatchLibraryCell(librarySubject, term, day, block, section, libRoom, batch1)
+                    : saveIdleBatchSelfStudyCell(cohortId, context.skeleton(), term, day, block, section, batch1, termDemand);
+                if (partner == null) {
+                    timetableSkeletonService.removeCell(labCell.id());
+                    continue;
+                }
+
+                LocalDate anchor = firstOccurrenceOnOrAfter(term.getStartDate(), day);
+                RotationGroupCreateRequest request = new RotationGroupCreateRequest(
+                    term.getId(),
+                    offering.getSubject().getName() + " Lab/Library rotation",
+                    anchor,
+                    List.of(new RotationGroupCreateRequest.RotationSlotInput(labCell.id(), 0),
+                            new RotationGroupCreateRequest.RotationSlotInput(partner.cellId(), 1)),
+                    List.of(
+                        new RotationGroupCreateRequest.RotationMemberInput(0, "Group 1", List.of(
+                            new RotationGroupCreateRequest.RotationAssignmentInput(labCell.id(), batch0.getId()),
+                            new RotationGroupCreateRequest.RotationAssignmentInput(partner.cellId(), batch1.getId()))),
+                        new RotationGroupCreateRequest.RotationMemberInput(1, "Group 2", List.of(
+                            new RotationGroupCreateRequest.RotationAssignmentInput(labCell.id(), batch1.getId()),
+                            new RotationGroupCreateRequest.RotationAssignmentInput(partner.cellId(), batch0.getId())))));
+
+                try {
+                    rotationGroupService.create(request, "system:global-auto-schedule");
+                } catch (RuntimeException ex) {
+                    timetableSkeletonService.removeCell(partner.cellId());
+                    timetableSkeletonService.removeCell(labCell.id());
+                    continue;
+                }
+
+                List<Long> periodIds = block.stream().map(Period::getId).toList();
+                context.dayLoad().merge(day, blockSize, Integer::sum);
+                Placement placementA = new Placement(labCell.id(), offering.getId(), ClassSessionType.LAB, null,
+                    section != null ? section.getId() : null, facultyId, offering.getSubject().getName(), "Rotation",
+                    day, periodIds);
+                Placement placementB = new Placement(partner.cellId(), partner.courseOfferingId(), partner.sessionType(),
+                    null, section != null ? section.getId() : null, partner.facultyId(), partner.subjectName(),
+                    "Rotation", day, periodIds);
+                return new RotationPairingOutcome(placementA, placementB);
+            }
+        }
+        return null;
+    }
+
     /** First date on or after {@code start} falling on {@code target} — matches {@code
      *  EscortRotationResolverService#nextOrSame}'s exact bridging of this file's {@code
      *  com.cms.model.enums.DayOfWeek} to {@code java.time.DayOfWeek} via name, the same pattern
@@ -2526,6 +2775,26 @@ public class TimetableGlobalAutoScheduleService {
         CourseOffering offering = courseOfferingRepository.findById(offeringId).orElse(null);
         CurriculumSemesterCourse csc = offering != null ? offering.getCurriculumSemesterCourse() : null;
         return csc != null && csc.getSubjectType() == SubjectType.CO_CURRICULAR;
+    }
+
+    /** Bonus-Theory fill priority ({@link #fillSelfStudyGaps}'s equal-extra-hours rotation, user's
+     *  call): CORE/FOUNDATIONAL rows get first claim on leftover periods, ELECTIVE next, and
+     *  CO_CURRICULAR last (shouldn't normally reach this pool at all -- {@link
+     *  #resolveExtraHoursFillerRows} already excludes the real Self-Study/co-curricular subject by
+     *  name -- this is just a safe default if one ever slips through unnamed). A row with no {@link
+     *  CurriculumSemesterCourse} defaults to the same tier as CORE/FOUNDATIONAL, matching {@link
+     *  CurriculumSemesterCourse#subjectType}'s own default. */
+    private static int subjectTypePriorityRank(SelfStudyRow row) {
+        CourseOffering offering = row.offering();
+        CurriculumSemesterCourse csc = offering != null ? offering.getCurriculumSemesterCourse() : null;
+        if (csc == null) {
+            return 0;
+        }
+        return switch (csc.getSubjectType()) {
+            case CORE, FOUNDATIONAL -> 0;
+            case ELECTIVE -> 1;
+            case CO_CURRICULAR -> 2;
+        };
     }
 
     /** {@code dayPlaced} null means every day/period combination was exhausted — {@code
@@ -3185,7 +3454,10 @@ public class TimetableGlobalAutoScheduleService {
         // Extra sessions this pass has given each already-met row: the next free period goes to
         // whichever subject has had the fewest, so every subject ends with equal extra hours instead
         // of merely taking equal turns (a subject that couldn't take one slot no longer falls behind
-        // for good).
+        // for good). CORE/FOUNDATIONAL rows are tried before ELECTIVE ones for the same period
+        // (see #subjectTypePriorityRank) -- this equal-extra-hours balancing only kicks in as the
+        // tie-break WITHIN a priority tier, not across tiers, so an Elective subject only starts
+        // taking extra hours once every Core/Foundational row has had an equal share first.
         int[] extraByRow = new int[metRows.size()];
         // A period every row REJECTED (placeCell threw) used to be swallowed by the bare `continue`
         // below and counted nowhere -- so a genuinely empty period could sit in the grid with no
@@ -3233,7 +3505,8 @@ public class TimetableGlobalAutoScheduleService {
                 if (!periodFilled && !metRows.isEmpty()) {
                     int start = rotation;
                     List<Integer> attemptOrder = java.util.stream.IntStream.range(0, metRows.size()).boxed()
-                        .sorted(Comparator.comparingInt((Integer i) -> extraByRow[i])
+                        .sorted(Comparator.comparingInt((Integer i) -> subjectTypePriorityRank(metRows.get(i)))
+                            .thenComparingInt(i -> extraByRow[i])
                             .thenComparingInt(i -> Math.floorMod(i - start, metRows.size())))
                         .toList();
                     RowSlotAttempt result = attemptRowsForSlot(cohortId, metRows, attemptOrder, day, period);
@@ -3544,6 +3817,112 @@ public class TimetableGlobalAutoScheduleService {
             .collect(java.util.stream.Collectors.toCollection(HashSet::new));
         placedThisRun.stream()
             .filter(p -> p.sessionType() == ClassSessionType.LIBRARY
+                && Objects.equals(p.cohortSectionId(), sectionId))
+            .map(Placement::dayOfWeek)
+            .forEach(days::add);
+        return days;
+    }
+
+    /** New capped "genuine Self-Study" tier (user's rule hierarchy: leftover periods go
+     *  Library -> Sports -> Self-Study(capped, {@code timetable.self_study_sessions_per_week},
+     *  default 1 session/week of a {@code timetable.self_study_block_size_periods}-period block) ->
+     *  only THEN the uncapped bonus-Theory filler ({@link #fillSelfStudyGaps}). Distinct from that
+     *  filler (which excludes the real Self-Study subject by name, see {@link #isSelfStudySubject})
+     *  and from the per-slot idle-batch Self-Study fallback ({@link #saveIdleBatchSelfStudyCell},
+     *  scoped to one idle batch at one exact slot): this places a real, WHOLE-SECTION Self-Study
+     *  session using the same already-met-budget row {@link #resolveSelfStudyRowForFallback} finds,
+     *  same least-loaded-day search and {@code theoryStillOwedRuns} curriculum-yields gate as {@link
+     *  #fillLibraryGaps}/{@link #fillSportsGaps}. Mutates {@code placedThisRun}/{@code dayLoad}
+     *  directly (no dedicated outcome record) -- same void, in-place style as {@link
+     *  #fillIdleBatchGaps}, since this filler's placements need no separate run-report line: a
+     *  session it can't place simply falls through to the always-uncapped filler right after it. */
+    private void fillGenuineSelfStudyGaps(Long cohortId, TermInstance term, List<Period> periods,
+            Map<DayOfWeek, Integer> dayLoad, SkeletonBuilderResponse skeleton, List<SkeletonCellResponse> existingCells,
+            List<Placement> placedThisRun, boolean saturdayOpen, Map<String, Integer> theoryStillOwedRuns,
+            TermDemandAggregation termDemand) {
+        // Self-Study yields to curriculum exactly like Library/Sports (OC-227 principle) -- every
+        // offering's real required hours come first.
+        if (theoryStillOwedRuns.values().stream().anyMatch(owed -> owed > 0)) {
+            return;
+        }
+        List<DayOfWeek> weekdays = saturdayOpen
+            ? List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY,
+                DayOfWeek.FRIDAY, DayOfWeek.SATURDAY)
+            : List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY);
+        int sessionsPerWeek = resolveLibraryConfigInt(CONFIG_SELF_STUDY_SESSIONS_PER_WEEK, DEFAULT_SELF_STUDY_SESSIONS_PER_WEEK);
+        int blockSize = resolveLibraryConfigInt(CONFIG_SELF_STUDY_BLOCK_SIZE_PERIODS, DEFAULT_SELF_STUDY_BLOCK_SIZE_PERIODS);
+        List<List<Period>> candidateBlocks = contiguousPeriodBlocks(periods, blockSize);
+
+        List<CohortSection> activeSections = timetableSkeletonService.resolveActiveSections(cohortId, term.getId());
+        List<CohortSection> audiences = activeSections.isEmpty() ? Arrays.asList((CohortSection) null) : activeSections;
+
+        for (CohortSection section : audiences) {
+            SelfStudyRow selfStudyRow = resolveSelfStudyRowForFallback(cohortId, section, skeleton, termDemand);
+            if (selfStudyRow == null) {
+                continue; // no already-met Self-Study curriculum offering for this audience -- nothing to add
+            }
+            Long sectionId = section != null ? section.getId() : null;
+            Set<DayOfWeek> daysAlreadyUsed = selfStudyDaysUsed(selfStudyRow.offering().getId(), sectionId, existingCells, placedThisRun);
+            List<DayOfWeek> orderedDays = weekdays.stream()
+                .sorted(Comparator.comparingInt(d -> dayLoad.getOrDefault(d, 0)))
+                .toList();
+            int placedForAudience = daysAlreadyUsed.size();
+            for (DayOfWeek day : orderedDays) {
+                if (placedForAudience >= sessionsPerWeek) {
+                    break;
+                }
+                if (daysAlreadyUsed.contains(day)) {
+                    continue;
+                }
+                for (List<Period> block : candidateBlocks) {
+                    boolean blocked = block.stream().anyMatch(p ->
+                        blockedPeriodChecker.blockReason(day, p.getStartTime(), p.getEndTime(), term).isPresent());
+                    if (blocked) {
+                        continue;
+                    }
+                    if (overlapsClinicalShift(cohortId, term, day, block)) {
+                        continue;
+                    }
+                    boolean slotFree = block.stream().allMatch(p ->
+                        timetableSkeletonService.isSlotFreeForCohort(cohortId, term.getId(), day, p.getId()));
+                    if (!slotFree) {
+                        continue;
+                    }
+                    List<Long> ids = timetableSkeletonService.saveGenuineSelfStudyBlockCells(
+                        selfStudyRow.offering(), term, day, block, section);
+                    Long staffedBy = tryStaffWithFallback(ids.get(0), selfStudyRow.candidateFacultyIds());
+                    if (staffedBy == null) {
+                        ids.forEach(timetableSkeletonService::removeCell);
+                        continue;
+                    }
+                    dayLoad.merge(day, 1, Integer::sum);
+                    placedThisRun.add(new Placement(ids.get(0), selfStudyRow.offering().getId(), ClassSessionType.THEORY,
+                        null, sectionId, staffedBy, selfStudyRow.subjectName(),
+                        section != null ? section.getSectionLabel() : "Whole cohort", day,
+                        block.stream().map(Period::getId).toList()));
+                    daysAlreadyUsed.add(day);
+                    placedForAudience++;
+                    break;
+                }
+            }
+        }
+    }
+
+    /** Days this audience already has GENUINE Self-Study exposure (this specific offering), for the
+     *  capped tier above -- mirrors {@link #libraryDaysUsed}'s exact reasoning: counts a batch-scoped
+     *  idle-batch Self-Study fallback cell (see {@link #saveIdleBatchSelfStudyCell}) the same as a
+     *  whole-section block, so a batch already sent to Self-Study while its sibling was in Lab/
+     *  Clinical doesn't also get a second, redundant whole-section block piled on the same day. */
+    private static Set<DayOfWeek> selfStudyDaysUsed(Long offeringId, Long sectionId,
+            List<SkeletonCellResponse> existingCells, List<Placement> placedThisRun) {
+        Set<DayOfWeek> days = existingCells.stream()
+            .filter(c -> c.sessionType() == ClassSessionType.THEORY)
+            .filter(c -> Objects.equals(c.courseOfferingId(), offeringId))
+            .filter(c -> Objects.equals(c.cohortSectionId(), sectionId))
+            .map(SkeletonCellResponse::dayOfWeek)
+            .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+        placedThisRun.stream()
+            .filter(p -> p.sessionType() == ClassSessionType.THEORY && Objects.equals(p.courseOfferingId(), offeringId)
                 && Objects.equals(p.cohortSectionId(), sectionId))
             .map(Placement::dayOfWeek)
             .forEach(days::add);

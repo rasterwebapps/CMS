@@ -1425,6 +1425,36 @@ public class TimetableSkeletonService {
         return ids;
     }
 
+    /** {@code REQUIRES_NEW} — the WHOLE-SECTION twin of {@link #saveIdleBatchTheoryCells} just
+     *  above (no {@code batch}: {@code TimetableGlobalAutoScheduleService#fillGenuineSelfStudyGaps}
+     *  places for a whole audience/section, not one idle batch, the same distinction {@link
+     *  #saveLibraryBlockCells} draws from {@link #saveIdleBatchLibraryCells}), for the same
+     *  visibility-to-a-later-REQUIRES_NEW-call reason as every other filler placement path here.
+     *  Returns every saved row's id, primary period first. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<Long> saveGenuineSelfStudyBlockCells(CourseOffering offering, TermInstance term, DayOfWeek day,
+            List<Period> block, CohortSection cohortSection) {
+        java.util.UUID sessionGroupId = block.size() > 1 ? java.util.UUID.randomUUID() : null;
+        List<Long> ids = new ArrayList<>();
+        for (Period period : block) {
+            ClassSchedule cs = new ClassSchedule();
+            cs.setSessionType(ClassSessionType.THEORY);
+            cs.setStatus(ClassScheduleStatus.DRAFT);
+            cs.setSubject(offering.getSubject());
+            cs.setDayOfWeek(day);
+            cs.setTermInstance(term);
+            cs.setCourseOffering(offering);
+            cs.setPeriod(period);
+            cs.setCohortSection(cohortSection);
+            cs.setIsActive(true);
+            cs.setSessionGroupId(sessionGroupId);
+            ClassSchedule saved = classScheduleRepository.save(cs);
+            AutoScheduleRunCache.current().ifPresent(cache -> cache.recordPlacement(saved));
+            ids.add(saved.getId());
+        }
+        return ids;
+    }
+
     /** {@code REQUIRES_NEW} — the LIBRARY-typed twin of {@link #saveIdleBatchTheoryCells} just
      *  above, for the exact same reason: {@code TimetableGlobalAutoScheduleService
      *  #saveIdleBatchLibraryCell} used to save these rows directly via a plain {@code

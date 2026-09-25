@@ -4,7 +4,64 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import com.cms.model.Subject;
+import com.cms.model.enums.ClassSessionType;
+
 class CurriculumHoursCalculatorTest {
+
+    private static Subject subjectWithBlockPeriods(Integer lab, Integer clinical, Integer theory) {
+        Subject subject = new Subject("Anatomy", "ANAT101", 4, 3, 1, null, 1);
+        if (lab != null) subject.setLabSessionBlockPeriods(lab);
+        if (clinical != null) subject.setClinicalSessionBlockPeriods(clinical);
+        if (theory != null) subject.setTheorySessionBlockPeriods(theory);
+        return subject;
+    }
+
+    @Test
+    void resolveBlockSize_theoryReadsSubjectsConfiguredValue() {
+        Subject subject = subjectWithBlockPeriods(null, null, 2);
+
+        assertThat(CurriculumHoursCalculator.resolveBlockSize(subject, ClassSessionType.THEORY)).isEqualTo(2);
+    }
+
+    @Test
+    void resolveBlockSize_theoryDefaultsToOne_whenSubjectLeavesItAtDefault() {
+        Subject subject = subjectWithBlockPeriods(null, null, null); // Subject's own field default is 1
+
+        assertThat(CurriculumHoursCalculator.resolveBlockSize(subject, ClassSessionType.THEORY)).isEqualTo(1);
+    }
+
+    @Test
+    void resolveBlockSize_theoryClampsAnOutOfRangeValueDownToOne() {
+        // DB CHECK constraint (chk_subjects_theory_session_block_periods) already prevents this in
+        // practice, but resolveBlockSize defends the same 1-2 invariant in code too (matches the null
+        // guard just below it for LAB/CLINICAL) rather than trusting every caller re-validated first.
+        Subject subject = subjectWithBlockPeriods(null, null, 3);
+
+        assertThat(CurriculumHoursCalculator.resolveBlockSize(subject, ClassSessionType.THEORY)).isEqualTo(1);
+    }
+
+    @Test
+    void resolveBlockSize_theoryClampsNullToOne() {
+        Subject subject = subjectWithBlockPeriods(null, null, null);
+        subject.setTheorySessionBlockPeriods(null);
+
+        assertThat(CurriculumHoursCalculator.resolveBlockSize(subject, ClassSessionType.THEORY)).isEqualTo(1);
+    }
+
+    @Test
+    void resolveBlockSize_labAndClinicalStillUnaffectedByTheChange() {
+        Subject subject = subjectWithBlockPeriods(3, 4, 2);
+
+        assertThat(CurriculumHoursCalculator.resolveBlockSize(subject, ClassSessionType.LAB)).isEqualTo(3);
+        assertThat(CurriculumHoursCalculator.resolveBlockSize(subject, ClassSessionType.CLINICAL)).isEqualTo(4);
+    }
+
+    @Test
+    void resolveBlockSize_nullSubjectDefaultsToOneForEverySessionType() {
+        assertThat(CurriculumHoursCalculator.resolveBlockSize(null, ClassSessionType.THEORY)).isEqualTo(1);
+        assertThat(CurriculumHoursCalculator.resolveBlockSize(null, ClassSessionType.LAB)).isEqualTo(1);
+    }
 
     @Test
     void sessionsPerWeek_realWorldClinicalBlockScenario_doesNotDoubleCountBlockSize() {

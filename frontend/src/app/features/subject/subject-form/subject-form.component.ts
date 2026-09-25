@@ -119,6 +119,7 @@ export class SubjectFormComponent implements OnInit {
     isActive: [true],
     labSessionBlockPeriods: [1, [Validators.required, Validators.min(1), Validators.max(12)]],
     clinicalSessionBlockPeriods: [1, [Validators.required, Validators.min(1), Validators.max(12)]],
+    theorySessionBlockPeriods: [1, [Validators.required, Validators.min(1), Validators.max(2)]],
   });
 
   constructor() {
@@ -232,6 +233,7 @@ export class SubjectFormComponent implements OnInit {
       isActive: v.isActive,
       labSessionBlockPeriods: v.labSessionBlockPeriods,
       clinicalSessionBlockPeriods: v.clinicalSessionBlockPeriods,
+      theorySessionBlockPeriods: v.theorySessionBlockPeriods,
       eligibleLabIds: [...this.selectedLabIds()],
       eligibleClinicalVenueIds: [...this.selectedClinicalVenueIds()],
       eligibleFacultyIds: [...this.selectedFacultyIds()],
@@ -341,6 +343,7 @@ export class SubjectFormComponent implements OnInit {
           isActive: subject.isActive,
           labSessionBlockPeriods: subject.labSessionBlockPeriods,
           clinicalSessionBlockPeriods: subject.clinicalSessionBlockPeriods,
+          theorySessionBlockPeriods: subject.theorySessionBlockPeriods,
         });
         this.selectedLabIds.set(new Set(subject.eligibleLabs.map((l) => l.id)));
         this.selectedClinicalVenueIds.set(new Set(subject.eligibleClinicalVenues.map((v) => v.id)));

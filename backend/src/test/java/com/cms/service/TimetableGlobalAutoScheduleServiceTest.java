@@ -905,6 +905,152 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.rotationGroupsCreated()).isEqualTo(1);
     }
 
+    // ── Single-offering batch rotation (rules 3/4/5, user's hierarchy) ────
+
+    /** The screenshot's own case: ONE offering, ONE lab, two batches -- no second offering exists to
+     *  pair with (Phase B above never even considers it: its own inner loop needs a SECOND
+     *  {@code PairableOfferingGroup}). Confirms the new fallback picks this up instead of leaving the
+     *  "off-duty" batch with nothing: batch0 gets the real Lab cell, batch1 gets a Library cell at
+     *  the exact same slot, and both are wrapped in a rotation that swaps them (proven by asserting
+     *  each rotation slot gets a DIFFERENT batch in Group 1 vs Group 2, not just "both batches appear
+     *  somewhere"). */
+    @Test
+    void singleOfferingWithOneSharedLabAndTwoBatches_rotatesLabAgainstLibrary() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(73L, "Nursing Skills Lab")));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+
+        CohortSection section = new CohortSection();
+        section.setId(52L);
+
+        CourseOffering offering = offeringEntity(73L, 0, 30, 0);
+        offering.setSubject(labSubject("Nursing Skills Lab"));
+
+        Lab sharedLab = lab(1L);
+        Batch batch0 = labBatch(3001L, sharedLab, section, 500L);
+        Batch batch1 = labBatch(3002L, sharedLab, section, 500L);
+        when(batchRepository.findByCourseOfferingId(73L)).thenReturn(List.of(batch0, batch1));
+        when(batchRepository.countStudents(anyLong())).thenReturn(0L);
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(batch1.getId()))).thenReturn(List.of());
+
+        List<SkeletonSubjectBudget> budgets = List.of(batch0, batch1).stream()
+            .map(b -> new SkeletonSubjectBudget(ClassSessionType.LAB, b.getId(), null, 52L, null, 30, 10, 1, 0))
+            .toList();
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(73L, "Nursing Skills Lab", "NSKL", budgets, null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term",
+            List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        stubPlaceCellAlwaysSucceeds();
+
+        Subject librarySubject = new Subject();
+        librarySubject.setId(999L);
+        librarySubject.setCode("SYSTEM-LIBRARY");
+        when(subjectRepository.findByCode("SYSTEM-LIBRARY")).thenReturn(Optional.of(librarySubject));
+        Classroom libraryRoom = new Classroom("Library Hall", null, null, 60);
+        libraryRoom.setId(50L);
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(any()))
+            .thenReturn(List.of(libraryRoom));
+        when(timetableStaffingService.checkRoomFree(any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Optional.empty());
+        when(timetableSkeletonService.saveIdleBatchLibraryCells(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(List.of(777L));
+        when(rotationGroupService.create(any(RotationGroupCreateRequest.class), anyString()))
+            .thenReturn(new RotationGroupResponse(1L, 10L, "label", 2, LocalDate.of(2025, 6, 2), List.of(), List.of(), List.of()));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        ArgumentCaptor<RotationGroupCreateRequest> requestCaptor = ArgumentCaptor.forClass(RotationGroupCreateRequest.class);
+        verify(rotationGroupService, times(1)).create(requestCaptor.capture(), eq("system:global-auto-schedule"));
+        RotationGroupCreateRequest captured = requestCaptor.getValue();
+        assertThat(captured.slots()).hasSize(2);
+        assertThat(captured.members()).hasSize(2);
+
+        Long labSlotId = captured.slots().get(0).classScheduleId();
+        Long librarySlotId = captured.slots().get(1).classScheduleId();
+        var group1 = captured.members().get(0).assignments();
+        var group2 = captured.members().get(1).assignments();
+        Long group1LabBatch = group1.stream().filter(a -> a.classScheduleId().equals(labSlotId)).findFirst().orElseThrow().batchId();
+        Long group2LabBatch = group2.stream().filter(a -> a.classScheduleId().equals(labSlotId)).findFirst().orElseThrow().batchId();
+        Long group1LibraryBatch = group1.stream().filter(a -> a.classScheduleId().equals(librarySlotId)).findFirst().orElseThrow().batchId();
+        Long group2LibraryBatch = group2.stream().filter(a -> a.classScheduleId().equals(librarySlotId)).findFirst().orElseThrow().batchId();
+
+        // The two groups must swap which batch is in the Lab vs. Library slot -- that's the whole
+        // point (rule 4). Whichever batch has the Lab in Group 1 must be the one in the Library in
+        // Group 2, and vice versa.
+        assertThat(group1LabBatch).isNotEqualTo(group2LabBatch);
+        assertThat(group1LabBatch).isEqualTo(group2LibraryBatch);
+        assertThat(group1LibraryBatch).isEqualTo(group2LabBatch);
+        assertThat(Set.of(group1LabBatch, group2LabBatch)).containsExactlyInAnyOrder(batch0.getId(), batch1.getId());
+
+        verify(timetableSkeletonService, times(1)).saveIdleBatchLibraryCells(any(), any(), any(), any(), any(), any(), any());
+        verify(timetableSkeletonService, times(1)).placeCell(any(SkeletonCellPlacementRequest.class));
+        assertThat(result.rotationGroupsCreated()).isEqualTo(1);
+        assertThat(result.cohortSummaries()).extracting(CohortPlacementSummary::unplaced)
+            .allSatisfy(items -> assertThat(items).noneMatch(i -> "Lab capacity".equals(i.subjectName())));
+    }
+
+    /** When neither a Library room nor a Self-Study fallback exists at ANY candidate slot, the row
+     *  must NOT be silently dropped -- it stays in the queue exactly as before this feature existed
+     *  (falls through to Phase 1's ordinary placement), and one advisory recommendation is recorded
+     *  instead of a rotation. No regression: both batches still end up with SOME real Lab cell (via
+     *  the pre-existing independent-placement path), just not rotated. */
+    @Test
+    void singleOfferingWithOneSharedLab_fallsThroughWithAdvisoryWhenNoLibraryOrSelfStudyAvailable() {
+        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
+            .thenReturn(new HashSet<>(List.of(1L)));
+        cohort(1L, "Cohort 1");
+        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L))
+            .thenReturn(List.of(offeringDto(73L, "Nursing Skills Lab")));
+        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
+
+        CohortSection section = new CohortSection();
+        section.setId(52L);
+
+        CourseOffering offering = offeringEntity(73L, 0, 30, 0);
+        offering.setSubject(labSubject("Nursing Skills Lab"));
+
+        Lab sharedLab = lab(1L);
+        Batch batch0 = labBatch(3001L, sharedLab, section, 500L);
+        Batch batch1 = labBatch(3002L, sharedLab, section, 500L);
+        when(batchRepository.findByCourseOfferingId(73L)).thenReturn(List.of(batch0, batch1));
+        when(batchRepository.countStudents(anyLong())).thenReturn(0L);
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(batch1.getId()))).thenReturn(List.of());
+
+        List<SkeletonSubjectBudget> budgets = List.of(batch0, batch1).stream()
+            .map(b -> new SkeletonSubjectBudget(ClassSessionType.LAB, b.getId(), null, 52L, null, 30, 10, 1, 0))
+            .toList();
+        SkeletonSubjectResponse subject = new SkeletonSubjectResponse(73L, "Nursing Skills Lab", "NSKL", budgets, null, null);
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term",
+            List.of(subject), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(skeleton);
+
+        stubPlaceCellAlwaysSucceeds();
+
+        // No Library classroom configured at all, and no Self-Study curriculum offering in the
+        // skeleton either (resolveSelfStudyRowForFallback finds nothing) -- both fallbacks refuse.
+        when(subjectRepository.findByCode("SYSTEM-LIBRARY")).thenReturn(Optional.empty());
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(any())).thenReturn(List.of());
+        // Both rows fall through to ordinary placement, which Phase 1.5's fillIdleBatchGaps then
+        // examines (same reason pairingSkipsWhenBatchCountsMismatch_realIncidentFixtureNumbers above
+        // needs this same stub) -- it reconstructs each placed cell's Period from periodRepository.
+        lenient().when(periodRepository.findById(1L)).thenReturn(Optional.of(period1));
+
+        var result = service.runGlobalAutoSchedule(10L, null);
+
+        verify(rotationGroupService, never()).create(any(), any());
+        assertThat(result.rotationGroupsCreated()).isZero();
+        // Both rows fell through to the ordinary, independent per-batch placement, exactly as if
+        // this feature didn't exist -- both batches still get a real LAB cell each (no regression).
+        verify(timetableSkeletonService, atLeastOnce()).placeCell(any(SkeletonCellPlacementRequest.class));
+        assertThat(result.cohortSummaries()).extracting(CohortPlacementSummary::unplaced)
+            .anySatisfy(items -> assertThat(items).anyMatch(i -> "Lab capacity".equals(i.subjectName())
+                && i.reason().contains("only 1 lab provisioned")));
+    }
+
     @Test
     void runToleratesAPreExistingLibraryCellInTheSkeletonSnapshot_libraryCellsHaveNoCourseOffering() {
         // Regression: a LIBRARY cell has no CourseOffering at all (TimetableSkeletonService's

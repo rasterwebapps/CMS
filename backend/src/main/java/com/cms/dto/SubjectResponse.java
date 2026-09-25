@@ -15,6 +15,7 @@ public record SubjectResponse(
     Boolean isActive,
     Integer labSessionBlockPeriods,
     Integer clinicalSessionBlockPeriods,
+    Integer theorySessionBlockPeriods,
     Instant createdAt,
     Instant updatedAt,
     List<VenueOptionResponse> eligibleLabs,

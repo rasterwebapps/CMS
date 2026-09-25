@@ -68,6 +68,13 @@ public class Subject {
     @Column(name = "clinical_session_block_periods", nullable = false)
     private Integer clinicalSessionBlockPeriods = 1;
 
+    /** How many consecutive periods one single THEORY session must occupy for this subject.
+     *  Unlike {@link #labSessionBlockPeriods}/{@link #clinicalSessionBlockPeriods}, capped at 2
+     *  (DB-enforced, {@code chk_subjects_theory_session_block_periods}) -- no Theory subject may
+     *  ever run more than 2 back-to-back periods. Default 1 = today's existing behavior. */
+    @Column(name = "theory_session_block_periods", nullable = false)
+    private Integer theorySessionBlockPeriods = 1;
+
     /** Labs/Clinical Venues suitable for this subject's practical sessions -- a soft PREFERENCE for
      *  the auto-suggest algorithm and manual pickers (TimetableCapacityPlanningService), not a hard
      *  restriction: an empty set means no preference has been configured yet, in which case every
@@ -205,6 +212,14 @@ public class Subject {
 
     public void setClinicalSessionBlockPeriods(Integer clinicalSessionBlockPeriods) {
         this.clinicalSessionBlockPeriods = clinicalSessionBlockPeriods;
+    }
+
+    public Integer getTheorySessionBlockPeriods() {
+        return theorySessionBlockPeriods;
+    }
+
+    public void setTheorySessionBlockPeriods(Integer theorySessionBlockPeriods) {
+        this.theorySessionBlockPeriods = theorySessionBlockPeriods;
     }
 
     public Set<Lab> getEligibleLabs() {

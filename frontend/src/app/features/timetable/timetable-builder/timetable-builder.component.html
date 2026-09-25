@@ -1,4 +1,14 @@
-<div class="mlp-page mlp-page--free-scroll">
+<!-- mlp-page--free-scroll is grid-view-only: the skeleton grid card also carries
+     .mlp-table-card (below), and clipping that view to a fixed viewport-height box
+     re-triggers the 2026-08-19 incident documented in styles.scss where grid view's
+     own content got clipped before it could scroll normally. Table view is a
+     standard paginated list and must get the regular fixed-height/flex-1
+     .mlp-table-card treatment instead -- keeping the class on unconditionally
+     silently opted table view out of that treatment too, so its card never
+     stretched to fill the page and the toolbar/table 16px gap (which only exists
+     via that same flex layout, since .mlp-toolbar carries no margin-bottom of its
+     own) never applied. -->
+<div class="mlp-page" [class.mlp-page--free-scroll]="viewMode() === 'grid'">
 
   @if (viewMode() === 'table') {
     <div class="mlp-hdr anim-rise">
@@ -112,7 +122,7 @@
         }
       </div>
 
-      <div class="content-card anim-rise anim-rise--d2">
+      <div class="content-card mlp-table-card anim-rise anim-rise--d2">
       @if (cohortStatusSummaryLoading()) {
         <div class="loading-container">
           <mat-spinner diameter="36" aria-label="Loading cohort status summary"></mat-spinner>
@@ -438,10 +448,15 @@
                                 [title]="'Rotates: ' + cell.rotatingBatchNames.join(' / ')">
                                 ⟳ {{ cell.rotationGroupLabel }}
                               </span>
+                            } @else if (cell.batchName) {
+                              <!-- A genuinely batch-scoped cell (e.g. the idle-batch Library/Self-Study
+                                   fallback, when no rotation partner could be established) must show
+                                   WHICH batch it's for -- cohortSectionLabel below is the whole
+                                   section's own label and would otherwise mask that distinction,
+                                   silently making it look like both batches share this exact cell. -->
+                              <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
                             } @else if (cell.cohortSectionLabel) {
                               <span class="skeleton-cell__batch">{{ cell.cohortSectionLabel }}</span>
-                            } @else if (cell.batchName) {
-                              <span class="skeleton-cell__batch">{{ cell.batchName }}</span>
                             }
                             @if (cell.electiveGroupId != null) { <span class="skeleton-cell__elective-tag">Elective</span> }
                             @if (cell.coCurricular) { <span class="skeleton-cell__elective-tag">Advisory</span> }
