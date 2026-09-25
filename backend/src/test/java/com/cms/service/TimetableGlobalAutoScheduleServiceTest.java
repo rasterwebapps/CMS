@@ -20,6 +20,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -991,6 +992,112 @@ class TimetableGlobalAutoScheduleServiceTest {
         assertThat(result.rotationGroupsCreated()).isEqualTo(1);
         assertThat(result.cohortSummaries()).extracting(CohortPlacementSummary::unplaced)
             .allSatisfy(items -> assertThat(items).noneMatch(i -> "Lab capacity".equals(i.subjectName())));
+    }
+
+    // ── Idle-batch fallback: week-wide Library search ──────────────────
+    //
+    // Bug found 2026-09-25 (user report + live DB investigation): placeIdleBatchFallback only ever
+    // checked the ONE exact day/period where the sibling batch just landed in LAB/CLINICAL. If the
+    // Library room happened to be busy at that one slot, it gave up immediately -- reporting "no free
+    // Library classroom" -- even on cohorts where the Library room sat completely empty every other
+    // day of the week. These two tests exercise placeIdleBatchFallback directly (package-private for
+    // exactly this reason, matching resolveSelfStudyRowForFallback's own precedent above).
+
+    /** The triggering slot (Friday, Periods 1-2) has the Library room already busy, but the room is
+     *  genuinely free on Tuesday at the same periods, and this idle batch has nothing else on that
+     *  day either. The fix must find and use that Tuesday slot instead of falling through to
+     *  Self-Study -- confirms the week-wide search actually works, not just that it doesn't regress
+     *  the failure path. */
+    @Test
+    void idleBatchLibraryFallback_findsAFreeSlotElsewhereInTheWeekWhenTheTriggeringSlotsRoomIsBusy() {
+        List<Period> periods = skscPeriods();
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(periods.get(0)));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(periods.get(1)));
+
+        CohortSection section = new CohortSection();
+        section.setId(52L);
+        Batch idleBatch = new Batch();
+        idleBatch.setId(3002L);
+        idleBatch.setName("Batch B");
+        idleBatch.setCapacity(60);
+        idleBatch.setCohortSection(section);
+        when(batchRepository.countStudents(3002L)).thenReturn(0L);
+
+        // This batch has no cell of its own, and its section has no whole-section (Theory/Library/
+        // Sports) cell, anywhere -- genuinely free every day this run knows about.
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(3002L))).thenReturn(List.of());
+        when(classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(List.of(52L))).thenReturn(List.of());
+
+        Subject librarySubject = new Subject();
+        librarySubject.setId(999L);
+        librarySubject.setCode("SYSTEM-LIBRARY");
+        Classroom libraryRoom = new Classroom("Library Hall", null, null, 60);
+        libraryRoom.setId(50L);
+
+        // Busy at the triggering slot (Friday) only -- every other day's checkRoomFree call is left
+        // unstubbed, which Mockito answers with Optional.empty() (free) by default.
+        when(timetableStaffingService.checkRoomFree(any(), any(), any(), any(), any(), eq(DayOfWeek.FRIDAY), any(), any()))
+            .thenReturn(Optional.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT", "busy")));
+        when(timetableSkeletonService.saveIdleBatchLibraryCells(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(List.of(777L));
+
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term",
+            List.of(), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+
+        TimetableGlobalAutoScheduleService.IdleFillResult result = service.placeIdleBatchFallback(List.of(idleBatch), section, termInstance,
+            DayOfWeek.FRIDAY, List.of(1L, 2L), librarySubject, List.of(libraryRoom), 1L, skeleton, null,
+            periods, new EnumMap<>(DayOfWeek.class), false);
+
+        assertThat(result.unfillableCount()).isZero();
+        assertThat(result.filled()).hasSize(1);
+        assertThat(result.filled().get(0).dayOfWeek()).isNotEqualTo(DayOfWeek.FRIDAY);
+        assertThat(result.filled().get(0).sessionType()).isEqualTo(ClassSessionType.LIBRARY);
+        assertThat(result.filled().get(0).batchId()).isEqualTo(3002L);
+        verify(timetableSkeletonService, never()).saveIdleBatchTheoryCells(any(), any(), any(), any(), any(), any());
+    }
+
+    /** Unchanged behavior: when the Library room is busy at the triggering slot AND genuinely busy
+     *  every other day of the week too (real scarcity, not a search-depth bug), and no Self-Study
+     *  offering is configured for this cohort either, the idle instance is still correctly counted
+     *  unfillable -- never silently dropped, never wrongly placed on top of another session. */
+    @Test
+    void idleBatchLibraryFallback_stillCountsUnfillableWhenNoFreeRoomExistsAnywhereInTheWeek() {
+        List<Period> periods = skscPeriods();
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(periods.get(0)));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(periods.get(1)));
+
+        CohortSection section = new CohortSection();
+        section.setId(52L);
+        Batch idleBatch = new Batch();
+        idleBatch.setId(3002L);
+        idleBatch.setName("Batch B");
+        idleBatch.setCapacity(60);
+        idleBatch.setCohortSection(section);
+        when(batchRepository.countStudents(3002L)).thenReturn(0L);
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(3002L))).thenReturn(List.of());
+        when(classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(List.of(52L))).thenReturn(List.of());
+
+        Subject librarySubject = new Subject();
+        librarySubject.setId(999L);
+        librarySubject.setCode("SYSTEM-LIBRARY");
+        Classroom libraryRoom = new Classroom("Library Hall", null, null, 60);
+        libraryRoom.setId(50L);
+
+        // Busy every day, real scarcity -- no unstubbed (therefore "free") day exists this time.
+        when(timetableStaffingService.checkRoomFree(any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Optional.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT", "busy")));
+
+        // No Self-Study subject configured for this cohort -- resolveSelfStudyRowForFallback returns
+        // null, so this idle instance is genuinely, honestly unfillable.
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term",
+            List.of(), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+
+        TimetableGlobalAutoScheduleService.IdleFillResult result = service.placeIdleBatchFallback(List.of(idleBatch), section, termInstance,
+            DayOfWeek.FRIDAY, List.of(1L, 2L), librarySubject, List.of(libraryRoom), 1L, skeleton, null,
+            periods, new EnumMap<>(DayOfWeek.class), false);
+
+        assertThat(result.filled()).isEmpty();
+        assertThat(result.unfillableCount()).isEqualTo(1);
     }
 
     /** When neither a Library room nor a Self-Study fallback exists at ANY candidate slot, the row

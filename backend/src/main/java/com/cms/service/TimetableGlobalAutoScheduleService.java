@@ -1508,8 +1508,8 @@ public class TimetableGlobalAutoScheduleService {
         // known only right after Phase 1 places it. Cannot take a slot Phase 2 would have legitimately
         // needed — that slot is already hard-blocked for THEORY at this cohort/section regardless.
         for (CohortRunContext context : contexts) {
-            fillIdleBatchGaps(context.cohortId(), context.skeleton(), term, context.placedThisCohortRun(),
-                context.unplacedForCohort(), termDemand);
+            fillIdleBatchGaps(context.cohortId(), context.skeleton(), term, periods, context.dayLoad(),
+                saturdayIsWorkingDay(term), context.placedThisCohortRun(), context.unplacedForCohort(), termDemand);
         }
 
         // Phase 2: THEORY, per cohort -- never contends for a cross-cohort resource (each active
@@ -4208,7 +4208,7 @@ public class TimetableGlobalAutoScheduleService {
     /** Outcome of one idle-batch fallback attempt: cells successfully filled, plus a count of idle
      *  batch instances that could not be given either Library or Self-Study (no free Library room
      *  of any size, or a Self-Study offering exists but no eligible faculty could staff it there). */
-    private record IdleFillResult(List<Placement> filled, int unfillableCount) {}
+    record IdleFillResult(List<Placement> filled, int unfillableCount) {}
 
     /** For every LAB/CLINICAL cell this cohort's run just placed (Phase 1), finds its sibling
      *  batches — same {@link CourseOffering}, same {@link CohortSection} (the same
@@ -4220,6 +4220,7 @@ public class TimetableGlobalAutoScheduleService {
      *  an in-memory snapshot — every Phase 1 placement is already persisted by the time this runs,
      *  sibling-batch or not. */
     private void fillIdleBatchGaps(Long cohortId, SkeletonBuilderResponse skeleton, TermInstance term,
+            List<Period> periods, Map<DayOfWeek, Integer> dayLoad, boolean saturdayOpen,
             List<Placement> placedThisCohortRun, List<AutoPlaceUnplacedItem> unplacedForCohort, TermDemandAggregation termDemand) {
         List<Placement> justPlaced = new ArrayList<>(placedThisCohortRun);
         Subject librarySubject = subjectRepository.findByCode(LIBRARY_SUBJECT_CODE).orElse(null);
@@ -4266,7 +4267,8 @@ public class TimetableGlobalAutoScheduleService {
             }
 
             IdleFillResult result = placeIdleBatchFallback(idleBatches, occupantBatch.getCohortSection(), term,
-                p.dayOfWeek(), p.periodIds(), librarySubject, libraryClassrooms, cohortId, skeleton, termDemand);
+                p.dayOfWeek(), p.periodIds(), librarySubject, libraryClassrooms, cohortId, skeleton, termDemand,
+                periods, dayLoad, saturdayOpen);
             placedThisCohortRun.addAll(result.filled());
             unfillable += result.unfillableCount();
         }
@@ -4283,10 +4285,12 @@ public class TimetableGlobalAutoScheduleService {
      *  largest idle batch a Library seat (if any free room fits it alone) and put the rest into
      *  unsupervised classroom Self-Study, staffed the same way {@link #fillSelfStudyGaps} staffs
      *  its own rows (a THEORY row needs a real faculty to ever be publishable — see {@link
-     *  #saveIdleBatchSelfStudyCell}). Every batch is placed as a whole unit — never split. */
-    private IdleFillResult placeIdleBatchFallback(List<Batch> idleBatches, CohortSection section, TermInstance term,
+     *  #saveIdleBatchSelfStudyCell}). Every batch is placed as a whole unit — never split.
+     *  Package-private (not private) so this regression can be verified directly. */
+    IdleFillResult placeIdleBatchFallback(List<Batch> idleBatches, CohortSection section, TermInstance term,
             DayOfWeek day, List<Long> periodIds, Subject librarySubject, List<Classroom> libraryClassrooms,
-            Long cohortId, SkeletonBuilderResponse skeleton, TermDemandAggregation termDemand) {
+            Long cohortId, SkeletonBuilderResponse skeleton, TermDemandAggregation termDemand,
+            List<Period> periods, Map<DayOfWeek, Integer> dayLoad, boolean saturdayOpen) {
         List<Period> block = periodIds.stream().map(id -> periodRepository.findById(id).orElseThrow()).toList();
         int totalIdleHeadcount = idleBatches.stream().mapToInt(this::realBatchHeadcount).sum();
 
@@ -4325,6 +4329,20 @@ public class TimetableGlobalAutoScheduleService {
                 filled.add(saveIdleBatchLibraryCell(librarySubject, term, day, block, section, singleFitRoom, b));
                 continue;
             }
+            // The Library room isn't free for this batch RIGHT NOW (either no room fit the whole
+            // group, or this specific batch lost out to a bigger sibling for the one room that did
+            // fit at this exact slot) -- before settling for Self-Study, see whether this batch
+            // (which may be genuinely free on a day its sibling isn't) can still get its Library
+            // fallback somewhere else in the week, the same exhaustive way the baseline weekly quota
+            // would search for it. Only Self-Study's own slot stays pinned to `day`/`block`: it needs
+            // no dedicated room, so there's no reason to move it off the moment the sibling is
+            // actually occupying the shared Lab/Clinical venue.
+            Placement elsewhereInWeek = placeIdleBatchLibraryElsewhere(b, section, cohortId, term, periods, dayLoad,
+                saturdayOpen, day, librarySubject, libraryClassrooms);
+            if (elsewhereInWeek != null) {
+                filled.add(elsewhereInWeek);
+                continue;
+            }
             Placement selfStudy = saveIdleBatchSelfStudyCell(cohortId, skeleton, term, day, block, section, b, termDemand);
             if (selfStudy != null) {
                 filled.add(selfStudy);
@@ -4333,6 +4351,96 @@ public class TimetableGlobalAutoScheduleService {
             }
         }
         return new IdleFillResult(filled, unfillable);
+    }
+
+    /** Idle-batch fallback's own week-wide search: when the exact triggering slot has no free Library
+     *  room for {@code batch}, scans the REST of the week the same way {@link #placeLibraryBlocks}
+     *  does for the baseline weekly quota -- least-loaded day first, every contiguous period block,
+     *  respecting {@code blockedPeriodChecker}/clinical-shift/room-capacity -- instead of giving up
+     *  the instant the one triggering slot fails. Unlike {@link
+     *  TimetableSkeletonService#isSlotFreeForCohort} (built for the ordinary, unsplit placement,
+     *  where any sibling batch's LAB/CLINICAL row correctly occupies the whole cohort/offering), this
+     *  checks freeness for {@code batch} SPECIFICALLY (see {@link #isSlotFreeForBatch}): a split
+     *  batch is idle whenever IT personally has nothing on, regardless of what its sibling is doing
+     *  elsewhere in the week -- reusing the cohort-wide check here would wrongly treat every day the
+     *  sibling has its own Lab/Clinical turn as unavailable to this batch too.
+     *
+     *  <p>Landing on a different day than the triggering slot is safe against the section's weekly
+     *  Library quota: {@link #libraryDaysUsed} already counts a batch-scoped idle-fallback cell,
+     *  wherever it lands, as satisfying that day for the whole section, and the live {@link
+     *  TimetableStaffingService#checkRoomFree} check inside {@link #firstFreeLibraryClassroomForCapacity}
+     *  means any later pass (this cohort's own baseline {@link #fillLibraryGaps}, another cohort's
+     *  idle-batch fallback, anything) will correctly see the room as taken from here on.
+     *
+     *  @param excludeDay the slot already tried by the caller at the triggering block -- skipped here
+     *      to avoid repeating a check just performed with the same answer.
+     *  @return the placed cell, or null if genuinely no free Library slot exists anywhere else in the
+     *      week for this batch either -- only then does the caller fall through to Self-Study. */
+    private Placement placeIdleBatchLibraryElsewhere(Batch batch, CohortSection section, Long cohortId, TermInstance term,
+            List<Period> periods, Map<DayOfWeek, Integer> dayLoad, boolean saturdayOpen, DayOfWeek excludeDay,
+            Subject librarySubject, List<Classroom> libraryClassrooms) {
+        if (librarySubject == null || libraryClassrooms.isEmpty()) {
+            return null;
+        }
+        List<DayOfWeek> weekdays = saturdayOpen
+            ? List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY,
+                DayOfWeek.FRIDAY, DayOfWeek.SATURDAY)
+            : List.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY);
+        List<DayOfWeek> orderedDays = weekdays.stream()
+            .filter(d -> d != excludeDay)
+            .sorted(Comparator.comparingInt(d -> dayLoad.getOrDefault(d, 0)))
+            .toList();
+        List<List<Period>> candidateBlocks = contiguousPeriodBlocks(periods,
+            resolveLibraryConfigInt(CONFIG_LIBRARY_BLOCK_SIZE_PERIODS, DEFAULT_LIBRARY_BLOCK_SIZE_PERIODS));
+
+        List<ClassSchedule> batchOwnCells = classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(batch.getId()));
+        List<ClassSchedule> sectionWideCells = section != null
+            ? classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(List.of(section.getId()))
+            : List.of();
+        int headcount = realBatchHeadcount(batch);
+
+        for (DayOfWeek day : orderedDays) {
+            for (List<Period> block : candidateBlocks) {
+                boolean blocked = block.stream().anyMatch(p ->
+                    blockedPeriodChecker.blockReason(day, p.getStartTime(), p.getEndTime(), term).isPresent());
+                if (blocked) {
+                    continue;
+                }
+                if (overlapsClinicalShift(cohortId, term, day, block)) {
+                    continue;
+                }
+                boolean batchFree = block.stream().allMatch(p ->
+                    isSlotFreeForBatch(batchOwnCells, sectionWideCells, day, p.getId()));
+                if (!batchFree) {
+                    continue;
+                }
+                Classroom room = firstFreeLibraryClassroomForCapacity(libraryClassrooms, term.getId(), day, block, headcount);
+                if (room == null) {
+                    continue;
+                }
+                return saveIdleBatchLibraryCell(librarySubject, term, day, block, section, room, batch);
+            }
+        }
+        return null;
+    }
+
+    /** Whether {@code batch} itself — not the whole cohort/offering — has any active session at this
+     *  day/period: its own batch-scoped cells (LAB/CLINICAL, where a sibling's row never counts
+     *  against it — see {@code batchOwnCells}' own fetch, filtered to this one batch's id) plus its
+     *  CohortSection's whole-section cells (THEORY/LIBRARY/SPORTS, which bind every batch in the
+     *  section regardless of the Lab/Clinical split, since {@code class_schedules.cohort_section_id}
+     *  is only ever set on those session types — see {@code TimetableSkeletonService#scopeKeyForCell}).
+     *  Used instead of {@link TimetableSkeletonService#isSlotFreeForCohort} by {@link
+     *  #placeIdleBatchLibraryElsewhere}, which needs per-batch freeness, not whole-cohort freeness. */
+    private static boolean isSlotFreeForBatch(List<ClassSchedule> batchOwnCells, List<ClassSchedule> sectionWideCells,
+                                              DayOfWeek day, Long periodId) {
+        boolean batchBusy = batchOwnCells.stream().anyMatch(cs ->
+            cs.getDayOfWeek() == day && cs.getPeriod() != null && cs.getPeriod().getId().equals(periodId));
+        if (batchBusy) {
+            return false;
+        }
+        return sectionWideCells.stream().noneMatch(cs ->
+            cs.getDayOfWeek() == day && cs.getPeriod() != null && cs.getPeriod().getId().equals(periodId));
     }
 
     /** Real enrolled headcount if any students are actually registered against this batch, else
