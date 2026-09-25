@@ -814,6 +814,13 @@ td.mat-mdc-cell.cell-expanded {
   }
 }
 
+// Warn filled button (e.g. destructive confirm-dialog actions) — same corner
+// radius as the primary filled button above so Cancel/Confirm pairs match.
+.mat-mdc-unelevated-button.mat-warn,
+.mat-mdc-raised-button.mat-warn {
+  border-radius: var(--cms-radius-sm) !important;
+}
+
 // Stroked/Outlined button
 .mat-mdc-outlined-button {
   border-color: var(--cms-border-default) !important;
