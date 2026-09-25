@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -74,7 +75,6 @@ import com.cms.model.DesignationMaster;
 import com.cms.model.Faculty;
 import com.cms.model.Lab;
 import com.cms.model.Period;
-import com.cms.model.SessionOccurrence;
 import com.cms.model.Speciality;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
@@ -97,11 +97,6 @@ import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
-import com.cms.repository.RotationGroupRepository;
-import com.cms.repository.RotationMemberAssignmentRepository;
-import com.cms.repository.RotationMemberRepository;
-import com.cms.repository.RotationSlotRepository;
-import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -131,13 +126,9 @@ class TimetableGlobalAutoScheduleServiceTest {
     @Mock private TimetableClinicalShiftChecker clinicalShiftChecker;
     @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
     @Mock private RotationGroupService rotationGroupService;
-    @Mock private RotationGroupRepository rotationGroupRepository;
-    @Mock private RotationSlotRepository rotationSlotRepository;
-    @Mock private RotationMemberRepository rotationMemberRepository;
-    @Mock private RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
     @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
     @Mock private BatchService batchService;
-    @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
+    @Mock private ClassScheduleCleanupService classScheduleCleanupService;
 
     /** {@code fillSelfStudyGaps}'s final fallback message -- reached only when a fixture configures
      *  neither a genuine Self-Study/Co-curricular offering NOR any other real Theory offering for
@@ -167,9 +158,8 @@ class TimetableGlobalAutoScheduleServiceTest {
             studentTermEnrollmentRepository, cohortRepository, batchRepository,
             courseOfferingSectionFacultyRepository, facultyRepository, termInstanceRepository, periodRepository,
             blockedPeriodChecker, classroomRepository, courseRegistrationRepository, subjectRepository, systemConfigurationService,
-            clinicalShiftGroupService, rotationGroupService, rotationGroupRepository, rotationSlotRepository,
-            rotationMemberRepository, rotationMemberAssignmentRepository, timetableConflictInspectorService, batchService,
-            sessionOccurrenceRepository);
+            clinicalShiftGroupService, rotationGroupService, timetableConflictInspectorService, batchService,
+            classScheduleCleanupService);
         service.setCourseOfferingSectionFacultyService(courseOfferingSectionFacultyService);
         lenient().when(courseOfferingSectionFacultyRepository.findByCourseOfferingId(anyLong())).thenReturn(List.of());
         // Every successful run now ends with a term-wide post-run conflict scan (flag-only) --
@@ -1914,12 +1904,13 @@ class TimetableGlobalAutoScheduleServiceTest {
         verify(classScheduleRepository).deleteAllInBatch(List.of(cleared1, cleared2));
     }
 
-    /** purgeOccurrencesForCells: a session_occurrences row tied to a cell the rebuild is about to
-     *  hard-delete is itself hard-deleted, and any OTHER occurrence pointing at it as a Phase 7
-     *  swap partner is unlinked first -- the self-referencing swap_partner_occurrence_id FK (no ON
-     *  DELETE clause) is the only thing that could otherwise block the class_schedules delete. */
+    /** The occurrence/rotation cleanup a hard-delete needs (unswap an external Phase 7 swap
+     *  partner, purge session_occurrences, purge rotation rows) now lives in {@link
+     *  ClassScheduleCleanupService} -- see {@code ClassScheduleCleanupServiceTest} for that logic
+     *  itself. This only proves the rebuild still delegates to it, in the right order, for the
+     *  right ids, before deleting the class_schedules rows. */
     @Test
-    void runUnswapsExternalPartnerThenPurgesOccurrencesTiedToDeletedDraftCells() {
+    void runDelegatesOccurrenceAndRotationCleanupToTheSharedServiceBeforeHardDeletingDraftCells() {
         when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
             .thenReturn(new HashSet<>(List.of(1L)));
         cohort(1L, "Cohort 1");
@@ -1942,24 +1933,12 @@ class TimetableGlobalAutoScheduleServiceTest {
         cleared1.setIsActive(true);
         when(classScheduleRepository.findAllById(any())).thenReturn(List.of(cleared1));
 
-        // A real occurrence still riding on the cell being purged (e.g. left behind by a
-        // publish -> revert-to-draft cycle).
-        SessionOccurrence purgedOccurrence = new SessionOccurrence();
-        purgedOccurrence.setId(5001L);
-        when(sessionOccurrenceRepository.findByClassSchedule_IdIn(List.of(901L))).thenReturn(List.of(purgedOccurrence));
-
-        // Some other, unrelated occurrence still calls this one its swap partner.
-        SessionOccurrence externalSwapPartner = new SessionOccurrence();
-        externalSwapPartner.setId(5002L);
-        externalSwapPartner.setSwapPartnerOccurrence(purgedOccurrence);
-        when(sessionOccurrenceRepository.findBySwapPartnerOccurrence_IdIn(List.of(5001L)))
-            .thenReturn(List.of(externalSwapPartner));
-
         service.runGlobalAutoSchedule(10L, null);
 
-        assertThat(externalSwapPartner.getSwapPartnerOccurrence()).isNull();
-        verify(sessionOccurrenceRepository).saveAll(List.of(externalSwapPartner));
-        verify(sessionOccurrenceRepository).deleteAllInBatch(List.of(purgedOccurrence));
+        var inOrder = inOrder(classScheduleCleanupService, classScheduleRepository);
+        inOrder.verify(classScheduleCleanupService).purgeOccurrencesForCells(java.util.Set.of(901L));
+        inOrder.verify(classScheduleCleanupService).purgeRotationRowsForCells(java.util.Set.of(901L));
+        inOrder.verify(classScheduleRepository).deleteAllInBatch(List.of(cleared1));
     }
 
     @Test

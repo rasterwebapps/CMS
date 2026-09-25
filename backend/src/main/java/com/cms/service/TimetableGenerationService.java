@@ -28,6 +28,7 @@ import com.cms.model.enums.OfferingAssignmentStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.LabAttendanceRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.TermInstanceRepository;
 
 /**
@@ -52,6 +53,8 @@ public class TimetableGenerationService {
     private final ClassScheduleRepository classScheduleRepository;
     private final TermInstanceRepository termInstanceRepository;
     private final LabAttendanceRepository labAttendanceRepository;
+    private final SessionOccurrenceRepository sessionOccurrenceRepository;
+    private final ClassScheduleCleanupService classScheduleCleanupService;
     private final AuditLogService auditLogService;
     private final TimetableConflictInspectorService timetableConflictInspectorService;
     private final CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
@@ -63,6 +66,8 @@ public class TimetableGenerationService {
     public TimetableGenerationService(ClassScheduleRepository classScheduleRepository,
                                        TermInstanceRepository termInstanceRepository,
                                        LabAttendanceRepository labAttendanceRepository,
+                                       SessionOccurrenceRepository sessionOccurrenceRepository,
+                                       ClassScheduleCleanupService classScheduleCleanupService,
                                        AuditLogService auditLogService,
                                        TimetableConflictInspectorService timetableConflictInspectorService,
                                        CourseOfferingSectionFacultyService courseOfferingSectionFacultyService,
@@ -73,6 +78,8 @@ public class TimetableGenerationService {
         this.classScheduleRepository = classScheduleRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.labAttendanceRepository = labAttendanceRepository;
+        this.sessionOccurrenceRepository = sessionOccurrenceRepository;
+        this.classScheduleCleanupService = classScheduleCleanupService;
         this.auditLogService = auditLogService;
         this.timetableConflictInspectorService = timetableConflictInspectorService;
         this.courseOfferingSectionFacultyService = courseOfferingSectionFacultyService;
@@ -139,9 +146,33 @@ public class TimetableGenerationService {
                 "Attendance has already been recorded against this cohort's timetable. It can no longer be discarded.",
                 "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", termInstanceId, null);
         }
+        // Same mirroring as the attendance guard above, for the same reason: a cell {@link
+        // #revertToDraft} handed back to DRAFT can still carry real session_occurrences (a
+        // confirmed substitute, a room relocation, a staff swap, logged progress) -- a hard delete
+        // is strictly more dangerous than a revert-to-draft, so if revertToDraft's own guard
+        // refuses to touch this data, Discard must refuse even harder rather than silently
+        // destroying it. (revertToDraft's own guard is meant to make this unreachable for anything
+        // reverted from here on; this exists for rows that predate that guard, or reached DRAFT some
+        // other way.)
+        if (!scheduleIds.isEmpty() && sessionOccurrenceRepository.existsByClassSchedule_IdIn(List.copyOf(scheduleIds))) {
+            throw new LifecycleConflictException(
+                "Real session activity (a substitute, room relocation, staff swap, or logged progress) has already "
+                    + "been recorded against this cohort's timetable. It can no longer be discarded.",
+                "TIMETABLE_SESSION_ACTIVITY_RECORDED", "TermInstance", termInstanceId, null);
+        }
         List<ClassSchedule> existing = classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(termInstanceId).stream()
             .filter(cs -> scheduleIds.contains(cs.getId()))
             .toList();
+        // Rotation rows are disposable planning metadata, not real history -- Global Auto-Schedule
+        // recreates them fresh every run (see ClassScheduleCleanupService#purgeRotationRowsForCells)
+        // -- so unlike session_occurrences above, they're cleaned up unconditionally rather than
+        // gated behind a guard. Without this, a DRAFT cell that a manual "Set up Rotation" flyout
+        // (or a since-reverted publish) left a rotation_slot on would throw a raw FK violation the
+        // moment deleteAll below ran, the same class of bug purgeDraftCellsForRebuild already had.
+        if (!existing.isEmpty()) {
+            classScheduleCleanupService.purgeRotationRowsForCells(
+                existing.stream().map(ClassSchedule::getId).collect(java.util.stream.Collectors.toSet()));
+        }
         classScheduleRepository.deleteAll(existing);
         auditLogService.record(actor, "TIMETABLE_DISCARDED", "TermInstance",
             termInstanceId.toString(), existing.size() + " session(s) discarded for cohort(s) " + cohortIds);
@@ -278,10 +309,23 @@ public class TimetableGenerationService {
     /**
      * Un-publishes a live timetable back to DRAFT so it can be edited/swapped and re-approved,
      * without losing the placed sessions (unlike {@link #clear}, which deletes them outright).
-     * Blocked once any {@code LabAttendance} has been recorded against the selected cohort(s)'
+     * Deliberately a "start fresh" action, not a "keep what I want and redo the rest" one — an
+     * admin who wants to preserve specific placements pins them and re-runs automation instead, so
+     * this never auto-pins a reverted cell on its own behalf.
+     *
+     * <p>Blocked once any {@code LabAttendance} has been recorded against the selected cohort(s)'
      * sessions — {@code lab_attendances.lab_schedule_id} has no {@code ON DELETE}/status-transition
      * handling, so silently reverting attendance-backed sessions back to DRAFT would let a
      * subsequent clear/re-placement wipe out attendance history's session linkage.
+     *
+     * <p>Also blocked once any real {@link com.cms.model.SessionOccurrence} activity (a confirmed
+     * substitute, a room relocation, a staff swap, or logged progress/coverage) has been recorded
+     * against the selection, for the same reason and the same enforcement shape — occurrences are
+     * only ever materialized against a PUBLISHED schedule, so a hit here is real history, not
+     * noise. Without this guard, a reverted-but-unpinned cell carrying that history is fair game
+     * for the very next Global Auto-Schedule rebuild, which would either hard-delete it outright
+     * (see {@link ClassScheduleCleanupService#purgeOccurrencesForCells}) or, worse, leave it
+     * silently in place while automation builds around stale data.
      */
     @Transactional
     public TimetableActionResponse revertToDraft(Long termInstanceId, List<Long> cohortIds, String actor) {
@@ -300,6 +344,12 @@ public class TimetableGenerationService {
             throw new LifecycleConflictException(
                 "Attendance has already been recorded against this cohort's timetable. It can no longer be reverted to draft.",
                 "TIMETABLE_ATTENDANCE_RECORDED", "TermInstance", termInstanceId, null);
+        }
+        if (!scheduleIds.isEmpty() && sessionOccurrenceRepository.existsByClassSchedule_IdIn(List.copyOf(scheduleIds))) {
+            throw new LifecycleConflictException(
+                "Real session activity (a substitute, room relocation, staff swap, or logged progress) has already "
+                    + "been recorded against this cohort's timetable. It can no longer be reverted to draft.",
+                "TIMETABLE_SESSION_ACTIVITY_RECORDED", "TermInstance", termInstanceId, null);
         }
         for (ClassSchedule cs : published) {
             cs.setStatus(ClassScheduleStatus.DRAFT);
@@ -336,11 +386,20 @@ public class TimetableGenerationService {
         List<TimetableCoverageGap> coverageGaps = timetableCoverageService.findGaps(termInstanceId);
         ConflictScanResponse termScan = timetableConflictInspectorService.scanTerm(termInstanceId);
         List<CohortTermStatusSummary> decorated = page.getContent().stream()
-            .map(row -> new CohortTermStatusSummary(
-                row.cohortId(), row.cohortName(), row.courseName(), row.admissionYearName(),
-                computeReadinessStatus(termInstanceId, row, assignmentSummaries, coverageGaps, termScan),
-                row.draftCount(), row.publishedCount(), row.unassignedHours(),
-                isAttendanceRecorded(termInstanceId, row.cohortId())))
+            .map(row -> {
+                // Both attendanceRecorded and occurrenceActivityRecorded need this cohort's
+                // schedule ids, so resolve it once per row rather than making each check
+                // re-resolve it independently (the same reason termScan/coverageGaps/
+                // assignmentSummaries above are hoisted out of the loop, just per-row instead of
+                // whole-term).
+                Set<Long> scheduleIds = resolveCohortScheduleIds(termInstanceId, List.of(row.cohortId()));
+                return new CohortTermStatusSummary(
+                    row.cohortId(), row.cohortName(), row.courseName(), row.admissionYearName(),
+                    computeReadinessStatus(termInstanceId, row, assignmentSummaries, coverageGaps, termScan),
+                    row.draftCount(), row.publishedCount(), row.unassignedHours(),
+                    isAttendanceRecorded(scheduleIds),
+                    isOccurrenceActivityRecorded(scheduleIds));
+            })
             .toList();
         return new PageImpl<>(decorated, pageable, page.getTotalElements());
     }
@@ -348,9 +407,16 @@ public class TimetableGenerationService {
     /** Both Discard and Revert-to-Draft permanently refuse once this is true (see their own guards
      *  above) -- computed here, per row, so the row table can hide those actions upfront rather
      *  than offering a button that can only ever fail. */
-    private boolean isAttendanceRecorded(Long termInstanceId, Long cohortId) {
-        Set<Long> scheduleIds = resolveCohortScheduleIds(termInstanceId, List.of(cohortId));
+    private boolean isAttendanceRecorded(Set<Long> scheduleIds) {
         return !scheduleIds.isEmpty() && labAttendanceRepository.existsByLabScheduleIdIn(List.copyOf(scheduleIds));
+    }
+
+    /** The occurrence-activity sibling of {@link #isAttendanceRecorded} -- same shape, same reason
+     *  (hide Discard/Revert-to-Draft upfront rather than let {@link #revertToDraft}'s own guard
+     *  fail on click), just backed by {@code session_occurrences} instead of {@code
+     *  lab_attendances}. */
+    private boolean isOccurrenceActivityRecorded(Set<Long> scheduleIds) {
+        return !scheduleIds.isEmpty() && sessionOccurrenceRepository.existsByClassSchedule_IdIn(List.copyOf(scheduleIds));
     }
 
     private String computeReadinessStatus(Long termInstanceId, CohortTermStatusSummary row,

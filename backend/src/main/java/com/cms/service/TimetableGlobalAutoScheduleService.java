@@ -79,9 +79,6 @@ import com.cms.model.CurriculumSemesterCourse;
 import com.cms.model.Faculty;
 import com.cms.model.Period;
 import com.cms.model.RotationGroup;
-import com.cms.model.RotationMemberAssignment;
-import com.cms.model.RotationSlot;
-import com.cms.model.SessionOccurrence;
 import com.cms.model.Subject;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.ClassScheduleStatus;
@@ -103,11 +100,6 @@ import com.cms.repository.CourseOfferingSectionFacultyRepository;
 import com.cms.repository.CourseRegistrationRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
-import com.cms.repository.RotationGroupRepository;
-import com.cms.repository.RotationMemberAssignmentRepository;
-import com.cms.repository.RotationMemberRepository;
-import com.cms.repository.RotationSlotRepository;
-import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
 import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
@@ -250,13 +242,9 @@ public class TimetableGlobalAutoScheduleService {
     private final SystemConfigurationService systemConfigurationService;
     private final ClinicalShiftGroupService clinicalShiftGroupService;
     private final RotationGroupService rotationGroupService;
-    private final RotationGroupRepository rotationGroupRepository;
-    private final RotationSlotRepository rotationSlotRepository;
-    private final RotationMemberRepository rotationMemberRepository;
-    private final RotationMemberAssignmentRepository rotationMemberAssignmentRepository;
     private final TimetableConflictInspectorService timetableConflictInspectorService;
     private final BatchService batchService;
-    private final SessionOccurrenceRepository sessionOccurrenceRepository;
+    private final ClassScheduleCleanupService classScheduleCleanupService;
 
     // Field injection with @Lazy breaks the circular dependency:
     // TimetableGlobalAutoScheduleService -> CourseOfferingSectionFacultyService -> TimetableGlobalAutoScheduleService
@@ -285,13 +273,9 @@ public class TimetableGlobalAutoScheduleService {
                                                SystemConfigurationService systemConfigurationService,
                                                ClinicalShiftGroupService clinicalShiftGroupService,
                                                RotationGroupService rotationGroupService,
-                                               RotationGroupRepository rotationGroupRepository,
-                                               RotationSlotRepository rotationSlotRepository,
-                                               RotationMemberRepository rotationMemberRepository,
-                                               RotationMemberAssignmentRepository rotationMemberAssignmentRepository,
                                                TimetableConflictInspectorService timetableConflictInspectorService,
                                                BatchService batchService,
-                                               SessionOccurrenceRepository sessionOccurrenceRepository) {
+                                               ClassScheduleCleanupService classScheduleCleanupService) {
         this.timetableSkeletonService = timetableSkeletonService;
         this.timetableStaffingService = timetableStaffingService;
         this.clinicalShiftChecker = clinicalShiftChecker;
@@ -313,13 +297,9 @@ public class TimetableGlobalAutoScheduleService {
         this.systemConfigurationService = systemConfigurationService;
         this.clinicalShiftGroupService = clinicalShiftGroupService;
         this.rotationGroupService = rotationGroupService;
-        this.rotationGroupRepository = rotationGroupRepository;
-        this.rotationSlotRepository = rotationSlotRepository;
-        this.rotationMemberRepository = rotationMemberRepository;
-        this.rotationMemberAssignmentRepository = rotationMemberAssignmentRepository;
         this.timetableConflictInspectorService = timetableConflictInspectorService;
         this.batchService = batchService;
-        this.sessionOccurrenceRepository = sessionOccurrenceRepository;
+        this.classScheduleCleanupService = classScheduleCleanupService;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -2066,8 +2046,8 @@ public class TimetableGlobalAutoScheduleService {
         if (idsToDeactivate.isEmpty()) {
             return new PurgeOutcome(0, pinnedPreserved);
         }
-        purgeOccurrencesForCells(idsToDeactivate);
-        purgeRotationRowsForCells(idsToDeactivate);
+        classScheduleCleanupService.purgeOccurrencesForCells(idsToDeactivate);
+        classScheduleCleanupService.purgeRotationRowsForCells(idsToDeactivate);
         List<ClassSchedule> toDeactivate = classScheduleRepository.findAllById(idsToDeactivate);
         Set<Long> touchedBatchIds = new HashSet<>();
         for (ClassSchedule cs : toDeactivate) {
@@ -2087,73 +2067,9 @@ public class TimetableGlobalAutoScheduleService {
         return new PurgeOutcome(toDeactivate.size(), pinnedPreserved);
     }
 
-    /** Cleans up every {@link SessionOccurrence} still attached to a cell {@link
-     *  #purgeDraftCellsForRebuild} is about to hard-delete, so the DELETE never trips
-     *  session_occurrences' {@code class_schedule_id} FK. Occurrences are normally only ever
-     *  materialized against a PUBLISHED schedule (absence substitution, room relocation, staff
-     *  swap, progress logging all gate on it) -- but {@link TimetableGenerationService#revertToDraft}
-     *  can hand a cohort's cell back to DRAFT without cleaning up the occurrences already logged
-     *  against it, so a cell reachable here can carry real ones. The only thing that can actually
-     *  block a hard delete is the self-referencing {@code swap_partner_occurrence_id} FK (no {@code
-     *  ON DELETE} clause): if some OTHER occurrence outside this purge batch still points at one of
-     *  these as its swap partner, that pointer is cleared first. Two occurrences that are BOTH being
-     *  purged together need no unswapping between them -- the single batch DELETE removes both sides
-     *  in one statement, so there's no dangling reference left to trip the FK. Every other column on
-     *  an occurrence (effective_faculty_id, faculty_absence_id) is an outward-pointing reference to
-     *  faculty/faculty_absences, not something else pointing in, so it never blocks the delete;
-     *  session_occurrence_units cascades away with its parent occurrence automatically (V324). */
-    private void purgeOccurrencesForCells(Set<Long> classScheduleIds) {
-        List<Long> ids = new ArrayList<>(classScheduleIds);
-        List<SessionOccurrence> occurrences = sessionOccurrenceRepository.findByClassSchedule_IdIn(ids);
-        if (occurrences.isEmpty()) {
-            return;
-        }
-        List<Long> occurrenceIds = occurrences.stream().map(SessionOccurrence::getId).collect(Collectors.toList());
-        List<SessionOccurrence> externalSwapReferrers = sessionOccurrenceRepository
-            .findBySwapPartnerOccurrence_IdIn(occurrenceIds).stream()
-            .filter(occ -> !occurrenceIds.contains(occ.getId()))
-            .collect(Collectors.toList());
-        for (SessionOccurrence referrer : externalSwapReferrers) {
-            referrer.setSwapPartnerOccurrence(null);
-        }
-        sessionOccurrenceRepository.saveAll(externalSwapReferrers);
-        sessionOccurrenceRepository.deleteAllInBatch(occurrences);
-    }
-
     /** Both halves of what the rebuild did to the existing DRAFT grid: how many cells it cleared,
      *  and how many it deliberately left standing because they were pinned. */
     private record PurgeOutcome(int cleared, int pinnedPreserved) {}
-
-    /** Global Auto-Schedule fully owns creating a cross-offering {@link RotationSlot}-based
-     *  rotation fresh every run (see the pairing sub-phase at the top of Phase 1) — so a rotation
-     *  tied to a cell this rebuild is about to deactivate has no future life and must not be left
-     *  pointing at a now-inactive cell. Hard-deleted here, not soft-deactivated: a {@link
-     *  RotationSlot}/{@link RotationMemberAssignment}/{@link RotationGroup} row has no other
-     *  consumer once orphaned ({@link RotationResolverService} is read-only, queried only by id
-     *  from a live slot). Deletes bottom-up (assignments, then slots, then any now-empty group and
-     *  its members) to respect the FK chain — a manually-created rotation from the "Set up
-     *  Rotation" flyout is cleaned up the exact same way if any of its cells happen to be DRAFT and
-     *  in this run's scope, since nothing here distinguishes who created it. */
-    private void purgeRotationRowsForCells(Set<Long> classScheduleIds) {
-        List<Long> ids = new ArrayList<>(classScheduleIds);
-        List<RotationSlot> slots = rotationSlotRepository.findByClassScheduleIdIn(ids);
-        if (slots.isEmpty()) {
-            return;
-        }
-        Set<Long> affectedGroupIds = slots.stream().map(s -> s.getRotationGroup().getId()).collect(Collectors.toSet());
-
-        List<RotationMemberAssignment> assignments = rotationMemberAssignmentRepository.findByRotationSlot_ClassSchedule_IdIn(ids);
-        rotationMemberAssignmentRepository.deleteAllInBatch(assignments);
-        rotationSlotRepository.deleteAllInBatch(slots);
-
-        for (Long groupId : affectedGroupIds) {
-            long remainingSlots = rotationSlotRepository.countByRotationGroupId(groupId);
-            if (remainingSlots == 0) {
-                rotationMemberRepository.deleteAllInBatch(rotationMemberRepository.findByRotationGroupIdOrderByMemberOrderAsc(groupId));
-                rotationGroupRepository.deleteById(groupId);
-            }
-        }
-    }
 
     /** One offering's LAB shortfall shape Phase B can consider pairing -- exactly 2 active batches
      *  sharing one Lab, both still needing their one weekly session, at this run's fixed block size.

@@ -49,6 +49,7 @@ import com.cms.model.enums.FacultyStatus;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.LabAttendanceRepository;
+import com.cms.repository.SessionOccurrenceRepository;
 import com.cms.repository.TermInstanceRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,6 +61,8 @@ class TimetableGenerationServiceTest {
     @Mock private ClassScheduleRepository classScheduleRepository;
     @Mock private TermInstanceRepository termInstanceRepository;
     @Mock private LabAttendanceRepository labAttendanceRepository;
+    @Mock private SessionOccurrenceRepository sessionOccurrenceRepository;
+    @Mock private ClassScheduleCleanupService classScheduleCleanupService;
     @Mock private AuditLogService auditLogService;
     @Mock private TimetableConflictInspectorService timetableConflictInspectorService;
     @Mock private CourseOfferingSectionFacultyService courseOfferingSectionFacultyService;
@@ -87,7 +90,8 @@ class TimetableGenerationServiceTest {
     @BeforeEach
     void setUp() {
         service = new TimetableGenerationService(classScheduleRepository, termInstanceRepository,
-            labAttendanceRepository, auditLogService, timetableConflictInspectorService,
+            labAttendanceRepository, sessionOccurrenceRepository, classScheduleCleanupService,
+            auditLogService, timetableConflictInspectorService,
             courseOfferingSectionFacultyService, timetableStaffingAutoAssignService, timetableCoverageService,
             timetableSkeletonService, courseOfferingService);
 
@@ -163,6 +167,45 @@ class TimetableGenerationServiceTest {
             .isInstanceOf(LifecycleConflictException.class);
 
         verify(classScheduleRepository, never()).deleteAll(anyList());
+    }
+
+    @Test
+    void shouldBlockClearWhenOccurrenceActivityAlreadyRecorded() {
+        ClassSchedule row = new ClassSchedule();
+        row.setId(1L);
+        stubCohortSchedules(List.of(row));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(false);
+        when(sessionOccurrenceRepository.existsByClassSchedule_IdIn(anyList())).thenReturn(true);
+
+        assertThatThrownBy(() -> service.clear(10L, COHORT_IDS, "admin"))
+            .isInstanceOf(LifecycleConflictException.class);
+
+        verify(classScheduleRepository, never()).deleteAll(anyList());
+    }
+
+    /** Rotation rows are disposable planning metadata (Global Auto-Schedule recreates them fresh
+     *  every run), unlike attendance/occurrence activity, so Discard cleans them up unconditionally
+     *  rather than blocking on them -- this only proves the cleanup happens before the delete, not
+     *  a refusal. */
+    @Test
+    void shouldPurgeRotationRowsBeforeDeletingOnClear() {
+        ClassSchedule row = new ClassSchedule();
+        row.setId(1L);
+        stubCohortSchedules(List.of(row));
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(false);
+        when(classScheduleRepository.findByTermInstanceIdAndIsActiveTrue(10L)).thenReturn(List.of(row));
+
+        service.clear(10L, COHORT_IDS, "admin");
+
+        var inOrder = org.mockito.Mockito.inOrder(classScheduleCleanupService, classScheduleRepository);
+        inOrder.verify(classScheduleCleanupService).purgeRotationRowsForCells(java.util.Set.of(1L));
+        inOrder.verify(classScheduleRepository).deleteAll(List.of(row));
+        // Unlike TimetableGlobalAutoScheduleService's purge, clear() never calls
+        // purgeOccurrencesForCells at all -- the guard above refuses the whole action outright
+        // whenever real occurrence activity exists, so there's nothing left for a purge to do here.
+        verify(classScheduleCleanupService, never()).purgeOccurrencesForCells(any());
     }
 
     @Test
@@ -494,6 +537,25 @@ class TimetableGenerationServiceTest {
         verify(classScheduleRepository, never()).save(any());
     }
 
+    @Test
+    void shouldBlockRevertWhenOccurrenceActivityAlreadyRecorded() {
+        ClassSchedule published1 = new ClassSchedule();
+        published1.setId(1L);
+        published1.setStatus(ClassScheduleStatus.PUBLISHED);
+        stubCohortSchedules(List.of(published1));
+
+        when(termInstanceRepository.findById(10L)).thenReturn(Optional.of(termWithStatus(10L, TermInstanceStatus.OPEN)));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.PUBLISHED))
+            .thenReturn(List.of(published1));
+        when(labAttendanceRepository.existsByLabScheduleIdIn(anyList())).thenReturn(false);
+        when(sessionOccurrenceRepository.existsByClassSchedule_IdIn(anyList())).thenReturn(true);
+
+        assertThatThrownBy(() -> service.revertToDraft(10L, COHORT_IDS, "admin"))
+            .isInstanceOf(LifecycleConflictException.class);
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
     // ── getCohortTermStatusSummaryWithReadiness (Timetable Builder's Pending/Drafted/Conflicts
     // Resolved lifecycle + attendanceRecorded, 2026-09-22) ──────────────────────────────────────
 
@@ -501,7 +563,7 @@ class TimetableGenerationServiceTest {
 
     private CohortTermStatusSummary baseRow(String status, int draftCount, int publishedCount) {
         return new CohortTermStatusSummary(COHORT_ID, "BSc Nursing 2024", "BSc Nursing", "2024-2025",
-            status, draftCount, publishedCount, 0.0, false);
+            status, draftCount, publishedCount, 0.0, false, false);
     }
 
     /** OC-262: {@link TimetableSkeletonService#getCohortTermStatusSummary} is now paginated, so
@@ -592,5 +654,31 @@ class TimetableGenerationServiceTest {
         List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
 
         assertThat(rows.get(0).attendanceRecorded()).isFalse();
+    }
+
+    @Test
+    void shouldSurfaceOccurrenceActivityRecordedFlagRegardlessOfStatus() {
+        ClassSchedule published = new ClassSchedule();
+        published.setId(1L);
+        published.setStatus(ClassScheduleStatus.PUBLISHED);
+        stubCohortSchedules(List.of(published));
+
+        stubSkeletonSummaryPage(baseRow("PUBLISHED", 0, 1));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+        when(sessionOccurrenceRepository.existsByClassSchedule_IdIn(anyList())).thenReturn(true);
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).occurrenceActivityRecorded()).isTrue();
+    }
+
+    @Test
+    void shouldReportOccurrenceActivityNotRecordedWhenNoneExists() {
+        stubSkeletonSummaryPage(baseRow("DRAFT", 0, 0));
+        when(timetableConflictInspectorService.scanTerm(10L)).thenReturn(cleanScan());
+
+        List<CohortTermStatusSummary> rows = service.getCohortTermStatusSummaryWithReadiness(10L, null, ANY_PAGE).getContent();
+
+        assertThat(rows.get(0).occurrenceActivityRecorded()).isFalse();
     }
 }

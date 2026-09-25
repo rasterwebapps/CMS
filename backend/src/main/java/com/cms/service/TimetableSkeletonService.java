@@ -374,12 +374,13 @@ public class TimetableSkeletonService {
             cohortId, cohort.getDisplayName(),
             cohort.getCourse() != null ? cohort.getCourse().getName() : null,
             cohort.getAdmissionAcademicYear() != null ? cohort.getAdmissionAcademicYear().getName() : null,
-            // This interim status (never PENDING yet) and attendanceRecorded=false are both
-            // placeholders -- this class has no visibility into the Conflict Inspector/coverage/
-            // staffing gates or the attendance repository needed to compute the real values (see
+            // This interim status (never PENDING yet), attendanceRecorded=false, and
+            // occurrenceActivityRecorded=false are all placeholders -- this class has no visibility
+            // into the Conflict Inspector/coverage/staffing gates or the attendance/occurrence
+            // repositories needed to compute the real values (see
             // TimetableGenerationService#getCohortTermStatusSummaryWithReadiness, the only
             // caller that should ever surface this DTO to a client).
-            status, (int) draft, (int) published, unassignedHours, false);
+            status, (int) draft, (int) published, unassignedHours, false, false);
     }
 
     /** Term-wide Clinical Shift Group summary for Timetable Draft Review's duty-roster banner --

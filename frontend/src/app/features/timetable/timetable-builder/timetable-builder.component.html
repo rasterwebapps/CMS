@@ -179,7 +179,7 @@
                           }
                         }
                         @case ('PUBLISHED') {
-                          @if (canRevertToDraft() && !row.attendanceRecorded) {
+                          @if (canRevertToDraft() && !row.attendanceRecorded && !row.occurrenceActivityRecorded) {
                             <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Revert to Draft" ariaLabel="Revert to draft" [disabled]="tableBusy()" (clicked)="revertRow(row, $event)">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                             </cms-row-action-btn>
@@ -191,7 +191,7 @@
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             </cms-row-action-btn>
                           }
-                          @if (canRevertToDraft() && !row.attendanceRecorded) {
+                          @if (canRevertToDraft() && !row.attendanceRecorded && !row.occurrenceActivityRecorded) {
                             <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Revert to Draft" ariaLabel="Revert to draft" [disabled]="tableBusy()" (clicked)="revertRow(row, $event)">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
                             </cms-row-action-btn>
@@ -200,11 +200,12 @@
                       }
                       <!-- Any status short of fully PUBLISHED (and past PENDING, which has nothing
                            to discard yet) still has a draft to discard — same eligibility the old
-                           bulk "Discard Draft" bar used, now per-row only. Hidden once attendance is
-                           recorded for the same reason Revert-to-Draft is: the backend permanently
-                           refuses either action past that point, so offering the button would only
-                           ever fail. -->
-                      @if (canDiscardDraft() && row.status !== 'PUBLISHED' && row.status !== 'PENDING' && !row.attendanceRecorded) {
+                           bulk "Discard Draft" bar used, now per-row only. Hidden once attendance or
+                           real session activity (substitute/relocation/swap/progress) is recorded
+                           for the same reason Revert-to-Draft is: the backend permanently refuses
+                           either action past that point, so offering the button would only ever
+                           fail. -->
+                      @if (canDiscardDraft() && row.status !== 'PUBLISHED' && row.status !== 'PENDING' && !row.attendanceRecorded && !row.occurrenceActivityRecorded) {
                         <cms-row-action-btn variant="danger" [iconOnly]="true" tooltip="Discard Draft" ariaLabel="Discard draft" [disabled]="tableBusy()" (clicked)="discardDraftRow(row, $event)">
                           <cms-icon-delete [size]="14" />
                         </cms-row-action-btn>

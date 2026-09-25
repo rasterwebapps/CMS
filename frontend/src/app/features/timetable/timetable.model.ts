@@ -97,6 +97,12 @@ export interface CohortTermStatusSummary {
    *  Discard and Revert-to-Draft both permanently refuse once this is true, so the table hides
    *  those actions for this row instead of offering a button that can only ever fail. */
   attendanceRecorded: boolean;
+  /** True once real session activity (a confirmed substitute, a room relocation, a staff swap, or
+   *  logged progress/coverage) has been recorded against any of this cohort's sessions for this
+   *  term -- Discard and Revert-to-Draft both permanently refuse once this is true, same as {@link
+   *  attendanceRecorded} and for the same reason (a hard delete/revert would risk that history
+   *  being silently discarded by a later timetable rebuild). */
+  occurrenceActivityRecorded: boolean;
 }
 
 export interface Page<T> {

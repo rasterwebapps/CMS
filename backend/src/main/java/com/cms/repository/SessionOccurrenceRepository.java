@@ -23,8 +23,8 @@ public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurr
     List<SessionOccurrence> findByClassSchedule_CourseOffering_Id(Long courseOfferingId);
 
     /** Every occurrence riding on any of these ClassSchedule rows, regardless of date -- used by
-     *  {@code TimetableGlobalAutoScheduleService#purgeOccurrencesForCells} to find what has to be
-     *  cleared before a rebuild hard-deletes an unpinned DRAFT cell. */
+     *  {@link com.cms.service.ClassScheduleCleanupService#purgeOccurrencesForCells} to find what
+     *  has to be cleared before a hard delete of these cells. */
     List<SessionOccurrence> findByClassSchedule_IdIn(List<Long> classScheduleIds);
 
     /** The reverse side of a Phase 7 staff swap link -- who still points at these occurrences as
@@ -32,6 +32,14 @@ public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurr
      *  hard-deletes the occurrence it points at, since {@code swap_partner_occurrence_id} has no
      *  {@code ON DELETE} clause and would otherwise block the delete. */
     List<SessionOccurrence> findBySwapPartnerOccurrence_IdIn(List<Long> occurrenceIds);
+
+    /** Cheap existence check for {@link com.cms.service.TimetableGenerationService#revertToDraft}'s
+     *  guard: occurrences are only ever materialized against a PUBLISHED schedule (substitution,
+     *  relocation, swap, or logged progress all gate on it), so any hit here means real activity is
+     *  already on record for one of these cells and reverting it back to DRAFT would risk that
+     *  history being silently swept away by a later purge -- same shape as the existing
+     *  {@code labAttendanceRepository.existsByLabScheduleIdIn} guard right next to it. */
+    boolean existsByClassSchedule_IdIn(List<Long> classScheduleIds);
 
     List<SessionOccurrence> findByClassSchedule_TermInstance_IdAndClassSchedule_Status(
         Long termInstanceId, com.cms.model.enums.ClassScheduleStatus status);

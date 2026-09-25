@@ -31,5 +31,13 @@ public record CohortTermStatusSummary(
      *  -- {@code lab_attendances.lab_schedule_id} has no ON DELETE/status-transition handling, so
      *  Discard and Revert-to-Draft both permanently refuse once this is true. The row table hides
      *  those actions instead of offering a button that can only ever fail. */
-    boolean attendanceRecorded
+    boolean attendanceRecorded,
+    /** True once real {@code SessionOccurrence} activity (a confirmed substitute, a room
+     *  relocation, a staff swap, or logged progress/coverage) has been recorded against any of this
+     *  cohort's sessions for this term -- occurrences only ever exist against a PUBLISHED schedule,
+     *  so a hit here is real history, not noise. Discard and Revert-to-Draft both permanently
+     *  refuse once this is true, the same as {@link #attendanceRecorded} and for the same reason;
+     *  kept as its own field rather than folded into {@code attendanceRecorded} since the two are
+     *  independent facts about independent tables. */
+    boolean occurrenceActivityRecorded
 ) {}

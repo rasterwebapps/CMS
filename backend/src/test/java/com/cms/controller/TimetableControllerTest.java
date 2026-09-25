@@ -99,7 +99,7 @@ class TimetableControllerTest {
         // "content" alongside paging metadata (totalElements etc.), not a bare top-level array.
         Page<CohortTermStatusSummary> page = new PageImpl<>(
             List.of(new CohortTermStatusSummary(5L, "BSc Nursing 2024", "BSc Nursing", "2024-2025",
-                "PARTIALLY_PUBLISHED", 1, 2, 12.5, true)),
+                "PARTIALLY_PUBLISHED", 1, 2, 12.5, true, false)),
             PageRequest.of(0, 25), 1);
         when(timetableGenerationService.getCohortTermStatusSummaryWithReadiness(eq(10L), isNull(), any(Pageable.class)))
             .thenReturn(page);
