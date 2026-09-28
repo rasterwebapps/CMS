@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.BoardingStatusSwitchAnalysis;
+import com.cms.dto.BoardingStatusSwitchRecord;
+import com.cms.dto.BoardingStatusSwitchRequest;
 import com.cms.dto.BulkRollNumberAssignmentRequest;
 import com.cms.dto.GenerateRollNumbersRequest;
 import com.cms.dto.ProgramTransferAnalysis;
@@ -36,6 +39,7 @@ import com.cms.model.AcademicYear;
 import com.cms.model.Course;
 import com.cms.model.Program;
 import com.cms.model.enums.StudentStatus;
+import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.ProgramRepository;
@@ -263,6 +267,28 @@ public class StudentController {
     @PreAuthorize("@perm.hasAny('STUDENT_VIEW', 'STUDENT_EDIT')")
     public ResponseEntity<List<ProgramTransferRecord>> getTransferHistory(@PathVariable Long id) {
         return ResponseEntity.ok(studentService.getTransferHistory(id));
+    }
+
+    @GetMapping("/{id}/boarding-status-switch-analysis")
+    @PreAuthorize("@perm.has('STUDENT_BOARDING_STATUS_MANAGE')")
+    public ResponseEntity<BoardingStatusSwitchAnalysis> analyzeBoardingStatusSwitch(
+            @PathVariable Long id,
+            @RequestParam StudentType targetType) {
+        return ResponseEntity.ok(studentService.analyzeBoardingStatusSwitch(id, targetType));
+    }
+
+    @PostMapping("/{id}/boarding-status-switch")
+    @PreAuthorize("@perm.has('STUDENT_BOARDING_STATUS_MANAGE')")
+    public ResponseEntity<BoardingStatusSwitchRecord> executeBoardingStatusSwitch(
+            @PathVariable Long id,
+            @Valid @RequestBody BoardingStatusSwitchRequest request) {
+        return ResponseEntity.ok(studentService.executeBoardingStatusSwitch(id, request));
+    }
+
+    @GetMapping("/{id}/boarding-status-switches")
+    @PreAuthorize("@perm.hasAny('STUDENT_VIEW', 'STUDENT_BOARDING_STATUS_MANAGE')")
+    public ResponseEntity<List<BoardingStatusSwitchRecord>> getBoardingStatusSwitchHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(studentService.getBoardingStatusSwitchHistory(id));
     }
 }
 

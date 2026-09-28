@@ -44,6 +44,9 @@
                 @if (student()!.labBatch) {
                   <span class="dot-sep">·</span> Lab {{ student()!.labBatch }}
                 }
+                @if (student()!.studentType) {
+                  <span class="dot-sep">·</span> {{ student()!.studentType === 'HOSTELER' ? 'Hosteler' : 'Day Scholar' }}
+                }
               </span>
             </div>
           </div>
@@ -55,6 +58,12 @@
           @if (canTransferProgram()) {
             <button class="btn-secondary" (click)="openProgramTransfer()">
               <mat-icon>swap_horiz</mat-icon> Change Program
+            </button>
+          }
+          @if (canSwitchBoardingStatus()) {
+            <button class="btn-secondary" (click)="openBoardingStatusSwitch()">
+              <mat-icon>home</mat-icon>
+              Switch to {{ student()!.studentType === 'HOSTELER' ? 'Day Scholar' : 'Hosteler' }}
             </button>
           }
         </div>
@@ -688,6 +697,36 @@
                     }
                     @if (record.notes) {
                       <span class="transfer-notes">{{ record.notes }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+      }
+
+      @if (boardingStatusSwitchHistory().length > 0) {
+        <mat-tab label="Boarding Status History">
+          <div class="tab-content">
+            <div class="transfer-history">
+              @for (record of boardingStatusSwitchHistory(); track record.id) {
+                <div class="transfer-card">
+                  <div class="transfer-card__arrow">
+                    <span class="t-program">{{ record.oldStudentType === 'HOSTELER' ? 'Hosteler' : 'Day Scholar' }}</span>
+                    <mat-icon>arrow_forward</mat-icon>
+                    <span class="t-program t-program--new">{{ record.newStudentType === 'HOSTELER' ? 'Hosteler' : 'Day Scholar' }}</span>
+                  </div>
+                  <div class="transfer-card__meta">
+                    <span>{{ record.switchedAt | appDate }}</span>
+                    @if (record.switchedBy) {
+                      <span>by {{ record.switchedBy }}</span>
+                    }
+                    @if (record.demandsAdjusted > 0) {
+                      <span>{{ record.demandsAdjusted }} demand{{ record.demandsAdjusted !== 1 ? 's' : '' }} adjusted, {{ record.feeDelta > 0 ? '+' : '' }}{{ record.feeDelta | inr }}</span>
+                    }
+                    @if (record.remarks) {
+                      <span class="transfer-notes">{{ record.remarks }}</span>
                     }
                   </div>
                 </div>

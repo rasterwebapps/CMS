@@ -1,14 +1,33 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import com.cms.dto.FeeDemandDto;
 import com.cms.model.enums.DemandStatus;
+import com.cms.model.enums.StudentType;
 
 public interface FeeDemandService {
 
     /** Result of a demand generation run. */
     record GenerateResult(int demandsCreated, int yearlySkipped) {}
+
+    /** One demand's total-amount recomputation as part of a boarding-status switch. */
+    record DemandAdjustment(
+        Long demandId,
+        Long enrollmentId,
+        String termLabel,
+        BigDecimal previousAmount,
+        BigDecimal newAmount,
+        BigDecimal delta
+    ) {}
+
+    /** Aggregate effect of switching a student's studentType on their not-yet-fully-paid demands. */
+    record StudentTypeSwitchImpact(
+        int demandsAffected,
+        BigDecimal totalDelta,
+        List<DemandAdjustment> adjustments
+    ) {}
 
     /**
      * Generates fee demands for all ENROLLED students in the given term instance.
@@ -28,4 +47,20 @@ public interface FeeDemandService {
     List<FeeDemandDto> getOutstandingDemands(Long termInstanceId);
 
     List<FeeDemandDto> getDemandsByStudent(Long studentId);
+
+    /**
+     * Dry-run: recomputes what each of the student's not-yet-fully-paid demands (status
+     * UNPAID/PARTIAL) would total under {@code targetType}, without persisting anything.
+     */
+    StudentTypeSwitchImpact previewStudentTypeSwitchImpact(Long studentId, StudentType targetType);
+
+    /**
+     * Recomputes and saves the new totalAmount (and resulting status) for the student's
+     * not-yet-fully-paid demands under {@code targetType}. Already-PAID/WAIVED demands are left
+     * untouched — no retroactive refund is issued; any resulting credit is handled manually.
+     */
+    StudentTypeSwitchImpact applyStudentTypeSwitchAdjustment(Long studentId, StudentType targetType);
+
+    /** Sum of outstanding (unpaid) amounts across the student's non-WAIVED demands. */
+    BigDecimal getOutstandingDuesForStudent(Long studentId);
 }

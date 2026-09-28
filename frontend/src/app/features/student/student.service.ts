@@ -3,6 +3,9 @@ import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
+  BoardingStatusSwitchAnalysis,
+  BoardingStatusSwitchRecord,
+  BoardingStatusSwitchRequest,
   CourseRegistration,
   Page,
   ProgramTransferAnalysis,
@@ -13,6 +16,7 @@ import {
   StudentFeeLedger,
   StudentRequest,
   StudentTermEnrollment,
+  StudentTypeValue,
 } from './student.model';
 
 @Injectable({
@@ -115,6 +119,24 @@ export class StudentService {
 
   getTransferHistory(studentId: number): Observable<ProgramTransferRecord[]> {
     return this.http.get<ProgramTransferRecord[]>(`${this.baseUrl}/${studentId}/program-transfers`);
+  }
+
+  analyzeBoardingStatusSwitch(studentId: number, targetType: StudentTypeValue): Observable<BoardingStatusSwitchAnalysis> {
+    return this.http.get<BoardingStatusSwitchAnalysis>(
+      `${this.baseUrl}/${studentId}/boarding-status-switch-analysis`,
+      { params: { targetType } },
+    );
+  }
+
+  executeBoardingStatusSwitch(studentId: number, request: BoardingStatusSwitchRequest): Observable<BoardingStatusSwitchRecord> {
+    return this.http.post<BoardingStatusSwitchRecord>(
+      `${this.baseUrl}/${studentId}/boarding-status-switch`,
+      request,
+    );
+  }
+
+  getBoardingStatusSwitchHistory(studentId: number): Observable<BoardingStatusSwitchRecord[]> {
+    return this.http.get<BoardingStatusSwitchRecord[]>(`${this.baseUrl}/${studentId}/boarding-status-switches`);
   }
 
   exportStudents(

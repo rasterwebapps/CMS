@@ -39,7 +39,11 @@ import { AdmissionService } from '../../admission/admission.service';
 import { PermissionService } from '../../../core/permissions/permission.service';
 import { ProfileDocumentsComponent } from '../../../shared/profile-documents/profile-documents.component';
 import { ProgramTransferDialogComponent, ProgramTransferDialogData } from '../program-transfer-dialog/program-transfer-dialog.component';
-import { ProgramTransferRecord } from '../student.model';
+import {
+  BoardingStatusSwitchDialogComponent,
+  BoardingStatusSwitchDialogData,
+} from '../boarding-status-switch-dialog/boarding-status-switch-dialog.component';
+import { BoardingStatusSwitchRecord, ProgramTransferRecord } from '../student.model';
 import { Program } from '../../program/program.model';
 import { ProgramService } from '../../program/program.service';
 import {
@@ -116,6 +120,7 @@ export class StudentDetailComponent implements OnInit {
   protected readonly admissionId = signal<number | null>(null);
   protected readonly passportPhotoUrl = signal<string | null>(null);
   protected readonly transferHistory = signal<ProgramTransferRecord[]>([]);
+  protected readonly boardingStatusSwitchHistory = signal<BoardingStatusSwitchRecord[]>([]);
   protected readonly allPrograms = signal<Program[]>([]);
   protected readonly selectedTabIndex = signal(0);
   protected readonly expandedEnrollments = signal(new Set<number>());
@@ -209,6 +214,7 @@ export class StudentDetailComponent implements OnInit {
         this.loadScholarships(id);
         this.loadAdmission(id);
         this.loadTransferHistory(id);
+        this.loadBoardingStatusSwitchHistory(id);
       },
       error: () => {
         this.toast.error('Failed to load student');
@@ -395,6 +401,13 @@ export class StudentDetailComponent implements OnInit {
     });
   }
 
+  private loadBoardingStatusSwitchHistory(studentId: number): void {
+    this.studentService.getBoardingStatusSwitchHistory(studentId).subscribe({
+      next: (history) => this.boardingStatusSwitchHistory.set(history),
+      error: () => {},
+    });
+  }
+
   protected canManageDocuments(): boolean {
     return this.permissionService.has('DOCUMENT_SUBMISSION_MANAGE');
   }
@@ -453,6 +466,36 @@ export class StudentDetailComponent implements OnInit {
         this.toast.success(`Program changed to ${record.newProgramName}`);
         this.loadStudent(s.id);
         this.loadTransferHistory(s.id);
+      }
+    });
+  }
+
+  protected canSwitchBoardingStatus(): boolean {
+    const s = this.student();
+    return this.permissionService.has('STUDENT_BOARDING_STATUS_MANAGE')
+      && (s?.status === 'ACTIVE' || s?.status === 'ON_LEAVE')
+      && !!s?.studentType;
+  }
+
+  protected openBoardingStatusSwitch(): void {
+    const s = this.student();
+    if (!s?.studentType) return;
+
+    const dialogData: BoardingStatusSwitchDialogData = {
+      studentId: s.id,
+      studentName: s.fullName,
+      currentStudentType: s.studentType,
+    };
+    const ref = this.dialog.open(BoardingStatusSwitchDialogComponent, {
+      data: dialogData,
+      width: '560px',
+      maxWidth: '95vw',
+      disableClose: true,
+    });
+    ref.afterClosed().subscribe((record: BoardingStatusSwitchRecord | undefined) => {
+      if (record) {
+        this.toast.success(`Boarding status switched to ${record.newStudentType === 'HOSTELER' ? 'Hosteler' : 'Day Scholar'}`);
+        this.loadStudent(s.id);
       }
     });
   }

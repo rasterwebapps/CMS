@@ -28,6 +28,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.cms.dto.BoardingStatusSwitchAnalysis;
+import com.cms.dto.BoardingStatusSwitchRecord;
+import com.cms.dto.BoardingStatusSwitchRequest;
 import com.cms.dto.BulkRollNumberAssignmentRequest;
 import com.cms.dto.BulkRollNumberItem;
 import com.cms.dto.GenerateRollNumbersRequest;
@@ -39,6 +42,7 @@ import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.StudentStatus;
+import com.cms.model.enums.StudentType;
 import com.cms.service.StudentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -388,6 +392,54 @@ class StudentControllerTest {
             .andExpect(jsonPath("$.length()").value(1));
 
         verify(studentService).getTransferHistory(1L);
+    }
+
+    @Test
+    void shouldAnalyzeBoardingStatusSwitch() throws Exception {
+        BoardingStatusSwitchAnalysis analysis = new BoardingStatusSwitchAnalysis(
+            1L, "John Doe", StudentType.DAY_SCHOLAR, StudentType.HOSTELER,
+            false, null, 1, new java.math.BigDecimal("15000.00"));
+        when(studentService.analyzeBoardingStatusSwitch(1L, StudentType.HOSTELER)).thenReturn(analysis);
+
+        mockMvc.perform(get("/students/1/boarding-status-switch-analysis").param("targetType", "HOSTELER"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.blocked").value(false))
+            .andExpect(jsonPath("$.demandsAffected").value(1));
+
+        verify(studentService).analyzeBoardingStatusSwitch(1L, StudentType.HOSTELER);
+    }
+
+    @Test
+    void shouldExecuteBoardingStatusSwitch() throws Exception {
+        BoardingStatusSwitchRecord record = new BoardingStatusSwitchRecord(
+            1L, 1L, "John Doe", StudentType.DAY_SCHOLAR, StudentType.HOSTELER,
+            Instant.now(), "admin", "moved to hostel", 1, new java.math.BigDecimal("15000.00"));
+        when(studentService.executeBoardingStatusSwitch(eq(1L), any(BoardingStatusSwitchRequest.class)))
+            .thenReturn(record);
+
+        BoardingStatusSwitchRequest request = new BoardingStatusSwitchRequest(StudentType.HOSTELER, "moved to hostel");
+
+        mockMvc.perform(post("/students/1/boarding-status-switch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.newStudentType").value("HOSTELER"));
+
+        verify(studentService).executeBoardingStatusSwitch(eq(1L), any(BoardingStatusSwitchRequest.class));
+    }
+
+    @Test
+    void shouldGetBoardingStatusSwitchHistory() throws Exception {
+        BoardingStatusSwitchRecord record = new BoardingStatusSwitchRecord(
+            1L, 1L, "John Doe", StudentType.DAY_SCHOLAR, StudentType.HOSTELER,
+            Instant.now(), "admin", "moved to hostel", 1, new java.math.BigDecimal("15000.00"));
+        when(studentService.getBoardingStatusSwitchHistory(1L)).thenReturn(List.of(record));
+
+        mockMvc.perform(get("/students/1/boarding-status-switches"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+
+        verify(studentService).getBoardingStatusSwitchHistory(1L);
     }
 
     private StudentResponse createStudentResponse(Long id, String rollNumber, String firstName, String lastName) {

@@ -7,6 +7,7 @@ import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.BankAccountType;
 import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentStatus;
+import com.cms.model.enums.StudentType;
 
 public record StudentResponse(
     Long id,
@@ -30,6 +31,7 @@ public record StudentResponse(
     String labBatch,
     StudentStatus status,
     AdmissionCategory admissionCategory,
+    StudentType studentType,
 
     // Personal information
     LocalDate dateOfBirth,
@@ -99,7 +101,7 @@ public record StudentResponse(
                            Instant createdAt, Instant updatedAt) {
         this(id, rollNumber, null, null, null, firstName, lastName, fullName, email, phone, programId, programName,
             courseId, courseName, specialityId, specialityName, yearOfStudy,
-            admissionDate, labBatch, status, null, dateOfBirth, gender, nationality, religion, communityCategory,
+            admissionDate, labBatch, status, null, null, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
             parentMobile, false, null, null, countryId, postalAddress, street, city, district, state, pincode,
             null, null, null, null, null, null,

@@ -20,6 +20,8 @@ import com.cms.model.TermInstance;
 import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.FeeType;
+import com.cms.model.enums.StudentType;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AdmissionRepository;
@@ -171,17 +173,93 @@ public class FeeDemandServiceImpl implements FeeDemandService {
             .toList();
     }
 
+    @Override
+    public StudentTypeSwitchImpact previewStudentTypeSwitchImpact(Long studentId, StudentType targetType) {
+        return computeStudentTypeSwitchImpact(studentId, targetType, false);
+    }
+
+    @Override
+    @Transactional
+    public StudentTypeSwitchImpact applyStudentTypeSwitchAdjustment(Long studentId, StudentType targetType) {
+        return computeStudentTypeSwitchImpact(studentId, targetType, true);
+    }
+
+    private StudentTypeSwitchImpact computeStudentTypeSwitchImpact(Long studentId, StudentType targetType,
+                                                                     boolean persist) {
+        List<FeeDemand> demands = feeDemandRepository.findByStudentTermEnrollmentStudentId(studentId)
+            .stream()
+            .filter(d -> d.getStatus() != DemandStatus.PAID && d.getStatus() != DemandStatus.WAIVED)
+            .toList();
+
+        List<DemandAdjustment> adjustments = new ArrayList<>();
+        BigDecimal totalDelta = BigDecimal.ZERO;
+        for (FeeDemand demand : demands) {
+            StudentTermEnrollment enrollment = demand.getStudentTermEnrollment();
+            BigDecimal previousAmount = demand.getTotalAmount();
+            BigDecimal newAmount = deriveFeeTotalAmount(enrollment, demand.getAcademicYear(), targetType);
+            BigDecimal delta = newAmount.subtract(previousAmount);
+            if (delta.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+
+            if (persist) {
+                demand.setTotalAmount(newAmount);
+                demand.setStatus(resolveDemandStatus(newAmount, demand.getPaidAmount()));
+                feeDemandRepository.save(demand);
+            }
+
+            totalDelta = totalDelta.add(delta);
+            adjustments.add(new DemandAdjustment(
+                demand.getId(),
+                enrollment.getId(),
+                demand.getAcademicYear().getName() + " " + demand.getTermInstance().getTermType(),
+                previousAmount,
+                newAmount,
+                delta
+            ));
+        }
+        return new StudentTypeSwitchImpact(adjustments.size(), totalDelta, adjustments);
+    }
+
+    private DemandStatus resolveDemandStatus(BigDecimal totalAmount, BigDecimal paidAmount) {
+        // Checked before the "nothing paid" case so a demand recomputed down to a zero total
+        // (e.g. an all-HOSTEL_FEE plan for a day scholar) resolves to PAID, not UNPAID.
+        if (paidAmount.compareTo(totalAmount) >= 0) {
+            return DemandStatus.PAID;
+        }
+        return paidAmount.compareTo(BigDecimal.ZERO) > 0 ? DemandStatus.PARTIAL : DemandStatus.UNPAID;
+    }
+
+    @Override
+    public BigDecimal getOutstandingDuesForStudent(Long studentId) {
+        return feeDemandRepository.findByStudentTermEnrollmentStudentId(studentId)
+            .stream()
+            .filter(d -> d.getStatus() != DemandStatus.WAIVED)
+            .map(FeeDemand::getOutstandingAmount)
+            .filter(a -> a.compareTo(BigDecimal.ZERO) > 0)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private BigDecimal deriveFeeTotalAmount(StudentTermEnrollment enrollment, AcademicYear academicYear) {
+        return deriveFeeTotalAmount(enrollment, academicYear, enrollment.getStudent().getStudentType());
+    }
+
+    // Day scholar vs hosteler cost is implicit in the fee plan: the HOSTEL_FEE row on a
+    // FeeStructureGroup is a hosteler-only surcharge (see FeeStructureGroup javadoc) — excluded
+    // here for DAY_SCHOLAR, mirroring the filter already applied at enquiry-estimate time in
+    // FeeStructureService.findForEnquiry.
+    private BigDecimal deriveFeeTotalAmount(StudentTermEnrollment enrollment, AcademicYear academicYear,
+                                             StudentType studentType) {
         Long programId = enrollment.getCohort().getProgram().getId();
         Integer yearOfStudy = enrollment.getYearOfStudy();
 
-        List<FeeStructure> feeStructures = feeStructureGroupRepository
+        List<FeeStructure> allFeeStructures = feeStructureGroupRepository
             .findByProgramIdAndAcademicYearId(programId, academicYear.getId())
             .stream()
             .flatMap(g -> feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(g.getId()).stream())
             .toList();
 
-        if (feeStructures.isEmpty()) {
+        if (allFeeStructures.isEmpty()) {
             throw new IllegalStateException(
                 "No fee plan configured for program "
                 + enrollment.getCohort().getProgram().getCode()
@@ -189,19 +267,23 @@ public class FeeDemandServiceImpl implements FeeDemandService {
                 + ". Please configure a fee plan first.");
         }
 
+        // Tracked separately from the studentType-filtered total so a plan that happens to be
+        // entirely HOSTEL_FEE for this program (filtered to nothing for a day scholar) reports as
+        // a legitimate zero rather than a false "no fee amounts configured" error.
+        List<FeeStructureYearAmount> unfilteredAmounts = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
-        List<FeeStructureYearAmount> matchingAmounts = new ArrayList<>();
-        for (FeeStructure fs : feeStructures) {
+        for (FeeStructure fs : allFeeStructures) {
             List<FeeStructureYearAmount> amounts =
                 yearAmountRepository.findByFeeStructureIdAndYearNumber(fs.getId(), yearOfStudy);
-            matchingAmounts.addAll(amounts);
+            unfilteredAmounts.addAll(amounts);
+            if (studentType != StudentType.DAY_SCHOLAR || fs.getFeeType() != FeeType.HOSTEL_FEE) {
+                for (FeeStructureYearAmount ya : amounts) {
+                    total = total.add(ya.getAmount());
+                }
+            }
         }
 
-        for (FeeStructureYearAmount ya : matchingAmounts) {
-            total = total.add(ya.getAmount());
-        }
-
-        if (matchingAmounts.isEmpty()) {
+        if (unfilteredAmounts.isEmpty()) {
             throw new IllegalStateException(
                 "No fee amounts configured for year of study " + yearOfStudy
                 + " in program " + enrollment.getCohort().getProgram().getCode()

@@ -67,6 +67,15 @@ class StudentServiceTest {
     @Mock
     private com.cms.util.CurrentUserResolver currentUserResolver;
 
+    @Mock
+    private com.cms.repository.RoomAllocationRepository roomAllocationRepository;
+
+    @Mock
+    private com.cms.repository.StudentBoardingStatusSwitchRepository boardingStatusSwitchRepository;
+
+    @Mock
+    private FeeDemandService feeDemandService;
+
     private StudentService studentService;
 
     private Program testProgram;
@@ -75,7 +84,8 @@ class StudentServiceTest {
     void setUp() {
         studentService = new StudentService(studentRepository, programRepository, courseRepository, specialityRepository,
             admissionRepository, enquiryDocumentRepository, documentHistoryRepository, transferRepository,
-            feeDemandRepository, libraryIssueRepository, currentUserResolver);
+            feeDemandRepository, libraryIssueRepository, currentUserResolver,
+            roomAllocationRepository, boardingStatusSwitchRepository, feeDemandService);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -484,6 +494,65 @@ class StudentServiceTest {
         assertThatThrownBy(() -> studentService.executeProgramTransfer(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Consent");
+    }
+
+    @Test
+    void shouldRejectBoardingStatusSwitchToSameType() {
+        Student student = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+        student.setStudentType(com.cms.model.enums.StudentType.HOSTELER);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+
+        com.cms.dto.BoardingStatusSwitchRequest request =
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, null);
+
+        assertThatThrownBy(() -> studentService.executeBoardingStatusSwitch(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("already");
+
+        verify(studentRepository, never()).save(any(Student.class));
+    }
+
+    @Test
+    void shouldBlockSwitchToDayScholarWithActiveRoomAllocation() {
+        Student student = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+        student.setStudentType(com.cms.model.enums.StudentType.HOSTELER);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(roomAllocationRepository.existsByStudentIdAndStatus(1L, com.cms.model.enums.RoomAllocationStatus.ACTIVE))
+            .thenReturn(true);
+
+        com.cms.dto.BoardingStatusSwitchRequest request =
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.DAY_SCHOLAR, null);
+
+        assertThatThrownBy(() -> studentService.executeBoardingStatusSwitch(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("active hostel room allocation");
+
+        verify(studentRepository, never()).save(any(Student.class));
+        verify(feeDemandService, never()).applyStudentTypeSwitchAdjustment(any(), any());
+    }
+
+    @Test
+    void shouldExecuteBoardingStatusSwitchAndAdjustFees() {
+        Student student = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+        student.setStudentType(com.cms.model.enums.StudentType.DAY_SCHOLAR);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(currentUserResolver.resolve()).thenReturn("admin");
+        when(feeDemandService.applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER))
+            .thenReturn(new FeeDemandService.StudentTypeSwitchImpact(1, new java.math.BigDecimal("15000.00"), List.of()));
+        when(boardingStatusSwitchRepository.save(any(com.cms.model.StudentBoardingStatusSwitch.class)))
+            .thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.BoardingStatusSwitchRequest request =
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, "moving to hostel");
+
+        var record = studentService.executeBoardingStatusSwitch(1L, request);
+
+        assertThat(record.newStudentType()).isEqualTo(com.cms.model.enums.StudentType.HOSTELER);
+        assertThat(record.demandsAdjusted()).isEqualTo(1);
+        assertThat(record.feeDelta()).isEqualByComparingTo("15000.00");
+        assertThat(student.getStudentType()).isEqualTo(com.cms.model.enums.StudentType.HOSTELER);
+        verify(studentRepository).save(student);
+        verify(feeDemandService).applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER);
     }
 
     private Student createStudent(Long id, String rollNumber, String firstName, String lastName, String email) {

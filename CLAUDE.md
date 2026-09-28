@@ -176,3 +176,14 @@ Whenever any existing component is modified — even to add a single field or se
 3. Check that **all existing features** of the component still work — do not only check the new addition.
 4. Check for **@extend / SCSS inheritance issues** — `@extend` across Angular component ViewEncapsulation boundaries does not work; always use `%placeholder` within the same file or write explicit CSS.
 5. If any part looks broken or inconsistent, fix it before moving on — do not leave it for the next instruction.
+
+### New-Logic Verification Rule (mandatory, no exceptions)
+
+"It compiles and the existing test suite still passes" only proves nothing *else* broke — it says nothing about whether the new logic itself is correct. Any new service-layer business logic (new calculation, new state-transition, new gate/validation) must ship with unit tests covering its boundary conditions in the same pass it is written — not as a follow-up once asked to find bugs. Any new user-facing error state must be manually traced end-to-end to confirm the UI actually surfaces the real backend message.
+
+1. **Write tests alongside new logic, not after.** Target the new logic's boundary conditions specifically — zero/empty/negative inputs, exactly-equal comparisons, first-vs-only-vs-last item — before calling it done, not just the happy path.
+2. **Sweep sibling code paths, not just the one touched.** If a guard/check is added to one method (e.g. an update/vacate action), check every other method that can reach the same end state (e.g. a delete/cancel action) for the same gap.
+3. **Trace every new error path to its UI consumer.** For each new failure mode a backend change can produce, confirm the frontend actually displays the real error message (not a generic fallback) and doesn't crash rendering when the happy-path data is absent (e.g. a null/undefined guard on an async result signal).
+4. **Finish what you build.** If new backend/service plumbing is added for a capability (e.g. a history log), it must be wired into a UI screen the user actually sees in the same pass — don't ship inert backend-only groundwork and call it done.
+
+Incident: the Day Scholar/Hosteler boarding-status-switch feature (2026-09-28) shipped with 5 real bugs (a status-resolution ordering bug, a fee-calc edge-case exception, a dues-check bypass on `delete()` that mirrored a fixed `updateStatus()`, a dialog crash on a failed API call, and a pre-existing UI handler that swallowed the new backend's error message) plus 2 incomplete-implementation gaps (a switch-history tab built but never rendered, and status invisible to view-only users) — none caught until explicitly asked to recheck for bugs, because the first pass verified only compile/regression safety, not new-logic correctness or error-path behavior.

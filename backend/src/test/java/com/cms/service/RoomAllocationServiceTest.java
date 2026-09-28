@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -42,12 +43,14 @@ class RoomAllocationServiceTest {
     private StudentRepository studentRepository;
     @Mock
     private HostelRoomRepository hostelRoomRepository;
+    @Mock
+    private FeeDemandService feeDemandService;
 
     private RoomAllocationService roomAllocationService;
 
     @BeforeEach
     void setUp() {
-        roomAllocationService = new RoomAllocationService(roomAllocationRepository, studentRepository, hostelRoomRepository);
+        roomAllocationService = new RoomAllocationService(roomAllocationRepository, studentRepository, hostelRoomRepository, feeDemandService);
     }
 
     @Test
@@ -135,6 +138,7 @@ class RoomAllocationServiceTest {
         cancelled.setStatus(RoomAllocationStatus.CANCELLED);
 
         when(roomAllocationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(feeDemandService.getOutstandingDuesForStudent(1L)).thenReturn(BigDecimal.ZERO);
         when(roomAllocationRepository.save(any(RoomAllocation.class))).thenReturn(cancelled);
 
         RoomAllocationResponse response = roomAllocationService.updateStatus(1L, RoomAllocationStatus.CANCELLED);
@@ -143,8 +147,27 @@ class RoomAllocationServiceTest {
     }
 
     @Test
+    void shouldBlockVacateWhenStudentHasOutstandingDues() {
+        Student student = student(1L, StudentType.HOSTELER);
+        HostelRoom hostelRoom = hostelRoom(1L, 2);
+        RoomAllocation existing = allocation(1L, student, hostelRoom, LocalDate.of(2026, 6, 1));
+
+        when(roomAllocationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(feeDemandService.getOutstandingDuesForStudent(1L)).thenReturn(new BigDecimal("500.00"));
+
+        assertThatThrownBy(() -> roomAllocationService.updateStatus(1L, RoomAllocationStatus.CANCELLED))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("outstanding fee dues");
+    }
+
+    @Test
     void shouldDelete() {
-        when(roomAllocationRepository.existsById(1L)).thenReturn(true);
+        Student student = student(1L, StudentType.HOSTELER);
+        HostelRoom hostelRoom = hostelRoom(1L, 2);
+        RoomAllocation existing = allocation(1L, student, hostelRoom, LocalDate.of(2026, 6, 1));
+        existing.setStatus(RoomAllocationStatus.CANCELLED);
+
+        when(roomAllocationRepository.findById(1L)).thenReturn(Optional.of(existing));
 
         roomAllocationService.delete(1L);
 
@@ -152,8 +175,24 @@ class RoomAllocationServiceTest {
     }
 
     @Test
+    void shouldBlockDeleteOfActiveAllocationWithOutstandingDues() {
+        Student student = student(1L, StudentType.HOSTELER);
+        HostelRoom hostelRoom = hostelRoom(1L, 2);
+        RoomAllocation existing = allocation(1L, student, hostelRoom, LocalDate.of(2026, 6, 1));
+
+        when(roomAllocationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(feeDemandService.getOutstandingDuesForStudent(1L)).thenReturn(new BigDecimal("500.00"));
+
+        assertThatThrownBy(() -> roomAllocationService.delete(1L))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("outstanding fee dues");
+
+        verify(roomAllocationRepository, never()).deleteById(any());
+    }
+
+    @Test
     void shouldThrowWhenDeletingNonExistent() {
-        when(roomAllocationRepository.existsById(999L)).thenReturn(false);
+        when(roomAllocationRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> roomAllocationService.delete(999L))
             .isInstanceOf(ResourceNotFoundException.class);

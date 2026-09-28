@@ -170,7 +170,7 @@ export class RoomAllocationDashboardComponent implements OnInit {
       if (!confirmed) return;
       this.roomAllocationService.updateStatus(allocationId, 'CANCELLED').subscribe({
         next: () => { this.toast.success('Allocation cancelled'); this.refresh(); },
-        error: () => this.toast.error('Failed to cancel allocation'),
+        error: (err) => this.toast.error(err?.error?.message ?? 'Failed to cancel allocation'),
       });
     });
   }

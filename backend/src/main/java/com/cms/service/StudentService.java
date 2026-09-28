@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.repository.StudentSpecification;
 
 import com.cms.dto.AddressRequest;
+import com.cms.dto.BoardingStatusSwitchAnalysis;
+import com.cms.dto.BoardingStatusSwitchRecord;
+import com.cms.dto.BoardingStatusSwitchRequest;
 import com.cms.dto.BulkRollNumberItem;
 import com.cms.dto.ProgramTransferAnalysis;
 import com.cms.dto.ProgramTransferDocumentInfo;
@@ -38,12 +41,15 @@ import com.cms.model.EnquiryDocument;
 import com.cms.model.EnquiryDocumentHistory;
 import com.cms.model.Program;
 import com.cms.model.Student;
+import com.cms.model.StudentBoardingStatusSwitch;
 import com.cms.model.StudentProgramTransfer;
 import com.cms.model.FeeDemand;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.model.enums.RoomAllocationStatus;
 import com.cms.model.enums.StudentStatus;
+import com.cms.model.enums.StudentType;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.SpecialityRepository;
@@ -52,6 +58,8 @@ import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.LibraryIssueRepository;
+import com.cms.repository.RoomAllocationRepository;
+import com.cms.repository.StudentBoardingStatusSwitchRepository;
 import com.cms.repository.StudentProgramTransferRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.util.CurrentUserResolver;
@@ -72,6 +80,9 @@ public class StudentService {
     private final FeeDemandRepository feeDemandRepository;
     private final LibraryIssueRepository libraryIssueRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final RoomAllocationRepository roomAllocationRepository;
+    private final StudentBoardingStatusSwitchRepository boardingStatusSwitchRepository;
+    private final FeeDemandService feeDemandService;
 
     private static final List<IssueStatus> ACTIVE_ISSUE_STATUSES =
         List.of(IssueStatus.ISSUED, IssueStatus.OVERDUE);
@@ -84,7 +95,10 @@ public class StudentService {
                           StudentProgramTransferRepository transferRepository,
                           FeeDemandRepository feeDemandRepository,
                           LibraryIssueRepository libraryIssueRepository,
-                          CurrentUserResolver currentUserResolver) {
+                          CurrentUserResolver currentUserResolver,
+                          RoomAllocationRepository roomAllocationRepository,
+                          StudentBoardingStatusSwitchRepository boardingStatusSwitchRepository,
+                          FeeDemandService feeDemandService) {
         this.studentRepository = studentRepository;
         this.programRepository = programRepository;
         this.courseRepository = courseRepository;
@@ -96,6 +110,9 @@ public class StudentService {
         this.feeDemandRepository = feeDemandRepository;
         this.libraryIssueRepository = libraryIssueRepository;
         this.currentUserResolver = currentUserResolver;
+        this.roomAllocationRepository = roomAllocationRepository;
+        this.boardingStatusSwitchRepository = boardingStatusSwitchRepository;
+        this.feeDemandService = feeDemandService;
     }
 
     @Transactional
@@ -533,6 +550,7 @@ public class StudentService {
             student.getLabBatch(),
             student.getStatus(),
             student.getAdmissionCategory(),
+            student.getStudentType(),
             student.getDateOfBirth(),
             student.getGender(),
             student.getNationality(),
@@ -699,6 +717,87 @@ public class StudentService {
                 t.getNewProgram().getId(), t.getNewProgram().getName(),
                 t.getTransferredAt(), t.getTransferredBy(),
                 t.isConsentConfirmed(), t.getNotes()
+            ))
+            .toList();
+    }
+
+    public BoardingStatusSwitchAnalysis analyzeBoardingStatusSwitch(Long studentId, StudentType targetType) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found: " + studentId));
+
+        if (student.getStudentType() == targetType) {
+            throw new IllegalArgumentException("Student is already " + targetType);
+        }
+
+        boolean blocked = targetType == StudentType.DAY_SCHOLAR
+            && roomAllocationRepository.existsByStudentIdAndStatus(studentId, RoomAllocationStatus.ACTIVE);
+        String blockReason = blocked
+            ? "Student has an active hostel room allocation — vacate the room before switching to Day Scholar."
+            : null;
+
+        FeeDemandService.StudentTypeSwitchImpact impact =
+            feeDemandService.previewStudentTypeSwitchImpact(studentId, targetType);
+
+        return new BoardingStatusSwitchAnalysis(
+            studentId, student.getFullName(),
+            student.getStudentType(), targetType,
+            blocked, blockReason,
+            impact.demandsAffected(), impact.totalDelta()
+        );
+    }
+
+    @Transactional
+    public BoardingStatusSwitchRecord executeBoardingStatusSwitch(Long studentId, BoardingStatusSwitchRequest request) {
+        Student student = studentRepository.findById(studentId)
+            .orElseThrow(() -> new ResourceNotFoundException("Student not found: " + studentId));
+
+        StudentType oldType = student.getStudentType();
+        StudentType newType = request.newStudentType();
+        if (oldType == newType) {
+            throw new IllegalArgumentException("Student is already " + newType);
+        }
+
+        if (newType == StudentType.DAY_SCHOLAR
+            && roomAllocationRepository.existsByStudentIdAndStatus(studentId, RoomAllocationStatus.ACTIVE)) {
+            throw new IllegalStateException(
+                "Cannot switch to Day Scholar — student has an active hostel room allocation. Vacate the room first.");
+        }
+
+        student.setStudentType(newType);
+        studentRepository.save(student);
+
+        FeeDemandService.StudentTypeSwitchImpact impact =
+            feeDemandService.applyStudentTypeSwitchAdjustment(studentId, newType);
+
+        StudentBoardingStatusSwitch history = new StudentBoardingStatusSwitch();
+        history.setStudent(student);
+        history.setOldStudentType(oldType);
+        history.setNewStudentType(newType);
+        history.setSwitchedAt(Instant.now());
+        history.setSwitchedBy(currentUserResolver.resolve());
+        history.setRemarks(request.remarks());
+        history.setDemandsAdjusted(impact.demandsAffected());
+        history.setFeeDelta(impact.totalDelta());
+        StudentBoardingStatusSwitch saved = boardingStatusSwitchRepository.save(history);
+
+        return new BoardingStatusSwitchRecord(
+            saved.getId(), studentId, student.getFullName(),
+            oldType, newType,
+            saved.getSwitchedAt(), saved.getSwitchedBy(), saved.getRemarks(),
+            saved.getDemandsAdjusted(), saved.getFeeDelta()
+        );
+    }
+
+    public List<BoardingStatusSwitchRecord> getBoardingStatusSwitchHistory(Long studentId) {
+        if (!studentRepository.existsById(studentId)) {
+            throw new ResourceNotFoundException("Student not found: " + studentId);
+        }
+        return boardingStatusSwitchRepository.findByStudentIdOrderBySwitchedAtDesc(studentId).stream()
+            .map(h -> new BoardingStatusSwitchRecord(
+                h.getId(), studentId, h.getStudent().getFullName(),
+                h.getOldStudentType(), h.getNewStudentType(),
+                h.getSwitchedAt(), h.getSwitchedBy(), h.getRemarks(),
+                h.getDemandsAdjusted(), h.getFeeDelta()
             ))
             .toList();
     }

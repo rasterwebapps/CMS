@@ -1,5 +1,6 @@
 package com.cms.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -28,13 +29,16 @@ public class RoomAllocationService {
     private final RoomAllocationRepository roomAllocationRepository;
     private final StudentRepository studentRepository;
     private final HostelRoomRepository hostelRoomRepository;
+    private final FeeDemandService feeDemandService;
 
     public RoomAllocationService(RoomAllocationRepository roomAllocationRepository,
                                   StudentRepository studentRepository,
-                                  HostelRoomRepository hostelRoomRepository) {
+                                  HostelRoomRepository hostelRoomRepository,
+                                  FeeDemandService feeDemandService) {
         this.roomAllocationRepository = roomAllocationRepository;
         this.studentRepository = studentRepository;
         this.hostelRoomRepository = hostelRoomRepository;
+        this.feeDemandService = feeDemandService;
     }
 
     @Transactional
@@ -102,14 +106,28 @@ public class RoomAllocationService {
     @Transactional
     public RoomAllocationResponse updateStatus(Long id, RoomAllocationStatus status) {
         RoomAllocation allocation = findOrThrow(id);
+        if (allocation.getStatus() == RoomAllocationStatus.ACTIVE && status != RoomAllocationStatus.ACTIVE) {
+            BigDecimal dues = feeDemandService.getOutstandingDuesForStudent(allocation.getStudent().getId());
+            if (dues.compareTo(BigDecimal.ZERO) > 0) {
+                throw new IllegalStateException(
+                    "Cannot vacate — student has outstanding fee dues of " + dues
+                        + ". Clear dues before vacating the room.");
+            }
+        }
         allocation.setStatus(status);
         return toResponse(roomAllocationRepository.save(allocation));
     }
 
     @Transactional
     public void delete(Long id) {
-        if (!roomAllocationRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Room allocation not found with id: " + id);
+        RoomAllocation allocation = findOrThrow(id);
+        if (allocation.getStatus() == RoomAllocationStatus.ACTIVE) {
+            BigDecimal dues = feeDemandService.getOutstandingDuesForStudent(allocation.getStudent().getId());
+            if (dues.compareTo(BigDecimal.ZERO) > 0) {
+                throw new IllegalStateException(
+                    "Cannot delete an active room allocation — student has outstanding fee dues of " + dues
+                        + ". Clear dues before removing this allocation.");
+            }
         }
         roomAllocationRepository.deleteById(id);
     }

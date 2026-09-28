@@ -38,6 +38,37 @@ export interface ProgramTransferRecord {
   notes: string | null;
 }
 
+export type StudentTypeValue = 'DAY_SCHOLAR' | 'HOSTELER';
+
+export interface BoardingStatusSwitchRequest {
+  newStudentType: StudentTypeValue;
+  remarks?: string;
+}
+
+export interface BoardingStatusSwitchAnalysis {
+  studentId: number;
+  studentName: string;
+  currentStudentType: StudentTypeValue;
+  targetStudentType: StudentTypeValue;
+  blocked: boolean;
+  blockReason: string | null;
+  demandsAffected: number;
+  estimatedFeeDelta: number;
+}
+
+export interface BoardingStatusSwitchRecord {
+  id: number;
+  studentId: number;
+  studentName: string;
+  oldStudentType: StudentTypeValue;
+  newStudentType: StudentTypeValue;
+  switchedAt: string;
+  switchedBy: string | null;
+  remarks: string | null;
+  demandsAdjusted: number;
+  feeDelta: number;
+}
+
 export interface Student {
   id: number;
   rollNumber: string;
@@ -67,6 +98,7 @@ export interface Student {
   labBatch?: string;
   status: string;
   admissionCategory?: string;
+  studentType?: StudentTypeValue;
   dateOfBirth?: string;
   gender?: string;
   nationality?: string;
