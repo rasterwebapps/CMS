@@ -1890,6 +1890,46 @@ class TimetableSkeletonServiceTest {
         verify(classScheduleRepository).save(cs);
     }
 
+    /** A 2-period Theory block replace: the incoming faculty is free for the CLICKED row's own
+     *  period but already double-booked for the sibling row's period. Validating only the clicked
+     *  row and then applying the new faculty to the whole group (the pre-fix behavior) would have
+     *  silently created that double-booking on the un-checked sibling period; the group-wide check
+     *  must catch it and refuse the whole replace instead. */
+    @Test
+    void shouldRejectTheoryReplaceWhenTheIncomingFacultyIsBusyOnlyForASiblingPeriodOfTheGroup() {
+        java.util.UUID group = java.util.UUID.randomUUID();
+        ClassSchedule first = rowFor(offering, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period);
+        first.setId(110L);
+        first.setTermInstance(termInstance);
+        first.setSessionGroupId(group);
+        ClassSchedule second = rowFor(offering, ClassSessionType.THEORY, null, DayOfWeek.MONDAY, period2);
+        second.setId(111L);
+        second.setTermInstance(termInstance);
+        second.setSessionGroupId(group);
+
+        Faculty newFaculty = new Faculty();
+        newFaculty.setId(42L);
+        newFaculty.setFirstName("Meera");
+
+        when(classScheduleRepository.findById(110L)).thenReturn(Optional.of(first));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(group))
+            .thenReturn(List.of(first, second));
+        when(courseOfferingRepository.findById(200L)).thenReturn(Optional.of(otherOffering));
+        when(facultyRepository.findById(42L)).thenReturn(Optional.of(newFaculty));
+        when(classScheduleRepository.findByCourseOfferingIdAndIsActiveTrue(200L)).thenReturn(List.of());
+        when(timetableStaffingService.validateAssignment(eq(first), any(), any(), any(), eq(newFaculty), eq(110L), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(timetableStaffingService.validateAssignment(eq(second), any(), any(), any(), eq(newFaculty), eq(111L), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
+                List.of(new ConstraintViolation("STAFFING_FACULTY_BUSY", "double-booked")), null));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(110L, new SkeletonCellReplaceRequest(null, 200L, 42L)))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("double-booked");
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
     /** LAB/CLINICAL is out of scope by design: its audience is a Batch, and a Batch belongs to
      *  exactly one CourseOffering, so "replace the subject" there means swapping in a different
      *  batch with its own committed venue -- a Capacity Planner decision, not a per-session edit. */
@@ -2165,6 +2205,87 @@ class TimetableSkeletonServiceTest {
             .hasMessageContaining("Eligible Faculty list");
 
         verify(classScheduleRepository, never()).save(any());
+    }
+
+    /** A 2-period Library block converting to Sports: the candidate room/faculty pair is free for
+     *  the CLICKED row's own period but occupied for the sibling row's period. Resolving against
+     *  only the clicked row and then applying the result to the whole group (the pre-fix behavior)
+     *  would have silently double-booked the sibling period; the group-wide check must instead
+     *  refuse the swap outright since no candidate is free across the whole session. */
+    @Test
+    void shouldRejectFillerSwapWhenACandidateIsFreeOnlyForOnePeriodOfATwoPeriodGroup() {
+        java.util.UUID group = java.util.UUID.randomUUID();
+        ClassSchedule first = fillerRow(510L, ClassSessionType.LIBRARY);
+        first.setSessionGroupId(group);
+        ClassSchedule second = fillerRow(511L, ClassSessionType.LIBRARY);
+        second.setPeriod(period2);
+        second.setSessionGroupId(group);
+
+        Subject sportsSubject = new Subject();
+        sportsSubject.setId(904L);
+        sportsSubject.setCode(TimetableGlobalAutoScheduleService.SPORTS_SUBJECT_CODE);
+        Faculty pe = new Faculty();
+        pe.setId(78L);
+        sportsSubject.setEligibleFaculty(Set.of(pe));
+        Classroom onlyRoom = classroomTagged(84L, "Ground-2");
+
+        when(classScheduleRepository.findById(510L)).thenReturn(Optional.of(first));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(group))
+            .thenReturn(List.of(first, second));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of());
+        when(subjectRepository.findByCode(TimetableGlobalAutoScheduleService.SPORTS_SUBJECT_CODE)).thenReturn(Optional.of(sportsSubject));
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(
+            com.cms.model.enums.RoomPurposeCategoryCode.SPORTS)).thenReturn(List.of(onlyRoom));
+        when(facultyRepository.findByStatus(com.cms.model.enums.FacultyStatus.ACTIVE)).thenReturn(List.of(pe));
+        when(timetableStaffingService.validateAssignment(eq(first), any(), any(), any(), eq(pe), eq(510L), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(timetableStaffingService.validateAssignment(eq(second), any(), any(), any(), eq(pe), eq(511L), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
+                List.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT", "occupied")), null));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(510L, new SkeletonCellReplaceRequest(ClassSessionType.SPORTS, null, null)))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("free for this exact day and time");
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    /** A 2-period group swap adds 2 periods of the target type in one shot, not 1 -- the weekly cap
+     *  must be checked against the TOTAL this swap would produce. One period already used, plus
+     *  this swap's two, totals three against the default two-period entitlement, so it must be
+     *  refused even though pre-existing usage alone (1) is still under the cap. */
+    @Test
+    void shouldRejectFillerSwapWhenTheWholeGroupWouldExceedTheWeeklyEntitlement() {
+        java.util.UUID group = java.util.UUID.randomUUID();
+        CohortSection section = new CohortSection();
+        section.setId(31L);
+        ClassSchedule first = fillerRow(512L, ClassSessionType.LIBRARY);
+        first.setSessionGroupId(group);
+        first.setCohortSection(section);
+        ClassSchedule second = fillerRow(513L, ClassSessionType.LIBRARY);
+        second.setPeriod(period2);
+        second.setSessionGroupId(group);
+        second.setCohortSection(section);
+
+        ClassSchedule existing = new ClassSchedule();
+        existing.setId(700L);
+        existing.setSessionType(ClassSessionType.SPORTS);
+        existing.setCohortSection(section);
+        existing.setIsActive(true);
+
+        when(classScheduleRepository.findById(512L)).thenReturn(Optional.of(first));
+        when(classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(group))
+            .thenReturn(List.of(first, second));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(existing));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(512L, new SkeletonCellReplaceRequest(ClassSessionType.SPORTS, null, null)))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("weekly entitlement");
+
+        verify(classScheduleRepository, never()).save(any());
+        verify(subjectRepository, never()).findByCode(any());
     }
 
     /** The THEORY shape's @NotNull was removed from the DTO record itself (it now also has to

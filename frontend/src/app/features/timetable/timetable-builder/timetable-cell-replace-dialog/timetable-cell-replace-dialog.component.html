@@ -5,6 +5,14 @@
     — {{ data.cell.dayOfWeek | titlecase }}, {{ data.cell.slotName }}
     @if (data.cell.cohortSectionLabel) { · {{ data.cell.cohortSectionLabel }} }
   </p>
+  <p class="scr-title__sub">
+    @if (data.cell.batchName) {
+      Scope: <strong>{{ data.cell.batchName }}</strong> only — other batches sharing this slot are untouched
+    } @else {
+      Scope: the whole section — no batch split at this slot
+    }
+    · {{ isMultiPeriod() ? 'whole multi-period session' : 'single period' }}
+  </p>
 </div>
 
 <mat-dialog-content>
@@ -16,8 +24,8 @@
 
   @if (isMultiPeriod()) {
     <p class="scr-callout">
-      This session spans more than one period. All of its periods are replaced together — a
-      multi-period block can't teach two different subjects.
+      This is a whole multi-period session, not a single period — every period in it is replaced
+      together as one unit. A partial swap that left one period on the old subject/type isn't possible.
     </p>
   }
 

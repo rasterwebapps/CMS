@@ -1083,6 +1083,19 @@ public class TimetableSkeletonService {
      *
      *  <p>The room is deliberately NOT a parameter: it is re-derived from the section's committed
      *  allocation, exactly as {@code TimetableStaffingService#staffCell} does. */
+    /** Every {@link ClassSchedule} row belonging to {@code cs}'s own multi-period session — just
+     *  {@code cs} itself when it isn't part of a period-span group ({@link ClassSchedule#getSessionGroupId()}
+     *  null). {@code sessionGroupId} is minted fresh per single placement call (see {@code
+     *  #placeCell}/{@code #saveIdleBatchTheoryCells}) for one {@link Batch} at a time, so a group
+     *  returned here can never straddle two different batches rotating through the same day/period —
+     *  a Replace scoped to one row's group is therefore always scoped to one batch's own occurrence,
+     *  never a sibling batch's. The single place both replace paths below get "the whole session"
+     *  from, so a swap's resource checks and its mutation always agree on what that means. */
+    private List<ClassSchedule> sessionGroupOf(ClassSchedule cs) {
+        return cs.getSessionGroupId() == null ? List.of(cs)
+            : classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(cs.getSessionGroupId());
+    }
+
     @Transactional
     public SkeletonCellReplaceResponse replaceCellSubject(Long classScheduleId, SkeletonCellReplaceRequest request) {
         ClassSchedule cs = classScheduleRepository.findById(classScheduleId)
@@ -1159,46 +1172,51 @@ public class TimetableSkeletonService {
             violations.add(new ConstraintViolation("STAFFING_FACULTY_NOT_ELIGIBLE",
                 newFaculty.getFullName() + " isn't eligible to teach " + newOffering.getSubject().getName() + "."));
         }
-        // Physical location, staff, and period availability are all re-checked, not assumed. The
-        // room does not change (a Theory room is the section's committed classroom, re-derived, not
-        // a per-session choice), but it must still be re-scanned: the section's committed allocation
-        // can have been changed or re-committed since this cell was placed, and the incoming faculty
-        // is new to this slot regardless. Room spec mirrors validateMoveTarget's, so replace and
-        // move/swap judge occupancy by exactly the same rule rather than two drifting copies.
-        // ClassSessionType.THEORY, not cs.getSessionType() -- the room check must reflect what this
-        // cell is becoming, not what it currently is, since a LIBRARY/SPORTS source is about to
-        // convert to THEORY. venueIdOf/physicalRoomOf resolve identically for THEORY/LIBRARY/SPORTS
-        // (all read cs.getClassroom()), so only the TYPE passed to the conflict check needs this care.
-        Long venueId = TimetableStaffingService.venueIdOf(cs);
-        TimetableStaffingService.RoomCheckSpec roomCheck = venueId != null
-            ? new TimetableStaffingService.RoomCheckSpec(ClassSessionType.THEORY, venueId,
-                TimetableStaffingService.physicalRoomOf(cs), TimetableStaffingService.RoomMode.STRICT)
-            : null;
-        violations.addAll(timetableStaffingService.validateAssignment(
-            cs, cs.getDayOfWeek(), period.getStartTime(), period.getEndTime(), newFaculty,
-            cs.getId(), roomCheck, null, null).violations());
+        // A multi-period Theory block is one session, so every row in the group is replaced together
+        // -- replacing only the clicked period would leave a 2-period block teaching two subjects.
+        // Resource checks below must therefore cover EVERY row's own day/period, not just the
+        // clicked cs's -- checking cs alone and then applying newFaculty to the whole group would
+        // silently wave through a faculty double-booking or a clinical-duty conflict on a sibling
+        // period the admin never saw validated.
+        List<ClassSchedule> group = sessionGroupOf(cs);
+        for (ClassSchedule row : group) {
+            Period rowPeriod = row.getPeriod();
+            // Physical location, staff, and period availability are all re-checked, not assumed. The
+            // room does not change (a Theory room is the section's committed classroom, re-derived, not
+            // a per-session choice), but it must still be re-scanned: the section's committed allocation
+            // can have been changed or re-committed since this cell was placed, and the incoming faculty
+            // is new to this slot regardless. Room spec mirrors validateMoveTarget's, so replace and
+            // move/swap judge occupancy by exactly the same rule rather than two drifting copies.
+            // ClassSessionType.THEORY, not row.getSessionType() -- the room check must reflect what this
+            // cell is becoming, not what it currently is, since a LIBRARY/SPORTS source is about to
+            // convert to THEORY. venueIdOf/physicalRoomOf resolve identically for THEORY/LIBRARY/SPORTS
+            // (all read row.getClassroom()), so only the TYPE passed to the conflict check needs this care.
+            Long venueId = TimetableStaffingService.venueIdOf(row);
+            TimetableStaffingService.RoomCheckSpec roomCheck = venueId != null
+                ? new TimetableStaffingService.RoomCheckSpec(ClassSessionType.THEORY, venueId,
+                    TimetableStaffingService.physicalRoomOf(row), TimetableStaffingService.RoomMode.STRICT)
+                : null;
+            violations.addAll(timetableStaffingService.validateAssignment(
+                row, row.getDayOfWeek(), rowPeriod.getStartTime(), rowPeriod.getEndTime(), newFaculty,
+                row.getId(), roomCheck, null, null).violations());
 
-        // Period availability also means "this cohort isn't away on clinical duty" -- a duty window
-        // can be added or widened after a cell was placed, so the slot's legality is re-established
-        // here rather than trusted because it was legal when originally placed.
-        Long cohortId = audienceCohortId(cs);
-        if (cohortId != null) {
-            checkClinicalShiftBlocked(cohortId, cs.getBatch() != null ? cs.getBatch().getId() : null,
-                cs.getDayOfWeek(), period, cs.getTermInstance())
-                .ifPresent(violations::add);
+            // Period availability also means "this cohort isn't away on clinical duty" -- a duty window
+            // can be added or widened after a cell was placed, so the slot's legality is re-established
+            // here rather than trusted because it was legal when originally placed.
+            Long cohortId = audienceCohortId(row);
+            if (cohortId != null) {
+                checkClinicalShiftBlocked(cohortId, row.getBatch() != null ? row.getBatch().getId() : null,
+                    row.getDayOfWeek(), rowPeriod, row.getTermInstance())
+                    .ifPresent(violations::add);
+            }
         }
 
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
 
-        // A multi-period Theory block is one session, so every row in the group is replaced together
-        // -- replacing only the clicked period would leave a 2-period block teaching two subjects.
         CourseOffering displacedOffering = cs.getCourseOffering();
         CohortSection audience = cs.getCohortSection();
-
-        List<ClassSchedule> group = cs.getSessionGroupId() == null ? List.of(cs)
-            : classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(cs.getSessionGroupId());
         for (ClassSchedule row : group) {
             row.setCourseOffering(newOffering);
             row.setSubject(newOffering.getSubject());
@@ -1259,8 +1277,13 @@ public class TimetableSkeletonService {
             throw new IllegalArgumentException(
                 "This session is already " + targetType.name().toLowerCase() + " — nothing to swap it to.");
         }
+        // Computed up front: a multi-period Library/Sports block is one whole session (same
+        // sessionGroupId contract as the THEORY shape above), so both the weekly-cap arithmetic and
+        // the room/faculty candidate scan below must account for every period this swap is about to
+        // add, not just the one the admin clicked.
+        List<ClassSchedule> group = sessionGroupOf(cs);
         List<ConstraintViolation> violations = new ArrayList<>();
-        checkFillerWeeklyCapNotMet(cs, targetType).ifPresent(violations::add);
+        checkFillerWeeklyCapNotMet(cs, targetType, group.size()).ifPresent(violations::add);
         if (!violations.isEmpty()) {
             throw new TimetableConstraintViolationException(violations);
         }
@@ -1286,19 +1309,22 @@ public class TimetableSkeletonService {
                 .toList()
             : List.of(); // LIBRARY: unstaffed by design (TimetableStaffingService#stageCell)
 
-        Period period = cs.getPeriod();
-        DayOfWeek day = cs.getDayOfWeek();
+        // A candidate room (and, for Sports, faculty) must be free across EVERY period in the
+        // session group, not just the clicked cs's own period -- resolving against cs alone and
+        // then applying the result to every sibling row below (as the mutation loop already did)
+        // would silently apply a room/faculty to a period it was never actually checked against,
+        // producing a real double-booking on the un-checked sibling period.
         Classroom resolvedClassroom = null;
         Faculty resolvedFaculty = null;
         if (targetType == ClassSessionType.LIBRARY) {
             resolvedClassroom = pool.stream()
-                .filter(c -> resourceFree(cs, targetType, c, null, day, period))
+                .filter(c -> group.stream().allMatch(row -> resourceFree(row, targetType, c, null, row.getDayOfWeek(), row.getPeriod())))
                 .findFirst().orElse(null);
         } else {
             outer:
             for (Classroom candidate : pool) {
                 for (Faculty faculty : candidateFaculty) {
-                    if (resourceFree(cs, targetType, candidate, faculty, day, period)) {
+                    if (group.stream().allMatch(row -> resourceFree(row, targetType, candidate, faculty, row.getDayOfWeek(), row.getPeriod()))) {
                         resolvedClassroom = candidate;
                         resolvedFaculty = faculty;
                         break outer;
@@ -1323,8 +1349,6 @@ public class TimetableSkeletonService {
 
         CourseOffering displacedOffering = cs.getCourseOffering();
         CohortSection audience = cs.getCohortSection();
-        List<ClassSchedule> group = cs.getSessionGroupId() == null ? List.of(cs)
-            : classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(cs.getSessionGroupId());
         for (ClassSchedule row : group) {
             // Audience (batch/section) is deliberately left untouched -- only WHAT is taught and
             // where changes here, same contract as the THEORY shape above. A batch-scoped idle-batch
@@ -1361,8 +1385,14 @@ public class TimetableSkeletonService {
      *  Automation's own fallback respects (single shared Library room / Sports venue contended by
      *  every cohort), so it's enforced here rather than left as an unbounded override. Queried
      *  straight from the DB (DRAFT rows for this term) rather than reused in-memory run state, since
-     *  a manual edit has no in-progress auto-schedule run to read from. */
-    private Optional<ConstraintViolation> checkFillerWeeklyCapNotMet(ClassSchedule cs, ClassSessionType targetType) {
+     *  a manual edit has no in-progress auto-schedule run to read from.
+     *
+     *  <p>{@code addingPeriods} is the session group's own size — a whole multi-period block adds
+     *  that many periods of {@code targetType} in one swap, not just the one row the admin clicked,
+     *  so the cap must be checked against the total the swap would produce, not against pre-existing
+     *  usage alone (for a single-period swap {@code addingPeriods == 1}, which reduces to the
+     *  original {@code used < entitlementPeriods} check). */
+    private Optional<ConstraintViolation> checkFillerWeeklyCapNotMet(ClassSchedule cs, ClassSessionType targetType, int addingPeriods) {
         int sessionsPerWeek = resolveFillerConfigInt(targetType == ClassSessionType.LIBRARY
             ? CONFIG_LIBRARY_SESSIONS_PER_WEEK : CONFIG_SPORTS_SESSIONS_PER_WEEK,
             targetType == ClassSessionType.LIBRARY ? DEFAULT_LIBRARY_SESSIONS_PER_WEEK : DEFAULT_SPORTS_SESSIONS_PER_WEEK);
@@ -1380,7 +1410,7 @@ public class TimetableSkeletonService {
             .filter(row -> Objects.equals(row.getCohortSection() != null ? row.getCohortSection().getId() : null, sectionId))
             .filter(row -> row.getBatch() == null || Objects.equals(row.getBatch().getId(), batchId))
             .count();
-        if (used < entitlementPeriods) {
+        if (used + addingPeriods <= entitlementPeriods) {
             return Optional.empty();
         }
         return Optional.of(new ConstraintViolation("SKELETON_FILLER_WEEKLY_CAP_MET",
