@@ -527,8 +527,13 @@ public class TimetableStaffingService {
         if (blocks.isEmpty()) {
             return Optional.empty();
         }
+        // reason is a free-text, nullable field (FacultyAvailability#reason has no NOT NULL
+        // constraint) -- an admin can leave it blank, so this must not blindly concatenate it or
+        // the message reads "...at this day and time: null" verbatim.
+        String reason = blocks.get(0).getReason();
         return Optional.of(new ConstraintViolation("STAFFING_FACULTY_UNAVAILABLE",
-            "This faculty member is unavailable at this day and time: " + blocks.get(0).getReason()));
+            "This faculty member is unavailable at this day and time"
+                + (reason != null && !reason.isBlank() ? ": " + reason : ".")));
     }
 
     /** Non-throwing: returns a violation if this faculty member has a {@link

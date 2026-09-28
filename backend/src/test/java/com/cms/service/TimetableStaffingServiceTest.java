@@ -581,6 +581,25 @@ class TimetableStaffingServiceTest {
             .hasMessageContaining("On approved leave");
     }
 
+    /** {@code reason} is a free-text, nullable field an admin can leave blank -- this is the exact
+     *  shape of a real production bug (a faculty member's recurring unavailability row saved with no
+     *  reason text), which previously rendered as the literal string "...at this day and time: null"
+     *  because the message blindly concatenated a null reason. */
+    @Test
+    void checkFacultyAvailable_blankReasonDoesNotRenderAsLiteralNull() {
+        FacultyAvailability noReason = new FacultyAvailability();
+        noReason.setReason(null);
+        when(facultyAvailabilityRepository.findOverlapping(1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime()))
+            .thenReturn(List.of(noReason));
+
+        Optional<com.cms.dto.ConstraintViolation> result = service.checkFacultyAvailable(
+            1L, DayOfWeek.MONDAY, period.getStartTime(), period.getEndTime(), null);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().message()).doesNotContain("null");
+        assertThat(result.get().message()).isEqualTo("This faculty member is unavailable at this day and time.");
+    }
+
     @Test
     void checkFacultyAvailable_dateOutsideRangedBlockDoesNotBlock() {
         FacultyAvailability ranged = new FacultyAvailability();
