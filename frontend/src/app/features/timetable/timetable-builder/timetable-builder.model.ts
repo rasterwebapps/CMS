@@ -246,12 +246,20 @@ export interface DutyDayMoveRequest {
   cohortId: number;
 }
 
-/** Hands a placed Theory cell's slot to a different subject, keeping its day/period/audience.
- *  THEORY only, DRAFT only, and never an elective on either side — an elective group shares one
- *  slot across all its members, so it's re-placed via Place Elective Block instead. */
+/** Hands a placed Theory/Library/Sports cell's slot to something else, keeping its
+ *  day/period/audience. DRAFT only, and never an elective on either side — an elective group
+ *  shares one slot across all its members, so it's re-placed via Place Elective Block instead.
+ *
+ *  <p>Two shapes, by `targetType`:
+ *  - omitted (THEORY, the original shape): `courseOfferingId` + `facultyId` are both required —
+ *    pick a real curriculum subject and who teaches it.
+ *  - `'LIBRARY'` or `'SPORTS'`: convert the cell into that advisory filler type. Neither field is
+ *    sent — the server resolves the room (and, for Sports, an eligible faculty) from whatever is
+ *    actually free at this exact slot, the same way Run Automation's own fallback passes do. */
 export interface TimetableCellReplaceRequest {
-  courseOfferingId: number;
-  facultyId: number;
+  targetType?: TimetableSessionType;
+  courseOfferingId?: number;
+  facultyId?: number;
 }
 
 /** How far below its curriculum Theory hours the subject we just displaced now sits across the

@@ -68,6 +68,7 @@ import com.cms.model.Cohort;
 import com.cms.model.ClassSchedule;
 import com.cms.model.Classroom;
 import com.cms.model.CohortSection;
+import com.cms.model.ClinicalVenue;
 import com.cms.model.CourseOffering;
 import com.cms.model.CourseOfferingSectionFaculty;
 import com.cms.model.CurriculumSemesterCourse;
@@ -1144,12 +1145,19 @@ class TimetableGlobalAutoScheduleServiceTest {
         CohortSection section = new CohortSection();
         section.setId(52L);
 
+        // Real Capacity Auto-Plan batches always carry exactly one of lab/clinicalVenue -- set here so
+        // this fixture matches that invariant now that fillIdleBatchGaps restricts siblings to the
+        // occupant's own venue type.
+        Lab lab = new Lab();
+        lab.setId(2L);
+
         Batch batch0 = new Batch();
         batch0.setId(3001L);
         batch0.setName("Batch A");
         batch0.setCapacity(30);
         batch0.setCohortSection(section);
         batch0.setIsActive(true);
+        batch0.setLab(lab);
 
         Batch batch1 = new Batch();
         batch1.setId(3002L);
@@ -1157,6 +1165,7 @@ class TimetableGlobalAutoScheduleServiceTest {
         batch1.setCapacity(30);
         batch1.setCohortSection(section);
         batch1.setIsActive(true);
+        batch1.setLab(lab);
 
         when(batchRepository.findById(3001L)).thenReturn(Optional.of(batch0));
         when(batchRepository.findById(3002L)).thenReturn(Optional.of(batch1));
@@ -1202,6 +1211,93 @@ class TimetableGlobalAutoScheduleServiceTest {
         // Tuesday: Batch B (3002) is in the LAB, so Batch A (3001) is idle and covered.
         assertThat(libraryPlacements).anyMatch(p -> p.dayOfWeek() == DayOfWeek.TUESDAY && p.batchId().equals(3001L));
         assertThat(unplacedForCohort).noneMatch(item -> "Idle batch fallback".equals(item.subjectName()));
+    }
+
+    // Bug found 2026-09-28 (user report + live DB investigation on N-NF-I-125): fillIdleBatchGaps
+    // found siblings by CourseOffering + CohortSection alone, so a Capacity Auto-Plan commit that
+    // splits a 60-seat section into two 30-seat LAB batches (lab room capacity 30) *and* commits a
+    // separate, unsplit 60-seat CLINICAL batch (clinical venue capacity 60) for the very same offering
+    // made the Clinical batch look like a third sibling of the two Lab batches. The Clinical batch's
+    // roster IS the two Lab batches combined, not a third group of students, so every time only one
+    // Lab batch was occupied, the Clinical batch was also treated as "idle" and given its own parallel
+    // Self-Study/Library placement -- double-booking the half of the roster already sitting in the lab.
+    // Siblings must now share the occupant's own venue type (both Lab, or both Clinical).
+    @Test
+    void fillIdleBatchGaps_neverTreatsAnUnsplitClinicalBatchAsASiblingOfASplitLabBatch() {
+        List<Period> periods = skscPeriods();
+        when(periodRepository.findById(1L)).thenReturn(Optional.of(periods.get(0)));
+        when(periodRepository.findById(2L)).thenReturn(Optional.of(periods.get(1)));
+
+        CohortSection section = new CohortSection();
+        section.setId(49L);
+
+        Lab lab = new Lab();
+        lab.setId(2L);
+
+        ClinicalVenue ward = new ClinicalVenue();
+        ward.setId(1L);
+
+        Batch labBatch1 = new Batch();
+        labBatch1.setId(279L);
+        labBatch1.setName("Lab - Section 1 - Batch 1");
+        labBatch1.setCapacity(30);
+        labBatch1.setCohortSection(section);
+        labBatch1.setIsActive(true);
+        labBatch1.setLab(lab);
+
+        Batch labBatch2 = new Batch();
+        labBatch2.setId(280L);
+        labBatch2.setName("Lab - Section 1 - Batch 2");
+        labBatch2.setCapacity(30);
+        labBatch2.setCohortSection(section);
+        labBatch2.setIsActive(true);
+        labBatch2.setLab(lab);
+
+        Batch clinicalBatch = new Batch();
+        clinicalBatch.setId(283L);
+        clinicalBatch.setName("Clinical - Section 1");
+        clinicalBatch.setCapacity(60);
+        clinicalBatch.setCohortSection(section);
+        clinicalBatch.setIsActive(true);
+        clinicalBatch.setClinicalVenue(ward);
+
+        when(batchRepository.findById(280L)).thenReturn(Optional.of(labBatch2));
+        when(batchRepository.findByCourseOfferingId(63L)).thenReturn(List.of(labBatch1, labBatch2, clinicalBatch));
+        when(batchRepository.countStudents(anyLong())).thenReturn(0L);
+        when(classScheduleRepository.findByBatchIdInAndIsActiveTrue(List.of(279L))).thenReturn(List.of());
+
+        Subject librarySubject = new Subject();
+        librarySubject.setId(999L);
+        librarySubject.setCode("SYSTEM-LIBRARY");
+        when(subjectRepository.findByCode("SYSTEM-LIBRARY")).thenReturn(Optional.of(librarySubject));
+
+        Classroom libraryRoom = new Classroom("Library Hall", null, null, 60);
+        libraryRoom.setId(50L);
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(
+            com.cms.model.enums.RoomPurposeCategoryCode.LIBRARY)).thenReturn(List.of(libraryRoom));
+        when(timetableSkeletonService.saveIdleBatchLibraryCells(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(List.of(777L));
+
+        SkeletonBuilderResponse skeleton = new SkeletonBuilderResponse(1L, "Cohort 1", "Term",
+            List.of(), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of());
+
+        List<TimetableGlobalAutoScheduleService.Placement> placedThisCohortRun = new ArrayList<>(List.of(
+            new TimetableGlobalAutoScheduleService.Placement(1001L, 63L, ClassSessionType.LAB, 280L, null, 500L,
+                "Lab - Section 1 - Batch 2", null, DayOfWeek.TUESDAY, List.of(1L, 2L))));
+        List<AutoPlaceUnplacedItem> unplacedForCohort = new ArrayList<>();
+
+        service.fillIdleBatchGaps(1L, skeleton, termInstance, periods, new EnumMap<>(DayOfWeek.class), false,
+            placedThisCohortRun, unplacedForCohort, null);
+
+        List<TimetableGlobalAutoScheduleService.Placement> fallbackPlacements = placedThisCohortRun.stream()
+            .filter(p -> p.sessionType() == ClassSessionType.LIBRARY || p.sessionType() == ClassSessionType.THEORY)
+            .toList();
+        // Only the other LAB batch (279) is a genuine sibling and gets covered -- the Clinical batch
+        // (283) is never touched, since its roster overlaps the two Lab batches rather than being a
+        // third idle group.
+        assertThat(fallbackPlacements).hasSize(1);
+        assertThat(fallbackPlacements.get(0).batchId()).isEqualTo(279L);
+        assertThat(fallbackPlacements).noneMatch(p -> p.batchId().equals(283L));
     }
 
     @Test
@@ -1336,56 +1432,6 @@ class TimetableGlobalAutoScheduleServiceTest {
             .thenReturn(Optional.of(new SystemConfigurationResponse(null, key, value, null, null, null, null, null, null)));
     }
 
-    private record LibraryRun(List<DayOfWeek> blockDays, List<String> infoNotes) {}
-
-    /** One cohort with no curriculum and an empty two-period week (2 periods x 5 weekdays = 10 free
-     *  periods), one Library room and the default quota of one Library session. Runs automation and
-     *  returns the day of every Library block placed, plus the cohort's neutral notes. */
-    private LibraryRun runLibraryOnEmptyWeek() {
-        when(studentTermEnrollmentRepository.findDistinctCohortIdsByTermInstanceId(10L, EnrollmentStatus.ENROLLED))
-            .thenReturn(new HashSet<>(List.of(1L)));
-        cohort(1L, "Cohort 1");
-        when(courseOfferingService.getOfferingsByTermInstanceAndCohort(10L, 1L)).thenReturn(List.of());
-        when(timetableSkeletonService.resolveActiveSections(1L, 10L)).thenReturn(List.of());
-        when(timetableSkeletonService.getCohortSkeleton(10L, 1L)).thenReturn(new SkeletonBuilderResponse(1L, "Cohort 1",
-            "Term", List.of(), List.of(), List.of(), List.of(), 25, 0L, List.of(), false, List.of()));
-
-        Subject librarySubject = new Subject();
-        librarySubject.setId(999L);
-        librarySubject.setCode("SYSTEM-LIBRARY");
-        when(subjectRepository.findByCode("SYSTEM-LIBRARY")).thenReturn(Optional.of(librarySubject));
-        Classroom libraryRoom = new Classroom("Library Hall", null, null, 200);
-        libraryRoom.setId(50L);
-        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(any()))
-            .thenReturn(List.of(libraryRoom));
-        when(timetableSkeletonService.isSlotFreeForCohort(eq(1L), eq(10L), any(), any())).thenReturn(true);
-        Period p2 = new Period("2nd Period", LocalTime.of(9, 50), LocalTime.of(10, 40), 2);
-        p2.setId(2L);
-        when(periodRepository.findByIsActiveTrueOrderByPeriodOrderAsc()).thenReturn(List.of(period1, p2));
-
-        List<DayOfWeek> blockDays = new ArrayList<>();
-        when(timetableSkeletonService.saveLibraryBlockCells(any(), any(), any(), any(), any(), any()))
-            .thenAnswer(inv -> {
-                DayOfWeek day = inv.getArgument(2);
-                blockDays.add(day);
-                @SuppressWarnings("unchecked")
-                List<Period> block = (List<Period>) inv.getArgument(3);
-                List<ClassSchedule> saved = new ArrayList<>();
-                for (Period period : block) {
-                    ClassSchedule cs = new ClassSchedule();
-                    cs.setSessionType(ClassSessionType.LIBRARY);
-                    cs.setDayOfWeek(day);
-                    cs.setPeriod(period);
-                    cs.setId(950L + idSequence.getAndIncrement());
-                    saved.add(cs);
-                }
-                return saved;
-            });
-
-        var result = service.runGlobalAutoSchedule(10L, null);
-        return new LibraryRun(blockDays, result.cohortSummaries().get(0).infoNotes());
-    }
-
     /** Regression for 2026-09-18 (bonus session) extended 2026-09-21 to Library's OWN required
      *  quota, not just the bonus: both used to run without ever checking {@code theoryStillOwedRuns},
      *  so a cohort with a genuine, unresolvable Theory shortfall could still have its free periods
@@ -1393,7 +1439,7 @@ class TimetableGlobalAutoScheduleServiceTest {
      *  475h of term-wide spare capacity" complaint this closes, and the follow-up report that Library
      *  and Sports (both non-curriculum, advisory/co-curricular filler, same as Self-Study) were still
      *  claiming slots ahead of an unmet curriculum requirement even after the bonus-only gate.
-     *  Same free-period shape as {@link #librarySecondSessionIsABonus_whenTheWeekHasPlentyOfFreePeriods}
+     *  Same free-period shape as the old bonus-session tests (10 free periods) but with one Theory offering
      *  (10 free periods, above the default 8-period bonus threshold) but with one Theory offering
      *  that can never be placed anywhere, so the cohort has a real shortfall Library must yield to
      *  entirely, even though the free-period threshold alone would still allow it. */
@@ -1561,6 +1607,59 @@ class TimetableGlobalAutoScheduleServiceTest {
         verify(timetableSkeletonService, never()).saveLibraryBlockCells(any(), any(), any(), any(), any(), any());
         verify(timetableSkeletonService, never()).isSlotFreeForCohort(anyLong(), anyLong(), any(), any());
         verify(subjectRepository, never()).findByCode(anyString());
+    }
+
+    /** A displaced SELF-STUDY session is advisory, even though its cells are typed THEORY.
+     *
+     * <p>Advisory-ness used to be decided here by a hardcoded "is the session type LIBRARY" test, so a
+     *  Self-Study/Co-curricular session a backtrack had sacrificed came back tagged as a REAL curriculum
+     *  gap. That false gap then tripped the "cohort still owes placeable curriculum" check, which
+     *  withholds the extra-hours filler from the entire cohort — live data showed BSc Nursing
+     *  (2026-2030) reporting "40 period(s) held back" and carrying seven genuinely dead periods
+     *  (Tue P7-P8, Thu P7-P8, Fri P6-P8) because of one advisory row that was never mandatory.
+     *
+     * <p>It must also stay out of {@code theoryStillOwedRuns}: every Library/Sports gate yields to what
+     *  it finds there, so an advisory Self-Study row landing in it blocks Library — which outranks
+     *  Self-Study — behind Self-Study. */
+    @Test
+    void aDisplacedSelfStudySessionIsReportedAsAdvisory_andNeverReopensTheoryStillOwedRuns() {
+        Subject selfStudy = new Subject();
+        selfStudy.setId(410L);
+        selfStudy.setName("Self-Study/Co-curricular I");
+        CourseOffering offering = new CourseOffering();
+        offering.setId(410L);
+        offering.setSubject(selfStudy);
+        CurriculumSemesterCourse csc = new CurriculumSemesterCourse();
+        csc.setSubjectType(SubjectType.CO_CURRICULAR);
+        offering.setCurriculumSemesterCourse(csc);
+        when(courseOfferingRepository.findById(410L)).thenReturn(Optional.of(offering));
+
+        List<TimetableGlobalAutoScheduleService.Placement> placedThisCohortRun = new ArrayList<>();
+        List<AutoPlaceUnplacedItem> unplacedForCohort = new ArrayList<>();
+        java.util.Map<DayOfWeek, Integer> dayLoad = new java.util.HashMap<>();
+        java.util.Map<String, Integer> theoryStillOwedRuns = new java.util.HashMap<>();
+
+        // A THEORY-typed Self-Study cell whose exact slot is gone, so the restore genuinely fails.
+        TimetableGlobalAutoScheduleService.Placement bumped = new TimetableGlobalAutoScheduleService.Placement(
+            800L, 410L, ClassSessionType.THEORY, null, 51L, 600L, "Self-Study/Co-curricular I", "Section 1",
+            DayOfWeek.THURSDAY, List.of(1L));
+        when(timetableSkeletonService.placeCell(any(SkeletonCellPlacementRequest.class)))
+            .thenThrow(new TimetableConstraintViolationException(
+                List.of(new ConstraintViolation("SKELETON_CELL_COHORT_CLASH", "occupied"))));
+
+        service.restoreBumpedOrReportUnplaced(bumped, 1L, placedThisCohortRun, unplacedForCohort, dayLoad,
+            termInstance, List.of(period1),
+            new TimetableGlobalAutoScheduleService.TermDemandAggregation(100, 20, java.util.Map.of(), java.util.Map.of(), 0),
+            new ArrayList<>(), theoryStillOwedRuns);
+
+        assertThat(unplacedForCohort).hasSize(1);
+        assertThat(unplacedForCohort.get(0).subjectName()).isEqualTo("Self-Study/Co-curricular I");
+        assertThat(unplacedForCohort.get(0).advisoryOnly())
+            .as("Self-Study is advisory content even though its cells are typed THEORY")
+            .isTrue();
+        assertThat(theoryStillOwedRuns)
+            .as("an advisory row must not gate Library/Sports, which outrank it")
+            .isEmpty();
     }
 
     /** Regression for the OPPOSITE incident: an earlier version of this method skipped any Self-Study

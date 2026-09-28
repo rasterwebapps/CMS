@@ -75,8 +75,11 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.CohortRoomAllocationStatus;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.EnrollmentStatus;
+import com.cms.model.enums.FacultyStatus;
+import com.cms.model.enums.RoomPurposeCategoryCode;
 import com.cms.model.enums.SubjectType;
 import com.cms.repository.BatchRepository;
+import com.cms.repository.ClassroomRepository;
 import com.cms.repository.ClassScheduleRepository;
 import com.cms.repository.ClinicalShiftGroupRepository;
 import com.cms.repository.CohortRepository;
@@ -86,6 +89,7 @@ import com.cms.repository.CourseOfferingRepository;
 import com.cms.repository.FacultyRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.SubjectRepository;
 import com.cms.repository.TermInstanceRepository;
 
 /**
@@ -137,6 +141,9 @@ public class TimetableSkeletonService {
     private final TimetableClinicalShiftChecker clinicalShiftChecker;
     private final FacultyRepository facultyRepository;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    private final ClassroomRepository classroomRepository;
+    private final SubjectRepository subjectRepository;
+    private final SystemConfigurationService systemConfigurationService;
 
     public TimetableSkeletonService(CourseOfferingRepository courseOfferingRepository,
                                      ClassScheduleRepository classScheduleRepository,
@@ -157,7 +164,10 @@ public class TimetableSkeletonService {
                                      ClinicalShiftGroupService clinicalShiftGroupService,
                                     TimetableClinicalShiftChecker clinicalShiftChecker,
                                      FacultyRepository facultyRepository,
-                                     StudentTermEnrollmentRepository studentTermEnrollmentRepository) {
+                                     StudentTermEnrollmentRepository studentTermEnrollmentRepository,
+                                     ClassroomRepository classroomRepository,
+                                     SubjectRepository subjectRepository,
+                                     SystemConfigurationService systemConfigurationService) {
         this.courseOfferingRepository = courseOfferingRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.periodRepository = periodRepository;
@@ -178,6 +188,9 @@ public class TimetableSkeletonService {
         this.clinicalShiftChecker = clinicalShiftChecker;
         this.facultyRepository = facultyRepository;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
+        this.classroomRepository = classroomRepository;
+        this.subjectRepository = subjectRepository;
+        this.systemConfigurationService = systemConfigurationService;
     }
 
     public SkeletonBuilderResponse getCohortSkeleton(Long termInstanceId, Long cohortId) {
@@ -1086,6 +1099,18 @@ public class TimetableSkeletonService {
                     + "session's audience is a batch tied to one offering, so changing its subject means changing "
                     + "the batch in Capacity Planner.");
         }
+        ClassSessionType targetType = request.targetType() == null ? ClassSessionType.THEORY : request.targetType();
+        if (targetType == ClassSessionType.LIBRARY || targetType == ClassSessionType.SPORTS) {
+            // Converting to a filler type asks nothing of the admin beyond which type to switch to
+            // -- resource availability (room, and for Sports a faculty) is resolved server-side,
+            // through the exact same #resolveFillerAssignment/validateAssignment path used below for
+            // the THEORY shape, rather than a bespoke check per type. See that method's javadoc.
+            return replaceCellWithFiller(cs, targetType);
+        }
+        if (request.courseOfferingId() == null || request.facultyId() == null) {
+            throw new IllegalArgumentException(
+                "A subject and faculty are both required to replace this session with a Theory subject.");
+        }
         CourseOffering newOffering = courseOfferingRepository.findById(request.courseOfferingId())
             .orElseThrow(() -> new ResourceNotFoundException("Course offering not found with id: " + request.courseOfferingId()));
         // An institution-decided elective is a common cohort subject (only its chosen option runs), so
@@ -1189,6 +1214,195 @@ public class TimetableSkeletonService {
         }
         return new SkeletonCellReplaceResponse(toCellResponse(cs),
             describeDisplacedShortfall(displacedOffering, audience));
+    }
+
+    // Same config keys Run Automation's own Library/Sports gap-fill reads (see
+    // TimetableGlobalAutoScheduleService's CONFIG_LIBRARY_*/CONFIG_SPORTS_* constants and
+    // #resolveLibraryConfigInt) -- duplicated here as plain literals rather than shared because the
+    // originals are private to that class and it already depends on this one (TimetableSkeletonService
+    // is what its own Library/Sports placement saves through), so the reverse dependency isn't
+    // available. LIBRARY_SUBJECT_CODE/SPORTS_SUBJECT_CODE stay package-private statics on that class
+    // and are referenced directly below instead of duplicated, since a Java constant can be shared
+    // without an object dependency.
+    private static final String CONFIG_LIBRARY_SESSIONS_PER_WEEK = "timetable.library_sessions_per_week";
+    private static final String CONFIG_LIBRARY_BLOCK_SIZE_PERIODS = "timetable.library_block_size_periods";
+    private static final int DEFAULT_LIBRARY_SESSIONS_PER_WEEK = 1;
+    private static final int DEFAULT_LIBRARY_BLOCK_SIZE_PERIODS = 2;
+    private static final String CONFIG_SPORTS_SESSIONS_PER_WEEK = "timetable.sports_sessions_per_week";
+    private static final String CONFIG_SPORTS_BLOCK_SIZE_PERIODS = "timetable.sports_block_size_periods";
+    private static final int DEFAULT_SPORTS_SESSIONS_PER_WEEK = 1;
+    private static final int DEFAULT_SPORTS_BLOCK_SIZE_PERIODS = 2;
+
+    /** Convert a placed Library/Self-Study/Sports cell into one of the other two advisory filler
+     *  types, keeping its day/period/audience untouched — the manual counterpart to Run Automation's
+     *  own Library/Self-Study/Sports fallback passes, for the case a human wants to override which
+     *  of the three covers one specific slot (e.g. the shared Library room is genuinely better used
+     *  by a different idle batch this week).
+     *
+     *  <p>Unlike {@link #replaceCellSubject}'s THEORY shape, the admin picks nothing beyond the
+     *  target type: LIBRARY needs a free Library-tagged classroom and no faculty; SPORTS needs a
+     *  free Sports-tagged classroom AND a Sports-eligible faculty free at this exact slot. Both are
+     *  resolved here the same way — scan the candidate rooms (and, for Sports, faculty) for this day
+     *  and time, and for each candidate reuse {@link TimetableStaffingService#validateAssignment},
+     *  the SAME shared room/faculty-availability check the THEORY shape and every other staffing
+     *  path in the app already goes through, rather than a bespoke scan per type. "Self-Study" isn't
+     *  a distinct {@link ClassSessionType} — it's a THEORY session on a CO_CURRICULAR-tagged
+     *  offering, already reachable via the ordinary subject picker in {@link #replaceCellSubject}'s
+     *  THEORY shape, so it needs no separate branch here.
+     *
+     *  <p>The weekly entitlement each type is capped at (2 periods/week by default, per batch when
+     *  the cell is batch-scoped, per section otherwise) is enforced here too, so a manual swap can't
+     *  silently exceed the same fairness cap Run Automation's own fallback respects — see
+     *  {@link #checkFillerWeeklyCapNotMet}. */
+    private SkeletonCellReplaceResponse replaceCellWithFiller(ClassSchedule cs, ClassSessionType targetType) {
+        if (cs.getSessionType() == targetType) {
+            throw new IllegalArgumentException(
+                "This session is already " + targetType.name().toLowerCase() + " — nothing to swap it to.");
+        }
+        List<ConstraintViolation> violations = new ArrayList<>();
+        checkFillerWeeklyCapNotMet(cs, targetType).ifPresent(violations::add);
+        if (!violations.isEmpty()) {
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        String subjectCode = targetType == ClassSessionType.LIBRARY
+            ? TimetableGlobalAutoScheduleService.LIBRARY_SUBJECT_CODE : TimetableGlobalAutoScheduleService.SPORTS_SUBJECT_CODE;
+        Subject fillerSubject = subjectRepository.findByCode(subjectCode).orElseThrow(() -> new IllegalArgumentException(
+            "No " + targetType.name().toLowerCase() + " subject is configured — add one in Subject Master with code "
+                + subjectCode + " first."));
+        RoomPurposeCategoryCode purpose = targetType == ClassSessionType.LIBRARY
+            ? RoomPurposeCategoryCode.LIBRARY : RoomPurposeCategoryCode.SPORTS;
+        List<Classroom> pool = classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(purpose);
+        if (pool.isEmpty()) {
+            violations.add(new ConstraintViolation("SKELETON_FILLER_NO_ROOM_CONFIGURED",
+                "No classroom is tagged as a " + targetType.name().toLowerCase() + " room (Room Purpose "
+                    + "Classification) — add one before swapping a session to " + targetType.name().toLowerCase() + "."));
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        List<Faculty> candidateFaculty = targetType == ClassSessionType.SPORTS
+            ? facultyRepository.findByStatus(FacultyStatus.ACTIVE).stream()
+                .filter(f -> FacultyEligibility.viaEligibleList(fillerSubject, f))
+                .toList()
+            : List.of(); // LIBRARY: unstaffed by design (TimetableStaffingService#stageCell)
+
+        Period period = cs.getPeriod();
+        DayOfWeek day = cs.getDayOfWeek();
+        Classroom resolvedClassroom = null;
+        Faculty resolvedFaculty = null;
+        if (targetType == ClassSessionType.LIBRARY) {
+            resolvedClassroom = pool.stream()
+                .filter(c -> resourceFree(cs, targetType, c, null, day, period))
+                .findFirst().orElse(null);
+        } else {
+            outer:
+            for (Classroom candidate : pool) {
+                for (Faculty faculty : candidateFaculty) {
+                    if (resourceFree(cs, targetType, candidate, faculty, day, period)) {
+                        resolvedClassroom = candidate;
+                        resolvedFaculty = faculty;
+                        break outer;
+                    }
+                }
+            }
+        }
+
+        if (resolvedClassroom == null) {
+            if (targetType == ClassSessionType.SPORTS && candidateFaculty.isEmpty()) {
+                violations.add(new ConstraintViolation("STAFFING_FACULTY_NOT_ELIGIBLE",
+                    "No active faculty is on the Sports subject's Eligible Faculty list — set one up in Subject "
+                        + "Master before swapping a session to Sports."));
+            } else {
+                violations.add(new ConstraintViolation("STAFFING_ROOM_CONFLICT",
+                    "No " + targetType.name().toLowerCase() + (targetType == ClassSessionType.SPORTS
+                        ? " venue and eligible faculty are both" : " classroom is")
+                        + " free for this exact day and time."));
+            }
+            throw new TimetableConstraintViolationException(violations);
+        }
+
+        CourseOffering displacedOffering = cs.getCourseOffering();
+        CohortSection audience = cs.getCohortSection();
+        List<ClassSchedule> group = cs.getSessionGroupId() == null ? List.of(cs)
+            : classScheduleRepository.findBySessionGroupIdOrderByPeriod_PeriodOrderAsc(cs.getSessionGroupId());
+        for (ClassSchedule row : group) {
+            // Audience (batch/section) is deliberately left untouched -- only WHAT is taught and
+            // where changes here, same contract as the THEORY shape above. A batch-scoped idle-batch
+            // cover must stay batch-scoped after the swap, or it would silently start claiming the
+            // sibling batch's own occupied slot as free.
+            row.setCourseOffering(null);
+            row.setSubject(fillerSubject);
+            row.setFaculty(resolvedFaculty);
+            row.setSessionType(targetType);
+            row.setClassroom(resolvedClassroom);
+            row.setPinned(true);
+            classScheduleRepository.save(row);
+        }
+        return new SkeletonCellReplaceResponse(toCellResponse(cs),
+            describeDisplacedShortfall(displacedOffering, audience));
+    }
+
+    /** True when {@code classroom} (and, if given, {@code faculty}) is genuinely free for {@code cs}'s
+     *  slot — the one shared check every candidate in {@link #replaceCellWithFiller}'s room/faculty
+     *  scan is run through, exactly the same {@link TimetableStaffingService#validateAssignment} call
+     *  the THEORY shape above uses. {@code faculty} null skips the faculty side entirely (LIBRARY). */
+    private boolean resourceFree(ClassSchedule cs, ClassSessionType targetType, Classroom classroom, Faculty faculty,
+                                  DayOfWeek day, Period period) {
+        TimetableStaffingService.RoomCheckSpec roomCheck = new TimetableStaffingService.RoomCheckSpec(
+            targetType, classroom.getId(), classroom.getRoom(), TimetableStaffingService.RoomMode.STRICT);
+        return timetableStaffingService.validateAssignment(cs, day, period.getStartTime(), period.getEndTime(),
+            faculty, cs.getId(), roomCheck, null, null).violations().isEmpty();
+    }
+
+    /** Mirrors {@code TimetableGlobalAutoScheduleService}'s own per-batch (or per-section, when the
+     *  cell isn't batch-scoped) Library/Sports weekly entitlement — 2 periods/week by default, from
+     *  ANY source (a whole-section block or a batch-scoped cover count the same). A manual swap is a
+     *  deliberate human decision, but it still must not silently blow past the same fairness cap Run
+     *  Automation's own fallback respects (single shared Library room / Sports venue contended by
+     *  every cohort), so it's enforced here rather than left as an unbounded override. Queried
+     *  straight from the DB (DRAFT rows for this term) rather than reused in-memory run state, since
+     *  a manual edit has no in-progress auto-schedule run to read from. */
+    private Optional<ConstraintViolation> checkFillerWeeklyCapNotMet(ClassSchedule cs, ClassSessionType targetType) {
+        int sessionsPerWeek = resolveFillerConfigInt(targetType == ClassSessionType.LIBRARY
+            ? CONFIG_LIBRARY_SESSIONS_PER_WEEK : CONFIG_SPORTS_SESSIONS_PER_WEEK,
+            targetType == ClassSessionType.LIBRARY ? DEFAULT_LIBRARY_SESSIONS_PER_WEEK : DEFAULT_SPORTS_SESSIONS_PER_WEEK);
+        int blockSizePeriods = resolveFillerConfigInt(targetType == ClassSessionType.LIBRARY
+            ? CONFIG_LIBRARY_BLOCK_SIZE_PERIODS : CONFIG_SPORTS_BLOCK_SIZE_PERIODS,
+            targetType == ClassSessionType.LIBRARY ? DEFAULT_LIBRARY_BLOCK_SIZE_PERIODS : DEFAULT_SPORTS_BLOCK_SIZE_PERIODS);
+        int entitlementPeriods = sessionsPerWeek * blockSizePeriods;
+
+        Long sectionId = cs.getCohortSection() != null ? cs.getCohortSection().getId() : null;
+        Long batchId = cs.getBatch() != null ? cs.getBatch().getId() : null;
+        long used = classScheduleRepository
+            .findByTermInstanceIdAndStatusAndIsActiveTrue(cs.getTermInstance().getId(), ClassScheduleStatus.DRAFT).stream()
+            .filter(row -> row.getSessionType() == targetType)
+            .filter(row -> !row.getId().equals(cs.getId()))
+            .filter(row -> Objects.equals(row.getCohortSection() != null ? row.getCohortSection().getId() : null, sectionId))
+            .filter(row -> row.getBatch() == null || Objects.equals(row.getBatch().getId(), batchId))
+            .count();
+        if (used < entitlementPeriods) {
+            return Optional.empty();
+        }
+        return Optional.of(new ConstraintViolation("SKELETON_FILLER_WEEKLY_CAP_MET",
+            (targetType == ClassSessionType.LIBRARY ? "Library" : "Sports") + " is already at its weekly entitlement ("
+                + entitlementPeriods + " period(s)) for this " + (batchId != null ? "batch" : "section")
+                + " — swap a different slot instead, or remove an existing " + targetType.name().toLowerCase()
+                + " session first."));
+    }
+
+    private int resolveFillerConfigInt(String configKey, int defaultValue) {
+        return systemConfigurationService.findByKey(configKey)
+            .map(com.cms.dto.SystemConfigurationResponse::configValue)
+            .filter(v -> v != null && !v.isBlank())
+            .map(v -> {
+                try {
+                    int parsed = Integer.parseInt(v.trim());
+                    return parsed > 0 ? parsed : defaultValue;
+                } catch (NumberFormatException e) {
+                    return defaultValue;
+                }
+            })
+            .orElse(defaultValue);
     }
 
     /** The cohort a placed Theory cell's audience belongs to, via its section's committed

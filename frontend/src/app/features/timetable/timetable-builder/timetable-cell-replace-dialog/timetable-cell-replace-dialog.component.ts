@@ -18,11 +18,14 @@ export interface TimetableCellReplaceDialogData {
 }
 
 /** What the user picked, handed back to the grid to actually call the API — the dialog itself
- *  never writes, so a failed replace re-opens with the same choices rather than losing them. */
-export interface TimetableCellReplaceDialogResult {
-  courseOfferingId: number;
-  facultyId: number;
-}
+ *  never writes, so a failed replace re-opens with the same choices rather than losing them.
+ *
+ *  <p>Either a real subject + faculty (the original shape), or a bare `targetType` of `'LIBRARY'`/
+ *  `'SPORTS'` asking the server to convert the cell into that filler type and resolve its own
+ *  room/faculty from whatever is free — see {@link TimetableCellReplaceRequest}. */
+export type TimetableCellReplaceDialogResult =
+  | { courseOfferingId: number; facultyId: number }
+  | { targetType: 'LIBRARY' | 'SPORTS' };
 
 /** One selectable replacement subject, with the quota arithmetic already resolved for THIS cell's
  *  section so the template stays declarative. */
@@ -68,6 +71,26 @@ export class TimetableCellReplaceDialogComponent {
   protected readonly faculty = signal<EligibleFacultyCandidate[]>([]);
   protected readonly loadingFaculty = signal(false);
   protected readonly facultyError = signal<string | null>(null);
+
+  /** 'subject' (the original flow: pick a real curriculum subject + faculty) or 'filler': convert
+   *  this cell into one of the OTHER two advisory filler types (Library/Self-Study/Sports). A
+   *  Self-Study swap has no distinct mode here — it's just a THEORY subject pick, already covered
+   *  by 'subject' — only Library/Sports need this second mode since neither is choosable from the
+   *  subject list. */
+  protected readonly mode = signal<'subject' | 'filler'>('subject');
+  protected readonly selectedFillerType = signal<'LIBRARY' | 'SPORTS' | null>(null);
+
+  /** The filler types this cell can still swap to — whichever of Library/Sports it isn't already.
+   *  Only offered when the cell is itself already Library, Self-Study (a CO_CURRICULAR-tagged
+   *  Theory session — {@link TimetableCell.coCurricular}), or Sports: converting a REAL curriculum
+   *  subject into advisory filler is a much bigger call than rotating between three advisory types
+   *  that already yield to curriculum everywhere else in the app, so it stays out of scope here —
+   *  a genuine Theory subject only ever gets the ordinary subject picker below. */
+  protected readonly availableFillerTargets = computed<('LIBRARY' | 'SPORTS')[]>(() => {
+    const cell = this.data.cell;
+    const isFillerEligibleSource = cell.sessionType === 'LIBRARY' || cell.sessionType === 'SPORTS' || cell.coCurricular;
+    return isFillerEligibleSource ? (['LIBRARY', 'SPORTS'] as const).filter((t) => t !== cell.sessionType) : [];
+  });
 
   /** Every non-elective Theory offering in this cohort except the one already in the slot, with
    *  quota resolved against this cell's own section.
@@ -118,11 +141,13 @@ export class TimetableCellReplaceDialogComponent {
     this.faculty().find((f) => f.facultyId === this.selectedFacultyId()) ?? null);
 
   protected readonly canSave = computed(() =>
-    this.selectedOfferingId() != null
-    && this.selectedFacultyId() != null
-    && !this.loadingFaculty()
-    // Never offer to submit a pick the save is certain to refuse for this slot.
-    && this.selectedFaculty()?.slotBlockedReason == null);
+    this.mode() === 'filler'
+      ? this.selectedFillerType() != null
+      : this.selectedOfferingId() != null
+        && this.selectedFacultyId() != null
+        && !this.loadingFaculty()
+        // Never offer to submit a pick the save is certain to refuse for this slot.
+        && this.selectedFaculty()?.slotBlockedReason == null);
 
   /** How many candidates the save would refuse for this exact slot — stated plainly so a mostly
    *  unavailable list doesn't read as broken. */
@@ -176,7 +201,17 @@ export class TimetableCellReplaceDialogComponent {
     });
   }
 
+  protected onModeChange(mode: 'subject' | 'filler'): void {
+    this.mode.set(mode);
+  }
+
   protected onSave(): void {
+    if (this.mode() === 'filler') {
+      const targetType = this.selectedFillerType();
+      if (targetType == null) return;
+      this.dialogRef.close({ targetType } satisfies TimetableCellReplaceDialogResult);
+      return;
+    }
     const courseOfferingId = this.selectedOfferingId();
     const facultyId = this.selectedFacultyId();
     if (courseOfferingId == null || facultyId == null) return;

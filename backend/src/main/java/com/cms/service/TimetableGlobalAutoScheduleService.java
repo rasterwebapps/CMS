@@ -1638,6 +1638,25 @@ public class TimetableGlobalAutoScheduleService {
             context.placedThisCohortRun().addAll(gapFillOutcome.filled());
             totalUnfillableSelfStudyPeriods += gapFillOutcome.unfillablePeriods();
 
+            // Final idle-batch repair sweep, after every other phase has finished taking slots.
+            //
+            // Phase 1.5 covers each batch left idle by its sibling's Lab/Clinical session, but a LATER
+            // phase can destroy that cover and never replace it: a Theory row's backtrack may evict an
+            // advisory Self-Study/Library cover to seat real curriculum and then fail to rehouse it.
+            // Sacrificing advisory content to curriculum is correct, but the consequence is that half a
+            // section is left with nothing scheduled while the other half is in the lab — invisible to
+            // any section-level "empty period" check, because the slot does hold a cell. Live data: BSc
+            // Nursing (2026-2030) had Wednesday P3-P4 cover for Lab Batch 2 displaced exactly this way
+            // (user's finding), leaving that half idle while Tue P1-P4 and Wed P1-P2 kept theirs.
+            //
+            // Re-running the same pass here repairs whatever the middle phases took away. It is safe to
+            // repeat: sibling occupancy is read live from the database, so a batch that still holds its
+            // cover is skipped and nothing is placed twice. The earlier pass's unfillable tally is
+            // dropped first so the report carries this sweep's final count rather than both.
+            context.unplacedForCohort().removeIf(item -> IDLE_BATCH_ITEM_LABEL.equals(item.subjectName()));
+            fillIdleBatchGaps(context.cohortId(), context.skeleton(), term, periods, context.dayLoad(),
+                saturdayIsWorkingDay(term), context.placedThisCohortRun(), context.unplacedForCohort(), termDemand);
+
             int placedForCohort = context.placedThisCohortRun().size();
             boolean usedSaturdayForCohort = context.placedThisCohortRun().stream().anyMatch(p -> p.dayOfWeek() == DayOfWeek.SATURDAY);
             totalPlaced += placedForCohort;
@@ -1686,6 +1705,7 @@ public class TimetableGlobalAutoScheduleService {
      *  somewhere — they describe empty periods, not one subject's weekly quota — so {@link
      *  #reconcileUnplacedAgainstFinalPlacements} must never treat them as budget shortfalls. */
     private static final String SELF_STUDY_ITEM_LABEL = "Self-Study/Co-curricular";
+    private static final String IDLE_BATCH_ITEM_LABEL = "Idle batch fallback";
     private static final String GAP_FILL_ITEM_LABEL = "Gap-fill";
 
     /**
@@ -3725,6 +3745,29 @@ public class TimetableGlobalAutoScheduleService {
      *  section-level block (#tryRePlaceBumpedLibrarySession, batchId null), and counting only pre-run
      *  cells made the pass report "reduced to 0 of 2" for a cohort that visibly had one (OC-227 local
      *  run). */
+    /** Every batch row representing the SAME physical half of a section as {@code batchId} — itself,
+     *  plus any batch of another offering carrying the same ordinal. A batch is only a capacity split of
+     *  the section, so ordinal N under offering AA and ordinal N under offering BB are the same
+     *  students; anything counted per half (the Library entitlement) has to span them all. Falls back to
+     *  just {@code batchId} when the section or the ordinal cannot be resolved. */
+    private List<Long> sameHalfBatchIds(Long sectionId, Long batchId) {
+        if (sectionId == null || batchId == null) {
+            return batchId == null ? List.of() : List.of(batchId);
+        }
+        Batch self = batchRepository.findById(batchId).orElse(null);
+        int ordinal = batchOrdinal(self);
+        if (self == null || ordinal == Integer.MAX_VALUE) {
+            return List.of(batchId);
+        }
+        List<Long> ids = batchRepository.findByCohortSectionId(sectionId).stream()
+            .filter(b -> Boolean.TRUE.equals(b.getIsActive()))
+            .filter(b -> batchOrdinal(b) == ordinal)
+            .map(Batch::getId)
+            .distinct()
+            .toList();
+        return ids.isEmpty() ? List.of(batchId) : ids;
+    }
+
     /** The whole Library entitlement for one audience, in PERIODS: sessions/week x periods/session
      *  (1 x 2 by default). Two periods a week, and once an audience holds them it gets no more — the
      *  surplus goes to Self-Study, then Sports, then extra Theory hours. */
@@ -3746,20 +3789,49 @@ public class TimetableGlobalAutoScheduleService {
      *  comparable — the previous per-section, per-day cap could not express "this batch still needs
      *  two periods" and so denied a batch any Library at all once its sibling had used the section's
      *  single day. */
-    private static int libraryPeriodsForBatch(Long sectionId, Long batchId, List<SkeletonCellResponse> existingCells,
-                                               List<Placement> placedThisRun) {
-        long fromExisting = existingCells.stream()
+    private int libraryPeriodsForBatch(Long sectionId, Long batchId, List<SkeletonCellResponse> existingCells,
+                                        List<Placement> placedThisRun) {
+        // Counted from the LIVE database, not from this run's in-memory lists.
+        //
+        // Every filler cell is committed in its own REQUIRES_NEW transaction the moment it is placed, so
+        // the database is the only view that is always true. The in-memory lists are not: a cover can be
+        // placed, later displaced by a backtrack, and re-placed by the repair sweep, and any drift
+        // between the list and the database shows up here as an UNDER-count, which quietly hands the
+        // batch a second session. Live data caught exactly that — both 2023-2027 batches ended the run
+        // holding 4 library periods against an entitlement of 2. Reading the database makes the cap hold
+        // no matter how the bookkeeping moves underneath it.
+        int fromDatabase = 0;
+        if (batchId != null) {
+            // Counted across every batch row sharing this one's ORDINAL in the section, not just this
+            // row. A section with two lab-bearing offerings has a separate Batch row per offering, so
+            // "Batch 1" exists twice — but both rows are the SAME physical half of the cohort, and the
+            // entitlement belongs to the students, not the row. Counting per row let each half collect
+            // two periods under each offering: live data showed both 2023-2027 halves holding 4 periods
+            // against an entitlement of 2. Same ordinal-identity rule the cross-offering lab pairing
+            // relies on (see BY_BATCH_ORDINAL).
+            List<Long> sameHalfBatchIds = sameHalfBatchIds(sectionId, batchId);
+            fromDatabase += (int) classScheduleRepository.findByBatchIdInAndIsActiveTrue(sameHalfBatchIds).stream()
+                .filter(cs -> cs.getSessionType() == ClassSessionType.LIBRARY)
+                .count();
+        }
+        if (sectionId != null) {
+            // Whole-section sessions carry no batch and are attended by every batch, so they credit all
+            // of them.
+            fromDatabase += (int) classScheduleRepository.findByCohortSectionIdInAndIsActiveTrue(List.of(sectionId)).stream()
+                .filter(cs -> cs.getSessionType() == ClassSessionType.LIBRARY)
+                .filter(cs -> cs.getBatch() == null)
+                .count();
+        }
+        // Pinned/PUBLISHED cells that survived the rebuild purge live only in the pre-run snapshot until
+        // the database catches up, so they are still worth counting; this run's own placements are
+        // already in the database above and must not be double-counted from placedThisRun.
+        long fromSurvivingSnapshot = existingCells.stream()
             .filter(c -> c.sessionType() == ClassSessionType.LIBRARY)
+            .filter(c -> c.status() != com.cms.model.enums.ClassScheduleStatus.DRAFT)
             .filter(c -> Objects.equals(c.cohortSectionId(), sectionId))
             .filter(c -> c.batchId() == null || Objects.equals(c.batchId(), batchId))
             .count();
-        long fromThisRun = placedThisRun.stream()
-            .filter(p -> p.sessionType() == ClassSessionType.LIBRARY)
-            .filter(p -> Objects.equals(p.cohortSectionId(), sectionId))
-            .filter(p -> p.batchId() == null || Objects.equals(p.batchId(), batchId))
-            .mapToLong(p -> p.periodIds().size())
-            .sum();
-        return (int) (fromExisting + fromThisRun);
+        return fromDatabase + (int) fromSurvivingSnapshot;
     }
 
     /** Whether every batch of {@code sectionId} already holds its full Library entitlement. Used to
@@ -4180,10 +4252,23 @@ public class TimetableGlobalAutoScheduleService {
                 continue; // no section grouping to find siblings against -- leave as-is
             }
             Long sectionId = occupantBatch.getCohortSection().getId();
+            // Siblings must be the same VENUE TYPE as the occupant (both Lab, or both Clinical) --
+            // never cross-type. Capacity Auto-Plan can commit both a split Lab group (e.g. two 30-seat
+            // Lab batches for a 60-seat section) and a separate, unsplit Clinical batch (all 60) for
+            // the very same CourseOffering + CohortSection, because the two venue types have different
+            // capacities. Those Clinical and Lab batches' rosters fully overlap -- the Clinical batch
+            // IS the two Lab batches combined, not a third group of students -- so treating the
+            // Clinical batch as a Lab sibling double-books the half already sitting in the lab into a
+            // second, parallel Self-Study/Library session under the Clinical batch's identity every
+            // time only one Lab batch is occupied. Filtering to the occupant's own venue type restricts
+            // siblings to batches that genuinely partition the same roster the occupant is drawn from
+            // (user's finding, 2026-09-28).
+            boolean occupantIsLab = occupantBatch.getLab() != null;
             List<Batch> siblingGroup = batchRepository.findByCourseOfferingId(p.courseOfferingId()).stream()
                 .filter(b -> Boolean.TRUE.equals(b.getIsActive()))
                 .filter(b -> b.getCohortSection() != null && b.getCohortSection().getId().equals(sectionId))
                 .filter(b -> !b.getId().equals(occupantBatch.getId()))
+                .filter(b -> occupantIsLab ? b.getLab() != null : b.getClinicalVenue() != null)
                 .toList();
             if (siblingGroup.isEmpty()) {
                 continue;
@@ -4225,7 +4310,7 @@ public class TimetableGlobalAutoScheduleService {
             unfillable += result.unfillableCount();
         }
         if (unfillable > 0) {
-            unplacedForCohort.add(new AutoPlaceUnplacedItem("Idle batch fallback", ClassSessionType.LIBRARY, null,
+            unplacedForCohort.add(new AutoPlaceUnplacedItem(IDLE_BATCH_ITEM_LABEL, ClassSessionType.LIBRARY, null,
                 unfillable + " idle batch instance(s) could not be given a Library/Self-Study fallback -- no free "
                     + "Library classroom and no eligible Self-Study faculty available for that slot", null, false, true));
         }
@@ -4260,9 +4345,17 @@ public class TimetableGlobalAutoScheduleService {
                 continue;
             }
             // No Self-Study offering/faculty available for this batch — fall back to Library, at this
-            // exact slot if a room fits, otherwise anywhere else in the week this batch is free. The
-            // caller has already withheld librarySubject from a batch that holds its full entitlement.
-            if (librarySubject != null) {
+            // exact slot if a room fits, otherwise anywhere else in the week this batch is free.
+            //
+            // The entitlement is re-checked HERE, for THIS batch. The caller's own check asks whether
+            // ANY idle batch at this slot is still owed Library, which is the right question for
+            // deciding whether to offer Library at all but not for deciding who receives it: with three
+            // or more batches sharing a venue, one still-owed batch would otherwise open the door for
+            // siblings that are already full. Two periods a week, per batch, is the whole entitlement.
+            boolean thisBatchStillOwedLibrary = librarySubject != null
+                && libraryPeriodsForBatch(section != null ? section.getId() : null, b.getId(), skeleton.cells(),
+                    List.of()) < libraryEntitlementPeriods();
+            if (thisBatchStillOwedLibrary) {
                 Classroom room = firstFreeLibraryClassroomForCapacity(libraryClassrooms, term.getId(), day, block,
                     realBatchHeadcount(b));
                 if (room != null) {
@@ -5012,16 +5105,28 @@ public class TimetableGlobalAutoScheduleService {
         // incident: this exact relocation created a whole-section Thursday Library block ahead of a
         // cohort's still-unplaced Self-Study/Co-curricular V, invisible to every later gate because it
         // ran mid-Phase-2, long before Phase 4 (Library) even starts.
+        // advisoryOnly comes from #isAdvisoryPlacement, not from a hardcoded "is it LIBRARY" test.
+        // Self-Study/Co-curricular is advisory content but its cells are typed THEORY, so the old check
+        // reported a displaced Self-Study session as a REAL curriculum gap. That gap then tripped
+        // #cohortStillOwesPlaceableCurriculum, which withheld the extra-hours filler from the whole
+        // cohort — live data showed BSc Nursing (2026-2030) reporting "40 period(s) held back" and
+        // carrying 7 genuinely dead periods (Tue P7-P8, Thu P7-P8, Fri P6-P8) off the back of one
+        // advisory row that was never mandatory. Same mis-tag #finalizeRowPlacement already had fixed.
+        boolean advisory = isAdvisoryPlacement(bumped);
         unplacedForCohort.add(new AutoPlaceUnplacedItem(bumped.subjectName(), bumped.sessionType(), bumped.occupantLabel(),
             "displaced during a backtrack attempt and could not be placed at its original slot or any other free day/period",
-            bumped.courseOfferingId(), true, bumped.sessionType() == ClassSessionType.LIBRARY));
+            bumped.courseOfferingId(), true, advisory));
         // A permanently-lost THEORY session reopens a real gap in this row's own weekly requirement --
         // theoryStillOwedRuns must reflect it too, or a downstream phase that already read "0 owed"
-        // for this exact row earlier in Phase 2 (the Library bonus gate, fillSelfStudyGaps' shortfall
-        // tier) has no way to find out this run just lost a session it thought was safely delivered.
+        // for this exact row earlier in Phase 2 (fillSelfStudyGaps' shortfall tier) has no way to find
+        // out this run just lost a session it thought was safely delivered.
         // +1, not periodIds().size(): blockSize is always 1 for THEORY, so one lost session is one
         // lost period/run in the same unit fillSelfStudyGaps' own shortRemaining counter already uses.
-        if (bumped.sessionType() == ClassSessionType.THEORY) {
+        // Advisory rows are excluded for the same reason Phase 2 excludes them when it populates this
+        // map: every Library/Sports/extra-hours gate yields to whatever it finds here, so letting an
+        // advisory Self-Study row in would block Library and Sports behind content that ranks below
+        // Library in the first place.
+        if (bumped.sessionType() == ClassSessionType.THEORY && !advisory) {
             theoryStillOwedRuns.merge(theoryRowKey(bumped.courseOfferingId(), bumped.cohortSectionId()), 1, Integer::sum);
         }
     }

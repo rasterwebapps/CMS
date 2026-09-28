@@ -21,6 +21,36 @@
     </p>
   }
 
+  @if (availableFillerTargets().length > 0) {
+    <div class="field-group view-mode-toggle" role="radiogroup" aria-label="Replace with">
+      <button type="button" class="view-mode-toggle__btn" [class.view-mode-toggle__btn--active]="mode() === 'subject'"
+        (click)="onModeChange('subject')">
+        Pick a subject
+      </button>
+      @for (t of availableFillerTargets(); track t) {
+        <button type="button" class="view-mode-toggle__btn"
+          [class.view-mode-toggle__btn--active]="mode() === 'filler' && selectedFillerType() === t"
+          (click)="onModeChange('filler'); selectedFillerType.set(t)">
+          Convert to {{ t === 'LIBRARY' ? 'Library' : 'Sports' }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (mode() === 'filler') {
+    <p class="field-hint">
+      @if (selectedFillerType() === 'LIBRARY') {
+        No subject or faculty to pick — Library sessions run unstaffed. The server finds a free
+        Library classroom for this exact day and time when you save; if none is free, the save is
+        refused and says so.
+      } @else {
+        No subject to pick — the server finds a free Sports venue AND an eligible PE faculty member
+        for this exact day and time when you save, the same way Run Automation's own Sports fill
+        does. If neither is available, the save is refused and says so.
+      }
+    </p>
+  } @else {
+
   <div class="field-group">
     <label for="scr-subject" class="field-label">New subject</label>
     <select id="scr-subject" class="field-select"
@@ -135,8 +165,13 @@
     </div>
   }
 
+  } <!-- @else (mode() === 'subject') -->
+
   <p class="field-hint scr-footnote">
-    @if (isFillerSource()) {
+    @if (mode() === 'filler') {
+      Replacing pins this session, so the next Run Automation keeps your choice instead of packing
+      over it.
+    } @else if (isFillerSource()) {
       Replacing pins this session, so the next Run Automation keeps your choice instead of packing
       Library/Sports back over it.
     } @else {

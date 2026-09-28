@@ -1282,7 +1282,13 @@ export class TimetableBuilderComponent implements OnInit {
       if (!result) return;
       this.skeletonService.replaceCell(cell.id, result).subscribe({
         next: (response) => {
-          this.toast.success(`Replaced with ${response.cell.subjectCode} — pinned, so Run Automation will keep it.`);
+          // A filler swap (Library/Sports) has no real subject code worth surfacing (it's the
+          // internal system subject) — name the session type instead, matching how the grid
+          // itself labels these cells.
+          const label = 'targetType' in result
+            ? (result.targetType === 'LIBRARY' ? 'Library' : 'Sports')
+            : response.cell.subjectCode;
+          this.toast.success(`Replaced with ${label} — pinned, so Run Automation will keep it.`);
           if (response.displaced) this.recordDisplaced(response.displaced);
           this.reloadSkeleton();
         },

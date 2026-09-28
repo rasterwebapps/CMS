@@ -100,6 +100,9 @@ class TimetableSkeletonServiceTest {
     @Mock private TimetableClinicalShiftChecker clinicalShiftChecker;
     @Mock private com.cms.repository.FacultyRepository facultyRepository;
     @Mock private StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    @Mock private com.cms.repository.ClassroomRepository classroomRepository;
+    @Mock private com.cms.repository.SubjectRepository subjectRepository;
+    @Mock private SystemConfigurationService systemConfigurationService;
 
     private TimetableSkeletonService service;
 
@@ -118,7 +121,7 @@ class TimetableSkeletonServiceTest {
             rotationSlotRepository, rotationMemberAssignmentRepository, rotationResolverService, courseOfferingService,
             cohortRepository, termInstanceRepository, cohortRoomAllocationRepository, cohortSectionRepository,
             timetableStaffingService, clinicalShiftGroupRepository, clinicalShiftGroupService, clinicalShiftChecker, facultyRepository,
-            studentTermEnrollmentRepository);
+            studentTermEnrollmentRepository, classroomRepository, subjectRepository, systemConfigurationService);
         lenient().when(clinicalShiftGroupRepository.findByTermInstanceIdAndIsActiveTrue(anyLong())).thenReturn(List.of());
         lenient().when(clinicalShiftGroupService.resolveActiveWindowsForCohort(anyLong(), anyLong())).thenReturn(List.of());
 
@@ -1817,7 +1820,7 @@ class TimetableSkeletonServiceTest {
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L));
+        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(null, 200L, 42L));
 
         assertThat(cs.getCourseOffering()).isEqualTo(otherOffering);
         assertThat(cs.getSubject()).isEqualTo(otherOffering.getSubject());
@@ -1879,7 +1882,7 @@ class TimetableSkeletonServiceTest {
         // otherOffering already has 3 of its 3 weekly sessions placed (a/b/c above) -- ordinary
         // placement would refuse a 4th. Replace goes through anyway, and the row now teaches it.
         SkeletonCellReplaceResponse response =
-            service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L));
+            service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(null, 200L, 42L));
 
         assertThat(response.cell()).isNotNull();
         assertThat(cs.getCourseOffering()).isSameAs(otherOffering);
@@ -1898,7 +1901,7 @@ class TimetableSkeletonServiceTest {
         cs.setId(100L);
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
 
-        assertThatThrownBy(() -> service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L)))
+        assertThatThrownBy(() -> service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(null, 200L, 42L)))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Only a Theory, Library, or Sports session");
 
@@ -1934,7 +1937,7 @@ class TimetableSkeletonServiceTest {
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(200L, 42L));
+        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(null, 200L, 42L));
 
         assertThat(cs.getSessionType()).isEqualTo(ClassSessionType.THEORY);
         assertThat(cs.getCourseOffering()).isSameAs(otherOffering);
@@ -1978,10 +1981,206 @@ class TimetableSkeletonServiceTest {
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.replaceCellSubject(101L, new SkeletonCellReplaceRequest(200L, 42L));
+        service.replaceCellSubject(101L, new SkeletonCellReplaceRequest(null, 200L, 42L));
 
         assertThat(cs.getSessionType()).isEqualTo(ClassSessionType.THEORY);
         assertThat(cs.getCourseOffering()).isSameAs(otherOffering);
+    }
+
+    // ── replaceCellSubject: filler swap between Library and Sports ─────────────────────────────
+
+    private Classroom classroomTagged(long id, String name) {
+        Classroom c = new Classroom(name, null, null, 30);
+        c.setId(id);
+        return c;
+    }
+
+    private ClassSchedule fillerRow(long id, ClassSessionType type) {
+        ClassSchedule cs = new ClassSchedule();
+        cs.setId(id);
+        cs.setSessionType(type);
+        cs.setPeriod(period);
+        cs.setDayOfWeek(DayOfWeek.MONDAY);
+        cs.setStatus(ClassScheduleStatus.DRAFT);
+        cs.setCourseOffering(null);
+        cs.setIsActive(true);
+        cs.setTermInstance(termInstance);
+        return cs;
+    }
+
+    /** Converting Library -> Sports asks nothing of the admin beyond the target type: both the room
+     *  and the PE faculty are resolved server-side, scanning the Sports-tagged pool through the
+     *  exact same {@code validateAssignment} call the THEORY shape uses. */
+    @Test
+    void shouldSwapALibraryCellToSports_resolvingRoomAndFacultyAutomatically() {
+        ClassSchedule cs = fillerRow(500L, ClassSessionType.LIBRARY);
+
+        Subject sportsSubject = new Subject();
+        sportsSubject.setId(900L);
+        sportsSubject.setCode(TimetableGlobalAutoScheduleService.SPORTS_SUBJECT_CODE);
+        Faculty pe = new Faculty();
+        pe.setId(77L);
+        sportsSubject.setEligibleFaculty(Set.of(pe));
+        Classroom sportsRoom = classroomTagged(80L, "Ground-1");
+
+        when(classScheduleRepository.findById(500L)).thenReturn(Optional.of(cs));
+        when(subjectRepository.findByCode(TimetableGlobalAutoScheduleService.SPORTS_SUBJECT_CODE)).thenReturn(Optional.of(sportsSubject));
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(
+            com.cms.model.enums.RoomPurposeCategoryCode.SPORTS)).thenReturn(List.of(sportsRoom));
+        when(facultyRepository.findByStatus(com.cms.model.enums.FacultyStatus.ACTIVE)).thenReturn(List.of(pe));
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SkeletonCellReplaceResponse response =
+            service.replaceCellSubject(500L, new SkeletonCellReplaceRequest(ClassSessionType.SPORTS, null, null));
+
+        assertThat(cs.getSessionType()).isEqualTo(ClassSessionType.SPORTS);
+        assertThat(cs.getSubject()).isSameAs(sportsSubject);
+        assertThat(cs.getFaculty()).isSameAs(pe);
+        assertThat(cs.getClassroom()).isSameAs(sportsRoom);
+        assertThat(cs.getCourseOffering()).isNull();
+        assertThat(cs.isPinned()).isTrue();
+        assertThat(response.cell()).isNotNull();
+
+        verify(timetableStaffingService).validateAssignment(eq(cs), eq(DayOfWeek.MONDAY), any(), any(), eq(pe),
+            eq(500L), any(), isNull(), isNull());
+    }
+
+    /** Sports -> Library is unstaffed by design (no faculty is ever asked for or set) -- only the
+     *  room side of the shared resource check runs. */
+    @Test
+    void shouldSwapASportsCellToLibrary_needingNoFaculty() {
+        ClassSchedule cs = fillerRow(501L, ClassSessionType.SPORTS);
+
+        Subject librarySubject = new Subject();
+        librarySubject.setId(901L);
+        librarySubject.setCode(TimetableGlobalAutoScheduleService.LIBRARY_SUBJECT_CODE);
+        Classroom libraryRoom = classroomTagged(81L, "Library-1");
+
+        when(classScheduleRepository.findById(501L)).thenReturn(Optional.of(cs));
+        when(subjectRepository.findByCode(TimetableGlobalAutoScheduleService.LIBRARY_SUBJECT_CODE)).thenReturn(Optional.of(librarySubject));
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(
+            com.cms.model.enums.RoomPurposeCategoryCode.LIBRARY)).thenReturn(List.of(libraryRoom));
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), isNull(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
+        when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.replaceCellSubject(501L, new SkeletonCellReplaceRequest(ClassSessionType.LIBRARY, null, null));
+
+        assertThat(cs.getSessionType()).isEqualTo(ClassSessionType.LIBRARY);
+        assertThat(cs.getFaculty()).isNull();
+        assertThat(cs.getClassroom()).isSameAs(libraryRoom);
+        assertThat(cs.isPinned()).isTrue();
+        verify(facultyRepository, never()).findByStatus(any());
+    }
+
+    @Test
+    void shouldRejectSwappingToTheSameFillerTypeItAlreadyIs() {
+        ClassSchedule cs = fillerRow(502L, ClassSessionType.LIBRARY);
+        when(classScheduleRepository.findById(502L)).thenReturn(Optional.of(cs));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(502L, new SkeletonCellReplaceRequest(ClassSessionType.LIBRARY, null, null)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("already library");
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    /** The weekly entitlement (2 periods/week by default) is checked BEFORE any room/faculty search
+     *  -- an already-exhausted cap never needs to scan the pool. Boundary is "used == cap", not
+     *  "used > cap": two existing periods already meet a 2-period entitlement exactly. */
+    @Test
+    void shouldRejectFillerSwapWhenWeeklyEntitlementAlreadyMet() {
+        ClassSchedule cs = fillerRow(503L, ClassSessionType.SPORTS);
+        CohortSection section = new CohortSection();
+        section.setId(30L);
+        cs.setCohortSection(section);
+
+        ClassSchedule existing1 = new ClassSchedule();
+        existing1.setId(600L);
+        existing1.setSessionType(ClassSessionType.LIBRARY);
+        existing1.setCohortSection(section);
+        existing1.setIsActive(true);
+        ClassSchedule existing2 = new ClassSchedule();
+        existing2.setId(601L);
+        existing2.setSessionType(ClassSessionType.LIBRARY);
+        existing2.setCohortSection(section);
+        existing2.setIsActive(true);
+
+        when(classScheduleRepository.findById(503L)).thenReturn(Optional.of(cs));
+        when(classScheduleRepository.findByTermInstanceIdAndStatusAndIsActiveTrue(10L, ClassScheduleStatus.DRAFT))
+            .thenReturn(List.of(existing1, existing2));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(503L, new SkeletonCellReplaceRequest(ClassSessionType.LIBRARY, null, null)))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("weekly entitlement");
+
+        verify(classScheduleRepository, never()).save(any());
+        verify(subjectRepository, never()).findByCode(any());
+    }
+
+    @Test
+    void shouldRejectFillerSwapWhenNoRoomIsFreeForThisSlot() {
+        ClassSchedule cs = fillerRow(504L, ClassSessionType.SPORTS);
+
+        Subject librarySubject = new Subject();
+        librarySubject.setId(902L);
+        librarySubject.setCode(TimetableGlobalAutoScheduleService.LIBRARY_SUBJECT_CODE);
+        Classroom occupiedRoom = classroomTagged(82L, "Library-1");
+
+        when(classScheduleRepository.findById(504L)).thenReturn(Optional.of(cs));
+        when(subjectRepository.findByCode(TimetableGlobalAutoScheduleService.LIBRARY_SUBJECT_CODE)).thenReturn(Optional.of(librarySubject));
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(
+            com.cms.model.enums.RoomPurposeCategoryCode.LIBRARY)).thenReturn(List.of(occupiedRoom));
+        when(timetableStaffingService.validateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new TimetableStaffingService.AssignmentValidationResult(
+                List.of(new ConstraintViolation("STAFFING_ROOM_CONFLICT", "occupied")), null));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(504L, new SkeletonCellReplaceRequest(ClassSessionType.LIBRARY, null, null)))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("free for this exact day and time");
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectSportsSwapWhenNoEligibleFacultyOnTheSportsSubject() {
+        ClassSchedule cs = fillerRow(505L, ClassSessionType.LIBRARY);
+
+        Subject sportsSubject = new Subject();
+        sportsSubject.setId(903L);
+        sportsSubject.setCode(TimetableGlobalAutoScheduleService.SPORTS_SUBJECT_CODE);
+        // eligibleFaculty left empty -- nobody is ticked on the Sports subject's list.
+        Classroom sportsRoom = classroomTagged(83L, "Ground-1");
+
+        when(classScheduleRepository.findById(505L)).thenReturn(Optional.of(cs));
+        when(subjectRepository.findByCode(TimetableGlobalAutoScheduleService.SPORTS_SUBJECT_CODE)).thenReturn(Optional.of(sportsSubject));
+        when(classroomRepository.findByIsActiveTrueAndRoom_PurposeCategory_CodeOrderByNameAsc(
+            com.cms.model.enums.RoomPurposeCategoryCode.SPORTS)).thenReturn(List.of(sportsRoom));
+        when(facultyRepository.findByStatus(com.cms.model.enums.FacultyStatus.ACTIVE)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.replaceCellSubject(505L, new SkeletonCellReplaceRequest(ClassSessionType.SPORTS, null, null)))
+            .isInstanceOf(TimetableConstraintViolationException.class)
+            .hasMessageContaining("Eligible Faculty list");
+
+        verify(classScheduleRepository, never()).save(any());
+    }
+
+    /** The THEORY shape's @NotNull was removed from the DTO record itself (it now also has to
+     *  accept LIBRARY/SPORTS requests that legitimately carry neither field) -- this asserts the
+     *  service enforces the same requirement itself instead of silently NPE-ing. */
+    @Test
+    void shouldRejectTheoryTargetWhenSubjectOrFacultyIsMissing() {
+        ClassSchedule cs = existingRow(ClassSessionType.THEORY, null, false);
+        cs.setId(506L);
+        when(classScheduleRepository.findById(506L)).thenReturn(Optional.of(cs));
+
+        assertThatThrownBy(() -> service.replaceCellSubject(506L, new SkeletonCellReplaceRequest(ClassSessionType.THEORY, null, null)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("subject and faculty are both required");
+
+        verify(classScheduleRepository, never()).save(any());
     }
 
     private CurriculumElectiveGroup electiveGroup(Long id, com.cms.model.enums.ElectiveSelectionMode mode) {
@@ -2015,7 +2214,7 @@ class TimetableSkeletonServiceTest {
             .thenReturn(new TimetableStaffingService.AssignmentValidationResult(List.of(), null));
         when(classScheduleRepository.save(any(ClassSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(300L, 42L));
+        SkeletonCellReplaceResponse response = service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(null, 300L, 42L));
 
         assertThat(cs.getCourseOffering()).isSameAs(chosenElective);
         assertThat(response.cell().commonElective()).isTrue();
@@ -2032,7 +2231,7 @@ class TimetableSkeletonServiceTest {
         when(classScheduleRepository.findById(100L)).thenReturn(Optional.of(cs));
         when(courseOfferingRepository.findById(300L)).thenReturn(Optional.of(option));
 
-        assertThatThrownBy(() -> service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(300L, 42L)))
+        assertThatThrownBy(() -> service.replaceCellSubject(100L, new SkeletonCellReplaceRequest(null, 300L, 42L)))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Student-choice elective");
 
