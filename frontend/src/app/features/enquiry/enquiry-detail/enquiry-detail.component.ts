@@ -319,6 +319,8 @@ export class EnquiryDetailComponent implements OnInit {
       transactionReference: p.transactionReference,
       feeCategory:          p.feeCategory,
       installmentBreakdown: [],
+      signedByName:         this.permissionService.fullName(),
+      signedByRole:         this.permissionService.roleLabel(),
     });
   }
 
@@ -347,6 +349,8 @@ export class EnquiryDetailComponent implements OnInit {
       paymentMode:           p.paymentMode,
       paymentDate:           p.paymentDate,
       transactionReference:  p.transactionReference,
+      signedByName:          this.permissionService.fullName(),
+      signedByRole:          this.permissionService.roleLabel(),
     };
   }
 }

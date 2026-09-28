@@ -436,6 +436,8 @@ export class StudentFeeDetailComponent implements OnInit {
         installmentLabel: l.installmentLabel ?? '',
         amountApplied:    Math.abs(l.amountPaid),
       })),
+      signedByName:         this.permissionService.fullName(),
+      signedByRole:         this.permissionService.roleLabel(),
     };
   }
 

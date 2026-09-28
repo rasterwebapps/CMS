@@ -26,6 +26,28 @@ export interface ReceiptPrintData {
   installmentBreakdown: Array<{ installmentLabel: string; amountApplied: number }>;
   /** Determines "towards" label: TUITION_AND_HOSTEL → "Tuition Fees And Hostel Fees", TUITION_ONLY → "Tuition Fees" */
   feeCategory?: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
+  /** Full name of the logged-in user who processed this receipt (for the digital signature block). */
+  signedByName?: string | null;
+  /** Role/designation of the logged-in user, shown alongside their name. */
+  signedByRole?: string | null;
+}
+
+/** Shown under the processing user's name on both the Fee Receipt and Refund Voucher. */
+const DIGITAL_SIGNATURE_MESSAGE =
+  'This document is digitally signed and generated electronically; no manual signature or stamp is required.';
+
+/** Builds the "For <College> / Name (Role) / disclaimer" signature block shared by both print templates. */
+function buildDigitalSignatureBlock(collegeName: string, signedByName?: string | null, signedByRole?: string | null): string {
+  const nameLabel = signedByName
+    ? `${signedByName}${signedByRole ? ` (${signedByRole})` : ''}`
+    : '';
+  return `
+        <div class="sig-block">
+          <div class="for-word">For</div>
+          <div class="for-college">${collegeName}</div>
+          ${nameLabel ? `<div class="digital-sig-name">${nameLabel}</div>` : ''}
+          <div class="digital-sig-msg">${DIGITAL_SIGNATURE_MESSAGE}</div>
+        </div>`;
 }
 
 // ── Internal: receipt CSS ─────────────────────────────────────────────────────
@@ -136,12 +158,11 @@ function buildReceiptCss(): string {
   .footer-divider { border-top: 1.5px solid #1a237e; margin-bottom: 0; }
   .footer-content { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 6px 0; }
   .footer { display: flex; justify-content: space-between; align-items: flex-end; }
-  .sig-block { text-align: center; min-width: 190px; }
+  .sig-block { text-align: center; min-width: 190px; max-width: 210px; }
   .for-word { font-size: 10px; margin-bottom: 1px; }
   .for-college { font-size: 11.5px; font-weight: 800; letter-spacing: 0.4px; }
-  .sig-space { height: 42px; }
-  .sig-line-rule { border-top: 1px solid #000; }
-  .sig-text { font-size: 10px; padding-top: 3px; }
+  .digital-sig-name { font-size: 10.5px; font-weight: 700; margin-top: 16px; color: #1a237e; }
+  .digital-sig-msg { font-size: 7px; font-style: italic; line-height: 1.3; color: #555; margin-top: 2px; }
   .fill-label--mid { padding-left: 18px; flex-shrink: 0; }
   `;
 }
@@ -238,13 +259,7 @@ function buildReceiptBodyHtml(data: ReceiptPrintData): string {
           <div class="amount-label">Amount</div>
           <div class="amount-value">${formattedAmount} /-</div>
         </div>
-        <div class="sig-block">
-          <div class="for-word">For</div>
-          <div class="for-college">SKS COLLEGE OF NURSING</div>
-          <div class="sig-space"></div>
-          <div class="sig-line-rule"></div>
-          <div class="sig-text">Authorised Signature</div>
-        </div>
+        ${buildDigitalSignatureBlock('SKS COLLEGE OF NURSING', data.signedByName, data.signedByRole)}
       </div>
     </div>
   </div>
@@ -403,6 +418,10 @@ export interface RefundVoucherData {
   paymentMode?: string | null;
   paymentDate?: string | null;
   transactionReference?: string | null;
+  /** Full name of the logged-in user who processed this refund (for the digital signature block). */
+  signedByName?: string | null;
+  /** Role/designation of the logged-in user, shown alongside their name. */
+  signedByRole?: string | null;
 }
 
 function buildRefundVoucherCss(): string {
@@ -514,12 +533,11 @@ function buildRefundVoucherCss(): string {
   .footer-divider { border-top: 1.5px solid #c2410c; margin-bottom: 0; }
   .footer-content { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 6px 0; }
   .footer { display: flex; justify-content: space-between; align-items: flex-end; }
-  .sig-block { text-align: center; min-width: 190px; }
+  .sig-block { text-align: center; min-width: 190px; max-width: 210px; }
   .for-word { font-size: 10px; margin-bottom: 1px; }
   .for-college { font-size: 11.5px; font-weight: 800; letter-spacing: 0.4px; }
-  .sig-space { height: 28px; }
-  .sig-line-rule { border-top: 1px solid #000; }
-  .sig-text { font-size: 10px; padding-top: 3px; }
+  .digital-sig-name { font-size: 10.5px; font-weight: 700; margin-top: 10px; color: #c2410c; }
+  .digital-sig-msg { font-size: 7px; font-style: italic; line-height: 1.3; color: #555; margin-top: 2px; }
   .fill-label--mid { padding-left: 18px; flex-shrink: 0; }
   `;
 }
@@ -617,13 +635,7 @@ function buildRefundVoucherBodyHtml(data: RefundVoucherData): string {
           <div class="amount-label">Amount Refunded</div>
           <div class="amount-value">${formattedAmount} /-</div>
         </div>
-        <div class="sig-block">
-          <div class="for-word">For</div>
-          <div class="for-college">SKS COLLEGE OF NURSING</div>
-          <div class="sig-space"></div>
-          <div class="sig-line-rule"></div>
-          <div class="sig-text">Authorised Signature</div>
-        </div>
+        ${buildDigitalSignatureBlock('SKS COLLEGE OF NURSING', data.signedByName, data.signedByRole)}
       </div>
     </div>
   </div>

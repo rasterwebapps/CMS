@@ -4,6 +4,7 @@ import java.util.List;
 
 public record MyPermissionsResponse(
     String username,
+    String fullName,
     String roleName,
     String roleDisplayName,
     int hierarchyLevel,

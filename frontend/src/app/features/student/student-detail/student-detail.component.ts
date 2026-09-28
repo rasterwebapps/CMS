@@ -597,6 +597,8 @@ export class StudentDetailComponent implements OnInit {
       transactionReference: null,
       feeCategory:          p.feeCategory ?? null,
       installmentBreakdown: [{ installmentLabel: entry.termLabel, amountApplied: p.amountPaid }],
+      signedByName:         this.permissionService.fullName(),
+      signedByRole:         this.permissionService.roleLabel(),
     });
   }
 }

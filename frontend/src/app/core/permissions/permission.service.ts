@@ -7,6 +7,7 @@ export type { WidgetConfigDto };
 
 export interface MyPermissionsResponse {
   username: string;
+  fullName: string;
   roleName: string;
   roleDisplayName: string;
   hierarchyLevel: number;
@@ -22,6 +23,7 @@ export class PermissionService {
   private readonly _response = signal<MyPermissionsResponse | null>(null);
 
   readonly loaded           = computed(() => this._response() !== null);
+  readonly fullName         = computed(() => this._response()?.fullName ?? '');
   readonly roleName         = computed(() => this._response()?.roleName ?? '');
   readonly roleLabel        = computed(() => this._response()?.roleDisplayName ?? '');
   readonly level            = computed(() => this._response()?.hierarchyLevel ?? 99);

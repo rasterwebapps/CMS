@@ -1,9 +1,10 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, inject, input, output } from '@angular/core';
 import { InrPipe } from '../pipes/inr.pipe';
 import { AppDatePipe } from '../pipes/app-date.pipe';
 import { PaymentModeLabelPipe } from '../pipes/payment-mode-label.pipe';
 import { ReceiptDisplayData } from '../../features/finance/finance.model';
 import { downloadFeeReceipt, printFeeReceipt, shareReceiptPdf, ReceiptPrintData } from '../utils/print-receipt.utils';
+import { PermissionService } from '../../core/permissions/permission.service';
 
 const ONES: string[] = [
   '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
@@ -30,6 +31,8 @@ const TENS: string[] = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', '
   styleUrl: './fee-receipt-dialog.component.scss',
 })
 export class FeeReceiptDialogComponent {
+  private readonly permissionService = inject(PermissionService);
+
   /** The receipt data to display. Treated as truthy gate — dialog only renders when non-null. */
   readonly receipt = input<ReceiptDisplayData | null>(null);
 
@@ -121,6 +124,8 @@ export class FeeReceiptDialogComponent {
         : r.installmentsCovered
           ? [{ installmentLabel: r.installmentsCovered, amountApplied: r.amountPaid }]
           : [],
+      signedByName:        this.permissionService.fullName(),
+      signedByRole:        this.permissionService.roleLabel(),
     };
   }
 

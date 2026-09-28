@@ -93,6 +93,7 @@ public class PermissionController {
 
         MyPermissionsResponse response = new MyPermissionsResponse(
             username,
+            user.getFullName(),
             role != null ? role.getName() : null,
             role != null ? role.getDisplayName() : null,
             role != null ? role.getHierarchyLevel() : 0,
