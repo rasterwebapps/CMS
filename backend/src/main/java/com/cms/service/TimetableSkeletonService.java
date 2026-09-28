@@ -899,6 +899,14 @@ public class TimetableSkeletonService {
         List<ClassSchedule> placed = candidates.stream()
             .filter(cs -> Boolean.TRUE.equals(cs.getIsActive()))
             .filter(cs -> cs.getSessionType() == sessionType)
+            // A THEORY requirement belongs to the whole cohort section, so only a whole-section session
+            // can discharge it. A BATCH-scoped THEORY cell is by definition cover for one half of the
+            // section while the other half is in a lab (see TimetableGlobalAutoScheduleService's
+            // idle-batch Self-Study fallback) — only half the students attend it, so crediting it
+            // against the section's curriculum hours would over-report delivery and, worse, make the
+            // section's own real requirement look met when it is not. Excluded here so the two never
+            // compete for the same budget.
+            .filter(cs -> sessionType != ClassSessionType.THEORY || cs.getBatch() == null)
             .filter(cs -> sessionType == ClassSessionType.THEORY
                 ? Objects.equals(cs.getCohortSection() != null ? cs.getCohortSection().getId() : null, scopeSectionId)
                 : Objects.equals(cs.getBatch() != null ? cs.getBatch().getId() : null, scopeBatchId))

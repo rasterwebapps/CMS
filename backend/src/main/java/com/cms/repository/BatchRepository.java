@@ -18,6 +18,9 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
 
     List<Batch> findByCohortRoomAllocationIdAndIsActiveTrue(Long cohortRoomAllocationId);
 
+    /** Every batch bound to one cohort section, across all of its offerings. */
+    List<Batch> findByCohortSectionId(Long cohortSectionId);
+
     List<Batch> findByTermInstanceIdAndIsActiveTrue(Long termInstanceId);
 
     boolean existsByCourseOfferingIdAndName(Long courseOfferingId, String name);

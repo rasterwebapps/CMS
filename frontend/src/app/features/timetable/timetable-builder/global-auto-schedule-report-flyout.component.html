@@ -392,7 +392,7 @@
               <p class="field-hint">{{ r.pinnedCellsPreserved }} pinned session(s) were kept exactly where you put them — the rest was packed around them.</p>
             }
             @if (r.rotationGroupsCreated > 0) {
-              <p class="field-hint">Created {{ r.rotationGroupsCreated }} cross-offering Lab rotation(s) — two offerings sharing a cohort section, each split into 2 batches, now alternate Labs week-to-week instead of one batch sitting idle during the other's turn.</p>
+              <p class="field-hint">Paired {{ r.rotationGroupsCreated }} cross-offering Lab session(s) — two offerings sharing a cohort section, each split into 2 batches, now swap between the two Labs across two sessions in the same week: batch 1 takes Lab A while batch 2 takes Lab B, then they trade places. Both batches get both Labs every week, so each subject still delivers its full curriculum hours and neither batch sits idle.</p>
             }
           </div>
           @if (r.clinicalResiduals.length > 0) {

@@ -236,11 +236,19 @@ export class GlobalAutoScheduleReportFlyoutComponent implements OnInit {
    *  can close. Library and idle-batch fallbacks, Self-Study/gap-fill notes and a missing faculty or
    *  elective selection are still listed per cohort, but counting them here told admins to open more
    *  Saturdays on a run where every Theory subject already met its hours (2026-09-15). */
+  /** Any real curriculum gap, on EITHER axis. `slotShortfall` alone is not enough: it flags only the
+   *  gaps a free period could have absorbed, so a structural one — no faculty assigned, no elective
+   *  option chosen, a lab that cannot serve all its batches — is reported with `slotShortfall` false
+   *  and used to slip through here entirely. That is how a run showing "18.3h unassigned" on the Lab
+   *  and Term load cards, and naming the shortfall in its own detail list, still headlined itself
+   *  "✓ Fully scheduled" (2026-09-28). `advisoryOnly` is the axis that actually separates real
+   *  curriculum hours from Library/Sports/Self-Study filler, so it has to be consulted too. */
   protected readonly hasShortfall = computed(() => {
     const r = this.result();
     if (!r) return false;
-    return r.electiveUnplaced.some((u) => u.slotShortfall)
-      || r.cohortSummaries.some((c) => c.unplaced.some((u) => u.slotShortfall));
+    const isRealGap = (u: { slotShortfall: boolean; advisoryOnly: boolean }) => u.slotShortfall || !u.advisoryOnly;
+    return r.electiveUnplaced.some(isRealGap)
+      || r.cohortSummaries.some((c) => c.unplaced.some(isRealGap));
   });
 
   /** True only when this run genuinely couldn't staff some periods even after trying every
