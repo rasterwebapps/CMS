@@ -3,9 +3,10 @@ import { TourDefinition, TourFlowMap } from '../tour.service';
 // My Special Classes → Special Class Approvals, a small local funnel (a
 // faculty request gets reviewed by an admin) — same idiom as Examination's
 // Manage Exams → Exam Results. The other timetable-operations screens
-// (Resource Timetable, Faculty Absence, Staff Session Swap) are independent
-// of these two and of each other, so they each get their own single-entry
-// funnel instead of sharing a fake group-wide one.
+// (Resource Timetable, Faculty Absence) are independent of these two and of
+// each other, so they each get their own single-entry funnel instead of
+// sharing a fake group-wide one. Staff-swap is a row action inside Class
+// Schedules (staff-swap-modal.component.ts), not a standalone screen.
 const SPECIAL_CLASS_FUNNEL = [
   { label: 'My Special Classes', description: 'Request an ad-hoc special/remedial class, or a whole-day repeat, and track its approval status.' },
   { label: 'Special Class Approvals', description: 'Review and approve or reject faculty requests for ad-hoc special/remedial classes.' },

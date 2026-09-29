@@ -150,7 +150,6 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Class Schedules',     icon: 'calendar_view_week', route: '/lab-schedules',       permissions: ['TIMETABLE_VIEW'] },
       // -- Timetable ops (on-demand, after publish) --
       { label: 'Faculty Absence',     icon: 'person_off',         route: '/faculty-absence',     permissions: ['FACULTY_ABSENCE_MARK', 'FACULTY_ABSENCE_SUBSTITUTE_APPLY'] },
-      { label: 'Staff Session Swap',  icon: 'swap_horiz',         route: '/timetable/staff-swap', permissions: ['TIMETABLE_STAFF_SWAP'] },
       { label: 'My Special Classes',  icon: 'event_available',    route: '/timetable/special-classes/my-requests', permissions: ['TIMETABLE_SPECIAL_CLASS_VIEW', 'TIMETABLE_SPECIAL_CLASS_REQUEST'] },
       { label: 'Special Class Approvals', icon: 'fact_check',     route: '/timetable/special-classes/approval-queue', permissions: ['TIMETABLE_SPECIAL_CLASS_APPROVE'] },
       { label: 'My Escort Duties',    icon: 'directions_bus',     route: '/timetable/escort-rotation/my-duties', permissions: ['TIMETABLE_ESCORT_ROTATION_VIEW'] },

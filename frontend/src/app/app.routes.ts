@@ -1919,14 +1919,6 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'timetable/staff-swap',
-    canActivate: withPermission('TIMETABLE_STAFF_SWAP'),
-    loadComponent: () =>
-      import('./features/timetable/staff-session-swap/staff-session-swap.component').then(
-        (m) => m.StaffSessionSwapComponent
-      ),
-  },
-  {
     path: 'timetable/special-classes/my-requests',
     canActivate: withPermission('TIMETABLE_SPECIAL_CLASS_VIEW'),
     loadComponent: () =>

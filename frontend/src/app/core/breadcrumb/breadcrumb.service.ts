@@ -89,7 +89,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   'timetable-builder': 'Timetable Builder',
   'resource-grid': 'Resource Timetable',
   'workload-rules': 'Faculty Workload Rules',
-  'staff-swap': 'Staff Session Swap',
   'special-classes': 'Special Classes',
   'approval-queue': 'Special Class Approvals',
   'my-requests': 'My Special Classes',
