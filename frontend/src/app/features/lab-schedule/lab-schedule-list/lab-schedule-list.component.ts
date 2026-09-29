@@ -235,8 +235,12 @@ export class LabScheduleListComponent implements OnInit {
   }
 
   protected openReschedule(occ: ClassScheduleOccurrence): void {
-    this.dialog.open(RescheduleModalComponent, { data: { occurrence: occ }, width: '460px' })
-      .afterClosed().subscribe((changed) => { if (changed) this.load(); });
+    const term = this.termInstance();
+    if (!term) return;
+    this.dialog.open(RescheduleModalComponent, {
+      data: { occurrence: occ, termStartDate: term.startDate, termEndDate: term.endDate },
+      width: '460px',
+    }).afterClosed().subscribe((changed) => { if (changed) this.load(); });
   }
 
   private load(): void {

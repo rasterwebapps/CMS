@@ -12,6 +12,11 @@ import { VenueCandidate } from '../room-relocation/room-relocation.model';
 
 export interface RescheduleModalData {
   occurrence: ClassScheduleOccurrence;
+  /** The occurrence's own term's bounds — the target date can never legitimately leave this
+   *  range (the backend rejects it as RESCHEDULE_OUTSIDE_TERM), so the picker is constrained to
+   *  match rather than letting the user pick an invalid date and only find out on Apply. */
+  termStartDate: string;
+  termEndDate: string;
 }
 
 /** Moves one real occurrence to a different date/period/room, never touching the recurring
@@ -52,9 +57,23 @@ export class RescheduleModalComponent {
     return this.data.occurrence.date;
   }
 
+  protected get dateMin(): string {
+    return this.data.termStartDate;
+  }
+
+  protected get dateMax(): string {
+    return this.data.termEndDate;
+  }
+
   protected onTargetChanged(): void {
     this.selectedVenueId = null;
     this.candidates.set([]);
+    if (this.targetDate && (this.targetDate < this.dateMin || this.targetDate > this.dateMax)) {
+      this.toast.error("This session's term runs from "
+        + `${this.dateMin} to ${this.dateMax} — pick a date within that range.`);
+      this.targetDate = null;
+      return;
+    }
     if (!this.targetDate || !this.selectedPeriodId) return;
     this.loadingCandidates.set(true);
     this.rescheduleService.findCandidates(
