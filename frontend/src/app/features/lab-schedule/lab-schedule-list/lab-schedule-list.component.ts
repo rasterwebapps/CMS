@@ -11,7 +11,7 @@ import { map, switchMap } from 'rxjs/operators';
 import { TimetableService } from '../../timetable/timetable.service';
 import { ClassScheduleOccurrence } from '../../timetable/timetable.model';
 import { AcademicYearService } from '../../academic-year/academic-year.service';
-import { TermInstance } from '../../academic-year/academic-year.model';
+import { CohortSummary, TermInstance } from '../../academic-year/academic-year.model';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { TourService } from '../../../shared/tour/tour.service';
@@ -100,6 +100,8 @@ export class LabScheduleListComponent implements OnInit {
   protected readonly selectedRoom = signal('');
   protected readonly selectedFaculty = signal('');
   protected readonly selectedStatus = signal('');
+  private readonly cohorts = signal<CohortSummary[]>([]);
+  protected readonly selectedCohortId = signal<number | null>(null);
 
   protected readonly typeFetchPage = staticOptionsFetchPage(() =>
     Array.from(new Set(this.allOccurrences().map(o => o.session.sessionType)))
@@ -116,10 +118,16 @@ export class LabScheduleListComponent implements OnInit {
     { id: 'RESCHEDULED', name: 'Rescheduled' },
     { id: 'CANCELLED', name: 'Cancelled' },
   ]);
+  // Cohorts aren't scoped to a single academic year (an active cohort keeps appearing across
+  // every AY it's mid-course in), so this loads the full list once, same as Timetable Builder's
+  // own cohort filter -- narrowing happens server-side via cohortId, not by intersecting with
+  // whichever term the date resolves to.
+  protected readonly cohortFetchPage = staticOptionsFetchPage(() =>
+    this.cohorts().map(c => ({ id: c.id, name: c.displayName })));
 
   protected readonly hasActiveFilters = computed(() =>
     !!this.searchValue() || !!this.selectedType() || !!this.selectedRoom()
-    || !!this.selectedFaculty() || !!this.selectedStatus());
+    || !!this.selectedFaculty() || !!this.selectedStatus() || this.selectedCohortId() != null);
 
   protected readonly filteredCount = computed(() => this.dataSource.filteredData.length);
   protected readonly totalCount = computed(() => this.allOccurrences().length);
@@ -146,6 +154,10 @@ export class LabScheduleListComponent implements OnInit {
       }
       return true;
     };
+    this.academicYearService.getAllCohorts().subscribe({
+      next: (cohorts) => this.cohorts.set(cohorts),
+      error: () => this.toast.error('Failed to load cohorts'),
+    });
     this.load();
   }
 
@@ -193,6 +205,13 @@ export class LabScheduleListComponent implements OnInit {
     this.applyFilterPredicate();
   }
 
+  // Unlike Type/Room/Faculty/Status (filtered client-side against the already-loaded date's
+  // occurrences), Cohort is applied server-side via cohortId, so changing it re-fetches.
+  protected onCohortFilterChange(value: InfiniteSelectValue | null): void {
+    this.selectedCohortId.set(value != null ? Number(value) : null);
+    this.load();
+  }
+
   protected clearFilters(): void {
     this.searchValue.set('');
     this.selectedType.set('');
@@ -200,6 +219,10 @@ export class LabScheduleListComponent implements OnInit {
     this.selectedFaculty.set('');
     this.selectedStatus.set('');
     this.applyFilterPredicate();
+    if (this.selectedCohortId() != null) {
+      this.selectedCohortId.set(null);
+      this.load();
+    }
   }
 
   protected canActOn(occ: ClassScheduleOccurrence): boolean {
@@ -241,7 +264,7 @@ export class LabScheduleListComponent implements OnInit {
           this.loading.set(false);
           return;
         }
-        this.timetableService.getOccurrences(term.id, date, date, 'browse').subscribe({
+        this.timetableService.getOccurrences(term.id, date, date, 'browse', this.selectedCohortId()).subscribe({
           next: (occurrences) => {
             this.allOccurrences.set(occurrences);
             this.dataSource.data = occurrences;
@@ -263,7 +286,7 @@ export class LabScheduleListComponent implements OnInit {
       return;
     }
     this.exporting.set(true);
-    this.timetableService.exportOccurrences(format, term.id, this.selectedDate()).subscribe({
+    this.timetableService.exportOccurrences(format, term.id, this.selectedDate(), this.selectedCohortId()).subscribe({
       next: (blob) => {
         const ext = format === 'pdf' ? 'pdf' : 'xlsx';
         const url = URL.createObjectURL(blob);

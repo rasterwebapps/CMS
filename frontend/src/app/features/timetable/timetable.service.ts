@@ -134,9 +134,12 @@ export class TimetableService {
     return this.http.get<ResourceGridCell[]>(`${this.baseUrl}/${path}`, { params });
   }
 
-  exportOccurrences(format: 'excel' | 'pdf', termInstanceId: number, date: string): Observable<Blob> {
-    const params = new HttpParams()
+  exportOccurrences(
+    format: 'excel' | 'pdf', termInstanceId: number, date: string, cohortId?: number | null,
+  ): Observable<Blob> {
+    let params = new HttpParams()
       .set('format', format).set('termInstanceId', termInstanceId).set('date', date);
+    if (cohortId != null) params = params.set('cohortId', cohortId);
     return this.http.get(`${this.baseUrl}/occurrences/export`, { params, responseType: 'blob' });
   }
 

@@ -51,6 +51,12 @@
     </div>
 
     <cms-infinite-select
+      label="All Cohorts" ariaLabel="Filter by cohort" searchPlaceholder="Search cohorts…"
+      [fetchPage]="cohortFetchPage"
+      [selectedValue]="selectedCohortId()" (selectedValueChange)="onCohortFilterChange($event)"
+    />
+
+    <cms-infinite-select
       label="All Types" ariaLabel="Filter by session type" searchPlaceholder="Search types…"
       [fetchPage]="typeFetchPage"
       [selectedValue]="selectedType() || null" (selectedValueChange)="onTypeFilterChange($event)"
