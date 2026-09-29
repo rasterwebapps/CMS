@@ -1,0 +1,169 @@
+<div class="mlp-page">
+
+  <div class="mlp-hdr anim-rise">
+    <div class="mlp-hdr-left">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <h1 class="mlp-title">Faculty <em>Absence</em></h1>
+        <cms-tour-button tourKey="faculty-absence" [iconOnly]="true" iconVariant="info-circle" />
+      </div>
+      <p class="mlp-sub">Every faculty absence on record — mark a new one and line up a substitute for their affected sessions.</p>
+    </div>
+    @if (canMark()) {
+      <div class="mlp-hdr-right">
+        <button id="tour-fa-add-btn" class="btn-primary" (click)="openAddFlyout()" aria-label="Mark faculty absent">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Mark Absent
+        </button>
+      </div>
+    }
+  </div>
+
+  <div id="tour-fa-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="onSearch($event)"
+        placeholder="Search by faculty name…"
+        type="text"
+        aria-label="Search by faculty name"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      }
+    </div>
+
+    <div class="date-range-group">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span class="date-range-label">From</span>
+      <input
+        class="date-input"
+        type="date"
+        [value]="fromDate()"
+        (change)="onFromDateChange($any($event.target).value)"
+        aria-label="From date"
+      />
+      <span class="date-sep">—</span>
+      <span class="date-range-label">To</span>
+      <input
+        class="date-input"
+        type="date"
+        [value]="toDate()"
+        (change)="onToDateChange($any($event.target).value)"
+        aria-label="To date"
+      />
+    </div>
+
+    <select class="mlp-filter-select" [ngModel]="substituteFilter()" (ngModelChange)="onSubstituteFilterChange($event)" aria-label="Filter by substitute status">
+      <option value="">All substitute statuses</option>
+      <option value="true">Substitute applied</option>
+      <option value="false">No substitute yet</option>
+    </select>
+  </div>
+
+  <div id="tour-fa-list-table" class="content-card mlp-table-card anim-rise anim-rise--d1">
+    @if (loading()) {
+      <div class="loading-container">
+        <mat-spinner diameter="36" aria-label="Loading faculty absences"></mat-spinner>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort
+               [matSortActive]="sortActive" [matSortDirection]="sortDirection"
+               matSortDisableClear (matSortChange)="onSortChange($event)" class="modern-table">
+
+          <ng-container matColumnDef="facultyName">
+            <th mat-header-cell *matHeaderCellDef>Faculty</th>
+            <td mat-cell *matCellDef="let r">{{ r.facultyName }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="specialityName">
+            <th mat-header-cell *matHeaderCellDef>Speciality</th>
+            <td mat-cell *matCellDef="let r">{{ r.specialityName || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="absenceDate">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Date</th>
+            <td mat-cell *matCellDef="let r">{{ r.absenceDate }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="reason">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Reason</th>
+            <td mat-cell *matCellDef="let r">{{ r.reason || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="recordedBy">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Recorded By</th>
+            <td mat-cell *matCellDef="let r">{{ r.recordedBy || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="coverage">
+            <th mat-header-cell *matHeaderCellDef>Sessions Covered</th>
+            <td mat-cell *matCellDef="let r">
+              @if (r.affectedSessionCount === 0) {
+                <span class="cms-badge cms-badge--gray">No sessions</span>
+              } @else if (r.substitutedCount === r.affectedSessionCount) {
+                <span class="cms-badge cms-badge--green">{{ r.substitutedCount }}/{{ r.affectedSessionCount }} covered</span>
+              } @else if (r.substitutedCount > 0) {
+                <span class="cms-badge cms-badge--amber">{{ r.substitutedCount }}/{{ r.affectedSessionCount }} covered</span>
+              } @else {
+                <span class="cms-badge cms-badge--red">0/{{ r.affectedSessionCount }} covered</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions" stickyEnd>
+            <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
+            <td mat-cell *matCellDef="let r">
+              <div class="row-actions">
+                <cms-row-action-btn variant="info" [iconOnly]="true" tooltip="View" ariaLabel="View absence and substitute status" (clicked)="openRow(r)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </cms-row-action-btn>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let r; columns: displayedColumns;"></tr>
+
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
+              <cms-empty-state
+                icon="event_busy"
+                title="No faculty absences in this range"
+                subtitle="Widen the date range, clear the filters, or use Mark Absent to record one."
+              />
+            </td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator
+        [length]="totalElements"
+        [pageSizeOptions]="[10, 25, 50]"
+        showFirstLastButtons
+        aria-label="Faculty absence pages"
+      />
+    }
+  </div>
+
+  @if (showFlyout()) {
+    <app-mark-absence-flyout [existingAbsenceId]="flyoutAbsenceId()" (closed)="onFlyoutClosed()" (saved)="onFlyoutSaved()" />
+  }
+
+</div>

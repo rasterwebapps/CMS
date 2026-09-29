@@ -1,28 +1,3 @@
-.mark-absence-card {
-  margin-bottom: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.field-row {
-  display: flex;
-  gap: 12px;
-
-  .field-group {
-    flex: 1;
-  }
-
-  .field-group--narrow {
-    flex: 0 0 200px;
-  }
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .loading-container {
   display: flex;
   justify-content: center;
@@ -39,11 +14,17 @@
   }
 }
 
-.affected-sessions__title {
+.mab-sessions {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cms-border-default);
+}
+
+.mab-sessions__title {
   font-size: var(--cms-text-md);
   font-weight: 700;
   color: var(--cms-text-primary);
-  margin: 0 0 12px;
+  margin: 0 0 16px;
 }
 
 .session-list {

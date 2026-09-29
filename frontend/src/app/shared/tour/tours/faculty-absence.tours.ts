@@ -8,35 +8,27 @@ export const FACULTY_ABSENCE_TOUR: TourDefinition = {
     {
       popover: {
         title: '🚫 Faculty Absence',
-        description: 'Mark a faculty member absent for a date, see every published session it affects, and line up a substitute.',
+        description: 'See every faculty absence on record, filter by date/faculty/substitute status, and mark a new one.',
         side: 'over',
         align: 'center',
       },
     },
     {
-      element: '#tour-fa-form',
+      element: '#tour-fa-add-btn',
       popover: {
         title: 'Mark Absent',
-        description: 'Pick the faculty member and the date they\'ll be absent, add an optional reason, then Mark Absent.',
+        description: 'Pick the faculty member and the date they\'ll be absent, add an optional reason, then Mark Absent — opens in a side panel over this list.',
         side: 'bottom',
-        align: 'start',
+        align: 'end',
       },
     },
     {
-      element: '#tour-fa-sessions',
+      element: '#tour-fa-list-table',
       popover: {
-        title: 'Affected Sessions',
-        description: 'Every published session that faculty was teaching that day. Sessions already covered show who\'s substituting.',
+        title: 'Affected Sessions & Substitutes',
+        description: 'Each row shows how many of that faculty\'s published sessions are covered. Open a row\'s substitute status to see every affected session — sessions already covered show who\'s substituting, and uncovered ones let you find an eligible substitute.',
         side: 'top',
         align: 'start',
-      },
-    },
-    {
-      popover: {
-        title: '✅ Find a Substitute',
-        description: 'For each uncovered session, Find Substitute lists only faculty who are actually free and eligible for that exact slot — pick one to apply it immediately.',
-        side: 'over',
-        align: 'center',
       },
     },
   ],

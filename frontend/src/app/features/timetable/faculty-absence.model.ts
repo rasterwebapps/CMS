@@ -34,3 +34,22 @@ export interface SubstituteCandidate {
   facultyId: number;
   facultyName: string;
 }
+
+export interface FacultyAbsenceListItem {
+  id: number;
+  facultyId: number;
+  facultyName: string;
+  specialityName: string | null;
+  absenceDate: string;
+  reason: string | null;
+  recordedBy: string | null;
+  affectedSessionCount: number;
+  substitutedCount: number;
+}
+
+export interface FacultyAbsenceListFilter {
+  fromDate?: string | null;
+  toDate?: string | null;
+  facultyName?: string | null;
+  substituteApplied?: boolean | null;
+}

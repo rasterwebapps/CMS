@@ -1912,10 +1912,10 @@ export const routes: Routes = [
   },
   {
     path: 'faculty-absence',
-    canActivate: withPermission('FACULTY_ABSENCE_MARK', 'FACULTY_ABSENCE_SUBSTITUTE_APPLY'),
+    canActivate: withPermission('FACULTY_ABSENCE_VIEW'),
     loadComponent: () =>
-      import('./features/timetable/faculty-absence/faculty-absence.component').then(
-        (m) => m.FacultyAbsenceComponent
+      import('./features/timetable/faculty-absence-list/faculty-absence-list.component').then(
+        (m) => m.FacultyAbsenceListComponent
       ),
   },
   {

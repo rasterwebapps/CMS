@@ -5,11 +5,15 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.AffectedSessionResponse;
 import com.cms.dto.FacultyAbsenceDto;
+import com.cms.dto.FacultyAbsenceListItemResponse;
 import com.cms.dto.FacultyAbsenceRequest;
 import com.cms.dto.SubstituteCandidateResponse;
 import com.cms.exception.ResourceNotFoundException;
@@ -78,6 +82,56 @@ public class FacultyAbsenceService {
 
     public FacultyAbsenceDto getAbsence(Long absenceId) {
         return toDto(findAbsenceOrThrow(absenceId));
+    }
+
+    /** List screen behind FACULTY_ABSENCE_VIEW. substituteApplied filters at the DB level via an
+     *  EXISTS/NOT EXISTS subquery against SessionOccurrence.facultyAbsence -- "has at least one
+     *  linked occurrence already been substituted" -- rather than replicating the full
+     *  affected-sessions candidate resolution (day-of-week + term dates + DayMappingOverride) in
+     *  SQL. The per-row affectedSessionCount/substitutedCount shown alongside it still comes from
+     *  that full resolution (via findAffectedSessions), which is fine since it only runs once per
+     *  row of one bounded page, not across the whole filtered set. */
+    public Page<FacultyAbsenceListItemResponse> findPage(LocalDate fromDate, LocalDate toDate,
+            String facultyName, Boolean substituteApplied, Pageable pageable) {
+        Specification<FacultyAbsence> spec = (root, query, cb) -> cb.conjunction();
+
+        if (fromDate != null) {
+            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("absenceDate"), fromDate));
+        }
+        if (toDate != null) {
+            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("absenceDate"), toDate));
+        }
+        if (facultyName != null && !facultyName.isBlank()) {
+            String pattern = "%" + facultyName.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("faculty").get("firstName")), pattern),
+                cb.like(cb.lower(root.get("faculty").get("lastName")), pattern)
+            ));
+        }
+        if (substituteApplied != null) {
+            spec = spec.and((root, query, cb) -> {
+                jakarta.persistence.criteria.Subquery<Long> sub = query.subquery(Long.class);
+                var occRoot = sub.from(SessionOccurrence.class);
+                sub.select(occRoot.get("id"))
+                    .where(cb.equal(occRoot.get("facultyAbsence"), root),
+                        cb.equal(occRoot.get("occurrenceStatus"), OccurrenceStatus.SUBSTITUTED));
+                return substituteApplied ? cb.exists(sub) : cb.not(cb.exists(sub));
+            });
+        }
+
+        return facultyAbsenceRepository.findAll(spec, pageable).map(this::toListItem);
+    }
+
+    private FacultyAbsenceListItemResponse toListItem(FacultyAbsence absence) {
+        List<AffectedSessionResponse> affected = findAffectedSessions(absence.getId());
+        int substitutedCount = (int) affected.stream()
+            .filter(s -> s.occurrenceStatus() == OccurrenceStatus.SUBSTITUTED)
+            .count();
+        Speciality speciality = absence.getFaculty().getSpeciality();
+        return new FacultyAbsenceListItemResponse(absence.getId(), absence.getFaculty().getId(),
+            absence.getFaculty().getFullName(), speciality != null ? speciality.getName() : null,
+            absence.getAbsenceDate(), absence.getReason(), absence.getRecordedBy(),
+            affected.size(), substitutedCount);
     }
 
     /** PUBLISHED sessions this faculty teaches on the absence date's *effective* weekday -- the
