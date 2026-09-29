@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments';
 import {
@@ -7,9 +7,22 @@ import {
   DayRepeatResult,
   RecurringSpecialClassRequestPayload,
   RecurringSpecialClassResult,
+  SpecialClassApprovalStatus,
   SpecialClassOccurrence,
   SpecialClassRequestPayload,
 } from './special-class.model';
+
+/** All optional -- an omitted filter is not sent as a query param at all. */
+export interface SpecialClassSearchFilter {
+  status?: SpecialClassApprovalStatus | null;
+  facultyId?: number | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  subjectId?: number | null;
+  /** A Cohort id (see AcademicYearService.getAllCohorts) -- not a CohortSection id. */
+  cohortId?: number | null;
+  search?: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SpecialClassService {
@@ -34,8 +47,16 @@ export class SpecialClassService {
     return this.http.get<SpecialClassOccurrence[]>(`${this.baseUrl}/my-requests`);
   }
 
-  approvalQueue(): Observable<SpecialClassOccurrence[]> {
-    return this.http.get<SpecialClassOccurrence[]>(`${this.baseUrl}/approval-queue`);
+  approvalQueue(filter: SpecialClassSearchFilter = {}): Observable<SpecialClassOccurrence[]> {
+    let params = new HttpParams();
+    if (filter.status) params = params.set('status', filter.status);
+    if (filter.facultyId != null) params = params.set('facultyId', filter.facultyId);
+    if (filter.dateFrom) params = params.set('dateFrom', filter.dateFrom);
+    if (filter.dateTo) params = params.set('dateTo', filter.dateTo);
+    if (filter.subjectId != null) params = params.set('subjectId', filter.subjectId);
+    if (filter.cohortId != null) params = params.set('cohortId', filter.cohortId);
+    if (filter.search) params = params.set('search', filter.search);
+    return this.http.get<SpecialClassOccurrence[]>(`${this.baseUrl}/approval-queue`, { params });
   }
 
   approve(id: number): Observable<SpecialClassOccurrence> {

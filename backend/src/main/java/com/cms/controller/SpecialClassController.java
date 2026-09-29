@@ -1,8 +1,10 @@
 package com.cms.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -22,6 +25,7 @@ import com.cms.dto.RecurringSpecialClassResult;
 import com.cms.dto.SpecialClassOccurrenceDto;
 import com.cms.dto.SpecialClassRejectionRequest;
 import com.cms.dto.SpecialClassRequest;
+import com.cms.model.enums.SpecialClassApprovalStatus;
 import com.cms.service.ProfileService;
 import com.cms.service.SpecialClassRequestService;
 
@@ -71,10 +75,22 @@ public class SpecialClassController {
         return ResponseEntity.ok(specialClassRequestService.listMyRequests(identity.entityId()));
     }
 
+    /** Admin-facing Special Class Approvals screen -- every request, filterable by status/faculty/
+     *  date-range/subject/cohort/free-text (venue+names). Every parameter is optional; the
+     *  frontend defaults {@code status} to PENDING on first load so the screen's original
+     *  approval-queue behavior is unchanged until an admin widens the filter. */
     @GetMapping("/approval-queue")
-    @PreAuthorize("@perm.has('TIMETABLE_SPECIAL_CLASS_APPROVE')")
-    public ResponseEntity<List<SpecialClassOccurrenceDto>> approvalQueue() {
-        return ResponseEntity.ok(specialClassRequestService.listApprovalQueue());
+    @PreAuthorize("@perm.has('TIMETABLE_SPECIAL_CLASS_HISTORY_VIEW')")
+    public ResponseEntity<List<SpecialClassOccurrenceDto>> search(
+            @RequestParam(required = false) SpecialClassApprovalStatus status,
+            @RequestParam(required = false) Long facultyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
+            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long cohortId,
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(specialClassRequestService.search(
+            status, facultyId, dateFrom, dateTo, subjectId, cohortId, search));
     }
 
     @PutMapping("/{id}/approve")

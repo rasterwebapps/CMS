@@ -5063,6 +5063,51 @@ body .mlp-hdr-left .page-title-row button.cms-tour-icon-btn:hover {
   background-color: var(--cms-bg-card) !important;
 }
 
+// Date range filter — grouped pill matching mlp-filter-select appearance. Was independently
+// duplicated byte-identical across receipts-list/fee-refund-list/faculty-absence-list/
+// commission-explorer-list before being extracted here — a 5th near-identical copy
+// (enquiry-list, its own $ctrl-h/hardcoded-radius variant) was left local rather than folded in,
+// since unifying its slightly different look wasn't asked for.
+.date-range-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--cms-bg-card);
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-list-filter-radius);
+  padding: 0 10px;
+  height: var(--cms-list-filter-height);
+  color: var(--cms-text-muted);
+  flex-shrink: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover { border-color: var(--cms-border-hover); }
+  &:focus-within { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); }
+
+  svg { flex-shrink: 0; }
+}
+
+.date-range-label {
+  font-size: var(--cms-text-xs);
+  font-weight: 500;
+  color: var(--cms-text-muted);
+  white-space: nowrap;
+}
+
+.date-input {
+  border: none;
+  background: transparent;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-primary);
+  font-family: var(--cms-font-ui);
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  width: 96px;
+}
+
+.date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
+
 .filter-sel,
 .enq-filter-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;

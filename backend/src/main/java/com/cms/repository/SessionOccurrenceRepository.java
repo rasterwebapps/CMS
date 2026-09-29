@@ -6,14 +6,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.cms.model.SessionOccurrence;
 import com.cms.model.enums.ClassScheduleStatus;
 import com.cms.model.enums.OccurrenceSource;
 import com.cms.model.enums.OccurrenceStatus;
-import com.cms.model.enums.SpecialClassApprovalStatus;
 
-public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurrence, Long> {
+public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurrence, Long>,
+        JpaSpecificationExecutor<SessionOccurrence> {
 
     Optional<SessionOccurrence> findByClassScheduleIdAndOccurrenceDate(Long classScheduleId, LocalDate occurrenceDate);
 
@@ -58,10 +59,6 @@ public interface SessionOccurrenceRepository extends JpaRepository<SessionOccurr
     /** Faculty's own "My Special Classes" list. */
     List<SessionOccurrence> findByRequestedByFaculty_IdAndOccurrenceSourceInOrderByOccurrenceDateDesc(
         Long facultyId, List<OccurrenceSource> sources);
-
-    /** Admin approval queue. */
-    List<SessionOccurrence> findByApprovalStatusAndOccurrenceSourceInOrderByRequestedAtAsc(
-        SpecialClassApprovalStatus approvalStatus, List<OccurrenceSource> sources);
 
     /** Fetch/bulk-act on every row of one DAY_REPEAT submission. */
     List<SessionOccurrence> findByRequestBatchId(UUID requestBatchId);

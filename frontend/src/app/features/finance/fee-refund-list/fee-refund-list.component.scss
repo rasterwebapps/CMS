@@ -218,46 +218,7 @@ tr.rfl-row--pending:hover td {
   }
 }
 
-// ── Date range filter ─────────────────────────────────────────────────────────
-.date-range-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--cms-bg-card);
-  border: 1px solid var(--cms-border-default);
-  border-radius: var(--cms-list-filter-radius);
-  padding: 0 10px;
-  height: var(--cms-list-filter-height);
-  color: var(--cms-text-muted);
-  flex-shrink: 0;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-  &:hover { border-color: var(--cms-border-hover); }
-  &:focus-within { border-color: var(--cms-primary); box-shadow: 0 0 0 3px var(--cms-primary-ring); }
-
-  svg { flex-shrink: 0; }
-}
-
-.date-range-label {
-  font-size: var(--cms-text-xs);
-  font-weight: 500;
-  color: var(--cms-text-muted);
-  white-space: nowrap;
-}
-
-.date-input {
-  border: none;
-  background: transparent;
-  font-size: var(--cms-text-sm);
-  color: var(--cms-text-primary);
-  font-family: var(--cms-font-ui);
-  outline: none;
-  cursor: pointer;
-  padding: 0;
-  width: 96px;
-}
-
-.date-sep { color: var(--cms-text-muted); font-size: var(--cms-text-xs); }
+// .date-range-group/.date-range-label/.date-input/.date-sep now global in styles.scss.
 
 // ── Loading box ───────────────────────────────────────────────────────────────
 .loading-box {

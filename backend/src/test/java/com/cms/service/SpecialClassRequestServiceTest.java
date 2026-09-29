@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
@@ -13,6 +15,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +28,7 @@ import com.cms.dto.DayRepeatResult;
 import com.cms.dto.RecurringSpecialClassRequest;
 import com.cms.dto.RecurringSpecialClassResult;
 import com.cms.dto.SpecialClassRequest;
+import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.TimetableConstraintViolationException;
 import com.cms.model.Classroom;
 import com.cms.model.ClassSchedule;
@@ -40,6 +44,7 @@ import com.cms.model.enums.ClassSessionType;
 import com.cms.model.enums.DayOfWeek;
 import com.cms.model.enums.OccurrenceSource;
 import com.cms.model.enums.RegistrationStatus;
+import com.cms.model.enums.SpecialClassApprovalStatus;
 import com.cms.model.enums.WeekOfMonth;
 import com.cms.repository.CalendarEventRepository;
 import com.cms.repository.ClassScheduleRepository;
@@ -526,5 +531,78 @@ class SpecialClassRequestServiceTest {
             .isInstanceOf(TimetableConstraintViolationException.class);
 
         org.mockito.Mockito.verify(sessionOccurrenceRepository, org.mockito.Mockito.never()).saveAll(any());
+    }
+
+    // ── OC-275: past-date approve/reject guard (Special Class Approvals history screen) ──────────
+    // courseOffering is deliberately left null on these occurrences: reCheckStillFree short-circuits
+    // when it is (see SpecialClassRequestService#reCheckStillFree), so these tests exercise only the
+    // new requireNotPastDate boundary without needing to also mock the full conflict-check chain.
+
+    private SessionOccurrence pendingOccurrence(Long id, LocalDate occurrenceDate) {
+        SessionOccurrence occurrence = new SessionOccurrence();
+        occurrence.setId(id);
+        occurrence.setOccurrenceSource(OccurrenceSource.SPECIAL_CLASS);
+        occurrence.setApprovalStatus(SpecialClassApprovalStatus.PENDING);
+        occurrence.setOccurrenceDate(occurrenceDate);
+        return occurrence;
+    }
+
+    @Test
+    void approve_blocksARequestWhoseDateHasAlreadyPassed() {
+        SessionOccurrence occurrence = pendingOccurrence(700L, LocalDate.now().minusDays(1));
+        when(sessionOccurrenceRepository.findById(700L)).thenReturn(Optional.of(occurrence));
+
+        assertThatThrownBy(() -> service.approve(700L, "admin"))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("already passed");
+
+        verify(sessionOccurrenceRepository, never()).save(any());
+    }
+
+    @Test
+    void approve_allowsARequestDatedToday() {
+        SessionOccurrence occurrence = pendingOccurrence(701L, LocalDate.now());
+        when(sessionOccurrenceRepository.findById(701L)).thenReturn(Optional.of(occurrence));
+        when(sessionOccurrenceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThat(service.approve(701L, "admin").approvalStatus()).isEqualTo(SpecialClassApprovalStatus.APPROVED);
+    }
+
+    @Test
+    void reject_blocksARequestWhoseDateHasAlreadyPassed() {
+        SessionOccurrence occurrence = pendingOccurrence(702L, LocalDate.now().minusDays(1));
+        when(sessionOccurrenceRepository.findById(702L)).thenReturn(Optional.of(occurrence));
+
+        assertThatThrownBy(() -> service.reject(702L, "Not needed", "admin"))
+            .isInstanceOf(LifecycleConflictException.class)
+            .hasMessageContaining("already passed");
+
+        verify(sessionOccurrenceRepository, never()).save(any());
+    }
+
+    @Test
+    void approveBatch_blocksTheWholeBatchWhenAnyRowsDateHasAlreadyPassed() {
+        UUID batchId = UUID.randomUUID();
+        SessionOccurrence future = pendingOccurrence(703L, LocalDate.now().plusWeeks(1));
+        SessionOccurrence past = pendingOccurrence(704L, LocalDate.now().minusDays(1));
+        when(sessionOccurrenceRepository.findByRequestBatchId(batchId)).thenReturn(List.of(future, past));
+
+        assertThatThrownBy(() -> service.approveBatch(batchId, "admin"))
+            .isInstanceOf(LifecycleConflictException.class);
+
+        verify(sessionOccurrenceRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void rejectBatch_blocksTheWholeBatchWhenAnyRowsDateHasAlreadyPassed() {
+        UUID batchId = UUID.randomUUID();
+        SessionOccurrence future = pendingOccurrence(705L, LocalDate.now().plusWeeks(1));
+        SessionOccurrence past = pendingOccurrence(706L, LocalDate.now().minusDays(1));
+        when(sessionOccurrenceRepository.findByRequestBatchId(batchId)).thenReturn(List.of(future, past));
+
+        assertThatThrownBy(() -> service.rejectBatch(batchId, "Not needed", "admin"))
+            .isInstanceOf(LifecycleConflictException.class);
+
+        verify(sessionOccurrenceRepository, never()).saveAll(any());
     }
 }

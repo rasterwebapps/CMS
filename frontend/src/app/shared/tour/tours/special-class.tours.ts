@@ -71,10 +71,19 @@ export const SPECIAL_CLASS_APPROVALS_TOUR: TourDefinition = {
       },
     },
     {
+      element: '#tour-aql-toolbar',
+      popover: {
+        title: 'Filter Requests',
+        description: 'Defaults to Pending. Widen the Status filter, or filter by faculty, subject, cohort, date range, or search, to browse approved/rejected history.',
+        side: 'bottom',
+        align: 'start',
+      },
+    },
+    {
       element: '#tour-aql-table',
       popover: {
-        title: 'Pending Requests',
-        description: 'Every request awaiting a decision, with who requested it, for whom, and when. A Day Repeat tag marks requests that are part of a whole-day batch.',
+        title: 'Requests',
+        description: 'Every request matching your filters, with who requested it, for whom, and when. A Day Repeat tag marks requests that are part of a whole-day batch. A request past its date can no longer be approved or rejected.',
         side: 'top',
         align: 'start',
       },
@@ -94,7 +103,7 @@ export const SPECIAL_CLASS_APPROVALS_FLOW_MAP: TourFlowMap = {
   funnel: SPECIAL_CLASS_FUNNEL,
   currentIndex: 1,
   steps: [
-    { label: 'Review Queue', icon: 'checklist', detail: 'Every pending request, with requester, subject, date, and venue.' },
+    { label: 'Review Queue', icon: 'checklist', detail: 'Every request, filterable by status/faculty/subject/cohort/date, with requester, subject, date, and venue.' },
     { label: 'Approve', icon: 'open', detail: 'Schedules the class immediately — the whole day-repeat batch if applicable.' },
     { label: 'Reject', icon: 'send', detail: 'Requires a reason, visible to the requesting faculty; also applies to the whole batch if applicable.' },
   ],

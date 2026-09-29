@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +52,7 @@ import com.cms.repository.FacultyRepository;
 import com.cms.repository.LabRepository;
 import com.cms.repository.PeriodRepository;
 import com.cms.repository.SessionOccurrenceRepository;
+import com.cms.repository.SessionOccurrenceSpecification;
 import com.cms.repository.SubjectRepository;
 import com.cms.service.SessionOccurrenceVenue.VenueResolution;
 
@@ -353,6 +356,7 @@ public class SpecialClassRequestService {
     public SpecialClassOccurrenceDto approve(Long id, String approver) {
         SessionOccurrence occurrence = requireSpecialClass(id);
         requirePending(occurrence);
+        requireNotPastDate(occurrence);
         reCheckStillFree(occurrence);
         occurrence.setApprovalStatus(SpecialClassApprovalStatus.APPROVED);
         occurrence.setApprovedBy(approver);
@@ -367,6 +371,7 @@ public class SpecialClassRequestService {
         List<SessionOccurrence> batch = requireBatch(requestBatchId);
         batch.forEach(occurrence -> {
             requirePending(occurrence);
+            requireNotPastDate(occurrence);
             reCheckStillFree(occurrence);
         });
         batch.forEach(occurrence -> {
@@ -384,6 +389,7 @@ public class SpecialClassRequestService {
     public SpecialClassOccurrenceDto reject(Long id, String reason, String approver) {
         SessionOccurrence occurrence = requireSpecialClass(id);
         requirePending(occurrence);
+        requireNotPastDate(occurrence);
         occurrence.setApprovalStatus(SpecialClassApprovalStatus.REJECTED);
         occurrence.setRejectionReason(reason);
         occurrence.setApprovedBy(approver);
@@ -397,6 +403,7 @@ public class SpecialClassRequestService {
     public List<SpecialClassOccurrenceDto> rejectBatch(UUID requestBatchId, String reason, String approver) {
         List<SessionOccurrence> batch = requireBatch(requestBatchId);
         batch.forEach(this::requirePending);
+        batch.forEach(this::requireNotPastDate);
         batch.forEach(occurrence -> {
             occurrence.setApprovalStatus(SpecialClassApprovalStatus.REJECTED);
             occurrence.setRejectionReason(reason);
@@ -432,10 +439,37 @@ public class SpecialClassRequestService {
             .stream().map(this::toDto).toList();
     }
 
-    public List<SpecialClassOccurrenceDto> listApprovalQueue() {
-        List<SessionOccurrence> pending = sessionOccurrenceRepository
-            .findByApprovalStatusAndOccurrenceSourceInOrderByRequestedAtAsc(SpecialClassApprovalStatus.PENDING, SPECIAL_SOURCES);
-        return pending.stream().map(this::toDto).toList();
+    /** Admin-facing Special Class Approvals screen: every request (any status), filterable.
+     *  {@code status} left null returns every status; the frontend defaults it to PENDING on
+     *  first load to preserve the screen's original approval-queue behavior, and lets the admin
+     *  widen it to see approved/rejected history. */
+    public List<SpecialClassOccurrenceDto> search(SpecialClassApprovalStatus status, Long facultyId,
+            LocalDate dateFrom, LocalDate dateTo, Long subjectId, Long cohortId, String search) {
+        Specification<SessionOccurrence> spec = Specification.where(
+            SessionOccurrenceSpecification.byOccurrenceSourceIn(SPECIAL_SOURCES));
+        if (status != null) {
+            spec = spec.and(SessionOccurrenceSpecification.byApprovalStatus(status));
+        }
+        if (facultyId != null) {
+            spec = spec.and(SessionOccurrenceSpecification.byRequestedFacultyId(facultyId));
+        }
+        if (dateFrom != null) {
+            spec = spec.and(SessionOccurrenceSpecification.byOccurrenceDateFrom(dateFrom));
+        }
+        if (dateTo != null) {
+            spec = spec.and(SessionOccurrenceSpecification.byOccurrenceDateTo(dateTo));
+        }
+        if (subjectId != null) {
+            spec = spec.and(SessionOccurrenceSpecification.bySubjectId(subjectId));
+        }
+        if (cohortId != null) {
+            spec = spec.and(SessionOccurrenceSpecification.byCohortId(cohortId));
+        }
+        if (search != null && !search.isBlank()) {
+            spec = spec.and(SessionOccurrenceSpecification.bySearch(search));
+        }
+        return sessionOccurrenceRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "requestedAt"))
+            .stream().map(this::toDto).toList();
     }
 
     // ---- internal helpers ----
@@ -462,6 +496,18 @@ public class SpecialClassRequestService {
             throw new LifecycleConflictException(
                 "Only a pending request can be approved or rejected (current status: " + occurrence.getApprovalStatus() + ").",
                 "SPECIAL_CLASS_NOT_PENDING", "SessionOccurrence", occurrence.getId(), null);
+        }
+    }
+
+    /** Blocks approve/reject on a request whose occurrence date has already passed -- deciding on
+     *  a date that can no longer be taught is meaningless, and this mirrors the same date guard
+     *  {@link #cancel} already applies. Checked here (not just hidden in the UI) so a direct API
+     *  call can't bypass it. */
+    private void requireNotPastDate(SessionOccurrence occurrence) {
+        if (occurrence.getOccurrenceDate().isBefore(LocalDate.now())) {
+            throw new LifecycleConflictException(
+                "This request's date has already passed -- it can no longer be approved or rejected.",
+                "SPECIAL_CLASS_PAST_DATE", "SessionOccurrence", occurrence.getId(), null);
         }
     }
 

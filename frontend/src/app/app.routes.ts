@@ -1928,7 +1928,7 @@ export const routes: Routes = [
   },
   {
     path: 'timetable/special-classes/approval-queue',
-    canActivate: withPermission('TIMETABLE_SPECIAL_CLASS_APPROVE'),
+    canActivate: withPermission('TIMETABLE_SPECIAL_CLASS_HISTORY_VIEW'),
     loadComponent: () =>
       import('./features/timetable/special-classes/approval-queue/approval-queue-list.component').then(
         (m) => m.ApprovalQueueListComponent

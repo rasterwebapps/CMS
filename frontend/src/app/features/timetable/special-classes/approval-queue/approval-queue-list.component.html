@@ -5,14 +5,72 @@
         <h1 class="mlp-title">Special Class <em>Approvals</em></h1>
         <cms-tour-button tourKey="special-class-approvals" [iconOnly]="true" iconVariant="info-circle" />
       </div>
-      <p class="mlp-sub">Pending faculty requests for ad-hoc special/remedial classes and whole-day repeats.</p>
+      <p class="mlp-sub">Faculty requests for ad-hoc special/remedial classes and whole-day repeats — review, approve, reject, and browse past decisions.</p>
     </div>
+  </div>
+
+  <div id="tour-aql-toolbar" class="mlp-toolbar anim-rise anim-rise--d1">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        class="search-bar__input"
+        [value]="searchValue()"
+        (input)="onSearch($event)"
+        placeholder="Search by subject, faculty, or venue…"
+        type="text"
+        aria-label="Search special class requests"
+      />
+      @if (searchValue()) {
+        <button class="search-bar__clear" (click)="clearSearch()" aria-label="Clear search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      }
+    </div>
+
+    <div class="date-range-group">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="date-range-label">From</span>
+      <input class="date-input" type="date" [value]="dateFrom()" (change)="onDateFromChange($any($event.target).value)" aria-label="From date" />
+      <span class="date-sep">—</span>
+      <span class="date-range-label">To</span>
+      <input class="date-input" type="date" [value]="dateTo()" (change)="onDateToChange($any($event.target).value)" aria-label="To date" />
+    </div>
+
+    <cms-infinite-select
+      label="All Statuses" ariaLabel="Filter by status" searchPlaceholder="Search statuses…"
+      [fetchPage]="statusFetchPage"
+      [selectedValue]="selectedStatus()" (selectedValueChange)="onStatusFilterChange($event)"
+    />
+
+    <cms-infinite-select
+      label="All Faculty" ariaLabel="Filter by faculty" searchPlaceholder="Search faculty…"
+      [fetchPage]="facultyFetchPage"
+      [selectedValue]="selectedFacultyId()" (selectedValueChange)="onFacultyFilterChange($event)"
+    />
+
+    <cms-infinite-select
+      label="All Subjects" ariaLabel="Filter by subject" searchPlaceholder="Search subjects…"
+      [fetchPage]="subjectFetchPage"
+      [selectedValue]="selectedSubjectId()" (selectedValueChange)="onSubjectFilterChange($event)"
+    />
+
+    <cms-infinite-select
+      label="All Cohorts" ariaLabel="Filter by cohort" searchPlaceholder="Search cohorts…"
+      [fetchPage]="cohortFetchPage"
+      [selectedValue]="selectedCohortId()" (selectedValueChange)="onCohortFilterChange($event)"
+    />
+
+    @if (hasActiveFilters()) {
+      <button class="btn-clear-filters btn-toolbar--icon-only" (click)="clearFilters()" aria-label="Clear all filters" title="Clear all filters">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    }
   </div>
 
   <div id="tour-aql-table" class="content-card mlp-table-card anim-rise anim-rise--d1">
     @if (loading()) {
       <div class="loading-container">
-        <mat-spinner diameter="36" aria-label="Loading approval queue"></mat-spinner>
+        <mat-spinner diameter="36" aria-label="Loading special class requests"></mat-spinner>
       </div>
     } @else {
       <div class="table-wrapper">
@@ -61,19 +119,33 @@
             <td mat-cell *matCellDef="let r">{{ r.requestedByFacultyName || '—' }}</td>
           </ng-container>
 
+          <ng-container matColumnDef="approvalStatus">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+            <td mat-cell *matCellDef="let r">
+              <cms-status-badge [status]="r.approvalStatus" />
+              @if (r.approvalStatus === 'REJECTED' && r.rejectionReason) {
+                <span class="cell-sub" [title]="r.rejectionReason">{{ r.rejectionReason }}</span>
+              }
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="actions" stickyEnd>
             <th mat-header-cell *matHeaderCellDef class="actions-header"></th>
             <td mat-cell *matCellDef="let r">
-              <div class="row-actions">
-                <cms-row-action-btn variant="success" tooltip="Approve" ariaLabel="Approve" [disabled]="acting()" (clicked)="confirmApprove(r)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                  Approve
-                </cms-row-action-btn>
-                <cms-row-action-btn variant="danger" tooltip="Reject" ariaLabel="Reject" [disabled]="acting()" (clicked)="startReject(r)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                  Reject
-                </cms-row-action-btn>
-              </div>
+              @if (canApprove() && r.approvalStatus === 'PENDING') {
+                <div class="row-actions">
+                  <cms-row-action-btn variant="success" [tooltip]="isPastDate(r) ? 'This request date has already passed' : 'Approve'" ariaLabel="Approve" [disabled]="acting() || isPastDate(r)" (clicked)="confirmApprove(r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                    Approve
+                  </cms-row-action-btn>
+                  <cms-row-action-btn variant="danger" [tooltip]="isPastDate(r) ? 'This request date has already passed' : 'Reject'" ariaLabel="Reject" [disabled]="acting() || isPastDate(r)" (clicked)="startReject(r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    Reject
+                  </cms-row-action-btn>
+                </div>
+              } @else {
+                <span class="cell-muted">—</span>
+              }
             </td>
           </ng-container>
 
@@ -82,7 +154,13 @@
 
           <tr class="mat-row" *matNoDataRow>
             <td class="mat-cell" [attr.colspan]="displayedColumns.length" style="padding: 0">
-              <cms-empty-state icon="task_alt" title="No pending requests" subtitle="Special class requests awaiting approval will appear here." />
+              <cms-empty-state
+                icon="task_alt"
+                [title]="hasActiveFilters() ? 'No requests match your filters' : 'No pending requests'"
+                [subtitle]="hasActiveFilters() ? 'Try adjusting or clearing your filters.' : 'Special class requests awaiting approval will appear here.'"
+                [actionLabel]="hasActiveFilters() ? 'Clear Filters' : ''"
+                (actionClick)="clearFilters()"
+              />
             </td>
           </tr>
         </table>
