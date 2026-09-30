@@ -1,9 +1,13 @@
 package com.cms.repository;
 
+import com.cms.model.AcademicQualification;
 import com.cms.model.Enquiry;
 import com.cms.model.Student;
+import com.cms.model.enums.QualificationType;
 import com.cms.model.enums.StudentStatus;
 import com.cms.model.enums.StudentType;
+
+import java.math.BigDecimal;
 
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -67,5 +71,123 @@ public final class StudentSpecification {
                 cb.like(cb.lower(root.get("email")), pattern)
             );
         };
+    }
+
+    // ---------------------------------------------------------------------
+    // AI Smart Search (com.cms.ai) -- filters over the SearchFieldRegistry
+    // allow-list only. Every method below backs exactly one allow-listed
+    // field; do not add a method here without adding the matching entry to
+    // SearchFieldRegistry, and never expose one without the other.
+    // ---------------------------------------------------------------------
+
+    public static Specification<Student> byFirstNameContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("firstName")), likePattern(value));
+    }
+
+    public static Specification<Student> byLastNameContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("lastName")), likePattern(value));
+    }
+
+    public static Specification<Student> byRollNumberContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("rollNumber")), likePattern(value));
+    }
+
+    public static Specification<Student> byAdmissionNumberContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("admissionNumber")), likePattern(value));
+    }
+
+    public static Specification<Student> byProgramNameContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("program").get("name")), likePattern(value));
+    }
+
+    public static Specification<Student> byCourseNameContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("course").get("name")), likePattern(value));
+    }
+
+    public static Specification<Student> bySpecialityNameContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("speciality").get("name")), likePattern(value));
+    }
+
+    public static Specification<Student> byAdmissionCategory(String value) {
+        return (root, query, cb) -> {
+            try {
+                var category = com.cms.model.enums.AdmissionCategory.valueOf(value.toUpperCase());
+                return cb.equal(root.get("admissionCategory"), category);
+            } catch (IllegalArgumentException e) {
+                return cb.disjunction();
+            }
+        };
+    }
+
+    public static Specification<Student> byGender(String value) {
+        return (root, query, cb) -> {
+            try {
+                var gender = com.cms.model.enums.Gender.valueOf(value.toUpperCase());
+                return cb.equal(root.get("gender"), gender);
+            } catch (IllegalArgumentException e) {
+                return cb.disjunction();
+            }
+        };
+    }
+
+    /** Students with an {@link AcademicQualification} whose school/college name matches. */
+    public static Specification<Student> byAcademicQualificationSchoolNameContains(String value) {
+        return (root, query, cb) -> {
+            Subquery<Long> sub = query.subquery(Long.class);
+            Root<AcademicQualification> aq = sub.from(AcademicQualification.class);
+            sub.select(aq.get("admission").get("student").get("id"))
+               .where(cb.like(cb.lower(aq.get("schoolName")), likePattern(value)));
+            return root.get("id").in(sub);
+        };
+    }
+
+    public static Specification<Student> byAcademicQualificationBoardContains(String value) {
+        return (root, query, cb) -> {
+            Subquery<Long> sub = query.subquery(Long.class);
+            Root<AcademicQualification> aq = sub.from(AcademicQualification.class);
+            sub.select(aq.get("admission").get("student").get("id"))
+               .where(cb.like(cb.lower(aq.get("universityOrBoard")), likePattern(value)));
+            return root.get("id").in(sub);
+        };
+    }
+
+    public static Specification<Student> byAcademicQualificationType(String value) {
+        return (root, query, cb) -> {
+            QualificationType type;
+            try {
+                type = QualificationType.valueOf(value.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return cb.disjunction();
+            }
+            Subquery<Long> sub = query.subquery(Long.class);
+            Root<AcademicQualification> aq = sub.from(AcademicQualification.class);
+            sub.select(aq.get("admission").get("student").get("id"))
+               .where(cb.equal(aq.get("qualificationType"), type));
+            return root.get("id").in(sub);
+        };
+    }
+
+    public static Specification<Student> byAcademicQualificationPercentageAtLeast(BigDecimal minPercentage) {
+        return (root, query, cb) -> {
+            Subquery<Long> sub = query.subquery(Long.class);
+            Root<AcademicQualification> aq = sub.from(AcademicQualification.class);
+            sub.select(aq.get("admission").get("student").get("id"))
+               .where(cb.greaterThanOrEqualTo(aq.get("percentage"), minPercentage));
+            return root.get("id").in(sub);
+        };
+    }
+
+    public static Specification<Student> byAcademicQualificationPassingPeriodContains(String value) {
+        return (root, query, cb) -> {
+            Subquery<Long> sub = query.subquery(Long.class);
+            Root<AcademicQualification> aq = sub.from(AcademicQualification.class);
+            sub.select(aq.get("admission").get("student").get("id"))
+               .where(cb.like(cb.lower(aq.get("monthAndYearOfPassing")), likePattern(value)));
+            return root.get("id").in(sub);
+        };
+    }
+
+    private static String likePattern(String value) {
+        return "%" + value.toLowerCase() + "%";
     }
 }

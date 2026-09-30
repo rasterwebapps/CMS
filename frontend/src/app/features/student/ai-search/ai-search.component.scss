@@ -1,0 +1,48 @@
+// Local re-declarations of the same per-component patterns used by receipts-list.component.scss
+// and student-list.component.scss -- Angular's emulated ViewEncapsulation means a class defined
+// in one component's SCSS does not style another component's template, even with an identical
+// class name (see feedback_component_touch_rule / CLAUDE.md). Do not delete these thinking
+// they're dead: they back real classes used in ai-search.component.html.
+
+.cell-sub {
+  display: block;
+  font-size: var(--cms-text-sm);
+  color: var(--cms-text-muted);
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+.cell-id-col {
+  white-space: nowrap;
+}
+
+.cell-code-mono {
+  display: block;
+  font-family: var(--cms-font-mono);
+  font-size: var(--cms-text-xs);
+  color: var(--cms-primary);
+  line-height: 1.4;
+}
+
+.cell-adm {
+  color: var(--cms-text-muted);
+}
+
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 24px;
+
+  &__label {
+    color: var(--cms-text-muted);
+    font-size: var(--cms-text-sm);
+    margin: 0;
+  }
+}
+
+.table-row {
+  cursor: pointer;
+}

@@ -70,6 +70,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(error);
     }
 
+    @ExceptionHandler(com.cms.ai.OllamaUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleOllamaUnavailable(com.cms.ai.OllamaUnavailableException ex) {
+        log.warn("Local Ollama instance unavailable: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.SERVICE_UNAVAILABLE.value(),
+            "AI search is temporarily unavailable. Please try again shortly.",
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
         ErrorResponse error = new ErrorResponse(

@@ -1477,6 +1477,16 @@ export const routes: Routes = [
       ),
   },
   {
+    // Must stay ahead of 'students/:id' below -- a static path segment needs to win the route
+    // match before the ':id' wildcard would otherwise swallow it as an id value.
+    path: 'students/ai-search',
+    canActivate: withPermission('STUDENT_AI_SEARCH_VIEW'),
+    loadComponent: () =>
+      import('./features/student/ai-search/ai-search.component').then(
+        (m) => m.AiSearchComponent
+      ),
+  },
+  {
     path: 'students/:id',
     canActivate: withPermission('STUDENT_VIEW', 'STUDENT_EDIT'),
     loadComponent: () =>

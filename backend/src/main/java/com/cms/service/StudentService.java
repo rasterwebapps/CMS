@@ -240,6 +240,20 @@ public class StudentService {
         if (studentType != null && !studentType.isBlank())  spec = spec.and(StudentSpecification.byStudentType(studentType));
         if (search != null && search.length() >= 3)         spec = spec.and(StudentSpecification.bySearch(search));
 
+        return fetchPage(spec, pageable);
+    }
+
+    /**
+     * Paginated fetch against an arbitrary, caller-built {@link Specification}, using the same
+     * 3-query fetch pattern as {@link #findExplorer}. Used by the AI-assisted search feature,
+     * whose filters are composed dynamically from a validated {@code SearchIntent} rather than
+     * a fixed set of parameters -- see {@code com.cms.ai.StudentSearchIntentTranslator}.
+     */
+    public Page<StudentResponse> findBySpecification(Specification<Student> spec, Pageable pageable) {
+        return fetchPage(spec, pageable);
+    }
+
+    private Page<StudentResponse> fetchPage(Specification<Student> spec, Pageable pageable) {
         // Step 1: Lightweight ID + count query via spec
         Page<Student> idPage = studentRepository.findAll(spec, pageable);
         if (idPage.isEmpty()) return idPage.map(s -> toResponseWithExtras(s, null, null, null));

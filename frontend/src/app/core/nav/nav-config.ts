@@ -82,6 +82,7 @@ export const NAV_ENTRIES: NavEntry[] = [
     modules: ['STUDENT_MGMT'],
     items: [
       { label: 'Student Explorer',         icon: 'person_search', route: '/students',                 permissions: ['STUDENT_VIEW', 'STUDENT_CREATE', 'STUDENT_EDIT', 'STUDENT_DELETE', 'STUDENT_EXPORT'] },
+      { label: 'AI Smart Search',          icon: 'psychology_alt', route: '/students/ai-search',      permissions: ['STUDENT_AI_SEARCH_VIEW'] },
       { label: 'Assign Roll Numbers',      icon: 'tag',           route: '/students/roll-numbers',    permissions: ['ROLL_NUMBER_ASSIGN'] },
       { label: 'Scholarship Applications', icon: 'military_tech', route: '/scholarship-applications', permissions: ['SCHOLARSHIP_APPROVE'] },
       { label: 'Data Import',              icon: 'upload',        route: '/import',                   permissions: ['IMPORT_DATA'] },

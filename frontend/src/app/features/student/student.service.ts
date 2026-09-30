@@ -44,6 +44,20 @@ export class StudentService {
     return this.http.get<Page<Student>>(`${this.baseUrl}/explorer`, { params });
   }
 
+  /**
+   * AI Smart Search: translates a free-text query into a structured filter via a locally-hosted
+   * Ollama model (see backend com.cms.ai package) and returns matching students. A 400 response
+   * means the query couldn't be understood -- surface it as "try rephrasing", not a generic error.
+   */
+  aiSearch(query: string, page = 0, size = 25): Observable<Page<Student>> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.post<Page<Student>>(
+      `${environment.apiUrl}/ai-search/students`,
+      { query },
+      { params },
+    );
+  }
+
   getStudentsWithoutRollNumber(courseId?: number, programId?: number): Observable<Student[]> {
     let url = `${this.baseUrl}/without-roll-number`;
     const params: string[] = [];

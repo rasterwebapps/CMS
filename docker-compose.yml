@@ -47,6 +47,18 @@ services:
       - cms-net
     restart: unless-stopped
 
+  # AI Smart Search's local LLM -- never a third-party AI provider. After first `up`, pull the
+  # model once: `docker exec cms-ollama ollama pull qwen2.5:7b-instruct` (the ollama/ollama image
+  # does not auto-pull a model on its own).
+  ollama:
+    image: ollama/ollama:latest
+    container_name: cms-ollama
+    volumes:
+      - cms-ollama-data:/root/.ollama
+    networks:
+      - cms-net
+    restart: unless-stopped
+
   backend:
     build: ./backend
     container_name: cms-backend
@@ -63,10 +75,14 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET: ${MINIO_BUCKET:-cms-documents}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
     depends_on:
       postgres:
         condition: service_started
       keycloak:
+        condition: service_started
+      ollama:
         condition: service_started
     networks:
       - cms-net
@@ -101,4 +117,5 @@ networks:
 
 volumes:
   cms-postgres-data:
+  cms-ollama-data:
 
