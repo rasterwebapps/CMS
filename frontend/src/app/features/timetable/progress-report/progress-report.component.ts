@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PermissionService } from '../../../core/permissions/permission.service';
@@ -17,11 +18,12 @@ import { PROGRESS_REPORT_TOUR, PROGRESS_REPORT_FLOW_MAP } from '../../../shared/
 import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infinite-select.component';
 import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-progress-report',
   standalone: true,
-  imports: [FormsModule, MatProgressSpinnerModule, MatTooltipModule, DecimalPipe, CmsTourButtonComponent, CmsInfiniteSelectComponent],
+  imports: [FormsModule, MatDialogModule, MatProgressSpinnerModule, MatTooltipModule, DecimalPipe, CmsTourButtonComponent, CmsInfiniteSelectComponent],
   templateUrl: './progress-report.component.html',
   styleUrl: './progress-report.component.scss',
 })
@@ -32,6 +34,7 @@ export class ProgressReportComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly academicYears = signal<AcademicYear[]>([]);
   protected readonly termInstances = signal<TermInstance[]>([]);
@@ -161,10 +164,18 @@ export class ProgressReportComponent implements OnInit {
   }
 
   protected generateBlueprint(courseOfferingId: number): void {
-    if (!confirm(
-      'Generate (or regenerate) the portion-completion blueprint for this subject? ' +
-      'This freezes new planned completion dates from the current timetable, replacing any earlier blueprint.',
-    )) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Generate Blueprint',
+        message: 'Generate (or regenerate) the portion-completion blueprint for this subject? ' +
+          'This freezes new planned completion dates from the current timetable, replacing any earlier blueprint.',
+        confirmText: 'Generate',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performGenerateBlueprint(courseOfferingId); });
+  }
+
+  private performGenerateBlueprint(courseOfferingId: number): void {
     this.generatingBlueprint.set(true);
     this.portionBlueprintService.generateBlueprint(courseOfferingId).subscribe({
       next: () => {

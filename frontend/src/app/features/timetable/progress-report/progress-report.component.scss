@@ -1,3 +1,9 @@
+// .content-card carries no padding of its own (see faculty-availability.component.scss for the
+// same convention) -- without this, the heading/list sit flush against the card's edges.
+.pr-content-card {
+  padding: 16px;
+}
+
 .loading-container, .loading-row {
   display: flex;
   justify-content: center;
@@ -15,7 +21,6 @@
   align-items: center;
   gap: 12px;
   padding-bottom: 16px;
-  margin-bottom: 12px;
   border-bottom: 1px solid var(--cms-border-default);
 }
 
@@ -55,7 +60,7 @@
 
 .subject-list {
   list-style: none;
-  margin: 0;
+  margin: 16px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;

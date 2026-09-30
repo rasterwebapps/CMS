@@ -10,6 +10,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -51,6 +52,7 @@ import { CmsInfiniteSelectComponent } from '../../../shared/infinite-select/infi
 import { InfiniteSelectValue } from '../../../shared/infinite-select/infinite-select.model';
 import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite-select.utils';
 import { buildMonthGrids, MonthGrid, toIso } from './month-grid.util';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods' | 'day-mappings';
 
@@ -70,6 +72,7 @@ export type CalendarViewMode = 'timeline' | 'grid' | 'blocked-periods' | 'day-ma
     CmsStatusBadgeComponent,
     DayDetailFlyoutComponent,
     CmsInfiniteSelectComponent,
+    MatDialogModule,
   ],
   templateUrl: './academic-calendar.component.html',
   styleUrl: './academic-calendar.component.scss',
@@ -84,6 +87,7 @@ export class AcademicCalendarComponent implements OnInit {
   private readonly csvExporter = inject(CsvExporterService);
   protected readonly permissionService = inject(PermissionService);
   private readonly tourService = inject(TourService);
+  private readonly dialog = inject(MatDialog);
 
   @ViewChild('calendarPrintArea') calendarPrintArea!: ElementRef<HTMLElement>;
 
@@ -464,7 +468,12 @@ export class AcademicCalendarComponent implements OnInit {
 
   // ─── Event CRUD (delete only -- add/edit lives in the day-detail flyout) ───
   protected deleteEvent(event: CalendarEvent): void {
-    if (!confirm(`Delete "${event.title}"?`)) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: { title: 'Delete Event', message: `Delete "${event.title}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDeleteEvent(event); });
+  }
+
+  private performDeleteEvent(event: CalendarEvent): void {
     this.academicYearService.deleteCalendarEvent(event.id).subscribe({
       next: () => {
         this.toast.success('Event deleted');
@@ -477,10 +486,18 @@ export class AcademicCalendarComponent implements OnInit {
   /** "Delete this and all future occurrences" -- see the day-detail flyout's twin method for the
    *  full rationale. Past occurrences are never touched (enforced server-side). */
   protected deleteEventSeries(event: CalendarEvent): void {
-    if (!confirm(
-      `Delete "${event.title}" and every future occurrence of its holiday template? ` +
-      `Past occurrences will not be affected.`,
-    )) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Delete Event Series',
+        message: `Delete "${event.title}" and every future occurrence of its holiday template? ` +
+          `Past occurrences will not be affected.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDeleteEventSeries(event); });
+  }
+
+  private performDeleteEventSeries(event: CalendarEvent): void {
     this.academicYearService.deleteCalendarEventSeries(event.id).subscribe({
       next: () => {
         this.toast.success('Event series deleted');
@@ -500,7 +517,12 @@ export class AcademicCalendarComponent implements OnInit {
 
   // ─── Blocked period CRUD (delete only -- add/edit lives in the day-detail flyout) ───
   protected deleteBlock(block: BlockedPeriod): void {
-    if (!confirm(`Delete this block ("${block.reason}")?`)) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: { title: 'Delete Blocked Period', message: `Delete this block ("${block.reason}")?`, confirmText: 'Delete', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDeleteBlock(block); });
+  }
+
+  private performDeleteBlock(block: BlockedPeriod): void {
     this.blockedPeriodService.delete(block.id).subscribe({
       next: () => {
         this.toast.success('Blocked period deleted');
@@ -519,7 +541,12 @@ export class AcademicCalendarComponent implements OnInit {
 
   // ─── Day mapping CRUD (delete only -- add/edit lives in the day-detail flyout) ───
   protected deleteMapping(mapping: DayMapping): void {
-    if (!confirm(`Delete this day mapping ("${mapping.reason}")?`)) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: { title: 'Delete Day Mapping', message: `Delete this day mapping ("${mapping.reason}")?`, confirmText: 'Delete', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDeleteMapping(mapping); });
+  }
+
+  private performDeleteMapping(mapping: DayMapping): void {
     this.dayMappingService.delete(mapping.id).subscribe({
       next: () => {
         this.toast.success('Day mapping deleted');

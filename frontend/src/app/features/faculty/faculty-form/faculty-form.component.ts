@@ -4,6 +4,7 @@ import { AbstractControl, AsyncValidatorFn, FormBuilder, FormGroup, ReactiveForm
 import { map, Observable, of, switchMap, timer } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CmsPreviewCardComponent } from '../../../shared/preview-card/preview-card.component';
@@ -35,6 +36,7 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { FACULTY_FORM_TOUR, FACULTY_FORM_FLOW_MAP } from '../../../shared/tour/tours/faculty.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-faculty-form',
@@ -49,6 +51,7 @@ import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/countr
     CmsPreviewCardComponent,
     CmsTipsCardComponent,
     CmsCountryStateDistrictSelectorComponent,
+    MatDialogModule,
   ],
   templateUrl: './faculty-form.component.html',
   styleUrl: './faculty-form.component.scss',
@@ -64,6 +67,7 @@ export class FacultyFormComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -405,9 +409,18 @@ export class FacultyFormComponent implements OnInit {
     if (!this.facultyId) return;
     const doc = this.documents()[slot.type];
     if (!doc) return;
-    if (!confirm(`Remove uploaded ${slot.label}?`)) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Remove Document',
+        message: `Remove uploaded ${slot.label}?`,
+        confirmText: 'Remove',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performRemoveDocument(slot, doc.id); });
+  }
 
-    this.facultyService.deleteDocument(this.facultyId, doc.id).subscribe({
+  private performRemoveDocument(slot: FacultyDocumentSlot, documentId: number): void {
+    this.facultyService.deleteDocument(this.facultyId!, documentId).subscribe({
       next: () => {
         const next = { ...this.documents() };
         delete next[slot.type];

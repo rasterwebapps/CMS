@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, input, output, signal } from '@ang
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -45,6 +46,7 @@ import {
 } from '../calendar-display.constants';
 import { formatBlockSummary } from '../blocked-period-summary.util';
 import { FlyoutMiniCalendarComponent } from './flyout-mini-calendar/flyout-mini-calendar.component';
+import { ConfirmDialogComponent } from '../../../../shared/confirm-dialog/confirm-dialog.component';
 
 export type DayDetailSection = 'EVENTS' | 'BLOCKS' | 'DAY_MAPPING';
 
@@ -85,6 +87,7 @@ const MULTI_ROW_CONFIRM_THRESHOLD = 15;
     MatMenuModule,
     CmsFlyoutPanelComponent,
     FlyoutMiniCalendarComponent,
+    MatDialogModule,
   ],
   templateUrl: './day-detail-flyout.component.html',
   styleUrl: './day-detail-flyout.component.scss',
@@ -114,6 +117,7 @@ export class DayDetailFlyoutComponent implements OnInit {
   private readonly holidayTemplateService = inject(HolidayTemplateService);
   private readonly toast = inject(ToastService);
   private readonly fb = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly eventTypes: CalendarEventType[] = ['HOLIDAY', 'EXAM', 'CULTURAL', 'SPORTS', 'WORKSHOP', 'OTHER'];
   protected readonly eventTypeLabels = EVENT_TYPE_LABELS;
@@ -526,7 +530,12 @@ export class DayDetailFlyoutComponent implements OnInit {
   }
 
   protected removeConflictingEvent(event: CalendarEvent): void {
-    if (!confirm(`Delete "${event.title}"?`)) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: { title: 'Delete Event', message: `Delete "${event.title}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performRemoveConflictingEvent(event); });
+  }
+
+  private performRemoveConflictingEvent(event: CalendarEvent): void {
     this.academicYearService.deleteCalendarEvent(event.id).subscribe({
       next: () => {
         this.toast.success('Event deleted');
@@ -577,7 +586,12 @@ export class DayDetailFlyoutComponent implements OnInit {
    *  offering this ("this occurrence only") alongside deleteEventSeries -- both ultimately land
    *  here or there, never a bare confirm() for a recurring event. */
   protected deleteEvent(event: CalendarEvent): void {
-    if (!confirm(`Delete "${event.title}"?`)) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: { title: 'Delete Event', message: `Delete "${event.title}"?`, confirmText: 'Delete', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDeleteEvent(event); });
+  }
+
+  private performDeleteEvent(event: CalendarEvent): void {
     this.academicYearService.deleteCalendarEvent(event.id).subscribe({
       next: () => {
         this.toast.success('Event deleted');
@@ -591,10 +605,18 @@ export class DayDetailFlyoutComponent implements OnInit {
    *  further years and removes this + every other future-dated instance it generated. Past
    *  occurrences are never touched (enforced server-side). */
   protected deleteEventSeries(event: CalendarEvent): void {
-    if (!confirm(
-      `Delete "${event.title}" and every future occurrence of its holiday template? ` +
-      `Past occurrences will not be affected.`,
-    )) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Delete Event Series',
+        message: `Delete "${event.title}" and every future occurrence of its holiday template? ` +
+          `Past occurrences will not be affected.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+      },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDeleteEventSeries(event); });
+  }
+
+  private performDeleteEventSeries(event: CalendarEvent): void {
     this.academicYearService.deleteCalendarEventSeries(event.id).subscribe({
       next: () => {
         this.toast.success('Event series deleted');
@@ -755,13 +777,22 @@ export class DayDetailFlyoutComponent implements OnInit {
     }
 
     const requests = this.buildBlockRequests();
-    if (
-      requests.length > MULTI_ROW_CONFIRM_THRESHOLD &&
-      !confirm(`This will create ${requests.length} separate blocked-period rows. Continue?`)
-    ) {
+    if (requests.length > MULTI_ROW_CONFIRM_THRESHOLD) {
+      this.dialog.open(ConfirmDialogComponent, {
+        data: {
+          title: 'Create Blocked Periods',
+          message: `This will create ${requests.length} separate blocked-period rows. Continue?`,
+          confirmText: 'Continue',
+          cancelText: 'Cancel',
+        },
+      }).afterClosed().subscribe(confirmed => { if (confirmed) this.performCreateBlocks(requests); });
       return;
     }
 
+    this.performCreateBlocks(requests);
+  }
+
+  private performCreateBlocks(requests: BlockedPeriodRequest[]): void {
     this.blockSaving.set(true);
     const calls = requests.map((req) =>
       this.blockedPeriodService.create(req).pipe(
@@ -786,7 +817,12 @@ export class DayDetailFlyoutComponent implements OnInit {
   }
 
   protected deleteBlock(block: BlockedPeriod): void {
-    if (!confirm(`Delete this block ("${block.reason}")?`)) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: { title: 'Delete Blocked Period', message: `Delete this block ("${block.reason}")?`, confirmText: 'Delete', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDeleteBlock(block); });
+  }
+
+  private performDeleteBlock(block: BlockedPeriod): void {
     this.blockedPeriodService.delete(block.id).subscribe({
       next: () => {
         this.toast.success('Blocked period deleted');
@@ -892,7 +928,12 @@ export class DayDetailFlyoutComponent implements OnInit {
   }
 
   protected deleteMapping(mapping: DayMapping): void {
-    if (!confirm(`Delete this day mapping ("${mapping.reason}")?`)) return;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: { title: 'Delete Day Mapping', message: `Delete this day mapping ("${mapping.reason}")?`, confirmText: 'Delete', cancelText: 'Cancel' },
+    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDeleteMapping(mapping); });
+  }
+
+  private performDeleteMapping(mapping: DayMapping): void {
     this.dayMappingService.delete(mapping.id).subscribe({
       next: () => {
         this.toast.success('Day mapping deleted');
