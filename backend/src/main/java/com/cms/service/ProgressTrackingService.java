@@ -66,19 +66,22 @@ public class ProgressTrackingService {
     private final CourseOfferingRepository courseOfferingRepository;
     private final FacultyRepository facultyRepository;
     private final ClassScheduleOccurrenceService occurrenceService;
+    private final AppTimezoneService appTimezoneService;
 
     public ProgressTrackingService(SessionOccurrenceRepository sessionOccurrenceRepository,
                                     ClassScheduleRepository classScheduleRepository,
                                     SyllabusUnitRepository syllabusUnitRepository,
                                     CourseOfferingRepository courseOfferingRepository,
                                     FacultyRepository facultyRepository,
-                                    ClassScheduleOccurrenceService occurrenceService) {
+                                    ClassScheduleOccurrenceService occurrenceService,
+                                    AppTimezoneService appTimezoneService) {
         this.sessionOccurrenceRepository = sessionOccurrenceRepository;
         this.classScheduleRepository = classScheduleRepository;
         this.syllabusUnitRepository = syllabusUnitRepository;
         this.courseOfferingRepository = courseOfferingRepository;
         this.facultyRepository = facultyRepository;
         this.occurrenceService = occurrenceService;
+        this.appTimezoneService = appTimezoneService;
     }
 
     @Transactional
@@ -93,7 +96,7 @@ public class ProgressTrackingService {
         }
 
         LocalDate date = request.occurrenceDate();
-        if (date.isAfter(LocalDate.now())) {
+        if (date.isAfter(LocalDate.now(appTimezoneService.getZone()))) {
             throw new IllegalArgumentException("Cannot log progress for a future date");
         }
         List<LocalDate> validOccurrence = occurrenceService.occurrenceDatesFor(schedule, date, date);
@@ -124,7 +127,7 @@ public class ProgressTrackingService {
         if (occurrence.getApprovalStatus() != SpecialClassApprovalStatus.APPROVED) {
             throw new IllegalArgumentException("Progress can only be logged against an approved special class");
         }
-        if (occurrence.getOccurrenceDate().isAfter(LocalDate.now())) {
+        if (occurrence.getOccurrenceDate().isAfter(LocalDate.now(appTimezoneService.getZone()))) {
             throw new IllegalArgumentException("Cannot log progress for a future date");
         }
         CurriculumSemesterCourse csc = occurrence.getCourseOffering() != null
@@ -192,7 +195,7 @@ public class ProgressTrackingService {
     public List<LocalDate> getLoggableOccurrenceDates(Long classScheduleId, LocalDate from) {
         ClassSchedule schedule = classScheduleRepository.findById(classScheduleId)
             .orElseThrow(() -> new ResourceNotFoundException("Class schedule not found with id: " + classScheduleId));
-        return occurrenceService.occurrenceDatesFor(schedule, from, LocalDate.now());
+        return occurrenceService.occurrenceDatesFor(schedule, from, LocalDate.now(appTimezoneService.getZone()));
     }
 
     public Optional<SessionOccurrenceDto> getOccurrence(Long classScheduleId, LocalDate date) {

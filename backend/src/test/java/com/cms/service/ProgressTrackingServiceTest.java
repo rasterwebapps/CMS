@@ -3,10 +3,12 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,6 +50,7 @@ class ProgressTrackingServiceTest {
     @Mock private CourseOfferingRepository courseOfferingRepository;
     @Mock private FacultyRepository facultyRepository;
     @Mock private ClassScheduleOccurrenceService occurrenceService;
+    @Mock private AppTimezoneService appTimezoneService;
 
     private ProgressTrackingService service;
 
@@ -58,7 +61,9 @@ class ProgressTrackingServiceTest {
     @BeforeEach
     void setUp() {
         service = new ProgressTrackingService(sessionOccurrenceRepository, classScheduleRepository,
-            syllabusUnitRepository, courseOfferingRepository, facultyRepository, occurrenceService);
+            syllabusUnitRepository, courseOfferingRepository, facultyRepository, occurrenceService,
+            appTimezoneService);
+        lenient().when(appTimezoneService.getZone()).thenReturn(ZoneId.of("UTC"));
 
         csc = new CurriculumSemesterCourse();
         csc.setId(50L);
@@ -161,7 +166,7 @@ class ProgressTrackingServiceTest {
 
     @Test
     void shouldRejectFutureDate() {
-        LocalDate future = LocalDate.now().plusDays(1);
+        LocalDate future = LocalDate.now(ZoneId.of("UTC")).plusDays(1);
         LogProgressRequest request = new LogProgressRequest(300L, future, List.of(), null);
         when(classScheduleRepository.findById(300L)).thenReturn(Optional.of(schedule));
 
