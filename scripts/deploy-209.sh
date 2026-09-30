@@ -88,15 +88,22 @@ ssh_run() {
   if [ -n "$SERVER_PASS" ]; then
     # Pre-hardening: SSH password auth still active — sshpass handles SSH login,
     # same password piped to sudo -S for privilege escalation.
+    # -p '' silences sudo's own "[sudo] password for ...:" prompt: sudo writes it to
+    # stderr with no trailing newline, so under 2>&1 it merges onto the same line as
+    # the command's first line of real output — corrupting exact-match parsing of
+    # ssh_run's captured output (see prepare_tls_bundle's le_status check, which this
+    # silently broke on every deploy, always falling back to the stale local TLS bundle
+    # even when certbot had a perfectly valid certificate).
     pass_escaped=$(printf '%q' "$SERVER_PASS")
     SSHPASS="$SERVER_PASS" sshpass -e ssh $SSH_OPTS "$SERVER_USER@$SERVER" \
-      "echo ${pass_escaped} | sudo -S bash -lc ${escaped} 2>&1"
+      "echo ${pass_escaped} | sudo -S -p '' bash -lc ${escaped} 2>&1"
   elif [ -n "$SUDO_PASS" ]; then
     # Post-hardening: key-based SSH (no sshpass), but sudo still needs a password.
     # SUDO_PASS is the sksadmin login password — piped to sudo -S over the SSH session.
+    # -p '' — see comment above.
     pass_escaped=$(printf '%q' "$SUDO_PASS")
     ssh $SSH_OPTS "$SERVER_USER@$SERVER" \
-      "echo ${pass_escaped} | sudo -S bash -lc ${escaped} 2>&1"
+      "echo ${pass_escaped} | sudo -S -p '' bash -lc ${escaped} 2>&1"
   else
     # Fully passwordless: key-based SSH + NOPASSWD sudo (not recommended for production).
     ssh $SSH_OPTS "$SERVER_USER@$SERVER" "sudo -n bash -lc $escaped 2>&1"
