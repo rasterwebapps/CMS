@@ -35,6 +35,7 @@ import com.cms.dto.TimetableActionResponse;
 import com.cms.exception.LifecycleConflictException;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.enums.DayOfWeek;
+import com.cms.repository.CohortRepository;
 import com.cms.service.ClassScheduleExportService;
 import com.cms.service.ClassScheduleService;
 import com.cms.service.PersonalTimetableService;
@@ -82,6 +83,9 @@ class TimetableControllerTest {
 
     @MockitoBean
     private ClassScheduleExportService classScheduleExportService;
+
+    @MockitoBean
+    private CohortRepository cohortRepository;
 
     @Test
     void shouldFindDraftRows() throws Exception {
