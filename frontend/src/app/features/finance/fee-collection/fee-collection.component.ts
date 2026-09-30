@@ -172,7 +172,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
 
     return this.feeEntries().filter(e => {
       if (type !== 'ALL' && e.type !== type) return false;
-      if (status === 'OUTSTANDING' && !this.hasCollectableOutstanding(e.totalOutstanding)) return false;
+      if (status === 'OUTSTANDING' && !this.canCollectRow(e)) return false;
 
       // Student search is server-side; enquiry search is client-side
       if (e.type === 'ENQUIRY' && term) {
@@ -430,9 +430,26 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     // Once the converted student has a finalized allocation, collectibleOutstanding is null
     // (see backend EnquiryService.toResponse), so it's excluded via getEnquiryOutstanding below.
     const blockedStatuses = ['NOT_INTERESTED', 'CANCELLED'];
-    return enquiry.finalizedNetFee !== null && enquiry.finalizedNetFee !== undefined &&
-      !blockedStatuses.includes(enquiry.status) &&
-      this.hasCollectableOutstanding(this.getEnquiryOutstanding(enquiry));
+    if (enquiry.finalizedNetFee === null || enquiry.finalizedNetFee === undefined) return false;
+    if (blockedStatuses.includes(enquiry.status)) return false;
+    if (this.hasCollectableOutstanding(this.getEnquiryOutstanding(enquiry))) return true;
+    // Nothing is open yet (e.g. the next term hasn't started), but a privileged user can still
+    // collect ahead via advance mode — keep the row visible for them instead of hiding it, which
+    // would make the advance-collection feature unreachable for exactly the case it exists for
+    // (see ENQUIRY_FEE_COLLECT_ADVANCE in EnquiryPaymentService.collectPayment).
+    if (!this.canCollectAdvance()) return false;
+    const totalFee = this.normalizeMoney(enquiry.finalizedNetFee);
+    const totalPaid = this.normalizeMoney(enquiry.totalPaidAmount ?? 0);
+    return this.hasCollectableOutstanding(Math.max(totalFee - totalPaid, 0));
+  }
+
+  // True if this row can be opened for collection at all: either something is due right now, or
+  // (enquiries only) the user holds ENQUIRY_FEE_COLLECT_ADVANCE and there's a real lifetime
+  // balance left to collect ahead of schedule.
+  protected canCollectRow(entry: FeeEntry): boolean {
+    if (this.hasCollectableOutstanding(entry.totalOutstanding)) return true;
+    return entry.type === 'ENQUIRY' && this.canCollectAdvance() &&
+      this.hasCollectableOutstanding(entry.lifetimeOutstanding);
   }
 
   // Capped to current + past dues — excludes installments whose term hasn't opened yet,
@@ -472,7 +489,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
   }
 
   protected selectEntry(entry: FeeEntry): void {
-    if (!this.hasCollectableOutstanding(entry.totalOutstanding)) {
+    if (!this.canCollectRow(entry)) {
       this.toast.info('No outstanding balance available for this record');
       return;
     }
@@ -593,7 +610,7 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     }
     const entry = this.selectedEntry();
     if (!entry) return;
-    if (!this.hasCollectableOutstanding(entry.totalOutstanding)) {
+    if (!this.canCollectRow(entry)) {
       this.toast.info('No outstanding balance available for this record');
       return;
     }
