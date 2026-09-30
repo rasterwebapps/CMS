@@ -5,7 +5,11 @@
 
 <mat-dialog-content class="progress-dialog-content">
   @if (hasNoDates()) {
-    <p class="empty-hint">This session has no past occurrence yet within the term — nothing to log.</p>
+    @if (termNotStartedYet()) {
+      <p class="empty-hint">This term starts {{ data.termStartDate }} — nothing to log yet.</p>
+    } @else {
+      <p class="empty-hint">This session has no past occurrence yet within the term — nothing to log.</p>
+    }
   } @else if (hasNoUnits()) {
     <p class="empty-hint">No syllabus units are defined for this subject yet.</p>
   } @else {

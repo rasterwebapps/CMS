@@ -48,6 +48,11 @@ export class LogProgressDialogComponent implements OnInit {
 
   protected readonly hasNoUnits = computed(() => !this.loading() && this.availableUnits().length === 0);
   protected readonly hasNoDates = computed(() => !this.loading() && this.occurrenceDates().length === 0);
+  /** en-CA renders as YYYY-MM-DD in the viewer's local time, matching termStartDate's ISO shape,
+   *  so a lexical compare tells "term hasn't started" apart from "term started but this session
+   *  hasn't occurred yet" without any backend round-trip. */
+  protected readonly termNotStartedYet = computed(() =>
+    this.hasNoDates() && this.data.termStartDate > new Date().toLocaleDateString('en-CA'));
 
   protected readonly totalHoursLogged = computed(() =>
     this.rows().reduce((sum, r) => sum + (r.hoursCovered ?? 0), 0));
