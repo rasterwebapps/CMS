@@ -18,7 +18,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.cms.ai.AiStudentSearchService;
+import com.cms.ai.rag.DocumentRagSearchService;
+import com.cms.dto.AdmissionDocumentRagResult;
 import com.cms.dto.StudentResponse;
+import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.StudentStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -41,6 +44,9 @@ class AiSearchControllerTest {
 
     @MockitoBean
     private AiStudentSearchService aiStudentSearchService;
+
+    @MockitoBean
+    private DocumentRagSearchService documentRagSearchService;
 
     @Test
     void searchStudents_returnsTheServiceResult() throws Exception {
@@ -70,5 +76,34 @@ class AiSearchControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new com.cms.dto.AiStudentSearchRequest("gibberish"))))
             .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void searchAdmissionDocuments_returnsTheServiceResult() throws Exception {
+        AdmissionDocumentRagResult result = new AdmissionDocumentRagResult(
+            5L, DocumentType.TRANSFER_CERTIFICATE, "tc.pdf", "Jane Doe", "ADM-001",
+            "Transfer certificate issued to Jane Doe by St. Mary's School", 0.87);
+
+        when(documentRagSearchService.search("where did Jane study before?"))
+            .thenReturn(java.util.List.of(result));
+
+        mockMvc.perform(post("/ai-search/admission-documents")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(
+                    new com.cms.dto.AiDocumentSearchRequest("where did Jane study before?"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].studentName").value("Jane Doe"))
+            .andExpect(jsonPath("$[0].similarity").value(0.87));
+    }
+
+    @Test
+    void searchAdmissionDocuments_returnsEmptyListWhenNothingClearsTheSimilarityThreshold() throws Exception {
+        when(documentRagSearchService.search("irrelevant question")).thenReturn(java.util.List.of());
+
+        mockMvc.perform(post("/ai-search/admission-documents")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new com.cms.dto.AiDocumentSearchRequest("irrelevant question"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isEmpty());
     }
 }

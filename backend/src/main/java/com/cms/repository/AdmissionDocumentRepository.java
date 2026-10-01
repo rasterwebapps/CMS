@@ -38,6 +38,17 @@ public interface AdmissionDocumentRepository extends JpaRepository<AdmissionDocu
         """, nativeQuery = true)
     List<AdmissionDocument> findPendingEmbeddingBatch(@Param("batchSize") int batchSize);
 
+    /**
+     * Fetch-joins Admission and Student so RAG search results (OC-277) can show which student
+     * each snippet belongs to without a LazyInitializationException -- {@code open-in-view} is
+     * disabled in this codebase, so that join must happen inside this one query/transaction.
+     */
+    @Query("SELECT ad FROM AdmissionDocument ad "
+        + "LEFT JOIN FETCH ad.admission a "
+        + "LEFT JOIN FETCH a.student "
+        + "WHERE ad.id IN :ids")
+    List<AdmissionDocument> findByIdInWithAdmissionAndStudent(@Param("ids") List<Long> ids);
+
     Optional<AdmissionDocument> findByAdmissionIdAndDocumentType(Long admissionId, DocumentType documentType);
 
     List<AdmissionDocument> findByAdmissionIdAndVerificationStatus(Long admissionId, DocumentVerificationStatus verificationStatus);

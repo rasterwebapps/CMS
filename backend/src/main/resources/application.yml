@@ -94,6 +94,10 @@ cms:
   rag:
     ingestion-batch-size:    ${RAG_INGESTION_BATCH_SIZE:10}
     ingestion-interval-ms:   ${RAG_INGESTION_INTERVAL_MS:300000}
+    retrieval-top-k:         ${RAG_RETRIEVAL_TOP_K:5}
+    # Not yet empirically tuned against real data -- phase 5 (evals) should calibrate this
+    # against document_rag_query_log's logged scores once real documents have been ingested.
+    similarity-threshold:    ${RAG_SIMILARITY_THRESHOLD:0.5}
 
 # Keycloak Admin REST API — used to create/delete users programmatically.
 # Override via environment variables; defaults below suit local dev.

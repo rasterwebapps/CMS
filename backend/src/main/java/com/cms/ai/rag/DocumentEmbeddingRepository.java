@@ -1,7 +1,9 @@
 package com.cms.ai.rag;
 
+import java.sql.PreparedStatement;
 import java.util.List;
 
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -56,6 +58,48 @@ public class DocumentEmbeddingRepository {
             """,
             sourceEntity, sourceId, reason, detail
         );
+    }
+
+    /**
+     * Top-K nearest chunks to {@code queryEmbedding} by cosine distance ({@code <=>}), within
+     * one {@code sourceEntity}. Returns every candidate regardless of similarity -- callers
+     * decide the relevance threshold; {@link #logQuery} records the full candidate set either
+     * way, so future eval work can calibrate that threshold against real scores.
+     */
+    public List<SimilarChunk> findSimilarChunks(String sourceEntity, float[] queryEmbedding, int topK) {
+        String vectorLiteral = toVectorLiteral(queryEmbedding);
+        return jdbcTemplate.query(
+            """
+            SELECT id, source_id, chunk_text, 1 - (embedding <=> ?::vector) AS similarity
+            FROM document_embeddings
+            WHERE source_entity = ?
+            ORDER BY embedding <=> ?::vector
+            LIMIT ?
+            """,
+            (rs, rowNum) -> new SimilarChunk(
+                rs.getLong("id"), rs.getLong("source_id"), rs.getString("chunk_text"), rs.getDouble("similarity")
+            ),
+            vectorLiteral, sourceEntity, vectorLiteral, topK
+        );
+    }
+
+    /** {@code {query, retrieved chunk ids, similarity scores}} observability log (OC-277). */
+    public void logQuery(String queriedBy, String queryText, List<Long> chunkIds, List<Double> similarityScores) {
+        jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO document_rag_query_log (queried_by, query_text, retrieved_chunk_ids, similarity_scores) "
+                        + "VALUES (?, ?, ?, ?)")) {
+                ps.setString(1, queriedBy);
+                ps.setString(2, queryText);
+                ps.setArray(3, connection.createArrayOf("bigint", chunkIds.toArray()));
+                ps.setArray(4, connection.createArrayOf("float8", similarityScores.toArray()));
+                ps.executeUpdate();
+            }
+            return null;
+        });
+    }
+
+    public record SimilarChunk(Long chunkId, Long sourceId, String chunkText, double similarity) {
     }
 
     static String toVectorLiteral(float[] embedding) {
