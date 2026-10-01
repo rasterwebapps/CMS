@@ -229,11 +229,11 @@ public class FeeReportService {
 
             List<FeeInstallment> installments = installmentRepository.findBySemesterFeeId(sf.getId());
             List<String> receiptNums = installments.stream().map(FeeInstallment::getReceiptNumber).toList();
-            Map<String, String> feeCategoryByReceipt = paymentReceiptRepository
+            Map<String, PaymentReceipt> receiptByNumber = paymentReceiptRepository
                 .findByReceiptNumberIn(receiptNums).stream()
-                .collect(Collectors.toMap(PaymentReceipt::getReceiptNumber, r -> r.getFeeCategory() != null ? r.getFeeCategory() : "", (a, b) -> a));
+                .collect(Collectors.toMap(PaymentReceipt::getReceiptNumber, r -> r, (a, b) -> a));
             List<PaymentRowDto> paymentDtos = installments.stream()
-                .map(fi -> installmentToPaymentDto(fi, feeCategoryByReceipt.getOrDefault(fi.getReceiptNumber(), null)))
+                .map(fi -> installmentToPaymentDto(fi, receiptByNumber.get(fi.getReceiptNumber())))
                 .collect(Collectors.toCollection(ArrayList::new));
 
             if (creditForThis.compareTo(BigDecimal.ZERO) > 0) {
@@ -266,7 +266,7 @@ public class FeeReportService {
 
     private record SemesterFeePreview(Long id, String label, BigDecimal amount, java.time.LocalDate dueDate) {}
 
-    private PaymentRowDto installmentToPaymentDto(FeeInstallment fi, String feeCategory) {
+    private PaymentRowDto installmentToPaymentDto(FeeInstallment fi, PaymentReceipt receipt) {
         return new PaymentRowDto(
             fi.getId(),
             fi.getPaymentDate(),
@@ -277,7 +277,9 @@ public class FeeReportService {
             fi.getReceiptNumber(),
             fi.getTransactionReference(),
             fi.getRemarks(),
-            feeCategory
+            receipt != null ? receipt.getFeeCategory() : null,
+            receipt != null ? receipt.getCollectedBy() : null,
+            fi.getCreatedAt()
         );
     }
 
@@ -292,7 +294,9 @@ public class FeeReportService {
             ep.getReceiptNumber(),
             ep.getTransactionReference(),
             null,
-            null
+            null,
+            ep.getCollectedBy(),
+            ep.getCreatedAt()
         );
     }
 

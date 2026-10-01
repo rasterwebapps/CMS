@@ -560,6 +560,8 @@ export class StudentDetailComponent implements OnInit {
             ? [{ label: r.installmentsCovered, amount: r.amountPaid }]
             : [{ label: entry.termLabel, amount: p.amountPaid }],
           feeCategory:          r.feeCategory,
+          collectedBy:          r.collectedBy,
+          createdAt:            r.createdAt,
         });
       },
       error: () => {
@@ -578,6 +580,8 @@ export class StudentDetailComponent implements OnInit {
           installmentsCovered:  entry.termLabel,
           installmentBreakdown: [{ label: entry.termLabel, amount: p.amountPaid }],
           feeCategory:          null,
+          collectedBy:          p.collectedBy,
+          createdAt:            p.createdAt,
         });
       },
     });
@@ -597,8 +601,9 @@ export class StudentDetailComponent implements OnInit {
       transactionReference: null,
       feeCategory:          p.feeCategory ?? null,
       installmentBreakdown: [{ installmentLabel: entry.termLabel, amountApplied: p.amountPaid }],
-      signedByName:         this.permissionService.fullName(),
-      signedByRole:         this.permissionService.roleLabel(),
+      signedByName:         p.collectedBy ?? null,
+      signedByRole:         null,
+      createdAt:            p.createdAt,
     });
   }
 }

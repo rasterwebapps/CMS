@@ -23,5 +23,7 @@ public record CollectPaymentResponse(
     String feeCategory,
     Instant createdAt,
     /** Amount paid that exceeded all pending installments — zero when fully allocated */
-    BigDecimal surplusAmount
+    BigDecimal surplusAmount,
+    /** Full name of the staff member who collected this payment. */
+    String collectedBy
 ) {}

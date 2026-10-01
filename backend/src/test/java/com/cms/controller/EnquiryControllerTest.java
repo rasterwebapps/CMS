@@ -85,6 +85,9 @@ class EnquiryControllerTest {
     @MockitoBean
     private AcademicYearRepository academicYearRepository;
 
+    @MockitoBean
+    private com.cms.util.CurrentUserResolver currentUserResolver;
+
     @Test
     void shouldCreateEnquiry() throws Exception {
         EnquiryRequest request = basicEnquiryRequest(
@@ -444,6 +447,7 @@ class EnquiryControllerTest {
             Instant.now(), null, null
         );
 
+        when(currentUserResolver.resolveFullName()).thenReturn("Jane Cashier");
         when(enquiryPaymentService.collectPayment(eq(1L), any(EnquiryPaymentRequest.class), any(String.class)))
             .thenReturn(response);
 

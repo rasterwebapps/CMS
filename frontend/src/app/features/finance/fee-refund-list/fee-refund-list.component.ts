@@ -497,8 +497,9 @@ export class FeeRefundListComponent implements OnInit, OnDestroy {
       paymentMode:           r.paymentMode,
       paymentDate:           r.paymentDate,
       transactionReference:  r.transactionReference,
-      signedByName:          this.permissionService.fullName(),
-      signedByRole:          this.permissionService.roleLabel(),
+      signedByName:          r.approvedBy,
+      signedByRole:          null,
+      createdAt:             r.approvedAt,
     };
   }
 

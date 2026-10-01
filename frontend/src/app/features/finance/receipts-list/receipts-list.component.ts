@@ -297,8 +297,9 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
       installmentBreakdown: r.installmentsCovered
         ? [{ installmentLabel: r.installmentsCovered, amountApplied: r.amountPaid }]
         : [],
-      signedByName:         this.permissionService.fullName(),
-      signedByRole:         this.permissionService.roleLabel(),
+      signedByName:         r.collectedBy,
+      signedByRole:         null,
+      createdAt:            r.createdAt,
     });
   }
 
@@ -317,8 +318,9 @@ export class ReceiptsListComponent implements OnInit, OnDestroy {
       installmentBreakdown: r.installmentsCovered
         ? [{ installmentLabel: r.installmentsCovered, amountApplied: r.amountPaid }]
         : [],
-      signedByName:         this.permissionService.fullName(),
-      signedByRole:         this.permissionService.roleLabel(),
+      signedByName:         r.collectedBy,
+      signedByRole:         null,
+      createdAt:            r.createdAt,
     });
   }
 

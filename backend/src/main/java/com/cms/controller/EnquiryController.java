@@ -52,6 +52,7 @@ import com.cms.service.EnquiryExportService;
 import com.cms.service.EnquiryPaymentService;
 import com.cms.service.EnquiryService;
 import com.cms.service.PaymentCollectionService;
+import com.cms.util.CurrentUserResolver;
 import com.cms.util.ExportSortUtils;
 import com.cms.util.export.ExportMetadata;
 import com.cms.util.export.ExportResponseFactory;
@@ -78,6 +79,7 @@ public class EnquiryController {
     private final ProgramRepository programRepository;
     private final CourseRepository courseRepository;
     private final AcademicYearRepository academicYearRepository;
+    private final CurrentUserResolver currentUserResolver;
 
     public EnquiryController(EnquiryService enquiryService,
                               EnquiryDocumentService enquiryDocumentService,
@@ -86,7 +88,8 @@ public class EnquiryController {
                               EnquiryExportService enquiryExportService,
                               ProgramRepository programRepository,
                               CourseRepository courseRepository,
-                              AcademicYearRepository academicYearRepository) {
+                              AcademicYearRepository academicYearRepository,
+                              CurrentUserResolver currentUserResolver) {
         this.enquiryService = enquiryService;
         this.enquiryDocumentService = enquiryDocumentService;
         this.enquiryPaymentService = enquiryPaymentService;
@@ -95,6 +98,7 @@ public class EnquiryController {
         this.programRepository = programRepository;
         this.courseRepository = courseRepository;
         this.academicYearRepository = academicYearRepository;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @GetMapping("/document-pending")
@@ -288,9 +292,8 @@ public class EnquiryController {
     @PreAuthorize("@perm.has('FEE_COLLECT')")
     public ResponseEntity<EnquiryPaymentResponse> collectPayment(
             @PathVariable Long id,
-            @Valid @RequestBody EnquiryPaymentRequest request,
-            Principal principal) {
-        String collectedBy = principal != null ? principal.getName() : "system";
+            @Valid @RequestBody EnquiryPaymentRequest request) {
+        String collectedBy = currentUserResolver.resolveFullName();
         EnquiryPaymentResponse response = enquiryPaymentService.collectPayment(id, request, collectedBy);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

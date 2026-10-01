@@ -99,7 +99,7 @@ class RazorpayWebhookServiceTest {
                 "RCP-2026-0099", 45L, "Oviya Thangam", "GNM4-015",
                 new BigDecimal("25000.00"), LocalDate.now(), PaymentMode.ONLINE_RAZORPAY,
                 "pay_1", null, "Year 1: 25000", java.util.List.of(), "TUITION_ONLY",
-                java.time.Instant.now(), BigDecimal.ZERO));
+                java.time.Instant.now(), BigDecimal.ZERO, "system"));
 
         service.processEvent(capturedPayload("pay_1", "order_1", 2500000L));
 

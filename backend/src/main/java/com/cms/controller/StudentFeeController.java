@@ -49,6 +49,7 @@ import com.cms.service.OneBookIntegrationService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
 import com.cms.service.StudentFeeSelfServiceService;
+import com.cms.util.CurrentUserResolver;
 import com.cms.util.ExportSortUtils;
 import com.cms.util.export.ExportMetadata;
 import com.cms.util.export.ExportResponseFactory;
@@ -84,6 +85,7 @@ public class StudentFeeController {
     private final FeeRefundExportService feeRefundExportService;
     private final OneBookIntegrationService oneBookService;
     private final StudentFeeSelfServiceService studentFeeSelfServiceService;
+    private final CurrentUserResolver currentUserResolver;
 
     public StudentFeeController(FeeFinalizationService feeFinalizationService,
                                  PaymentCollectionService paymentCollectionService,
@@ -93,7 +95,8 @@ public class StudentFeeController {
                                  FeeRefundService feeRefundService,
                                  FeeRefundExportService feeRefundExportService,
                                  OneBookIntegrationService oneBookService,
-                                 StudentFeeSelfServiceService studentFeeSelfServiceService) {
+                                 StudentFeeSelfServiceService studentFeeSelfServiceService,
+                                 CurrentUserResolver currentUserResolver) {
         this.feeFinalizationService = feeFinalizationService;
         this.paymentCollectionService = paymentCollectionService;
         this.penaltyCalculationService = penaltyCalculationService;
@@ -103,6 +106,7 @@ public class StudentFeeController {
         this.feeRefundExportService = feeRefundExportService;
         this.oneBookService = oneBookService;
         this.studentFeeSelfServiceService = studentFeeSelfServiceService;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @PostMapping("/finalize")
@@ -295,12 +299,9 @@ public class StudentFeeController {
     /** Unified refund initiation — auto-detects entity type (STUDENT or ENQUIRY) from the receipt. */
     @PostMapping("/refunds")
     @PreAuthorize("@perm.has('FEE_REFUND')")
-    public ResponseEntity<FeeRefundResponse> initiateRefund(
-            @Valid @RequestBody FeeRefundRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
-        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
+    public ResponseEntity<FeeRefundResponse> initiateRefund(@Valid @RequestBody FeeRefundRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
-            feeRefundService.initiateRefund(request, username));
+            feeRefundService.initiateRefund(request, currentUserResolver.resolveFullName()));
     }
 
     @GetMapping("/refunds")
@@ -355,10 +356,9 @@ public class StudentFeeController {
     @PreAuthorize("@perm.has('FEE_REFUND_APPROVE')")
     public ResponseEntity<FeeRefundSummaryResponse> approveRefund(
             @PathVariable Long refundId,
-            @Valid @RequestBody FeeRefundApprovalRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
-        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
-        return ResponseEntity.ok(feeRefundService.approveRefund(refundId, request, username));
+            @Valid @RequestBody FeeRefundApprovalRequest request) {
+        return ResponseEntity.ok(
+            feeRefundService.approveRefund(refundId, request, currentUserResolver.resolveFullName()));
     }
 
     @PostMapping("/refunds/{refundId}/approve-onebook")
@@ -375,10 +375,9 @@ public class StudentFeeController {
     @PreAuthorize("@perm.has('FEE_REFUND_APPROVE')")
     public ResponseEntity<FeeRefundSummaryResponse> rejectRefund(
             @PathVariable Long refundId,
-            @Valid @RequestBody FeeRefundRejectionRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
-        String username = jwt != null ? jwt.getClaimAsString("preferred_username") : "";
-        return ResponseEntity.ok(feeRefundService.rejectRefund(refundId, request, username));
+            @Valid @RequestBody FeeRefundRejectionRequest request) {
+        return ResponseEntity.ok(
+            feeRefundService.rejectRefund(refundId, request, currentUserResolver.resolveFullName()));
     }
 
     @GetMapping("/receipts")

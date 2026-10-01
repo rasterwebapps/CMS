@@ -45,6 +45,7 @@ import com.cms.service.OneBookIntegrationService;
 import com.cms.service.PaymentCollectionService;
 import com.cms.service.PenaltyCalculationService;
 import com.cms.service.StudentFeeSelfServiceService;
+import com.cms.util.CurrentUserResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @WebMvcTest(controllers = StudentFeeController.class)
@@ -83,6 +84,9 @@ class StudentFeeControllerTest {
 
     @MockitoBean
     private StudentFeeSelfServiceService studentFeeSelfServiceService;
+
+    @MockitoBean
+    private CurrentUserResolver currentUserResolver;
 
     @Test
     void shouldFinalizeFeeAllocation() throws Exception {
@@ -518,7 +522,8 @@ class StudentFeeControllerTest {
             )),
             null,
             Instant.now(),
-            BigDecimal.ZERO
+            BigDecimal.ZERO,
+            "Jane Cashier"
         );
     }
 
@@ -556,7 +561,7 @@ class StudentFeeControllerTest {
             10L, "Year 1", 1,
             new BigDecimal("50000.00"), LocalDate.of(2025, 1, 15), "UPI",
             "TXN-UPI-12345", "Installment payment", Instant.now(),
-            "PAYMENT", null, null
+            "PAYMENT", null, null, null
         );
     }
 }

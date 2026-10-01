@@ -26,15 +26,33 @@ export interface ReceiptPrintData {
   installmentBreakdown: Array<{ installmentLabel: string; amountApplied: number }>;
   /** Determines "towards" label: TUITION_AND_HOSTEL → "Tuition Fees And Hostel Fees", TUITION_ONLY → "Tuition Fees" */
   feeCategory?: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
-  /** Full name of the logged-in user who processed this receipt (for the digital signature block). */
+  /** Full name of the staff member who actually collected this payment (for the digital signature
+   *  block) — never the current viewer's name. Null/absent when not recorded (legacy receipts),
+   *  in which case the signature block omits the name line entirely rather than guessing. */
   signedByName?: string | null;
-  /** Role/designation of the logged-in user, shown alongside their name. */
+  /** Role/designation to show alongside the name. Left unset when the actor's role at the time of
+   *  collection isn't known (e.g. surfaced only from a persisted name with no role attached). */
   signedByRole?: string | null;
+  /** Moment the receipt record was created (ISO instant) — used only to print the payment's
+   *  clock-time in IST next to the date; paymentDate itself has no time component. */
+  createdAt?: string | null;
 }
 
 /** Shown under the processing user's name on both the Fee Receipt and Refund Voucher. */
 const DIGITAL_SIGNATURE_MESSAGE =
   'This document is digitally signed and generated electronically; no manual signature or stamp is required.';
+
+/** Formats an ISO instant as an IST clock-time (e.g. "03:45 PM"), regardless of the viewer's own
+ *  timezone. Returns '' when no timestamp is available, so callers can omit it cleanly. */
+export function formatIstTime(isoInstant?: string | null): string {
+  if (!isoInstant) return '';
+  const time = new Date(isoInstant).toLocaleTimeString('en-IN', {
+    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
+  });
+  // Some Intl implementations render the day period lowercase ("pm") — normalize for a
+  // consistent, professional look on a printed financial document.
+  return time.replace(/am|pm/i, m => m.toUpperCase());
+}
 
 /** Builds the "For <College> / Name (Role) / disclaimer" signature block shared by both print templates. */
 function buildDigitalSignatureBlock(collegeName: string, signedByName?: string | null, signedByRole?: string | null): string {
@@ -176,6 +194,7 @@ function buildReceiptBodyHtml(data: ReceiptPrintData): string {
   const formattedDate = new Date(data.paymentDate + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit', month: 'long', year: 'numeric',
   });
+  const formattedTime = formatIstTime(data.createdAt);
   const formattedAmount = formatCurrency(data.amountPaid, 'en-IN', '₹', 'INR', '1.0-0');
   const towards = data.feeCategory === 'TUITION_AND_HOSTEL'
     ? 'Tuition Fees And Hostel Fees'
@@ -225,7 +244,7 @@ function buildReceiptBodyHtml(data: ReceiptPrintData): string {
   <div class="meta-row">
     <div class="receipt-no">No. <strong>${data.receiptNumber}</strong></div>
     <div class="doc-title">FEE RECEIPT</div>
-    <div class="meta-date">Date : ${formattedDate}</div>
+    <div class="meta-date">Date : ${formattedDate}${formattedTime ? `, ${formattedTime}` : ''}</div>
   </div>
 
   <!-- Fill-in rows -->
@@ -418,10 +437,16 @@ export interface RefundVoucherData {
   paymentMode?: string | null;
   paymentDate?: string | null;
   transactionReference?: string | null;
-  /** Full name of the logged-in user who processed this refund (for the digital signature block). */
+  /** Full name of the staff member who actually approved this refund (for the digital signature
+   *  block) — never the current viewer's name. Null/absent when not recorded, in which case the
+   *  signature block omits the name line entirely rather than guessing. */
   signedByName?: string | null;
-  /** Role/designation of the logged-in user, shown alongside their name. */
+  /** Role/designation to show alongside the name. Left unset when the approver's role at the time
+   *  isn't known. */
   signedByRole?: string | null;
+  /** Moment the refund record was approved/created (ISO instant) — used only to print the
+   *  refund's clock-time in IST next to the date; refundDate itself has no time component. */
+  createdAt?: string | null;
 }
 
 function buildRefundVoucherCss(): string {
@@ -547,6 +572,7 @@ function buildRefundVoucherBodyHtml(data: RefundVoucherData): string {
   const formattedDate = new Date(data.refundDate + 'T00:00:00').toLocaleDateString('en-IN', {
     day: '2-digit', month: 'long', year: 'numeric',
   });
+  const formattedTime = formatIstTime(data.createdAt);
   const formattedAmount = formatCurrency(data.refundAmount, 'en-IN', '₹', 'INR', '1.0-0');
 
   // Roll No. shares a line with Against Receipt No.; Admission No. falls back to its own row
@@ -599,7 +625,7 @@ function buildRefundVoucherBodyHtml(data: RefundVoucherData): string {
   <div class="meta-row">
     <div class="receipt-no">Refund No. <strong>${data.refundNumber}</strong></div>
     <div class="doc-title">REFUND VOUCHER</div>
-    <div class="meta-date">Date : ${formattedDate}</div>
+    <div class="meta-date">Date : ${formattedDate}${formattedTime ? `, ${formattedTime}` : ''}</div>
   </div>
 
   <!-- Fill-in rows -->

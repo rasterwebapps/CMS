@@ -37,9 +37,11 @@ import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.FeeRefundRepository;
+import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.util.CurrentUserResolver;
 
 @Service
 @Transactional(readOnly = true)
@@ -57,6 +59,8 @@ public class PaymentCollectionService {
     private final TermInstanceService termInstanceService;
     private final FeeRefundService feeRefundService;
     private final PermSecurityBean permSecurityBean;
+    private final PaymentReceiptRepository paymentReceiptRepository;
+    private final CurrentUserResolver currentUserResolver;
 
     public PaymentCollectionService(StudentFeeAllocationRepository allocationRepository,
                                      SemesterFeeRepository semesterFeeRepository,
@@ -69,7 +73,9 @@ public class PaymentCollectionService {
                                      EnquiryCreditApplicationRepository creditApplicationRepository,
                                      TermInstanceService termInstanceService,
                                      FeeRefundService feeRefundService,
-                                     PermSecurityBean permSecurityBean) {
+                                     PermSecurityBean permSecurityBean,
+                                     PaymentReceiptRepository paymentReceiptRepository,
+                                     CurrentUserResolver currentUserResolver) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
         this.installmentRepository = installmentRepository;
@@ -82,6 +88,8 @@ public class PaymentCollectionService {
         this.termInstanceService = termInstanceService;
         this.feeRefundService = feeRefundService;
         this.permSecurityBean = permSecurityBean;
+        this.paymentReceiptRepository = paymentReceiptRepository;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @Transactional
@@ -205,6 +213,7 @@ public class PaymentCollectionService {
             .collect(Collectors.joining(", "));
 
         String feeCategory = allocation.isHasHostelFee() ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
+        String collectedBy = currentUserResolver.resolveFullName();
 
         // Persist to the unified receipts table
         unifiedReceiptService.saveStudentReceipt(
@@ -215,7 +224,7 @@ public class PaymentCollectionService {
             amountActuallyPaid,
             request.paymentDate(), request.paymentMode().name(),
             request.transactionReference(), request.remarks(),
-            installmentsCovered, null, feeCategory);
+            installmentsCovered, collectedBy, feeCategory);
 
         return new CollectPaymentResponse(
             receiptNumber, student.getId(), student.getFullName(), student.getRollNumber(),
@@ -225,7 +234,8 @@ public class PaymentCollectionService {
             installmentBreakdown,
             feeCategory,
             java.time.Instant.now(),
-            remaining.max(BigDecimal.ZERO)
+            remaining.max(BigDecimal.ZERO),
+            collectedBy
         );
     }
 
@@ -345,6 +355,7 @@ public class PaymentCollectionService {
             .collect(Collectors.joining(", "));
 
         String feeCategory = allocation.isHasHostelFee() ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
+        String collectedBy = currentUserResolver.resolveFullName();
 
         unifiedReceiptService.saveStudentReceipt(
             receiptNumber,
@@ -354,7 +365,7 @@ public class PaymentCollectionService {
             receiptAmount,
             request.paymentDate(), request.paymentMode().name(),
             request.transactionReference(), request.remarks(),
-            installmentsCovered, null, feeCategory);
+            installmentsCovered, collectedBy, feeCategory);
 
         if (excessRequested && remaining.compareTo(BigDecimal.ZERO) > 0) {
             feeRefundService.createAutoExcessRefund(student, receiptNumber, remaining);
@@ -368,7 +379,8 @@ public class PaymentCollectionService {
             installmentBreakdown,
             feeCategory,
             java.time.Instant.now(),
-            remaining.max(BigDecimal.ZERO)
+            remaining.max(BigDecimal.ZERO),
+            collectedBy
         );
     }
 
@@ -530,9 +542,14 @@ public class PaymentCollectionService {
             throw new ResourceNotFoundException("Student not found with id: " + studentId);
         }
 
-        List<ReceiptResponse> receipts = installmentRepository
-            .findByStudentIdOrderByPaymentDateDesc(studentId).stream()
-            .map(this::toReceiptResponse)
+        List<FeeInstallment> installments = installmentRepository.findByStudentIdOrderByPaymentDateDesc(studentId);
+        Map<String, String> collectedByReceiptNumber = paymentReceiptRepository
+            .findByReceiptNumberIn(installments.stream().map(FeeInstallment::getReceiptNumber).distinct().toList())
+            .stream()
+            .collect(Collectors.toMap(com.cms.model.PaymentReceipt::getReceiptNumber, com.cms.model.PaymentReceipt::getCollectedBy));
+
+        List<ReceiptResponse> receipts = installments.stream()
+            .map(fi -> toReceiptResponse(fi, collectedByReceiptNumber.get(fi.getReceiptNumber())))
             .collect(Collectors.toCollection(ArrayList::new));
 
         // Approved student refund vouchers
@@ -570,7 +587,7 @@ public class PaymentCollectionService {
             null, null, null,
             p.getAmountPaid(), p.getPaymentDate(), p.getPaymentMode().name(),
             p.getTransactionReference(), p.getRemarks(), p.getCreatedAt(),
-            "ENQUIRY_PAYMENT", null, feeCategory
+            "ENQUIRY_PAYMENT", null, feeCategory, p.getCollectedBy()
         );
     }
 
@@ -581,7 +598,7 @@ public class PaymentCollectionService {
             null, null, null,
             refund.getRefundAmount().negate(), refund.getPaymentDate(), refund.getPaymentMode(),
             refund.getTransactionReference(), refund.getReason(), refund.getApprovedAt(),
-            "REFUND", refund.getOriginalReceiptNumber(), null
+            "REFUND", refund.getOriginalReceiptNumber(), null, refund.getApprovedBy()
         );
     }
 
@@ -596,7 +613,10 @@ public class PaymentCollectionService {
             throw new ResourceNotFoundException("Receipt not found for student with id: " + studentId);
         }
 
-        return toReceiptResponse(installment);
+        String collectedBy = paymentReceiptRepository.findByReceiptNumber(installment.getReceiptNumber())
+            .map(com.cms.model.PaymentReceipt::getCollectedBy)
+            .orElse(null);
+        return toReceiptResponse(installment, collectedBy);
     }
 
     public List<ReceiptSummaryResponse> getAllReceiptSummaries() {
@@ -640,7 +660,7 @@ public class PaymentCollectionService {
         }).toList();
     }
 
-    private ReceiptResponse toReceiptResponse(FeeInstallment fi) {
+    private ReceiptResponse toReceiptResponse(FeeInstallment fi, String collectedBy) {
         String feeCategory = fi.getSemesterFee().getAllocation().isHasHostelFee()
             ? "TUITION_AND_HOSTEL" : "TUITION_ONLY";
         return new ReceiptResponse(
@@ -650,7 +670,7 @@ public class PaymentCollectionService {
             fi.getSemesterFee().getYearNumber(),
             fi.getAmountPaid(), fi.getPaymentDate(), fi.getPaymentMode().name(),
             fi.getTransactionReference(), fi.getRemarks(), fi.getCreatedAt(),
-            "PAYMENT", null, feeCategory
+            "PAYMENT", null, feeCategory, collectedBy
         );
     }
 

@@ -317,6 +317,8 @@ export class StudentFeeDetailComponent implements OnInit {
             label:  i.installmentLabel,
             amount: Number(i.amountApplied),
           })),
+          collectedBy:          res.collectedBy,
+          createdAt:            res.createdAt,
         });
       },
       error: (err: unknown) => {
@@ -436,8 +438,9 @@ export class StudentFeeDetailComponent implements OnInit {
         installmentLabel: l.installmentLabel ?? '',
         amountApplied:    Math.abs(l.amountPaid),
       })),
-      signedByName:         this.permissionService.fullName(),
-      signedByRole:         this.permissionService.roleLabel(),
+      signedByName:         group.lines[0]?.collectedBy ?? null,
+      signedByRole:         null,
+      createdAt:            group.lines[0]?.createdAt ?? null,
     };
   }
 

@@ -22,5 +22,8 @@ public record ReceiptResponse(
     String receiptType,
     String originalReceiptNumber,
     /** TUITION_ONLY | TUITION_AND_HOSTEL — null for refund rows */
-    String feeCategory
+    String feeCategory,
+    /** Full name of the staff member who actually collected/approved this transaction — null when
+     *  not recorded (e.g. legacy receipts collected before this field was tracked). */
+    String collectedBy
 ) {}

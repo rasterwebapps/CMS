@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,13 +15,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import com.cms.model.AppUser;
+import com.cms.repository.AppUserRepository;
+
 class CurrentUserResolverTest {
 
+    private AppUserRepository appUserRepository;
     private CurrentUserResolver resolver;
 
     @BeforeEach
     void setUp() {
-        resolver = new CurrentUserResolver();
+        appUserRepository = mock(AppUserRepository.class);
+        resolver = new CurrentUserResolver(appUserRepository);
     }
 
     @AfterEach
@@ -81,6 +87,59 @@ class CurrentUserResolverTest {
         SecurityContextHolder.clearContext();
 
         assertThat(resolver.resolve()).isNull();
+    }
+
+    @Test
+    void resolveFullNameReturnsAppUserFullNameWhenMatchFound() {
+        Jwt jwt = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .claim("preferred_username", "devadmin")
+            .build();
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken(jwt, null, List.of()));
+
+        AppUser appUser = new AppUser();
+        appUser.setFullName("Developer Administrator");
+        when(appUserRepository.findByKeycloakUsernameWithRole("devadmin")).thenReturn(Optional.of(appUser));
+
+        assertThat(resolver.resolveFullName()).isEqualTo("Developer Administrator");
+    }
+
+    @Test
+    void resolveFullNameFallsBackToUsernameWhenNoMatchingAppUser() {
+        Jwt jwt = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .claim("preferred_username", "deactivated.user")
+            .build();
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken(jwt, null, List.of()));
+
+        when(appUserRepository.findByKeycloakUsernameWithRole("deactivated.user")).thenReturn(Optional.empty());
+
+        assertThat(resolver.resolveFullName()).isEqualTo("deactivated.user");
+    }
+
+    @Test
+    void resolveFullNameFallsBackToUsernameWhenAppUserFullNameIsBlank() {
+        Jwt jwt = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .claim("preferred_username", "jdoe")
+            .build();
+        SecurityContextHolder.getContext().setAuthentication(
+            new UsernamePasswordAuthenticationToken(jwt, null, List.of()));
+
+        AppUser appUser = new AppUser();
+        appUser.setFullName("   ");
+        when(appUserRepository.findByKeycloakUsernameWithRole("jdoe")).thenReturn(Optional.of(appUser));
+
+        assertThat(resolver.resolveFullName()).isEqualTo("jdoe");
+    }
+
+    @Test
+    void resolveFullNameReturnsSystemWhenNotAuthenticated() {
+        SecurityContextHolder.clearContext();
+
+        assertThat(resolver.resolveFullName()).isEqualTo("system");
     }
 }
 

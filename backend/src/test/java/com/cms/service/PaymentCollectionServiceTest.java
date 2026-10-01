@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,6 +33,7 @@ import com.cms.dto.ReceiptResponse;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.FeeInstallment;
 import com.cms.model.FeeRefund;
+import com.cms.model.PaymentReceipt;
 import com.cms.model.Program;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
@@ -44,10 +46,12 @@ import com.cms.repository.EnquiryCreditApplicationRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.FeeRefundRepository;
+import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.config.PermSecurityBean;
+import com.cms.util.CurrentUserResolver;
 
 @ExtendWith(MockitoExtension.class)
 class PaymentCollectionServiceTest {
@@ -64,6 +68,8 @@ class PaymentCollectionServiceTest {
     @Mock private TermInstanceService termInstanceService;
     @Mock private FeeRefundService feeRefundService;
     @Mock private PermSecurityBean permSecurityBean;
+    @Mock private PaymentReceiptRepository paymentReceiptRepository;
+    @Mock private CurrentUserResolver currentUserResolver;
 
     private PaymentCollectionService service;
 
@@ -78,7 +84,8 @@ class PaymentCollectionServiceTest {
         service = new PaymentCollectionService(allocationRepository, semesterFeeRepository,
             installmentRepository, studentRepository, enquiryRepository, enquiryPaymentRepository,
             refundRepository, unifiedReceiptService, creditApplicationRepository, termInstanceService,
-            feeRefundService, permSecurityBean);
+            feeRefundService, permSecurityBean, paymentReceiptRepository, currentUserResolver);
+        lenient().when(currentUserResolver.resolveFullName()).thenReturn("Jane Cashier");
         lenient().when(enquiryRepository.findByConvertedStudentId(anyLong())).thenReturn(Optional.empty());
         lenient().when(refundRepository.findByStudentIdAndStatusOrderByPaymentDateDescIdDesc(anyLong(), any()))
             .thenReturn(List.of());
@@ -134,6 +141,39 @@ class PaymentCollectionServiceTest {
         assertThat(response.installmentBreakdown()).hasSize(1);
         assertThat(response.installmentBreakdown().getFirst().installmentLabel()).isEqualTo("Year 1 - Semester 1");
         assertThat(response.installmentBreakdown().getFirst().amountApplied()).isEqualByComparingTo("100000");
+
+        ArgumentCaptor<String> collectedByCaptor = ArgumentCaptor.forClass(String.class);
+        verify(unifiedReceiptService).saveStudentReceipt(
+            anyString(), anyLong(), anyString(), anyString(), any(),
+            any(), any(BigDecimal.class), any(LocalDate.class), anyString(),
+            any(), any(), any(), collectedByCaptor.capture(), anyString());
+        assertThat(collectedByCaptor.getValue()).isEqualTo("Jane Cashier");
+    }
+
+    @Test
+    void shouldFallBackToSystemWhenNoAuthenticatedUserCollectsPayment() {
+        when(currentUserResolver.resolveFullName()).thenReturn("system");
+        CollectPaymentRequest request = new CollectPaymentRequest(
+            new BigDecimal("100000"), LocalDate.now(), PaymentMode.UPI, "TXN001", null, null, null
+        );
+
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(testStudent));
+        when(allocationRepository.findByStudentIdForUpdate(1L)).thenReturn(Optional.of(testAllocation));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(1L))
+            .thenReturn(List.of(semesterFee1, semesterFee2));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1L)).thenReturn(BigDecimal.ZERO);
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(2L)).thenReturn(BigDecimal.ZERO);
+        when(unifiedReceiptService.generateReceiptNumber(anyInt())).thenReturn("RCP-2026-00001");
+        when(installmentRepository.save(any(FeeInstallment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.collectPayment(1L, request);
+
+        ArgumentCaptor<String> collectedByCaptor = ArgumentCaptor.forClass(String.class);
+        verify(unifiedReceiptService).saveStudentReceipt(
+            anyString(), anyLong(), anyString(), anyString(), any(),
+            any(), any(BigDecimal.class), any(LocalDate.class), anyString(),
+            any(), any(), any(), collectedByCaptor.capture(), anyString());
+        assertThat(collectedByCaptor.getValue()).isEqualTo("system");
     }
 
     @Test
@@ -322,6 +362,30 @@ class PaymentCollectionServiceTest {
         assertThat(receipts).hasSize(1);
         assertThat(receipts.getFirst().receiptNumber()).isEqualTo("RCP-001");
         assertThat(receipts.getFirst().receiptType()).isEqualTo("PAYMENT");
+        // No matching payment_receipts row (legacy data / repository returns nothing) — must not
+        // fall back to anything else, just surface null so the UI can omit the signature line.
+        assertThat(receipts.getFirst().collectedBy()).isNull();
+    }
+
+    @Test
+    void shouldSurfaceCollectedByFromPaymentReceiptWhenPresent() {
+        FeeInstallment installment = new FeeInstallment(semesterFee1, testStudent,
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, "RCP-002");
+        installment.setId(1L);
+        installment.setCreatedAt(Instant.now());
+
+        PaymentReceipt paymentReceipt = new PaymentReceipt(
+            "RCP-002", "STUDENT", 1L, "John Doe", "CS2024001", null, "B.Sc CS",
+            new BigDecimal("50000"), LocalDate.now(), "UPI", null, null, null, "Jane Cashier");
+
+        when(studentRepository.existsById(1L)).thenReturn(true);
+        when(installmentRepository.findByStudentIdOrderByPaymentDateDesc(1L)).thenReturn(List.of(installment));
+        when(paymentReceiptRepository.findByReceiptNumberIn(List.of("RCP-002")))
+            .thenReturn(List.of(paymentReceipt));
+
+        List<ReceiptResponse> receipts = service.getReceipts(1L);
+
+        assertThat(receipts.getFirst().collectedBy()).isEqualTo("Jane Cashier");
     }
 
     @Test
@@ -344,6 +408,7 @@ class PaymentCollectionServiceTest {
         refund.setTransactionReference("RF-TXN-1");
         refund.setReason("Duplicate collection");
         refund.setApprovedAt(Instant.parse("2026-04-12T10:30:00Z"));
+        refund.setApprovedBy("Jane Approver");
 
         when(studentRepository.existsById(1L)).thenReturn(true);
         when(installmentRepository.findByStudentIdOrderByPaymentDateDesc(1L)).thenReturn(List.of(installment));
@@ -357,6 +422,7 @@ class PaymentCollectionServiceTest {
         assertThat(receipts.getFirst().receiptNumber()).isEqualTo("RFND-2026-0001");
         assertThat(receipts.getFirst().amountPaid()).isEqualByComparingTo("-50000");
         assertThat(receipts.getFirst().originalReceiptNumber()).isEqualTo("RCP-001");
+        assertThat(receipts.getFirst().collectedBy()).isEqualTo("Jane Approver");
         assertThat(receipts.get(1).receiptType()).isEqualTo("PAYMENT");
     }
 

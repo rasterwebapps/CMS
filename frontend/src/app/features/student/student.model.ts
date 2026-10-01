@@ -178,6 +178,11 @@ export interface TermFeePaymentSummary {
   receiptNumber: string;
   remarks?: string;
   feeCategory?: 'TUITION_ONLY' | 'TUITION_AND_HOSTEL' | null;
+  /** Full name of the staff member who actually collected this payment — null when not recorded
+   *  (e.g. legacy receipts collected before this field was tracked). */
+  collectedBy?: string | null;
+  /** Moment the record was created — used as the payment's clock-time on the printed receipt. */
+  createdAt?: string | null;
 }
 
 export interface StudentLedgerEntry {

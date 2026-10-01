@@ -648,6 +648,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
             feeCategory:         res.feeCategory,
             installmentsCovered: towardsLabel,
             installmentBreakdown: [{ label: towardsLabel, amount: Number(res.amountPaid) }],
+            collectedBy:         res.collectedBy,
+            createdAt:           res.createdAt,
           });
         },
         error: (err: unknown) => {
@@ -680,6 +682,8 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
               label: i.installmentLabel,
               amount: Number(i.amountApplied),
             })),
+            collectedBy:         res.collectedBy,
+            createdAt:           res.createdAt,
           });
         },
         error: (err: unknown) => {
