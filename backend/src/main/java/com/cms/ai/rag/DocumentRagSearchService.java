@@ -96,6 +96,7 @@ public class DocumentRagSearchService {
 
         return new AdmissionDocumentRagResult(
             document.getId(),
+            admission != null ? admission.getId() : null,
             document.getDocumentType(),
             document.getFileName(),
             studentName == null || studentName.isEmpty() ? null : studentName,

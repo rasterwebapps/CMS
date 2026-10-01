@@ -2193,6 +2193,16 @@ export const routes: Routes = [
       ),
   },
   {
+    // Must stay ahead of 'admissions/:id' below -- a static path segment needs to win the route
+    // match before the ':id' wildcard would otherwise swallow it as an id value.
+    path: 'admissions/ai-search',
+    canActivate: withPermission('ADMISSION_DOCUMENT_AI_SEARCH_VIEW'),
+    loadComponent: () =>
+      import('./features/admission/ai-search/ai-search.component').then(
+        (m) => m.AdmissionDocumentAiSearchComponent
+      ),
+  },
+  {
     path: 'admissions/:id/edit',
     canActivate: withPermission('ADMISSION_EDIT'),
     loadComponent: () =>

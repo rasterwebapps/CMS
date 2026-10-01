@@ -72,6 +72,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'Verify Documents',   icon: 'verified',             route: '/enquiries/document-verification',permissions: ['DOCUMENT_VERIFICATION_MANAGE'] },
       { label: 'Complete Admission', icon: 'assignment_turned_in', route: '/enquiries/admission-completion', permissions: ['ADMISSION_COMPLETE'] },
       { label: 'Admission Explorer', icon: 'assignment_ind',       route: '/admissions',                     permissions: ['ADMISSION_VIEW', 'ADMISSION_CREATE', 'ADMISSION_EDIT', 'ADMISSION_DELETE', 'ADMISSION_EXPORT'] },
+      { label: 'AI Document Search', icon: 'psychology_alt',       route: '/admissions/ai-search',           permissions: ['ADMISSION_DOCUMENT_AI_SEARCH_VIEW'] },
       { label: 'Retro Admit',        icon: 'history_edu',          route: '/students/retro-admit',           permissions: ['RETRO_ADMIT'] },
     ],
   },

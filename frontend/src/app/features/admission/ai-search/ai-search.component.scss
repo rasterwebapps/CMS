@@ -1,0 +1,82 @@
+// Local re-declaration of the same per-component pattern used by
+// student/ai-search/ai-search.component.scss -- Angular's emulated ViewEncapsulation means a
+// class defined in one component's SCSS does not style another component's template, even with
+// an identical class name (see feedback_component_touch_rule / CLAUDE.md).
+
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 24px;
+
+  &__label {
+    color: var(--cms-text-muted);
+    font-size: var(--cms-text-sm);
+    margin: 0;
+  }
+}
+
+.snippet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.snippet-card {
+  border: 1px solid var(--cms-border-default);
+  border-radius: var(--cms-radius-lg);
+  background: var(--cms-bg-card);
+  box-shadow: var(--cms-shadow-sm);
+  padding: 14px 16px;
+
+  &--clickable {
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--cms-border-hover);
+      background: var(--cms-bg-hover);
+    }
+  }
+
+  &__hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  &__doctype {
+    font-size: var(--cms-text-sm);
+    font-weight: 600;
+    color: var(--cms-primary);
+  }
+
+  &__match {
+    font-size: var(--cms-text-xs);
+    color: var(--cms-text-muted);
+    white-space: nowrap;
+  }
+
+  &__text {
+    font-size: var(--cms-text-md);
+    line-height: 1.5;
+    margin: 0 0 10px;
+    white-space: pre-wrap;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: var(--cms-text-xs);
+    color: var(--cms-text-muted);
+  }
+
+  &__file {
+    font-family: var(--cms-font-mono);
+  }
+}

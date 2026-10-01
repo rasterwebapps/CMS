@@ -99,6 +99,18 @@ export interface AdmissionDocumentResponse {
 }
 
 
+/** One retrieved snippet from the Admission document AI search (OC-277) -- raw snippet, not a synthesized answer. */
+export interface AdmissionDocumentRagResult {
+  admissionDocumentId: number;
+  admissionId: number | null;
+  documentType: string;
+  fileName: string | null;
+  studentName: string | null;
+  admissionNumber: string | null;
+  chunkText: string;
+  similarity: number;
+}
+
 export const ADMISSION_STATUSES = [
   'SUBMITTED',
   'UNDER_REVIEW',

@@ -9,6 +9,7 @@ import com.cms.model.enums.DocumentType;
  */
 public record AdmissionDocumentRagResult(
     Long admissionDocumentId,
+    Long admissionId,
     DocumentType documentType,
     String fileName,
     String studentName,

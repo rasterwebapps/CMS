@@ -81,7 +81,7 @@ class AiSearchControllerTest {
     @Test
     void searchAdmissionDocuments_returnsTheServiceResult() throws Exception {
         AdmissionDocumentRagResult result = new AdmissionDocumentRagResult(
-            5L, DocumentType.TRANSFER_CERTIFICATE, "tc.pdf", "Jane Doe", "ADM-001",
+            5L, 50L, DocumentType.TRANSFER_CERTIFICATE, "tc.pdf", "Jane Doe", "ADM-001",
             "Transfer certificate issued to Jane Doe by St. Mary's School", 0.87);
 
         when(documentRagSearchService.search("where did Jane study before?"))

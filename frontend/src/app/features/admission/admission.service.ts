@@ -3,6 +3,7 @@ import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
+  AdmissionDocumentRagResult,
   AdmissionExplorerParams,
   AdmissionRequest,
   AdmissionResponse,
@@ -37,6 +38,19 @@ export class AdmissionService {
 
   getById(id: number): Observable<AdmissionResponse> {
     return this.http.get<AdmissionResponse>(`${this.baseUrl}/${id}`);
+  }
+
+  /**
+   * AI document search (OC-277): answers a plain-English question from the actual content of
+   * submitted Admission documents, via a locally-hosted Ollama embedding model (see backend
+   * com.cms.ai.rag package). Returns raw retrieved snippets, never a synthesized answer -- an
+   * empty array means nothing cleared the similarity threshold, not that the search failed.
+   */
+  aiSearchDocuments(query: string): Observable<AdmissionDocumentRagResult[]> {
+    return this.http.post<AdmissionDocumentRagResult[]>(
+      `${environment.apiUrl}/ai-search/admission-documents`,
+      { query },
+    );
   }
 
   getByStudent(studentId: number): Observable<AdmissionResponse> {

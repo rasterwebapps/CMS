@@ -1,0 +1,88 @@
+<div class="mlp-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="mlp-hdr">
+    <div class="mlp-hdr-left">
+      <h1 class="mlp-title">AI <em>Document Search</em></h1>
+      <p class="mlp-sub">Ask a plain-English question about submitted Admission documents — powered by a locally-hosted AI model, run entirely on this institution's own infrastructure.</p>
+    </div>
+  </div>
+
+  <!-- ── Toolbar ─────────────────────────────────────────────────────────── -->
+  <div class="mlp-toolbar">
+    <div class="search-bar" role="search">
+      <svg class="search-bar__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        class="search-bar__input"
+        [(ngModel)]="queryText"
+        (keydown.enter)="search()"
+        placeholder="e.g. what school did this student attend before joining?"
+        type="text"
+        aria-label="Ask a question about admission documents"
+      />
+    </div>
+    <button class="btn-primary" (click)="search()" [disabled]="loading() || !queryText().trim()">
+      Search
+    </button>
+  </div>
+
+  <!-- ── Results ────────────────────────────────────────────────────────── -->
+  <div class="content-card mlp-table-card doc-search-card">
+    @if (loading()) {
+      <div class="loading-box">
+        <mat-spinner diameter="36" aria-label="Searching"></mat-spinner>
+        <p class="loading-box__label">Thinking…</p>
+      </div>
+    } @else if (errorMessage()) {
+      <cms-empty-state
+        icon="psychology_alt"
+        title="Couldn't understand that question"
+        [subtitle]="errorMessage() ?? ''"
+      />
+    } @else if (lastSearchedQuery() === null) {
+      <cms-empty-state
+        icon="search"
+        title="Ask a question to get started"
+        subtitle="Try something like &quot;what school did this student attend before joining?&quot;. Only digitally-native PDF admission documents are searchable today — scanned/photographed uploads aren't yet."
+      />
+    } @else if (results().length === 0) {
+      <cms-empty-state
+        icon="find_in_page"
+        title="No matching document content found"
+        subtitle="Try a different phrasing, or this question may not be answerable from any ingested document yet."
+      />
+    } @else {
+      <div class="snippet-list">
+        @for (result of results(); track result.admissionDocumentId + '-' + result.chunkText) {
+          <div
+            class="snippet-card"
+            [class.snippet-card--clickable]="result.admissionId != null"
+            (click)="viewDocumentSource(result)"
+          >
+            <div class="snippet-card__hdr">
+              <span class="snippet-card__doctype">{{ formatDocType(result.documentType) }}</span>
+              <span class="snippet-card__match">{{ formatSimilarity(result.similarity) }}</span>
+            </div>
+            <p class="snippet-card__text">{{ result.chunkText }}</p>
+            <div class="snippet-card__meta">
+              @if (result.studentName) {
+                <span class="snippet-card__student">{{ result.studentName }}</span>
+              }
+              @if (result.admissionNumber) {
+                <span class="snippet-card__adm">Adm: {{ result.admissionNumber }}</span>
+              }
+              @if (result.fileName) {
+                <span class="snippet-card__file">{{ result.fileName }}</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+</div>
