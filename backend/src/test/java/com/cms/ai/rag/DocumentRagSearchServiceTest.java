@@ -20,10 +20,10 @@ import com.cms.ai.OllamaClient;
 import com.cms.ai.rag.DocumentEmbeddingRepository.SimilarChunk;
 import com.cms.dto.AdmissionDocumentRagResult;
 import com.cms.model.Admission;
-import com.cms.model.AdmissionDocument;
+import com.cms.model.EnquiryDocument;
 import com.cms.model.Student;
 import com.cms.model.enums.DocumentType;
-import com.cms.repository.AdmissionDocumentRepository;
+import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.util.CurrentUserResolver;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,7 +36,7 @@ class DocumentRagSearchServiceTest {
     @Mock
     private DocumentEmbeddingRepository documentEmbeddingRepository;
     @Mock
-    private AdmissionDocumentRepository admissionDocumentRepository;
+    private EnquiryDocumentRepository enquiryDocumentRepository;
     @Mock
     private CurrentUserResolver currentUserResolver;
 
@@ -45,19 +45,20 @@ class DocumentRagSearchServiceTest {
     @BeforeEach
     void setUp() {
         service = new DocumentRagSearchService(
-            ollamaClient, documentEmbeddingRepository, admissionDocumentRepository, currentUserResolver, 5, THRESHOLD);
+            ollamaClient, documentEmbeddingRepository, enquiryDocumentRepository, currentUserResolver, 5, THRESHOLD);
         when(ollamaClient.embed(any())).thenReturn(new float[] {0.1f});
         when(currentUserResolver.resolve()).thenReturn("staff.member");
     }
 
-    private AdmissionDocument documentWithStudent(Long id, String firstName, String lastName, String admissionNumber) {
+    private EnquiryDocument documentWithStudent(Long id, String firstName, String lastName, String admissionNumber) {
         Student student = new Student();
         student.setFirstName(firstName);
         student.setLastName(lastName);
         student.setAdmissionNumber(admissionNumber);
         Admission admission = new Admission();
         admission.setStudent(student);
-        AdmissionDocument document = new AdmissionDocument(admission, DocumentType.TRANSFER_CERTIFICATE, null);
+        EnquiryDocument document = new EnquiryDocument(null, DocumentType.TRANSFER_CERTIFICATE, null);
+        document.setAdmission(admission);
         document.setId(id);
         document.setFileName("tc.pdf");
         return document;
@@ -71,7 +72,7 @@ class DocumentRagSearchServiceTest {
 
         assertThat(results).isEmpty();
         verify(documentEmbeddingRepository).logQuery(eq("staff.member"), eq("what school did Jane attend?"), eq(List.of()), eq(List.of()));
-        verify(admissionDocumentRepository, never()).findByIdInWithAdmissionAndStudent(any());
+        verify(enquiryDocumentRepository, never()).findByIdInWithAdmissionAndStudent(any());
     }
 
     @Test
@@ -82,7 +83,7 @@ class DocumentRagSearchServiceTest {
         List<AdmissionDocumentRagResult> results = service.search("irrelevant question");
 
         assertThat(results).isEmpty();
-        verify(admissionDocumentRepository, never()).findByIdInWithAdmissionAndStudent(any());
+        verify(enquiryDocumentRepository, never()).findByIdInWithAdmissionAndStudent(any());
         // the low score is still logged for future eval/threshold-calibration work
         verify(documentEmbeddingRepository).logQuery(any(), any(), eq(List.of(1L)), eq(List.of(THRESHOLD - 0.1)));
     }
@@ -91,7 +92,7 @@ class DocumentRagSearchServiceTest {
     void candidateAboveThreshold_resolvesToAFullyAttributedResult() {
         SimilarChunk strongMatch = new SimilarChunk(2L, 20L, "Transfer certificate issued to Jane Doe", 0.87);
         when(documentEmbeddingRepository.findSimilarChunks(any(), any(), anyInt())).thenReturn(List.of(strongMatch));
-        when(admissionDocumentRepository.findByIdInWithAdmissionAndStudent(List.of(20L)))
+        when(enquiryDocumentRepository.findByIdInWithAdmissionAndStudent(List.of(20L)))
             .thenReturn(List.of(documentWithStudent(20L, "Jane", "Doe", "ADM-001")));
 
         List<AdmissionDocumentRagResult> results = service.search("where did Jane study before?");
@@ -109,7 +110,7 @@ class DocumentRagSearchServiceTest {
     void matchedDocumentNoLongerExists_isSilentlyDroppedRatherThanCrashing() {
         SimilarChunk orphanedChunk = new SimilarChunk(3L, 30L, "stale chunk for a deleted document", 0.9);
         when(documentEmbeddingRepository.findSimilarChunks(any(), any(), anyInt())).thenReturn(List.of(orphanedChunk));
-        when(admissionDocumentRepository.findByIdInWithAdmissionAndStudent(List.of(30L))).thenReturn(List.of());
+        when(enquiryDocumentRepository.findByIdInWithAdmissionAndStudent(List.of(30L))).thenReturn(List.of());
 
         List<AdmissionDocumentRagResult> results = service.search("anything");
 

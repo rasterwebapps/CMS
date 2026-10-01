@@ -14,9 +14,9 @@ import com.cms.ai.OllamaClient;
 import com.cms.ai.rag.DocumentEmbeddingRepository.SimilarChunk;
 import com.cms.dto.AdmissionDocumentRagResult;
 import com.cms.model.Admission;
-import com.cms.model.AdmissionDocument;
+import com.cms.model.EnquiryDocument;
 import com.cms.model.Student;
-import com.cms.repository.AdmissionDocumentRepository;
+import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.util.CurrentUserResolver;
 
 /**
@@ -33,26 +33,29 @@ public class DocumentRagSearchService {
 
     private final OllamaClient ollamaClient;
     private final DocumentEmbeddingRepository documentEmbeddingRepository;
-    private final AdmissionDocumentRepository admissionDocumentRepository;
+    private final EnquiryDocumentRepository enquiryDocumentRepository;
     private final CurrentUserResolver currentUserResolver;
     private final int topK;
     private final double similarityThreshold;
 
     public DocumentRagSearchService(OllamaClient ollamaClient,
                                      DocumentEmbeddingRepository documentEmbeddingRepository,
-                                     AdmissionDocumentRepository admissionDocumentRepository,
+                                     EnquiryDocumentRepository enquiryDocumentRepository,
                                      CurrentUserResolver currentUserResolver,
                                      @Value("${cms.rag.retrieval-top-k:5}") int topK,
                                      @Value("${cms.rag.similarity-threshold:0.5}") double similarityThreshold) {
         this.ollamaClient = ollamaClient;
         this.documentEmbeddingRepository = documentEmbeddingRepository;
-        this.admissionDocumentRepository = admissionDocumentRepository;
+        this.enquiryDocumentRepository = enquiryDocumentRepository;
         this.currentUserResolver = currentUserResolver;
         this.topK = topK;
         this.similarityThreshold = similarityThreshold;
     }
 
-    @Transactional(readOnly = true)
+    // Not readOnly: logQuery() below does a real INSERT into document_rag_query_log in this same
+    // transaction (needed so the fetch-join for student/admission attribution and the query log
+    // share one consistent view) -- readOnly=true made Postgres reject that insert outright.
+    @Transactional
     public List<AdmissionDocumentRagResult> search(String query) {
         float[] queryEmbedding = ollamaClient.embed(query);
         List<SimilarChunk> candidates = documentEmbeddingRepository.findSimilarChunks(SOURCE_ENTITY, queryEmbedding, topK);
@@ -74,10 +77,10 @@ public class DocumentRagSearchService {
         }
 
         List<Long> documentIds = aboveThreshold.stream().map(SimilarChunk::sourceId).distinct().toList();
-        Map<Long, AdmissionDocument> documentsById = admissionDocumentRepository
+        Map<Long, EnquiryDocument> documentsById = enquiryDocumentRepository
             .findByIdInWithAdmissionAndStudent(documentIds)
             .stream()
-            .collect(Collectors.toMap(AdmissionDocument::getId, Function.identity()));
+            .collect(Collectors.toMap(EnquiryDocument::getId, Function.identity()));
 
         return aboveThreshold.stream()
             .map(chunk -> toResult(chunk, documentsById.get(chunk.sourceId())))
@@ -85,7 +88,7 @@ public class DocumentRagSearchService {
             .toList();
     }
 
-    private AdmissionDocumentRagResult toResult(SimilarChunk chunk, AdmissionDocument document) {
+    private AdmissionDocumentRagResult toResult(SimilarChunk chunk, EnquiryDocument document) {
         if (document == null) {
             return null;
         }

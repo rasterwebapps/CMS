@@ -28,15 +28,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.ai.OllamaClient;
 import com.cms.ai.OllamaUnavailableException;
 import com.cms.model.Admission;
-import com.cms.model.AdmissionDocument;
-import com.cms.repository.AdmissionDocumentRepository;
+import com.cms.model.EnquiryDocument;
+import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.service.StorageService;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentEmbeddingIngestionServiceTest {
 
     @Mock
-    private AdmissionDocumentRepository admissionDocumentRepository;
+    private EnquiryDocumentRepository enquiryDocumentRepository;
     @Mock
     private StorageService storageService;
     @Mock
@@ -49,11 +49,12 @@ class DocumentEmbeddingIngestionServiceTest {
     @BeforeEach
     void setUp() {
         service = new DocumentEmbeddingIngestionService(
-            admissionDocumentRepository, storageService, ollamaClient, documentEmbeddingRepository, 10);
+            enquiryDocumentRepository, storageService, ollamaClient, documentEmbeddingRepository, 10);
     }
 
-    private static AdmissionDocument documentWithId(Long id) {
-        AdmissionDocument document = new AdmissionDocument(new Admission(), null, null);
+    private static EnquiryDocument documentWithId(Long id) {
+        EnquiryDocument document = new EnquiryDocument(null, null, null);
+        document.setAdmission(new Admission());
         document.setId(id);
         document.setStorageKey("admission/" + id + ".pdf");
         return document;
@@ -87,7 +88,7 @@ class DocumentEmbeddingIngestionServiceTest {
 
     @Test
     void successfulDocument_embedsAndSavesChunksWithoutRecordingASkip() throws IOException {
-        AdmissionDocument document = documentWithId(1L);
+        EnquiryDocument document = documentWithId(1L);
         when(storageService.downloadBytes(document.getStorageKey())).thenReturn(pdfWithText("Transfer Certificate"));
         when(ollamaClient.embed(anyString())).thenReturn(new float[] {0.1f, 0.2f});
 
@@ -99,7 +100,7 @@ class DocumentEmbeddingIngestionServiceTest {
 
     @Test
     void scannedPdfWithNoText_recordsPermanentNoTextSkip_andNeverEmbeds() throws IOException {
-        AdmissionDocument document = documentWithId(2L);
+        EnquiryDocument document = documentWithId(2L);
         when(storageService.downloadBytes(document.getStorageKey())).thenReturn(blankPdf());
 
         service.processDocument(document);
@@ -111,7 +112,7 @@ class DocumentEmbeddingIngestionServiceTest {
 
     @Test
     void corruptFile_recordsPermanentExtractionFailedSkip_andNeverEmbeds() {
-        AdmissionDocument document = documentWithId(3L);
+        EnquiryDocument document = documentWithId(3L);
         when(storageService.downloadBytes(document.getStorageKey())).thenReturn("not a real pdf".getBytes());
 
         service.processDocument(document);
@@ -124,7 +125,7 @@ class DocumentEmbeddingIngestionServiceTest {
 
     @Test
     void transientEmbeddingFailure_doesNotRecordASkip_soTheDocumentIsRetriedNextRun() throws IOException {
-        AdmissionDocument document = documentWithId(4L);
+        EnquiryDocument document = documentWithId(4L);
         when(storageService.downloadBytes(document.getStorageKey())).thenReturn(pdfWithText("Degree Certificate"));
         when(ollamaClient.embed(anyString())).thenThrow(new OllamaUnavailableException("Ollama is down"));
 
@@ -137,9 +138,9 @@ class DocumentEmbeddingIngestionServiceTest {
 
     @Test
     void oneFailingDocumentInABatch_doesNotBlockTheRestOfTheBatch() throws IOException {
-        AdmissionDocument failing = documentWithId(5L);
-        AdmissionDocument healthy = documentWithId(6L);
-        when(admissionDocumentRepository.findPendingEmbeddingBatch(10)).thenReturn(List.of(failing, healthy));
+        EnquiryDocument failing = documentWithId(5L);
+        EnquiryDocument healthy = documentWithId(6L);
+        when(enquiryDocumentRepository.findPendingEmbeddingBatch(10)).thenReturn(List.of(failing, healthy));
         when(storageService.downloadBytes(failing.getStorageKey())).thenThrow(new IllegalStateException("MinIO unreachable"));
         when(storageService.downloadBytes(healthy.getStorageKey())).thenReturn(pdfWithText("Eligibility Certificate"));
         when(ollamaClient.embed(anyString())).thenReturn(new float[] {0.3f});
