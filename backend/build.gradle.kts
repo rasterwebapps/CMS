@@ -36,6 +36,9 @@ dependencies {
     implementation("org.apache.poi:poi-ooxml:5.3.0")
     // PDF export
     implementation("com.github.librepdf:openpdf:1.3.35")
+    // PDF text extraction (RAG document ingestion) -- separate library from openpdf above,
+    // which is used only for generation, not reading text back out of an arbitrary uploaded PDF
+    implementation("org.apache.pdfbox:pdfbox:3.0.3")
 
     // MinIO object storage client
     implementation("io.minio:minio:8.5.10")

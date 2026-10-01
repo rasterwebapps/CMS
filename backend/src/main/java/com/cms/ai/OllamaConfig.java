@@ -15,6 +15,7 @@ public class OllamaConfig {
 
     private String baseUrl;
     private String model;
+    private String embeddingModel;
     private int timeoutSeconds = 30;
 
     public String getBaseUrl() { return baseUrl; }
@@ -22,6 +23,9 @@ public class OllamaConfig {
 
     public String getModel() { return model; }
     public void setModel(String model) { this.model = model; }
+
+    public String getEmbeddingModel() { return embeddingModel; }
+    public void setEmbeddingModel(String embeddingModel) { this.embeddingModel = embeddingModel; }
 
     public int getTimeoutSeconds() { return timeoutSeconds; }
     public void setTimeoutSeconds(int timeoutSeconds) { this.timeoutSeconds = timeoutSeconds; }

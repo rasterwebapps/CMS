@@ -62,6 +62,26 @@ public class OllamaClient {
         return response.message().content();
     }
 
+    /**
+     * Embeds a single piece of text using the configured embedding model (separate from, and
+     * much lighter than, the chat model above). Used by the RAG document-ingestion pipeline
+     * (OC-277) -- never the chat model, which has no embedding mode.
+     */
+    public float[] embed(String text) {
+        EmbedRequest request = new EmbedRequest(config.getEmbeddingModel(), List.of(text));
+
+        EmbedResponse response = restClient.post()
+            .uri("/api/embed")
+            .body(request)
+            .retrieve()
+            .body(EmbedResponse.class);
+
+        if (response == null || response.embeddings() == null || response.embeddings().isEmpty()) {
+            throw new OllamaUnavailableException("Local Ollama instance returned an empty embedding response");
+        }
+        return response.embeddings().get(0);
+    }
+
     private record ChatMessage(String role, String content) {
     }
 
@@ -69,5 +89,11 @@ public class OllamaClient {
     }
 
     private record ChatResponse(ChatMessage message) {
+    }
+
+    private record EmbedRequest(String model, List<String> input) {
+    }
+
+    private record EmbedResponse(List<float[]> embeddings) {
     }
 }

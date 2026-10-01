@@ -84,9 +84,16 @@ cms:
   # AI Smart Search -- locally-hosted Ollama only. Never a third-party AI provider: no student
   # data leaves this deployment's own infrastructure. See com.cms.ai package.
   ollama:
-    base-url:        ${OLLAMA_BASE_URL:http://localhost:11434}
+    base-url:         ${OLLAMA_BASE_URL:http://localhost:11434}
     model:            ${OLLAMA_MODEL:qwen2.5:1.5b-instruct}
+    embedding-model:  ${OLLAMA_EMBEDDING_MODEL:nomic-embed-text}
     timeout-seconds:  ${OLLAMA_TIMEOUT_SECONDS:30}
+
+  # Local RAG pipeline for Admission document Q&A (R&D, OC-277) -- how many pending documents
+  # the ingestion job embeds per run, and how often it runs. See DocumentEmbeddingIngestionService.
+  rag:
+    ingestion-batch-size:    ${RAG_INGESTION_BATCH_SIZE:10}
+    ingestion-interval-ms:   ${RAG_INGESTION_INTERVAL_MS:300000}
 
 # Keycloak Admin REST API — used to create/delete users programmatically.
 # Override via environment variables; defaults below suit local dev.
