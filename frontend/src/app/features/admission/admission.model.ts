@@ -103,6 +103,7 @@ export interface AdmissionDocumentResponse {
 export interface AdmissionDocumentRagResult {
   admissionDocumentId: number;
   admissionId: number | null;
+  enquiryId: number | null;
   documentType: string;
   fileName: string | null;
   studentName: string | null;

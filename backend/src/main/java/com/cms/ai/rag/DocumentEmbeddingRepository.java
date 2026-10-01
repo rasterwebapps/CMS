@@ -1,7 +1,9 @@
 package com.cms.ai.rag;
 
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -61,25 +63,32 @@ public class DocumentEmbeddingRepository {
     }
 
     /**
-     * Top-K nearest chunks to {@code queryEmbedding} by cosine distance ({@code <=>}), within
-     * one {@code sourceEntity}. Returns every candidate regardless of similarity -- callers
+     * Top-K nearest chunks to {@code queryEmbedding} by cosine distance ({@code <=>}), across any
+     * of the given {@code sourceEntities} (e.g. both Enquiry-stage and Admission-stage documents
+     * for a unified search, OC-278). Returns every candidate regardless of similarity -- callers
      * decide the relevance threshold; {@link #logQuery} records the full candidate set either
      * way, so future eval work can calibrate that threshold against real scores.
      */
-    public List<SimilarChunk> findSimilarChunks(String sourceEntity, float[] queryEmbedding, int topK) {
+    public List<SimilarChunk> findSimilarChunks(List<String> sourceEntities, float[] queryEmbedding, int topK) {
         String vectorLiteral = toVectorLiteral(queryEmbedding);
+        String placeholders = sourceEntities.stream().map(e -> "?").collect(Collectors.joining(","));
+        List<Object> args = new ArrayList<>();
+        args.add(vectorLiteral);
+        args.addAll(sourceEntities);
+        args.add(vectorLiteral);
+        args.add(topK);
         return jdbcTemplate.query(
             """
             SELECT id, source_id, chunk_text, 1 - (embedding <=> ?::vector) AS similarity
             FROM document_embeddings
-            WHERE source_entity = ?
+            WHERE source_entity IN (%s)
             ORDER BY embedding <=> ?::vector
             LIMIT ?
-            """,
+            """.formatted(placeholders),
             (rs, rowNum) -> new SimilarChunk(
                 rs.getLong("id"), rs.getLong("source_id"), rs.getString("chunk_text"), rs.getDouble("similarity")
             ),
-            vectorLiteral, sourceEntity, vectorLiteral, topK
+            args.toArray()
         );
     }
 

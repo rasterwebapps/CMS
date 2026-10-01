@@ -18,11 +18,13 @@ import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.service.StorageService;
 
 /**
- * RAG document-ingestion sweep (OC-277): finds Admission-scoped documents (an {@code
- * enquiry_documents} row with a non-null {@code admission_id} -- V124's "unify applicant
- * documents" migration made that table canonical for both Enquiry and Admission document APIs)
- * with no embeddings yet, extracts text, chunks it, embeds each chunk locally via Ollama, and
- * stores the result.
+ * RAG document-ingestion sweep (OC-277/OC-278): finds VERIFIED applicant documents (an {@code
+ * enquiry_documents} row -- V124's "unify applicant documents" migration made that table
+ * canonical for both Enquiry and Admission document APIs) with no embeddings yet, extracts text,
+ * chunks it, embeds each chunk locally via Ollama, and stores the result. Covers both
+ * Enquiry-stage documents (no Admission yet) and Admission-stage documents alike -- tagged with
+ * different {@code source_entity} values (see {@link #sourceEntityFor}) so retrieval can
+ * attribute each chunk back to the right kind of record, but otherwise processed identically.
  * Follows this codebase's only existing background-work idiom -- a {@code @Scheduled} polling
  * sweep (see {@code AcademicTermAlertService}) -- since there is no {@code @Async}/queue
  * infrastructure anywhere else to hook into.
@@ -36,7 +38,8 @@ import com.cms.service.StorageService;
 public class DocumentEmbeddingIngestionService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentEmbeddingIngestionService.class);
-    private static final String SOURCE_ENTITY = "ADMISSION_DOCUMENT";
+    static final String ADMISSION_SOURCE_ENTITY = "ADMISSION_DOCUMENT";
+    static final String ENQUIRY_SOURCE_ENTITY = "ENQUIRY_DOCUMENT";
 
     private final EnquiryDocumentRepository enquiryDocumentRepository;
     private final StorageService storageService;
@@ -73,23 +76,24 @@ public class DocumentEmbeddingIngestionService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processDocument(EnquiryDocument document) {
+        String sourceEntity = sourceEntityFor(document);
         byte[] bytes = storageService.downloadBytes(document.getStorageKey());
 
         String text;
         try {
             text = PdfTextExtractor.extractText(bytes);
         } catch (IOException e) {
-            log.warn("RAG ingestion: PDF extraction failed for admission document {} -- permanently skipping: {}",
+            log.warn("RAG ingestion: PDF extraction failed for document {} -- permanently skipping: {}",
                 document.getId(), e.getMessage());
-            documentEmbeddingRepository.recordSkip(SOURCE_ENTITY, document.getId(), "EXTRACTION_FAILED", e.getMessage());
+            documentEmbeddingRepository.recordSkip(sourceEntity, document.getId(), "EXTRACTION_FAILED", e.getMessage());
             return;
         }
 
         List<String> chunks = DocumentChunker.chunk(text);
         if (chunks.isEmpty()) {
-            log.info("RAG ingestion: admission document {} has no extractable text (scanned/image PDF) -- "
+            log.info("RAG ingestion: document {} has no extractable text (scanned/image PDF) -- "
                 + "permanently skipping, OCR is phase 2", document.getId());
-            documentEmbeddingRepository.recordSkip(SOURCE_ENTITY, document.getId(), "NO_TEXT", null);
+            documentEmbeddingRepository.recordSkip(sourceEntity, document.getId(), "NO_TEXT", null);
             return;
         }
 
@@ -98,7 +102,12 @@ public class DocumentEmbeddingIngestionService {
             embeddings.add(ollamaClient.embed(chunk));
         }
 
-        documentEmbeddingRepository.saveChunks(SOURCE_ENTITY, document.getId(), chunks, embeddings);
-        log.info("RAG ingestion: embedded admission document {} into {} chunk(s)", document.getId(), chunks.size());
+        documentEmbeddingRepository.saveChunks(sourceEntity, document.getId(), chunks, embeddings);
+        log.info("RAG ingestion: embedded document {} ({}) into {} chunk(s)", document.getId(), sourceEntity, chunks.size());
+    }
+
+    /** Admission-linked documents are tagged distinctly from still-Enquiry-stage ones (OC-278). */
+    private static String sourceEntityFor(EnquiryDocument document) {
+        return document.getAdmission() != null ? ADMISSION_SOURCE_ENTITY : ENQUIRY_SOURCE_ENTITY;
     }
 }

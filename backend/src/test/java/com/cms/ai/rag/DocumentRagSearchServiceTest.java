@@ -20,6 +20,7 @@ import com.cms.ai.OllamaClient;
 import com.cms.ai.rag.DocumentEmbeddingRepository.SimilarChunk;
 import com.cms.dto.AdmissionDocumentRagResult;
 import com.cms.model.Admission;
+import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
 import com.cms.model.Student;
 import com.cms.model.enums.DocumentType;
@@ -64,9 +65,20 @@ class DocumentRagSearchServiceTest {
         return document;
     }
 
+    private EnquiryDocument documentForEnquiryOnly(Long id, Long enquiryId, String applicantName) {
+        Enquiry enquiry = new Enquiry();
+        enquiry.setId(enquiryId);
+        enquiry.setName(applicantName);
+        EnquiryDocument document = new EnquiryDocument(enquiry, DocumentType.TENTH_MARKSHEET, null);
+        document.setId(id);
+        document.setFileName("marksheet.pdf");
+        return document;
+    }
+
     @Test
     void noCandidatesAtAll_returnsEmptyList_butStillLogsTheQuery() {
-        when(documentEmbeddingRepository.findSimilarChunks(eq("ADMISSION_DOCUMENT"), any(), anyInt())).thenReturn(List.of());
+        when(documentEmbeddingRepository.findSimilarChunks(eq(List.of("ADMISSION_DOCUMENT", "ENQUIRY_DOCUMENT")), any(), anyInt()))
+            .thenReturn(List.of());
 
         List<AdmissionDocumentRagResult> results = service.search("what school did Jane attend?");
 
@@ -100,10 +112,29 @@ class DocumentRagSearchServiceTest {
         assertThat(results).hasSize(1);
         AdmissionDocumentRagResult result = results.get(0);
         assertThat(result.admissionDocumentId()).isEqualTo(20L);
+        assertThat(result.enquiryId()).isNull();
         assertThat(result.studentName()).isEqualTo("Jane Doe");
         assertThat(result.admissionNumber()).isEqualTo("ADM-001");
         assertThat(result.chunkText()).isEqualTo("Transfer certificate issued to Jane Doe");
         assertThat(result.similarity()).isEqualTo(0.87);
+    }
+
+    @Test
+    void candidateFromAnEnquiryStageDocument_fallsBackToTheEnquirysApplicantName() {
+        SimilarChunk strongMatch = new SimilarChunk(4L, 40L, "Tenth marksheet for Raj Kumar", 0.65);
+        when(documentEmbeddingRepository.findSimilarChunks(any(), any(), anyInt())).thenReturn(List.of(strongMatch));
+        when(enquiryDocumentRepository.findByIdInWithAdmissionAndStudent(List.of(40L)))
+            .thenReturn(List.of(documentForEnquiryOnly(40L, 7L, "Raj Kumar")));
+
+        List<AdmissionDocumentRagResult> results = service.search("what are Raj's tenth marks?");
+
+        assertThat(results).hasSize(1);
+        AdmissionDocumentRagResult result = results.get(0);
+        assertThat(result.admissionDocumentId()).isEqualTo(40L);
+        assertThat(result.admissionId()).isNull();
+        assertThat(result.enquiryId()).isEqualTo(7L);
+        assertThat(result.studentName()).isEqualTo("Raj Kumar");
+        assertThat(result.admissionNumber()).isNull();
     }
 
     @Test

@@ -14,22 +14,24 @@ import com.cms.ai.OllamaClient;
 import com.cms.ai.rag.DocumentEmbeddingRepository.SimilarChunk;
 import com.cms.dto.AdmissionDocumentRagResult;
 import com.cms.model.Admission;
+import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
 import com.cms.model.Student;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.util.CurrentUserResolver;
 
 /**
- * Retrieval side of the Admission document RAG pipeline (OC-277). Answer mode is raw snippets,
- * not an LLM-synthesized answer (per the specialist round) -- this embeds the question, finds
- * the top-K nearest chunks, and returns them attributed to their source document. If nothing
- * clears the similarity threshold, it says so explicitly (an empty result) rather than letting
- * anything guess an answer.
+ * Retrieval side of the applicant document RAG pipeline (OC-277/OC-278). Answer mode is raw
+ * snippets, not an LLM-synthesized answer (per the specialist round) -- this embeds the question,
+ * finds the top-K nearest chunks across both Enquiry-stage and Admission-stage documents, and
+ * returns them attributed to their source document. If nothing clears the similarity threshold,
+ * it says so explicitly (an empty result) rather than letting anything guess an answer.
  */
 @Service
 public class DocumentRagSearchService {
 
-    private static final String SOURCE_ENTITY = "ADMISSION_DOCUMENT";
+    private static final List<String> SOURCE_ENTITIES =
+        List.of(DocumentEmbeddingIngestionService.ADMISSION_SOURCE_ENTITY, DocumentEmbeddingIngestionService.ENQUIRY_SOURCE_ENTITY);
 
     private final OllamaClient ollamaClient;
     private final DocumentEmbeddingRepository documentEmbeddingRepository;
@@ -58,7 +60,7 @@ public class DocumentRagSearchService {
     @Transactional
     public List<AdmissionDocumentRagResult> search(String query) {
         float[] queryEmbedding = ollamaClient.embed(query);
-        List<SimilarChunk> candidates = documentEmbeddingRepository.findSimilarChunks(SOURCE_ENTITY, queryEmbedding, topK);
+        List<SimilarChunk> candidates = documentEmbeddingRepository.findSimilarChunks(SOURCE_ENTITIES, queryEmbedding, topK);
 
         // Log the full candidate set, not just what clears the threshold -- future eval work
         // (phase 5) needs real scores to calibrate that threshold, not a pre-filtered view of it.
@@ -97,9 +99,27 @@ public class DocumentRagSearchService {
         String studentName = student == null ? null
             : (nullToEmpty(student.getFirstName()) + " " + nullToEmpty(student.getLastName())).strip();
 
+        // Still Enquiry-stage (no Admission yet): fall back to the Enquiry's own applicant name.
+        if (admission == null) {
+            Enquiry enquiry = document.getEnquiry();
+            String applicantName = enquiry != null ? enquiry.getName() : null;
+            return new AdmissionDocumentRagResult(
+                document.getId(),
+                null,
+                enquiry != null ? enquiry.getId() : null,
+                document.getDocumentType(),
+                document.getFileName(),
+                applicantName == null || applicantName.isBlank() ? null : applicantName,
+                null,
+                chunk.chunkText(),
+                chunk.similarity()
+            );
+        }
+
         return new AdmissionDocumentRagResult(
             document.getId(),
-            admission != null ? admission.getId() : null,
+            admission.getId(),
+            null,
             document.getDocumentType(),
             document.getFileName(),
             studentName == null || studentName.isEmpty() ? null : studentName,

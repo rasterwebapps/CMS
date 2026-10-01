@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.ai.OllamaClient;
 import com.cms.ai.OllamaUnavailableException;
 import com.cms.model.Admission;
+import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
 import com.cms.repository.EnquiryDocumentRepository;
 import com.cms.service.StorageService;
@@ -57,6 +58,13 @@ class DocumentEmbeddingIngestionServiceTest {
         document.setAdmission(new Admission());
         document.setId(id);
         document.setStorageKey("admission/" + id + ".pdf");
+        return document;
+    }
+
+    private static EnquiryDocument enquiryOnlyDocumentWithId(Long id) {
+        EnquiryDocument document = new EnquiryDocument(new Enquiry(), null, null);
+        document.setId(id);
+        document.setStorageKey("enquiry/" + id + ".pdf");
         return document;
     }
 
@@ -95,6 +103,18 @@ class DocumentEmbeddingIngestionServiceTest {
         service.processDocument(document);
 
         verify(documentEmbeddingRepository).saveChunks(eq("ADMISSION_DOCUMENT"), eq(1L), any(), any());
+        verify(documentEmbeddingRepository, never()).recordSkip(any(), any(), any(), any());
+    }
+
+    @Test
+    void successfulEnquiryStageDocument_isTaggedWithTheEnquirySourceEntity_notAdmission() throws IOException {
+        EnquiryDocument document = enquiryOnlyDocumentWithId(7L);
+        when(storageService.downloadBytes(document.getStorageKey())).thenReturn(pdfWithText("Tenth Marksheet"));
+        when(ollamaClient.embed(anyString())).thenReturn(new float[] {0.4f});
+
+        service.processDocument(document);
+
+        verify(documentEmbeddingRepository).saveChunks(eq("ENQUIRY_DOCUMENT"), eq(7L), any(), any());
         verify(documentEmbeddingRepository, never()).recordSkip(any(), any(), any(), any());
     }
 

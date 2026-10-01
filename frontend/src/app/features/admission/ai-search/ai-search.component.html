@@ -4,7 +4,7 @@
   <div class="mlp-hdr">
     <div class="mlp-hdr-left">
       <h1 class="mlp-title">AI <em>Document Search</em></h1>
-      <p class="mlp-sub">Ask a plain-English question about submitted Admission documents — powered by a locally-hosted AI model, run entirely on this institution's own infrastructure.</p>
+      <p class="mlp-sub">Ask a plain-English question about submitted Enquiry and Admission documents — powered by a locally-hosted AI model, run entirely on this institution's own infrastructure.</p>
     </div>
   </div>
 
@@ -47,7 +47,7 @@
       <cms-empty-state
         icon="search"
         title="Ask a question to get started"
-        subtitle="Try something like &quot;what school did this student attend before joining?&quot;. Only digitally-native PDF admission documents are searchable today — scanned/photographed uploads aren't yet."
+        subtitle="Try something like &quot;what school did this student attend before joining?&quot;. Only digitally-native PDF documents (Enquiry or Admission stage) are searchable today — scanned/photographed uploads aren't yet."
       />
     } @else if (results().length === 0) {
       <cms-empty-state
@@ -60,7 +60,7 @@
         @for (result of results(); track result.admissionDocumentId + '-' + result.chunkText) {
           <div
             class="snippet-card"
-            [class.snippet-card--clickable]="result.admissionId != null"
+            [class.snippet-card--clickable]="result.admissionId != null || result.enquiryId != null"
             (click)="viewDocumentSource(result)"
           >
             <div class="snippet-card__hdr">
@@ -74,6 +74,8 @@
               }
               @if (result.admissionNumber) {
                 <span class="snippet-card__adm">Adm: {{ result.admissionNumber }}</span>
+              } @else if (result.enquiryId != null) {
+                <span class="snippet-card__adm">Enquiry #{{ result.enquiryId }}</span>
               }
               @if (result.fileName) {
                 <span class="snippet-card__file">{{ result.fileName }}</span>

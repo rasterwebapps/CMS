@@ -51,8 +51,11 @@ export class AdmissionDocumentAiSearchComponent {
   }
 
   protected viewDocumentSource(result: AdmissionDocumentRagResult): void {
-    if (result.admissionId == null) return;
-    void this.router.navigate(['/admissions', result.admissionId]);
+    if (result.admissionId != null) {
+      void this.router.navigate(['/admissions', result.admissionId]);
+    } else if (result.enquiryId != null) {
+      void this.router.navigate(['/enquiries', result.enquiryId]);
+    }
   }
 
   /** Same snake_case -> Title Case fallback used by document-verification-detail.component.ts. */
