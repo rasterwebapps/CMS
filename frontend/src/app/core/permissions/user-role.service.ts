@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
   AppRoleResponse, AppUserResponse,
-  CreateUserRequest, UpdateUserRequest,
+  CreateUserRequest, UpdateUserRequest, RenameUserRequest,
   AllPermissionsResponse, WidgetConfigDto,
   TierChangeItem, TierImpactEntry,
 } from './permission.model';
@@ -25,6 +25,11 @@ export class UserRoleService {
 
   updateUser(id: number, req: UpdateUserRequest): Observable<AppUserResponse> {
     return this.http.put<AppUserResponse>(`${this.base}/user-management/${id}`, req);
+  }
+
+  /** USER_RENAME-gated — bypasses hierarchy, unlike updateUser(). */
+  renameUser(id: number, req: RenameUserRequest): Observable<AppUserResponse> {
+    return this.http.put<AppUserResponse>(`${this.base}/user-management/${id}/name`, req);
   }
 
   deactivateUser(id: number): Observable<void> {

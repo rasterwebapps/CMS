@@ -49,6 +49,12 @@ export interface UpdateUserRequest {
   isActive: boolean;
 }
 
+/** Narrower than UpdateUserRequest — only ever used via the USER_RENAME-gated rename endpoint,
+ *  which deliberately bypasses the hierarchy check that blocks the regular edit flow. */
+export interface RenameUserRequest {
+  fullName: string;
+}
+
 export interface AllPermissionsResponse {
   id: number;
   category: string;

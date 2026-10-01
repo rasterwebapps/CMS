@@ -82,7 +82,7 @@
               </div>
 
               <!-- Actions -->
-              @if (canDeactivate() || canEdit()) {
+              @if ((canDeactivate() || canEdit()) && fullyEditable(user)) {
                 <div class="user-card__actions">
                   @if (canDeactivate()) {
                     <cms-row-action-btn [variant]="user.isActive ? 'danger' : 'neutral'" [iconOnly]="true"
@@ -101,6 +101,12 @@
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </cms-row-action-btn>
                   }
+                </div>
+              } @else if (canRename() && !fullyEditable(user)) {
+                <div class="user-card__actions">
+                  <cms-row-action-btn variant="neutral" [iconOnly]="true" tooltip="Rename user" ariaLabel="Rename user" (clicked)="openRename(user)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </cms-row-action-btn>
                 </div>
               }
             </div>
@@ -123,8 +129,14 @@
             }
           </div>
           <div class="um-panel__hdr-text">
-            <h2 class="um-panel__title">{{ panelMode() === 'create' ? 'Add User' : 'Edit User' }}</h2>
-            <p class="um-panel__sub">{{ panelMode() === 'create' ? 'Create a new system user account' : 'Update user details and role' }}</p>
+            <h2 class="um-panel__title">
+              {{ panelMode() === 'create' ? 'Add User' : panelMode() === 'rename' ? 'Rename User' : 'Edit User' }}
+            </h2>
+            <p class="um-panel__sub">
+              {{ panelMode() === 'create' ? 'Create a new system user account'
+                : panelMode() === 'rename' ? 'Update only this user\'s display name'
+                : 'Update user details and role' }}
+            </p>
           </div>
           <button class="panel-close" (click)="closePanel()" aria-label="Close panel">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -207,6 +219,36 @@
           <div class="panel-footer">
             <button class="btn-ghost" (click)="closePanel()">Cancel</button>
             <button class="btn-primary" [disabled]="saving()" (click)="submitEdit()">
+              @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
+              Save Changes
+            </button>
+          </div>
+        }
+
+        <!-- Rename form (USER_RENAME — name only, bypasses hierarchy) -->
+        @else if (panelMode() === 'rename') {
+          @if (editTarget()) {
+            <div class="panel-user-banner">
+              <div class="panel-user-avatar" [attr.data-level]="editTarget()!.hierarchyLevel">
+                {{ editTarget()!.fullName.slice(0, 2).toUpperCase() }}
+              </div>
+              <div class="panel-user-info">
+                <span class="panel-user-name">{{ editTarget()!.fullName }}</span>
+                <span class="panel-user-meta">{{ editTarget()!.email }}</span>
+              </div>
+              <span class="role-badge" [attr.data-level]="editTarget()!.hierarchyLevel">{{ editTarget()!.roleDisplayName }}</span>
+            </div>
+          }
+          <div class="panel-form">
+            <div class="field-group">
+              <label class="field-label">Full Name <span class="req">*</span></label>
+              <input class="field-input" type="text" [(ngModel)]="renameForm.fullName" />
+              <p class="field-hint">Only the display name changes here — role, email and active status are untouched.</p>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <button class="btn-ghost" (click)="closePanel()">Cancel</button>
+            <button class="btn-primary" [disabled]="saving()" (click)="submitRename()">
               @if (saving()) { <mat-spinner diameter="14"></mat-spinner> }
               Save Changes
             </button>

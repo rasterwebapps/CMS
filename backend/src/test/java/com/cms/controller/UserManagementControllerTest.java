@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.cms.config.PermSecurityBean;
 import com.cms.dto.AppUserResponse;
 import com.cms.dto.CreateUserRequest;
+import com.cms.dto.RenameUserRequest;
 import com.cms.dto.UpdateUserRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppRole;
@@ -76,7 +77,8 @@ class UserManagementControllerTest {
     @Test
     void shouldListManageableUsers() throws Exception {
         when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
-        when(appUserService.findManageable(3)).thenReturn(
+        when(perm.has("USER_RENAME")).thenReturn(false);
+        when(appUserService.findManageable(3, false)).thenReturn(
             List.of(buildUserResponse(2L, "faculty1", "FACULTY"),
                     buildUserResponse(3L, "student1", "STUDENT")));
 
@@ -86,6 +88,19 @@ class UserManagementControllerTest {
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$[0].keycloakUsername").value("faculty1"))
             .andExpect(jsonPath("$[1].keycloakUsername").value("student1"));
+    }
+
+    @Test
+    void shouldListEveryUserWhenRequesterHoldsUserRename() throws Exception {
+        when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(perm.has("USER_RENAME")).thenReturn(true);
+        when(appUserService.findManageable(3, true)).thenReturn(
+            List.of(buildUserResponse(1L, "devadmin", "DEV_ADMIN")));
+
+        mockMvc.perform(get("/user-management")
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].keycloakUsername").value("devadmin"));
     }
 
     @Test
@@ -176,6 +191,33 @@ class UserManagementControllerTest {
         mockMvc.perform(put("/user-management/2/reactivate")
                 .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
             .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void shouldRenameUser() throws Exception {
+        RenameUserRequest request = new RenameUserRequest("Raster Support Team");
+        AppUserResponse renamed = buildUserResponse(1L, "devadmin", "DEV_ADMIN");
+        when(appUserService.renameAny(eq(1L), any(RenameUserRequest.class), anyString())).thenReturn(renamed);
+
+        mockMvc.perform(put("/user-management/1/name")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.keycloakUsername").value("devadmin"));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenRenameFullNameBlank() throws Exception {
+        String invalidJson = """
+            { "fullName": "" }
+            """;
+
+        mockMvc.perform(put("/user-management/1/name")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(invalidJson)
+                .with(jwt().jwt(j -> j.claim("preferred_username", "admin"))))
+            .andExpect(status().isBadRequest());
     }
 }
 

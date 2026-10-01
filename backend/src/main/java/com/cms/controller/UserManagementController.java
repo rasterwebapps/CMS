@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.config.PermSecurityBean;
 import com.cms.dto.AppUserResponse;
 import com.cms.dto.CreateUserRequest;
+import com.cms.dto.RenameUserRequest;
 import com.cms.dto.UpdateUserRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppUser;
@@ -32,19 +34,42 @@ public class UserManagementController {
 
     private final AppUserService appUserService;
     private final AppUserRepository appUserRepository;
+    private final PermSecurityBean perm;
 
     public UserManagementController(AppUserService appUserService,
-                                    AppUserRepository appUserRepository) {
+                                    AppUserRepository appUserRepository,
+                                    PermSecurityBean perm) {
         this.appUserService = appUserService;
         this.appUserRepository = appUserRepository;
+        this.perm = perm;
     }
 
-    /** Lists all users whose role level is strictly greater than the current user's level. */
+    /**
+     * Lists all users whose role level is strictly greater than the current user's level —
+     * or every user, when the requester holds {@code USER_RENAME}, so a user at/above their own
+     * level (e.g. a seeded DEV_ADMIN/SUPPORT_ADMIN account) can still be found to rename.
+     */
     @GetMapping
     public ResponseEntity<List<AppUserResponse>> listManageableUsers(
             @AuthenticationPrincipal Jwt jwt) {
         int requesterLevel = resolveHierarchyLevel(jwt);
-        return ResponseEntity.ok(appUserService.findManageable(requesterLevel));
+        boolean includeAll = perm.has("USER_RENAME");
+        return ResponseEntity.ok(appUserService.findManageable(requesterLevel, includeAll));
+    }
+
+    /**
+     * Renames any user's display name regardless of hierarchy level — a narrower, dedicated
+     * capability from {@link #updateUser}, which stays hierarchy-gated for every other field.
+     */
+    @PutMapping("/{id}/name")
+    @PreAuthorize("@perm.has('USER_RENAME')")
+    public ResponseEntity<AppUserResponse> renameUser(
+            @PathVariable Long id,
+            @Valid @RequestBody RenameUserRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String actor = jwt.getClaimAsString("preferred_username");
+        AppUserResponse updated = appUserService.renameAny(id, request, actor);
+        return ResponseEntity.ok(updated);
     }
 
     /** Creates a new user. The assigned role must be below the requester's level. */

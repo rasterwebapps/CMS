@@ -4,7 +4,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { UserRoleService } from '../../core/permissions/user-role.service';
 import { PermissionService } from '../../core/permissions/permission.service';
-import { AppUserResponse, AppRoleResponse, CreateUserRequest, UpdateUserRequest } from '../../core/permissions/permission.model';
+import { AppUserResponse, AppRoleResponse, CreateUserRequest, UpdateUserRequest, RenameUserRequest } from '../../core/permissions/permission.model';
 import { ToastService } from '../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../shared/row-action-button/row-action-button.component';
@@ -12,7 +12,7 @@ import { TourService } from '../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../shared/tour/tour-button.component';
 import { USER_MANAGEMENT_TOUR, USER_MANAGEMENT_FLOW_MAP } from '../../shared/tour/tours/user-management.tours';
 
-type PanelMode = 'create' | 'edit' | null;
+type PanelMode = 'create' | 'edit' | 'rename' | null;
 
 @Component({
   selector: 'app-user-management',
@@ -52,9 +52,21 @@ export class UserManagementComponent implements OnInit {
   // ── Edit form ────────────────────────────────────────────────
   protected editForm: UpdateUserRequest = { fullName: '', email: '', roleName: '', isActive: true };
 
+  // ── Rename form (USER_RENAME — bypasses hierarchy) ────────────
+  protected renameForm: RenameUserRequest = { fullName: '' };
+
   protected readonly canCreate = computed(() => this.perm.has('USER_CREATE'));
   protected readonly canEdit   = computed(() => this.perm.has('USER_EDIT'));
   protected readonly canDeactivate = computed(() => this.perm.has('USER_DEACTIVATE'));
+  protected readonly canRename = computed(() => this.perm.has('USER_RENAME'));
+
+  /** Whether the full Edit/Deactivate actions apply to this row — mirrors the backend's
+   *  enforceHierarchy() gate. A USER_RENAME holder may see rows at/above their own level (so
+   *  they can rename a seeded system account), but every other action stays locked for those
+   *  rows exactly as before. */
+  protected fullyEditable(user: AppUserResponse): boolean {
+    return user.hierarchyLevel > this.perm.level();
+  }
 
   ngOnInit(): void {
     this.tourService.register('user-management', USER_MANAGEMENT_TOUR);
@@ -91,6 +103,12 @@ export class UserManagementComponent implements OnInit {
     this.editTarget.set(user);
     this.editForm = { fullName: user.fullName, email: user.email, roleName: user.roleName, isActive: user.isActive };
     this.panelMode.set('edit');
+  }
+
+  protected openRename(user: AppUserResponse): void {
+    this.editTarget.set(user);
+    this.renameForm = { fullName: user.fullName };
+    this.panelMode.set('rename');
   }
 
   protected closePanel(): void {
@@ -150,6 +168,28 @@ export class UserManagementComponent implements OnInit {
       },
       error: (err) => {
         this.toast.error(err?.error?.message ?? 'Failed to update user');
+        this.saving.set(false);
+      },
+    });
+  }
+
+  protected submitRename(): void {
+    const target = this.editTarget();
+    if (!target) return;
+    if (!this.renameForm.fullName.trim()) {
+      this.toast.error('Full name is required');
+      return;
+    }
+    this.saving.set(true);
+    this.svc.renameUser(target.id, this.renameForm).subscribe({
+      next: (updated) => {
+        this.users.update(list => list.map(u => u.id === updated.id ? updated : u));
+        this.toast.success('User renamed');
+        this.closePanel();
+        this.saving.set(false);
+      },
+      error: (err) => {
+        this.toast.error(err?.error?.message ?? 'Failed to rename user');
         this.saving.set(false);
       },
     });

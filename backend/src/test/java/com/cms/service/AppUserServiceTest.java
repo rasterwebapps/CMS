@@ -3,6 +3,8 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.AppUserResponse;
 import com.cms.dto.CreateUserRequest;
+import com.cms.dto.RenameUserRequest;
 import com.cms.dto.UpdateUserRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppRole;
@@ -101,10 +104,26 @@ class AppUserServiceTest {
         AppUser user = createUser(1L, "faculty1", "f1@test.com", "Faculty One", role);
         when(appUserRepository.findByAppRoleHierarchyLevelGreaterThan(3)).thenReturn(List.of(user));
 
-        List<AppUserResponse> result = appUserService.findManageable(3);
+        List<AppUserResponse> result = appUserService.findManageable(3, false);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).keycloakUsername()).isEqualTo("faculty1");
+    }
+
+    @Test
+    void shouldReturnEveryUserWhenIncludeAllIsTrue() {
+        AppRole devAdminRole = createRole(1L, "DEV_ADMIN", "Developer Admin", 1);
+        AppRole adminRole = createRole(2L, "ADMIN", "Admin", 3);
+        AppUser devAdmin = createUser(1L, "devadmin", "dev@test.com", "Developer Administrator", devAdminRole);
+        AppUser peerAdmin = createUser(2L, "admin2", "a2@test.com", "Other Admin", adminRole);
+        when(appUserRepository.findAll()).thenReturn(List.of(devAdmin, peerAdmin));
+
+        List<AppUserResponse> result = appUserService.findManageable(3, true);
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(AppUserResponse::keycloakUsername)
+            .containsExactlyInAnyOrder("devadmin", "admin2");
+        verify(appUserRepository, never()).findByAppRoleHierarchyLevelGreaterThan(anyInt());
     }
 
     // -------------------------------------------------------------------------
@@ -235,6 +254,36 @@ class AppUserServiceTest {
         when(appUserRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> appUserService.update(99L, new UpdateUserRequest(null, null, null, null), 3))
+            .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // -------------------------------------------------------------------------
+    // renameAny
+    // -------------------------------------------------------------------------
+
+    @Test
+    void shouldRenameUserAtHigherHierarchyLevelThanActor() {
+        // devadmin (level 1) is senior to the acting ADMIN (level 3) — update()/enforceHierarchy
+        // would reject this; renameAny() must not.
+        AppRole devAdminRole = createRole(1L, "DEV_ADMIN", "Developer Admin", 1);
+        AppUser devAdmin = createUser(1L, "devadmin", "dev@test.com", "Developer Administrator", devAdminRole);
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(devAdmin));
+
+        AppUser renamed = createUser(1L, "devadmin", "dev@test.com", "Raster Support Team", devAdminRole);
+        when(appUserRepository.save(any(AppUser.class))).thenReturn(renamed);
+
+        AppUserResponse response = appUserService.renameAny(
+            1L, new RenameUserRequest("Raster Support Team"), "admin");
+
+        assertThat(response.fullName()).isEqualTo("Raster Support Team");
+        verify(auditLogService).record(eq("admin"), eq("USER_RENAMED"), eq("AppUser"), eq("1"), any());
+    }
+
+    @Test
+    void shouldThrowWhenUserNotFoundOnRename() {
+        when(appUserRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> appUserService.renameAny(99L, new RenameUserRequest("New Name"), "admin"))
             .isInstanceOf(ResourceNotFoundException.class);
     }
 

@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.cms.dto.AppUserResponse;
 import com.cms.dto.CreateUserRequest;
+import com.cms.dto.RenameUserRequest;
 import com.cms.dto.UpdateUserRequest;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AppRole;
@@ -60,11 +61,18 @@ public class AppUserService {
         return toResponse(user);
     }
 
-    /** Returns users whose role hierarchy_level is strictly greater than the requester's level. */
-    public List<AppUserResponse> findManageable(int requesterLevel) {
-        return appUserRepository.findByAppRoleHierarchyLevelGreaterThan(requesterLevel).stream()
-            .map(this::toResponse)
-            .toList();
+    /**
+     * Returns users whose role hierarchy_level is strictly greater than the requester's level —
+     * unless {@code includeAll} is true (the requester holds {@code USER_RENAME}), in which case
+     * every user is returned so a user at/above the requester's own level can still be found and
+     * renamed, even though {@link #update}/{@link #deactivate}/{@link #reactivate} remain blocked
+     * for those rows by {@link #enforceHierarchy}.
+     */
+    public List<AppUserResponse> findManageable(int requesterLevel, boolean includeAll) {
+        List<AppUser> users = includeAll
+            ? appUserRepository.findAll()
+            : appUserRepository.findByAppRoleHierarchyLevelGreaterThan(requesterLevel);
+        return users.stream().map(this::toResponse).toList();
     }
 
     @Transactional
@@ -172,6 +180,25 @@ public class AppUserService {
     @Transactional
     public AppUserResponse update(Long id, UpdateUserRequest request, int requesterLevel) {
         return update(id, request, requesterLevel, "system");
+    }
+
+    /**
+     * Renames any user's display name, deliberately bypassing {@link #enforceHierarchy} — unlike
+     * {@link #update}, this never touches role/email/active-status, so a holder of the dedicated
+     * {@code USER_RENAME} permission can fix a wrong display name (e.g. a seeded system account's
+     * full name) regardless of hierarchy level, while every other edit operation stays exactly as
+     * hierarchy-restricted as before.
+     */
+    @Transactional
+    public AppUserResponse renameAny(Long id, RenameUserRequest request, String actor) {
+        AppUser user = appUserRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+
+        user.setFullName(request.fullName());
+        AppUser updated = appUserRepository.save(user);
+        auditLogService.record(actor, "USER_RENAMED", "AppUser",
+            String.valueOf(updated.getId()), "fullName='" + request.fullName() + "'");
+        return toResponse(updated);
     }
 
     @Transactional
