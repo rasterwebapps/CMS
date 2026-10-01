@@ -20,9 +20,9 @@ import com.cms.service.StorageService;
 /**
  * RAG document-ingestion sweep (OC-277): finds Admission-scoped documents (an {@code
  * enquiry_documents} row with a non-null {@code admission_id} -- V124's "unify applicant
- * documents" migration made that table canonical for both Enquiry and Admission document APIs;
- * {@code com.cms.model.AdmissionDocument} is dead code nothing writes to) with no embeddings
- * yet, extracts text, chunks it, embeds each chunk locally via Ollama, and stores the result.
+ * documents" migration made that table canonical for both Enquiry and Admission document APIs)
+ * with no embeddings yet, extracts text, chunks it, embeds each chunk locally via Ollama, and
+ * stores the result.
  * Follows this codebase's only existing background-work idiom -- a {@code @Scheduled} polling
  * sweep (see {@code AcademicTermAlertService}) -- since there is no {@code @Async}/queue
  * infrastructure anywhere else to hook into.

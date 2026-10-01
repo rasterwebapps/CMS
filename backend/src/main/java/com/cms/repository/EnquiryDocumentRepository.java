@@ -18,8 +18,7 @@ public interface EnquiryDocumentRepository extends JpaRepository<EnquiryDocument
     /**
      * Admission-scoped documents (non-null {@code admission_id} -- see V124's "unify applicant
      * documents" migration, which made this table canonical for both Enquiry and Admission
-     * document APIs; {@code com.cms.model.AdmissionDocument}/{@code admission_documents} are
-     * dead code nothing writes to anymore) the RAG ingestion job (OC-277) hasn't embedded yet
+     * document APIs) the RAG ingestion job (OC-277) hasn't embedded yet
      * and hasn't permanently given up on -- see document_embeddings/document_embedding_skips
      * (DocumentEmbeddingIngestionService). Restricted to VERIFIED documents only (don't index
      * content staff haven't signed off on, or have actively rejected) and {@code .pdf} files --

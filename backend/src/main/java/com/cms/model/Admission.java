@@ -62,9 +62,6 @@ public class Admission {
     @OneToMany(mappedBy = "admission", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AcademicQualification> academicQualifications = new ArrayList<>();
 
-    @OneToMany(mappedBy = "admission", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<AdmissionDocument> documents = new ArrayList<>();
-
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -171,24 +168,6 @@ public class Admission {
     public void removeAcademicQualification(AcademicQualification qualification) {
         academicQualifications.remove(qualification);
         qualification.setAdmission(null);
-    }
-
-    public List<AdmissionDocument> getDocuments() {
-        return documents;
-    }
-
-    public void setDocuments(List<AdmissionDocument> documents) {
-        this.documents = documents;
-    }
-
-    public void addDocument(AdmissionDocument document) {
-        documents.add(document);
-        document.setAdmission(this);
-    }
-
-    public void removeDocument(AdmissionDocument document) {
-        documents.remove(document);
-        document.setAdmission(null);
     }
 
     public Instant getCreatedAt() {
