@@ -108,6 +108,19 @@ public final class StudentSpecification {
         return (root, query, cb) -> cb.like(cb.lower(root.get("speciality").get("name")), likePattern(value));
     }
 
+    /** {@code Address} is {@code @Embeddable}, so these are plain columns on {@code students}, no join. */
+    public static Specification<Student> byCityContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("address").get("city")), likePattern(value));
+    }
+
+    public static Specification<Student> byDistrictContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("address").get("district")), likePattern(value));
+    }
+
+    public static Specification<Student> byStateContains(String value) {
+        return (root, query, cb) -> cb.like(cb.lower(root.get("address").get("state")), likePattern(value));
+    }
+
     public static Specification<Student> byAdmissionCategory(String value) {
         return (root, query, cb) -> {
             try {

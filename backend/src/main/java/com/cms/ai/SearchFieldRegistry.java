@@ -36,6 +36,9 @@ public final class SearchFieldRegistry {
         register(fields, "programName", "Name of the program the student is enrolled in", TEXT, CONTAINS);
         register(fields, "courseName", "Name of the course the student is enrolled in", TEXT, CONTAINS);
         register(fields, "specialityName", "Name of the speciality/department", TEXT, CONTAINS);
+        register(fields, "city", "City/town the student's home address is in", TEXT, CONTAINS);
+        register(fields, "district", "District the student's home address is in", TEXT, CONTAINS);
+        register(fields, "state", "State the student's home address is in", TEXT, CONTAINS);
         register(fields, "status", "Student status: ACTIVE, INACTIVE, GRADUATED, ON_LEAVE, SUSPENDED, WITHDRAWN, EXPELLED", ENUM, EQUALS);
         register(fields, "admissionCategory", "Admission category: MANAGEMENT, COUNSELLING", ENUM, EQUALS);
         register(fields, "gender", "Gender: MALE, FEMALE, OTHER", ENUM, EQUALS);

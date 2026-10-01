@@ -35,6 +35,9 @@ public class StudentSearchIntentTranslator {
             case "programName" -> StudentSpecification.byProgramNameContains(value);
             case "courseName" -> StudentSpecification.byCourseNameContains(value);
             case "specialityName" -> StudentSpecification.bySpecialityNameContains(value);
+            case "city" -> StudentSpecification.byCityContains(value);
+            case "district" -> StudentSpecification.byDistrictContains(value);
+            case "state" -> StudentSpecification.byStateContains(value);
             case "status" -> StudentSpecification.byStatus(value);
             case "admissionCategory" -> StudentSpecification.byAdmissionCategory(value);
             case "gender" -> StudentSpecification.byGender(value);

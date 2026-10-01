@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:pg17
     container_name: cms-postgres
     environment:
       POSTGRES_DB: cmsdb
@@ -48,11 +48,21 @@ services:
     restart: unless-stopped
 
   # AI Smart Search's local LLM -- never a third-party AI provider. After first `up`, pull the
-  # model once: `docker exec cms-ollama ollama pull qwen2.5:7b-instruct` (the ollama/ollama image
-  # does not auto-pull a model on its own).
+  # model once: `docker exec cms-ollama ollama pull qwen2.5:1.5b-instruct` (the ollama/ollama
+  # image does not auto-pull a model on its own). Deliberately a small model, not a 7-8B one --
+  # on RAM-constrained dev hardware a 7B model's cold-start (~80s just to load weights under
+  # swap pressure) blows well past the backend's 30s timeout. 1.5B loads in ~6s cold / <1s warm
+  # and is plenty for this feature's narrow, schema-constrained JSON-filter task -- not
+  # open-ended reasoning. Re-evaluate the model size if this ever targets real server hardware.
   ollama:
     image: ollama/ollama:latest
     container_name: cms-ollama
+    ports:
+      # Published to the host too, not just cms-net -- needed for a bare
+      # `./gradlew bootRun` (SPRING_PROFILES_ACTIVE=local) hitting
+      # localhost:11434 directly, in addition to the backend container
+      # reaching it via the ollama:11434 service name on cms-net.
+      - "11434:11434"
     volumes:
       - cms-ollama-data:/root/.ollama
     networks:
@@ -76,7 +86,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET: ${MINIO_BUCKET:-cms-documents}
       OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b-instruct}
     depends_on:
       postgres:
         condition: service_started

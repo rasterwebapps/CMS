@@ -85,7 +85,7 @@ cms:
   # data leaves this deployment's own infrastructure. See com.cms.ai package.
   ollama:
     base-url:        ${OLLAMA_BASE_URL:http://localhost:11434}
-    model:            ${OLLAMA_MODEL:qwen2.5:7b-instruct}
+    model:            ${OLLAMA_MODEL:qwen2.5:1.5b-instruct}
     timeout-seconds:  ${OLLAMA_TIMEOUT_SECONDS:30}
 
 # Keycloak Admin REST API — used to create/delete users programmatically.
