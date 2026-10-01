@@ -73,6 +73,31 @@ val lifecycleTest by tasks.registering(Test::class) {
     jvmArgs("-Duser.timezone=UTC")
 }
 
+// OC-277 Phase 5: eval harness for the Admission document RAG pipeline. Needs a real local dev
+// stack (Postgres+pgvector with the Phase 4 fixture documents already embedded, plus a real
+// Ollama with nomic-embed-text) -- it is deliberately NOT wired into `test`/`check`/`build`, so
+// it only ever runs when a developer explicitly asks for it with `./gradlew ragEval`.
+val ragEvalSourceSet = sourceSets.create("ragEval") {
+    java.srcDir("src/ragEval/java")
+    resources.srcDir("src/ragEval/resources")
+    compileClasspath += sourceSets["main"].output + configurations["testRuntimeClasspath"]
+    runtimeClasspath += output + compileClasspath
+}
+
+configurations[ragEvalSourceSet.implementationConfigurationName]
+    .extendsFrom(configurations["testImplementation"])
+configurations[ragEvalSourceSet.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations["testRuntimeOnly"])
+
+val ragEval by tasks.registering(Test::class) {
+    description = "On-demand retrieval-quality eval for the Admission document RAG pipeline (OC-277 Phase 5). Requires a running local dev stack (Postgres+pgvector, Ollama) with the Phase 4 fixture documents ingested. Never run automatically."
+    group = "verification"
+    testClassesDirs = ragEvalSourceSet.output.classesDirs
+    classpath = ragEvalSourceSet.runtimeClasspath
+    useJUnitPlatform()
+    jvmArgs("-Duser.timezone=UTC")
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
     // Run tests with JVM in UTC so date/time assertions are timezone-independent
