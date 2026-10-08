@@ -389,6 +389,33 @@ class PaymentCollectionServiceTest {
     }
 
     @Test
+    void shouldNotThrowWhenMatchingPaymentReceiptHasNullCollectedBy() {
+        // Regression test: legacy/backfilled payment_receipts rows (see V122 migration) commonly
+        // have a null collected_by column. Collectors.toMap(keyMapper, PaymentReceipt::getCollectedBy)
+        // throws NPE outright on a null value -- regardless of a merge function -- the moment one of
+        // these rows is encountered, which crashed /student-fees/{id}/receipts with a 500 in production
+        // for any student with legacy receipts.
+        FeeInstallment installment = new FeeInstallment(semesterFee1, testStudent,
+            new BigDecimal("50000"), LocalDate.now(), PaymentMode.UPI, "RCP-003");
+        installment.setId(1L);
+        installment.setCreatedAt(Instant.now());
+
+        PaymentReceipt paymentReceipt = new PaymentReceipt(
+            "RCP-003", "STUDENT", 1L, "John Doe", "CS2024001", null, "B.Sc CS",
+            new BigDecimal("50000"), LocalDate.now(), "UPI", null, null, null, null);
+
+        when(studentRepository.existsById(1L)).thenReturn(true);
+        when(installmentRepository.findByStudentIdOrderByPaymentDateDesc(1L)).thenReturn(List.of(installment));
+        when(paymentReceiptRepository.findByReceiptNumberIn(List.of("RCP-003")))
+            .thenReturn(List.of(paymentReceipt));
+
+        List<ReceiptResponse> receipts = service.getReceipts(1L);
+
+        assertThat(receipts).hasSize(1);
+        assertThat(receipts.getFirst().collectedBy()).isNull();
+    }
+
+    @Test
     void shouldIncludeApprovedRefundInStudentReceipts() {
         FeeInstallment installment = new FeeInstallment(semesterFee1, testStudent,
             new BigDecimal("50000"), LocalDate.of(2026, 4, 10), PaymentMode.UPI, "RCP-001");

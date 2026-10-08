@@ -543,13 +543,19 @@ public class PaymentCollectionService {
         }
 
         List<FeeInstallment> installments = installmentRepository.findByStudentIdOrderByPaymentDateDesc(studentId);
-        Map<String, String> collectedByReceiptNumber = paymentReceiptRepository
+        // Keyed by the receipt itself, not directly by getCollectedBy() -- Collectors.toMap rejects
+        // null values outright (regardless of merge function), and collected_by is legitimately
+        // null for legacy/backfilled receipts (see V122 migration), which crashed this with an NPE.
+        Map<String, com.cms.model.PaymentReceipt> receiptsByNumber = paymentReceiptRepository
             .findByReceiptNumberIn(installments.stream().map(FeeInstallment::getReceiptNumber).distinct().toList())
             .stream()
-            .collect(Collectors.toMap(com.cms.model.PaymentReceipt::getReceiptNumber, com.cms.model.PaymentReceipt::getCollectedBy));
+            .collect(Collectors.toMap(com.cms.model.PaymentReceipt::getReceiptNumber, r -> r, (a, b) -> a));
 
         List<ReceiptResponse> receipts = installments.stream()
-            .map(fi -> toReceiptResponse(fi, collectedByReceiptNumber.get(fi.getReceiptNumber())))
+            .map(fi -> {
+                com.cms.model.PaymentReceipt receipt = receiptsByNumber.get(fi.getReceiptNumber());
+                return toReceiptResponse(fi, receipt != null ? receipt.getCollectedBy() : null);
+            })
             .collect(Collectors.toCollection(ArrayList::new));
 
         // Approved student refund vouchers
