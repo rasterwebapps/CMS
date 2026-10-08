@@ -145,10 +145,11 @@ class RoleManagementControllerTest {
     @Test
     void shouldCreateRole() throws Exception {
         when(appUserRepository.findByKeycloakUsernameWithRole("admin")).thenReturn(Optional.of(buildAdminUser()));
+        when(userPermissionService.getPermissions("admin")).thenReturn(java.util.Set.of());
 
         AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "A custom role", List.of(), List.of());
         AppRoleResponse created = buildRoleResponse(10L, "CUSTOM", 4);
-        when(appRoleService.create(any(AppRoleRequest.class), eq(3), anyString())).thenReturn(created);
+        when(appRoleService.create(any(AppRoleRequest.class), eq(3), anySet(), anyString())).thenReturn(created);
 
         mockMvc.perform(post("/role-management")
                 .contentType(MediaType.APPLICATION_JSON)

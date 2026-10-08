@@ -137,7 +137,7 @@ class AppRoleServiceTest {
         AppRole savedRole = createRole(10L, "CUSTOM", "Custom Role", 4, false);
         when(appRoleRepository.save(any(AppRole.class))).thenReturn(savedRole);
 
-        AppRoleResponse response = appRoleService.create(request, 3, "tester");
+        AppRoleResponse response = appRoleService.create(request, 3, Set.of(), "tester");
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.name()).isEqualTo("CUSTOM");
@@ -159,9 +159,46 @@ class AppRoleServiceTest {
         AppRole savedRole = createRole(10L, "CUSTOM", "Custom Role", 4, false);
         when(appRoleRepository.save(any(AppRole.class))).thenReturn(savedRole);
 
-        appRoleService.create(request, 3, "tester");
+        appRoleService.create(request, 3, Set.of("USER_VIEW"), "tester");
 
         verify(permissionRepository).findByCodeIn(List.of("USER_VIEW"));
+    }
+
+    @Test
+    void shouldRejectCreatingRoleWithPermissionRequesterDoesNotHold() {
+        Permission perm = new Permission("USER_VIEW", "View Users", "USER", "");
+        perm.setId(1L);
+
+        AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "desc", List.of("USER_VIEW"), List.of());
+        when(appRoleRepository.findByName("CUSTOM")).thenReturn(Optional.empty());
+        when(permissionRepository.findByCodeIn(List.of("USER_VIEW"))).thenReturn(List.of(perm));
+
+        assertThatThrownBy(() -> appRoleService.create(request, 3, Set.of(), "tester"))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("USER_VIEW")
+            .hasMessageContaining("do not hold");
+
+        verify(appRoleRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectCreatingRoleWithPermissionAboveDelegationTier() {
+        Permission perm = new Permission("SYSTEM_CONFIG", "System Config", "SYSTEM", "");
+        perm.setId(1L);
+        perm.setTier(1); // Dev Only
+
+        AppRoleRequest request = new AppRoleRequest("CUSTOM", "Custom Role", "desc", List.of("SYSTEM_CONFIG"), List.of());
+        when(appRoleRepository.findByName("CUSTOM")).thenReturn(Optional.empty());
+        when(permissionRepository.findByCodeIn(List.of("SYSTEM_CONFIG"))).thenReturn(List.of(perm));
+
+        // Requester (level 2, SUPPORT_ADMIN) somehow holds the tier-1 code but is not level 1 --
+        // tier must still block delegation of it to a brand-new role.
+        assertThatThrownBy(() -> appRoleService.create(request, 2, Set.of("SYSTEM_CONFIG"), "tester"))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("SYSTEM_CONFIG")
+            .hasMessageContaining("delegation authority");
+
+        verify(appRoleRepository, never()).save(any());
     }
 
     @Test
@@ -169,7 +206,7 @@ class AppRoleServiceTest {
         AppRoleRequest request = new AppRoleRequest("ADMIN", "Admin", "desc", null, null);
         when(appRoleRepository.findByName("ADMIN")).thenReturn(Optional.of(createRole(1L, "ADMIN", "Admin", 3, true)));
 
-        assertThatThrownBy(() -> appRoleService.create(request, 2, "tester"))
+        assertThatThrownBy(() -> appRoleService.create(request, 2, Set.of(), "tester"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("ADMIN")
             .hasMessageContaining("already exists");
@@ -181,7 +218,7 @@ class AppRoleServiceTest {
     void shouldRejectCreatingReservedSupportAdminRoleName() {
         AppRoleRequest request = new AppRoleRequest("supportadmin", "Support Admin", "desc", List.of(), List.of());
 
-        assertThatThrownBy(() -> appRoleService.create(request, 1, "tester"))
+        assertThatThrownBy(() -> appRoleService.create(request, 1, Set.of(), "tester"))
             .isInstanceOf(ResponseStatusException.class)
             .hasMessageContaining("reserved");
 

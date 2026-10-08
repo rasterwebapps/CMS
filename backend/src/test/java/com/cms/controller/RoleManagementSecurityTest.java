@@ -118,7 +118,8 @@ class RoleManagementSecurityTest {
     void createOnlyCanCreateRoleButNotAssignPermissionsOrEditWidgets() throws Exception {
         when(userPermissionService.getPermissions("creator1")).thenReturn(Set.of("ROLE_VIEW", "ROLE_CREATE"));
         when(appUserRepository.findByKeycloakUsernameWithRole("creator1")).thenReturn(Optional.of(buildUser("creator1")));
-        when(appRoleService.create(org.mockito.ArgumentMatchers.any(AppRoleRequest.class), org.mockito.ArgumentMatchers.eq(4), org.mockito.ArgumentMatchers.anyString()))
+        when(appRoleService.create(org.mockito.ArgumentMatchers.any(AppRoleRequest.class), org.mockito.ArgumentMatchers.eq(4),
+            org.mockito.ArgumentMatchers.anySet(), org.mockito.ArgumentMatchers.anyString()))
             .thenReturn(buildRoleResponse(10L, "CUSTOM"));
 
         AppRoleRequest createRequest = new AppRoleRequest("CUSTOM", "Custom Role", "desc", List.of(), List.of());

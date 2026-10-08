@@ -73,7 +73,8 @@ public class RoleManagementController {
             @AuthenticationPrincipal Jwt jwt) {
         String actor = jwt.getClaimAsString("preferred_username");
         int requesterLevel = resolveHierarchyLevel(jwt);
-        AppRoleResponse created = appRoleService.create(request, requesterLevel, actor);
+        var requesterPermissions = userPermissionService.getPermissions(actor);
+        AppRoleResponse created = appRoleService.create(request, requesterLevel, requesterPermissions, actor);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

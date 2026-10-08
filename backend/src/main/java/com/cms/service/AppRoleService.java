@@ -93,9 +93,16 @@ public class AppRoleService {
     /**
      * Creates a new (non-system) role. The role is assigned a hierarchy_level one greater
      * than the requester's level, placing it just below the requester.
+     *
+     * <p>Permission codes supplied at creation time go through the same "no privilege
+     * escalation" and tier-delegation checks as {@link #updatePermissions}: the requester
+     * may only hand the new role permissions they themselves hold and are authorized to
+     * delegate. Without this, creating a role was a second, unguarded path to grant any
+     * permission (including Tier-1 "Dev Only" ones) regardless of the requester's level.
      */
     @Transactional
-    public AppRoleResponse create(AppRoleRequest request, int requesterLevel, String actor) {
+    public AppRoleResponse create(AppRoleRequest request, int requesterLevel,
+                                  Set<String> requesterPermissions, String actor) {
         String normalizedName = normalizeRoleName(request.name());
         if (RESERVED_ROLE_NAMES.contains(normalizedName)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -113,6 +120,19 @@ public class AppRoleService {
 
         if (request.permissionCodes() != null && !request.permissionCodes().isEmpty()) {
             List<Permission> permissions = permissionRepository.findByCodeIn(request.permissionCodes());
+
+            for (Permission p : permissions) {
+                if (!requesterPermissions.contains(p.getCode())) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "You do not hold permission '" + p.getCode() + "' and cannot assign it");
+                }
+                if (!Permission.tierAllowsLevel(p.getTier(), requesterLevel)) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "You cannot delegate permission '" + p.getCode()
+                            + "' — it is above your delegation authority (tier " + p.getTier() + ")");
+                }
+            }
+
             role.getPermissions().addAll(permissions);
         }
 
@@ -131,13 +151,15 @@ public class AppRoleService {
     }
 
     /**
-     * Backwards-compatible overload — actor defaults to "system".
-     * @deprecated Prefer {@link #create(AppRoleRequest, int, String)}.
+     * Backwards-compatible overload — actor defaults to "system", requester holds no
+     * permissions (so any permissionCodes on the request will be rejected by the
+     * delegation check unless empty).
+     * @deprecated Prefer {@link #create(AppRoleRequest, int, Set, String)}.
      */
     @Deprecated
     @Transactional
     public AppRoleResponse create(AppRoleRequest request, int requesterLevel) {
-        return create(request, requesterLevel, "system");
+        return create(request, requesterLevel, Set.of(), "system");
     }
 
     /**
