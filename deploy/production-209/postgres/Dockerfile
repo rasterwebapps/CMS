@@ -8,16 +8,19 @@
 # package tracks a different Postgres major version than this image ships
 # and installs to the wrong extension directory.
 #
-# JIT bitcode build is skipped (with_llvm=no): it needs a clang version this
-# image doesn't have, and it's only a query-JIT optimization, not required
-# for the extension itself to load and work.
+# This image's postgres binary was itself built --with-llvm (CLANG=clang-19,
+# LLVM_CONFIG=llvm19), so PGXS always builds pgvector's JIT bitcode as part of
+# `install` regardless of a `with_llvm=no` override on the make command line —
+# that override does not actually suppress it (confirmed by trial). So instead
+# of fighting it, just install the matching clang19/llvm19 packages the build
+# already expects.
 FROM postgres:17-alpine
 
-RUN apk add --no-cache --virtual .pgvector-build-deps build-base git \
+RUN apk add --no-cache --virtual .pgvector-build-deps build-base git clang19 llvm19 \
     && git clone --branch v0.8.1 https://github.com/pgvector/pgvector.git /tmp/pgvector \
     && cd /tmp/pgvector \
     && make OPTFLAGS='' \
-    && make install with_llvm=no \
+    && make install \
     && cd / \
     && rm -rf /tmp/pgvector \
     && apk del .pgvector-build-deps
