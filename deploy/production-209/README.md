@@ -27,6 +27,7 @@ Use this isolated path on the production server:
 Copy only these files/folders to `/docker_data/skscms209`:
 
 - `docker-compose.yml`
+- `postgres/Dockerfile` — `postgres:17-alpine` + pgvector built in (required by V561+/OC-277); built into the `cms-postgres-pgvector:latest` image by `scripts/deploy-209.sh` on every `full` deploy
 - `.env` created from `.env.example` with production-only secrets
 - `keycloak/cms-realm.json`
 - `ssl/self.crt` and `ssl/self.key` installed by `scripts/deploy-209.sh`

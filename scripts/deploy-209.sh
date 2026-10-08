@@ -361,6 +361,11 @@ ssh_run "
 "
 
 # ── Step 3: Build Docker image(s) ─────────────────────────────────────────────
+if [ "$MODE" = "full" ]; then
+  print_step "Building postgres+pgvector image..."
+  ssh_run "docker build -t cms-postgres-pgvector:latest $REMOTE_DIR/postgres"
+fi
+
 if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ]; then
   print_step "Building latest backend image..."
   ssh_run "docker build -t cms-backend:latest $REMOTE_DIR/build/backend"
