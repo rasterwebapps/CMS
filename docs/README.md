@@ -8,6 +8,7 @@ Welcome to the College Management System documentation. This directory contains 
 
 | Document | Description |
 |----------|-------------|
+| [PROJECT_HANDOVER.md](PROJECT_HANDOVER.md) | **Start here if you're new.** End-to-end developer handover guide — architecture, local setup, module/screen map, and the full data-creation order from a blank database to a live college |
 | [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) | Master development plan — all phases and milestones |
 | [RELEASE_1_MILESTONES.md](RELEASE_1_MILESTONES.md) | Release 1 milestone tracker — Phases 0–5 (scaffolding, auth, academic, logistics, finance, assessment) |
 | [RELEASE_2_MILESTONES.md](RELEASE_2_MILESTONES.md) | Release 2 milestone tracker — Phase 6 (library, hostel, transport, LMS, placement, etc.) |

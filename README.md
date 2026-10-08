@@ -2,6 +2,8 @@
 
 A comprehensive, enterprise-grade **College Management System** designed to manage and automate the day-to-day administrative and academic operations of a college or educational institution — with **Lab Management deeply integrated** across all modules.
 
+> 👋 **New to this project?** This file is an early vision/roadmap document and does not reflect what's actually built today. Start with **[docs/PROJECT_HANDOVER.md](docs/PROJECT_HANDOVER.md)** instead — it covers real architecture, local setup, the actual module/screen list, and the full data-setup order from a blank database to a live college.
+
 ---
 
 ## 📋 Table of Contents
