@@ -5,8 +5,10 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,6 +132,18 @@ public class RetroAdmitService {
             throw new IllegalStateException("A student with UMIS Number " + request.umisNumber() + " already exists. Please verify the UMIS number.");
         }
 
+        // Required so Step 6 can create a FINALIZED StudentFeeAllocation and the synthetic
+        // Enquiry below can carry a real yearWiseFees record. Without at least one year's fee,
+        // a retro-admitted student would end up with an Admission but no allocation and no
+        // yearWiseFees for the normal auto-init fallback to recover from either -- a permanent
+        // dead end on the Student Fee Collection screen with no path to ever finalize fees.
+        List<LegacyYearFeeEntry> yearFees = request.yearFees() != null ? request.yearFees() : List.of();
+        if (yearFees.isEmpty()) {
+            throw new IllegalStateException(
+                "At least one year's fee amount is required to retro-admit a student. "
+                + "Without it, no fee allocation can be created for them.");
+        }
+
         // ── Step 2: Create Student ─────────────────────────────────────────
         AdmissionQuota quota = request.admissionQuota() != null ? request.admissionQuota() : AdmissionQuota.MANAGEMENT;
         StudentType studentType = request.studentType() != null ? request.studentType() : StudentType.DAY_SCHOLAR;
@@ -206,6 +220,10 @@ public class RetroAdmitService {
         enquiry.setStudentType(studentType);
         enquiry.setConvertedStudentId(saved.getId());
         enquiry.setReferralType(referralType);
+        // Mirrors the normal Enquiry fee-finalization flow (EnquiryService.buildYearWiseFeesJson)
+        // so the Student Fee Collection auto-init fallback (getEnquiryYearFees) has real data to
+        // recover from if the StudentFeeAllocation created below is ever missing or deleted.
+        enquiry.setYearWiseFees(buildYearWiseFeesJson(yearFees));
 
         if (request.agentId() != null) {
             enquiry.setAgent(agentRepository.findById(request.agentId())
@@ -238,7 +256,6 @@ public class RetroAdmitService {
         int paymentRowsCreated = 0;
         BigDecimal totalHistoricalPaid = BigDecimal.ZERO;
 
-        List<LegacyYearFeeEntry> yearFees = request.yearFees() != null ? request.yearFees() : List.of();
         List<LegacyPaymentEntry> payments = request.payments() != null ? request.payments() : List.of();
 
         if (!yearFees.isEmpty()) {
@@ -388,6 +405,15 @@ public class RetroAdmitService {
                 paymentRowsCreated,
                 totalHistoricalPaid
         );
+    }
+
+    /** Same hand-built JSON shape as EnquiryService.buildYearWiseFeesJson -- the format
+     *  FeeFinalizationService.getEnquiryYearFees expects when parsing Enquiry.yearWiseFees. */
+    private static String buildYearWiseFeesJson(List<LegacyYearFeeEntry> yearFees) {
+        return yearFees.stream()
+                .sorted(Comparator.comparing(LegacyYearFeeEntry::yearNumber))
+                .map(yf -> "{\"yearNumber\":" + yf.yearNumber() + ",\"amount\":" + yf.totalFee().toPlainString() + "}")
+                .collect(Collectors.joining(",", "[", "]"));
     }
 
     private static LocalDate shiftDueYear(LocalDate base, int fromYear, int toYear) {
