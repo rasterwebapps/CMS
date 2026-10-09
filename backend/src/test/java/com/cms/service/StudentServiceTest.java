@@ -570,7 +570,7 @@ class StudentServiceTest {
 
         com.cms.model.StudentTermEnrollment enrollment = currentEnrollmentDueOn(LocalDate.now().minusDays(1));
         when(studentTermEnrollmentRepository.findByStudentIdAndStatus(1L, com.cms.model.enums.EnrollmentStatus.ENROLLED))
-            .thenReturn(Optional.of(enrollment));
+            .thenReturn(List.of(enrollment));
         when(termBillingScheduleRepository.findByAcademicYearIdAndTermType(50L, com.cms.model.enums.TermType.ODD))
             .thenReturn(Optional.of(billingScheduleDueOn(LocalDate.now().minusDays(1))));
 
@@ -593,7 +593,7 @@ class StudentServiceTest {
 
         com.cms.model.StudentTermEnrollment enrollment = currentEnrollmentDueOn(LocalDate.now().plusDays(10));
         when(studentTermEnrollmentRepository.findByStudentIdAndStatus(1L, com.cms.model.enums.EnrollmentStatus.ENROLLED))
-            .thenReturn(Optional.of(enrollment));
+            .thenReturn(List.of(enrollment));
         when(termBillingScheduleRepository.findByAcademicYearIdAndTermType(50L, com.cms.model.enums.TermType.ODD))
             .thenReturn(Optional.of(billingScheduleDueOn(LocalDate.now().plusDays(10))));
         when(feeDemandService.applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER, null))
@@ -619,7 +619,40 @@ class StudentServiceTest {
 
         com.cms.model.StudentTermEnrollment enrollment = currentEnrollmentDueOn(LocalDate.now());
         when(studentTermEnrollmentRepository.findByStudentIdAndStatus(1L, com.cms.model.enums.EnrollmentStatus.ENROLLED))
-            .thenReturn(Optional.of(enrollment));
+            .thenReturn(List.of(enrollment));
+        when(termBillingScheduleRepository.findByAcademicYearIdAndTermType(50L, com.cms.model.enums.TermType.ODD))
+            .thenReturn(Optional.empty());
+        when(feeDemandService.applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER, null))
+            .thenReturn(new FeeDemandService.StudentTypeSwitchImpact(0, java.math.BigDecimal.ZERO, List.of()));
+        when(boardingStatusSwitchRepository.save(any(com.cms.model.StudentBoardingStatusSwitch.class)))
+            .thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.BoardingStatusSwitchRequest request =
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, null, null);
+
+        var record = studentService.executeBoardingStatusSwitch(1L, request);
+
+        assertThat(record.newStudentType()).isEqualTo(com.cms.model.enums.StudentType.HOSTELER);
+    }
+
+    @Test
+    void shouldPickHighestSemesterEnrollmentWhenStudentHasMultipleActiveEnrollments() {
+        // Reproduces a real production state: an earlier term's enrollment stays ENROLLED until
+        // an actual promotion decision runs, so a student can legitimately hold two+ ENROLLED
+        // rows at once. The cutoff check must pick the highest semesterNumber as "current" rather
+        // than assuming a single result (which previously threw IncorrectResultSizeDataAccessException).
+        Student student = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+        student.setStudentType(com.cms.model.enums.StudentType.DAY_SCHOLAR);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(currentUserResolver.resolve()).thenReturn("admin");
+
+        com.cms.model.StudentTermEnrollment termOneEnrollment = currentEnrollmentDueOn(LocalDate.now());
+        termOneEnrollment.setSemesterNumber(1);
+        com.cms.model.StudentTermEnrollment termTwoEnrollment = currentEnrollmentDueOn(LocalDate.now());
+        termTwoEnrollment.setSemesterNumber(2);
+
+        when(studentTermEnrollmentRepository.findByStudentIdAndStatus(1L, com.cms.model.enums.EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(termOneEnrollment, termTwoEnrollment));
         when(termBillingScheduleRepository.findByAcademicYearIdAndTermType(50L, com.cms.model.enums.TermType.ODD))
             .thenReturn(Optional.empty());
         when(feeDemandService.applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER, null))

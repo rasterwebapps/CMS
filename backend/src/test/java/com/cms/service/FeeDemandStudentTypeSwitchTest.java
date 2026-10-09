@@ -214,7 +214,7 @@ class FeeDemandStudentTypeSwitchTest {
         currentEnrollment.setSemesterNumber(5);
 
         when(enrollmentRepository.findByStudentIdAndStatus(30L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Optional.of(currentEnrollment));
+            .thenReturn(List.of(currentEnrollment));
         when(feeDemandRepository.findByStudentTermEnrollmentStudentId(30L)).thenReturn(List.of());
         when(currentUserResolver.resolve()).thenReturn("admin");
         when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(30L, 6))
@@ -232,6 +232,35 @@ class FeeDemandStudentTypeSwitchTest {
     }
 
     @Test
+    void applyPicksHighestSemesterEnrollmentWhenStudentHasMultipleActiveEnrollments() {
+        // Mirrors StudentServiceTest's equivalent case -- a student can legitimately hold more
+        // than one ENROLLED row at once (earlier term not yet marked COMPLETED by a promotion
+        // decision). Must pick the highest semesterNumber, not throw on a multi-row result.
+        Student student = new Student();
+        student.setId(32L);
+        StudentTermEnrollment termOneEnrollment = new StudentTermEnrollment();
+        termOneEnrollment.setStudent(student);
+        termOneEnrollment.setSemesterNumber(1);
+        StudentTermEnrollment termTwoEnrollment = new StudentTermEnrollment();
+        termTwoEnrollment.setStudent(student);
+        termTwoEnrollment.setSemesterNumber(2);
+
+        when(enrollmentRepository.findByStudentIdAndStatus(32L, EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(termOneEnrollment, termTwoEnrollment));
+        when(feeDemandRepository.findByStudentTermEnrollmentStudentId(32L)).thenReturn(List.of());
+        when(currentUserResolver.resolve()).thenReturn("admin");
+        when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(32L, 3))
+            .thenReturn(Optional.empty());
+
+        service.applyStudentTypeSwitchAdjustment(32L, StudentType.HOSTELER,
+            List.of(new TermFeeOverrideInput(3, new BigDecimal("80000.00"))));
+
+        ArgumentCaptor<StudentTermFeeOverride> captor = ArgumentCaptor.forClass(StudentTermFeeOverride.class);
+        verify(termFeeOverrideRepository).save(captor.capture());
+        assertThat(captor.getValue().getStudent()).isSameAs(student);
+    }
+
+    @Test
     void applyUpdatesExistingOverrideInsteadOfDuplicating() {
         Student student = new Student();
         student.setId(31L);
@@ -244,7 +273,7 @@ class FeeDemandStudentTypeSwitchTest {
         existing.setOverrideAmount(new BigDecimal("80000.00"));
 
         when(enrollmentRepository.findByStudentIdAndStatus(31L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Optional.of(currentEnrollment));
+            .thenReturn(List.of(currentEnrollment));
         when(feeDemandRepository.findByStudentTermEnrollmentStudentId(31L)).thenReturn(List.of());
         when(currentUserResolver.resolve()).thenReturn("admin");
         when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(31L, 5))
@@ -289,7 +318,7 @@ class FeeDemandStudentTypeSwitchTest {
         currentEnrollment.setTermInstance(termInstance);
 
         when(enrollmentRepository.findByStudentIdAndStatus(40L, EnrollmentStatus.ENROLLED))
-            .thenReturn(Optional.of(currentEnrollment));
+            .thenReturn(List.of(currentEnrollment));
         stubFeePlan(tuitionAndHostelStructures()); // only configured for YEAR_OF_STUDY (1)
 
         when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(40L, 1)).thenReturn(Optional.empty());

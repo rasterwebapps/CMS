@@ -757,8 +757,7 @@ public class StudentService {
             throw new IllegalArgumentException("Student is already " + targetType);
         }
 
-        Optional<StudentTermEnrollment> currentEnrollment =
-            studentTermEnrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED);
+        Optional<StudentTermEnrollment> currentEnrollment = resolveCurrentEnrollment(studentId);
 
         String cutoffBlockReason = resolveFeeCollectionCutoffBlockReason(currentEnrollment);
         boolean blocked;
@@ -816,6 +815,18 @@ public class StudentService {
         return null;
     }
 
+    /**
+     * A student can legitimately hold more than one ENROLLED {@link StudentTermEnrollment} at
+     * once — an earlier term's enrollment is only marked COMPLETED when an actual promotion
+     * decision runs, so it can still be ENROLLED after the student has already started a later
+     * term. "Current term" is the ENROLLED row with the highest semesterNumber.
+     */
+    private Optional<StudentTermEnrollment> resolveCurrentEnrollment(Long studentId) {
+        return studentTermEnrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED)
+            .stream()
+            .max(java.util.Comparator.comparing(StudentTermEnrollment::getSemesterNumber));
+    }
+
     @Transactional
     public BoardingStatusSwitchRecord executeBoardingStatusSwitch(Long studentId, BoardingStatusSwitchRequest request) {
         Student student = studentRepository.findById(studentId)
@@ -833,8 +844,7 @@ public class StudentService {
                 "Cannot switch to Day Scholar — student has an active hostel room allocation. Vacate the room first.");
         }
 
-        String cutoffBlockReason = resolveFeeCollectionCutoffBlockReason(
-            studentTermEnrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED));
+        String cutoffBlockReason = resolveFeeCollectionCutoffBlockReason(resolveCurrentEnrollment(studentId));
         if (cutoffBlockReason != null) {
             throw new IllegalStateException(cutoffBlockReason);
         }

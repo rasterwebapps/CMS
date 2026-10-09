@@ -196,8 +196,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
     public StudentTypeSwitchImpact applyStudentTypeSwitchAdjustment(Long studentId, StudentType targetType,
                                                                       List<TermFeeOverrideInput> overrides) {
         if (overrides != null && !overrides.isEmpty()) {
-            StudentTermEnrollment currentEnrollment = enrollmentRepository
-                .findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED)
+            StudentTermEnrollment currentEnrollment = resolveCurrentEnrollment(studentId)
                 .orElseThrow(() -> new IllegalStateException(
                     "Student has no active term enrollment: " + studentId));
             String actor = currentUserResolver.resolve();
@@ -218,8 +217,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
 
     @Override
     public List<TermFeeRow> previewTermFeeSchedule(Long studentId, StudentType targetType) {
-        StudentTermEnrollment currentEnrollment = enrollmentRepository
-            .findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED)
+        StudentTermEnrollment currentEnrollment = resolveCurrentEnrollment(studentId)
             .orElseThrow(() -> new IllegalStateException(
                 "Student has no active term enrollment: " + studentId));
 
@@ -251,6 +249,18 @@ public class FeeDemandServiceImpl implements FeeDemandService {
     private int computeYearOfStudy(int semesterNumber, Program program) {
         AssessmentPattern pattern = program.getAssessmentPattern();
         return pattern == AssessmentPattern.YEARLY ? semesterNumber : (int) Math.ceil(semesterNumber / 2.0);
+    }
+
+    /**
+     * A student can legitimately hold more than one ENROLLED {@link StudentTermEnrollment} at
+     * once — an earlier term's enrollment is only marked COMPLETED when an actual promotion
+     * decision runs, so it can still be ENROLLED after the student has already started a later
+     * term. "Current term" is the ENROLLED row with the highest semesterNumber.
+     */
+    private Optional<StudentTermEnrollment> resolveCurrentEnrollment(Long studentId) {
+        return enrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED)
+            .stream()
+            .max(java.util.Comparator.comparing(StudentTermEnrollment::getSemesterNumber));
     }
 
     private StudentTypeSwitchImpact computeStudentTypeSwitchImpact(Long studentId, StudentType targetType,

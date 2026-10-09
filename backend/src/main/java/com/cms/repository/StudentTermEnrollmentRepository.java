@@ -17,7 +17,13 @@ public interface StudentTermEnrollmentRepository extends JpaRepository<StudentTe
     List<StudentTermEnrollment> findByTermInstanceId(Long termInstanceId);
     List<StudentTermEnrollment> findByTermInstanceIdAndStatus(Long termInstanceId, EnrollmentStatus status);
     List<StudentTermEnrollment> findByStudentId(Long studentId);
-    Optional<StudentTermEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status);
+
+    /** A student can legitimately hold more than one ENROLLED row at once -- an earlier term's
+     *  enrollment is only marked COMPLETED when an actual promotion decision runs, so it can
+     *  still be ENROLLED after the student has already started a later term. Callers wanting
+     *  "the current term" should pick the highest semesterNumber from this list, not assume
+     *  a single result. */
+    List<StudentTermEnrollment> findByStudentIdAndStatus(Long studentId, EnrollmentStatus status);
     List<StudentTermEnrollment> findByTermInstanceIdAndCohortId(Long termInstanceId, Long cohortId);
     Optional<StudentTermEnrollment> findByStudentIdAndTermInstanceId(Long studentId, Long termInstanceId);
     List<StudentTermEnrollment> findByTermInstanceIdAndSemesterNumber(Long termInstanceId, Integer termNumber);
