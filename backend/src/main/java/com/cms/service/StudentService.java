@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,7 @@ import com.cms.dto.ProgramTransferRecord;
 import com.cms.dto.ProgramTransferRequest;
 import com.cms.dto.StudentRequest;
 import com.cms.dto.StudentResponse;
+import com.cms.dto.TermFeeRow;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Address;
 import com.cms.model.Admission;
@@ -43,10 +45,13 @@ import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.StudentBoardingStatusSwitch;
 import com.cms.model.StudentProgramTransfer;
+import com.cms.model.StudentTermEnrollment;
+import com.cms.model.TermBillingSchedule;
 import com.cms.model.FeeDemand;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
+import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.RoomAllocationStatus;
 import com.cms.model.enums.StudentStatus;
 import com.cms.model.enums.StudentType;
@@ -62,8 +67,11 @@ import com.cms.repository.RoomAllocationRepository;
 import com.cms.repository.StudentBoardingStatusSwitchRepository;
 import com.cms.repository.StudentProgramTransferRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.TermBillingScheduleRepository;
 import com.cms.util.CurrentUserResolver;
 import com.cms.model.enums.IssueStatus;
+import java.time.LocalDate;
 
 @Service
 @Transactional(readOnly = true)
@@ -83,6 +91,8 @@ public class StudentService {
     private final RoomAllocationRepository roomAllocationRepository;
     private final StudentBoardingStatusSwitchRepository boardingStatusSwitchRepository;
     private final FeeDemandService feeDemandService;
+    private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+    private final TermBillingScheduleRepository termBillingScheduleRepository;
 
     private static final List<IssueStatus> ACTIVE_ISSUE_STATUSES =
         List.of(IssueStatus.ISSUED, IssueStatus.OVERDUE);
@@ -98,7 +108,9 @@ public class StudentService {
                           CurrentUserResolver currentUserResolver,
                           RoomAllocationRepository roomAllocationRepository,
                           StudentBoardingStatusSwitchRepository boardingStatusSwitchRepository,
-                          FeeDemandService feeDemandService) {
+                          FeeDemandService feeDemandService,
+                          StudentTermEnrollmentRepository studentTermEnrollmentRepository,
+                          TermBillingScheduleRepository termBillingScheduleRepository) {
         this.studentRepository = studentRepository;
         this.programRepository = programRepository;
         this.courseRepository = courseRepository;
@@ -113,6 +125,8 @@ public class StudentService {
         this.roomAllocationRepository = roomAllocationRepository;
         this.boardingStatusSwitchRepository = boardingStatusSwitchRepository;
         this.feeDemandService = feeDemandService;
+        this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
+        this.termBillingScheduleRepository = termBillingScheduleRepository;
     }
 
     @Transactional
@@ -743,21 +757,63 @@ public class StudentService {
             throw new IllegalArgumentException("Student is already " + targetType);
         }
 
-        boolean blocked = targetType == StudentType.DAY_SCHOLAR
-            && roomAllocationRepository.existsByStudentIdAndStatus(studentId, RoomAllocationStatus.ACTIVE);
-        String blockReason = blocked
-            ? "Student has an active hostel room allocation — vacate the room before switching to Day Scholar."
-            : null;
+        Optional<StudentTermEnrollment> currentEnrollment =
+            studentTermEnrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED);
+
+        String cutoffBlockReason = resolveFeeCollectionCutoffBlockReason(currentEnrollment);
+        boolean blocked;
+        String blockReason;
+        if (cutoffBlockReason != null) {
+            blocked = true;
+            blockReason = cutoffBlockReason;
+        } else {
+            blocked = targetType == StudentType.DAY_SCHOLAR
+                && roomAllocationRepository.existsByStudentIdAndStatus(studentId, RoomAllocationStatus.ACTIVE);
+            blockReason = blocked
+                ? "Student has an active hostel room allocation — vacate the room before switching to Day Scholar."
+                : null;
+        }
 
         FeeDemandService.StudentTypeSwitchImpact impact =
             feeDemandService.previewStudentTypeSwitchImpact(studentId, targetType);
+        List<TermFeeRow> termFees = currentEnrollment.isPresent()
+            ? feeDemandService.previewTermFeeSchedule(studentId, targetType)
+            : List.of();
 
         return new BoardingStatusSwitchAnalysis(
             studentId, student.getFullName(),
             student.getStudentType(), targetType,
             blocked, blockReason,
-            impact.demandsAffected(), impact.totalDelta()
+            impact.demandsAffected(), impact.totalDelta(),
+            termFees
         );
+    }
+
+    /**
+     * Blocks a switch once the student's CURRENT term's own fee-collection due date
+     * ({@link TermBillingSchedule#getDueDate()}) has passed — past terms are already
+     * PAID/WAIVED and excluded from adjustment, so only the current term's window matters.
+     * Returns null (no block) when the student has no active enrollment or no billing
+     * schedule is configured for their current term, rather than hard-failing the switch.
+     */
+    private String resolveFeeCollectionCutoffBlockReason(Optional<StudentTermEnrollment> currentEnrollment) {
+        if (currentEnrollment.isEmpty()) {
+            return null;
+        }
+
+        var termInstance = currentEnrollment.get().getTermInstance();
+        Optional<TermBillingSchedule> schedule = termBillingScheduleRepository
+            .findByAcademicYearIdAndTermType(termInstance.getAcademicYear().getId(), termInstance.getTermType());
+        if (schedule.isEmpty()) {
+            return null;
+        }
+
+        LocalDate dueDate = schedule.get().getDueDate();
+        if (LocalDate.now().isAfter(dueDate)) {
+            return "Fee collection for the current term closed on " + dueDate
+                + " — the boarding status can no longer be switched for this term.";
+        }
+        return null;
     }
 
     @Transactional
@@ -777,11 +833,17 @@ public class StudentService {
                 "Cannot switch to Day Scholar — student has an active hostel room allocation. Vacate the room first.");
         }
 
+        String cutoffBlockReason = resolveFeeCollectionCutoffBlockReason(
+            studentTermEnrollmentRepository.findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED));
+        if (cutoffBlockReason != null) {
+            throw new IllegalStateException(cutoffBlockReason);
+        }
+
         student.setStudentType(newType);
         studentRepository.save(student);
 
         FeeDemandService.StudentTypeSwitchImpact impact =
-            feeDemandService.applyStudentTypeSwitchAdjustment(studentId, newType);
+            feeDemandService.applyStudentTypeSwitchAdjustment(studentId, newType, request.termFeeOverrides());
 
         StudentBoardingStatusSwitch history = new StudentBoardingStatusSwitch();
         history.setStudent(student);

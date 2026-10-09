@@ -76,6 +76,12 @@ class StudentServiceTest {
     @Mock
     private FeeDemandService feeDemandService;
 
+    @Mock
+    private com.cms.repository.StudentTermEnrollmentRepository studentTermEnrollmentRepository;
+
+    @Mock
+    private com.cms.repository.TermBillingScheduleRepository termBillingScheduleRepository;
+
     private StudentService studentService;
 
     private Program testProgram;
@@ -85,7 +91,8 @@ class StudentServiceTest {
         studentService = new StudentService(studentRepository, programRepository, courseRepository, specialityRepository,
             admissionRepository, enquiryDocumentRepository, documentHistoryRepository, transferRepository,
             feeDemandRepository, libraryIssueRepository, currentUserResolver,
-            roomAllocationRepository, boardingStatusSwitchRepository, feeDemandService);
+            roomAllocationRepository, boardingStatusSwitchRepository, feeDemandService,
+            studentTermEnrollmentRepository, termBillingScheduleRepository);
 
         testProgram = new Program();
         testProgram.setId(1L);
@@ -503,7 +510,7 @@ class StudentServiceTest {
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
 
         com.cms.dto.BoardingStatusSwitchRequest request =
-            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, null);
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, null, null);
 
         assertThatThrownBy(() -> studentService.executeBoardingStatusSwitch(1L, request))
             .isInstanceOf(IllegalArgumentException.class)
@@ -521,14 +528,14 @@ class StudentServiceTest {
             .thenReturn(true);
 
         com.cms.dto.BoardingStatusSwitchRequest request =
-            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.DAY_SCHOLAR, null);
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.DAY_SCHOLAR, null, null);
 
         assertThatThrownBy(() -> studentService.executeBoardingStatusSwitch(1L, request))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("active hostel room allocation");
 
         verify(studentRepository, never()).save(any(Student.class));
-        verify(feeDemandService, never()).applyStudentTypeSwitchAdjustment(any(), any());
+        verify(feeDemandService, never()).applyStudentTypeSwitchAdjustment(any(), any(), any());
     }
 
     @Test
@@ -537,13 +544,13 @@ class StudentServiceTest {
         student.setStudentType(com.cms.model.enums.StudentType.DAY_SCHOLAR);
         when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
         when(currentUserResolver.resolve()).thenReturn("admin");
-        when(feeDemandService.applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER))
+        when(feeDemandService.applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER, null))
             .thenReturn(new FeeDemandService.StudentTypeSwitchImpact(1, new java.math.BigDecimal("15000.00"), List.of()));
         when(boardingStatusSwitchRepository.save(any(com.cms.model.StudentBoardingStatusSwitch.class)))
             .thenAnswer(inv -> inv.getArgument(0));
 
         com.cms.dto.BoardingStatusSwitchRequest request =
-            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, "moving to hostel");
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, "moving to hostel", null);
 
         var record = studentService.executeBoardingStatusSwitch(1L, request);
 
@@ -552,7 +559,100 @@ class StudentServiceTest {
         assertThat(record.feeDelta()).isEqualByComparingTo("15000.00");
         assertThat(student.getStudentType()).isEqualTo(com.cms.model.enums.StudentType.HOSTELER);
         verify(studentRepository).save(student);
-        verify(feeDemandService).applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER);
+        verify(feeDemandService).applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER, null);
+    }
+
+    @Test
+    void shouldBlockSwitchWhenCurrentTermFeeCollectionDueDatePassed() {
+        Student student = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+        student.setStudentType(com.cms.model.enums.StudentType.DAY_SCHOLAR);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+
+        com.cms.model.StudentTermEnrollment enrollment = currentEnrollmentDueOn(LocalDate.now().minusDays(1));
+        when(studentTermEnrollmentRepository.findByStudentIdAndStatus(1L, com.cms.model.enums.EnrollmentStatus.ENROLLED))
+            .thenReturn(Optional.of(enrollment));
+        when(termBillingScheduleRepository.findByAcademicYearIdAndTermType(50L, com.cms.model.enums.TermType.ODD))
+            .thenReturn(Optional.of(billingScheduleDueOn(LocalDate.now().minusDays(1))));
+
+        com.cms.dto.BoardingStatusSwitchRequest request =
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, null, null);
+
+        assertThatThrownBy(() -> studentService.executeBoardingStatusSwitch(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Fee collection for the current term closed");
+
+        verify(studentRepository, never()).save(any(Student.class));
+    }
+
+    @Test
+    void shouldAllowSwitchWhenCurrentTermFeeCollectionDueDateNotYetPassed() {
+        Student student = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+        student.setStudentType(com.cms.model.enums.StudentType.DAY_SCHOLAR);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(currentUserResolver.resolve()).thenReturn("admin");
+
+        com.cms.model.StudentTermEnrollment enrollment = currentEnrollmentDueOn(LocalDate.now().plusDays(10));
+        when(studentTermEnrollmentRepository.findByStudentIdAndStatus(1L, com.cms.model.enums.EnrollmentStatus.ENROLLED))
+            .thenReturn(Optional.of(enrollment));
+        when(termBillingScheduleRepository.findByAcademicYearIdAndTermType(50L, com.cms.model.enums.TermType.ODD))
+            .thenReturn(Optional.of(billingScheduleDueOn(LocalDate.now().plusDays(10))));
+        when(feeDemandService.applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER, null))
+            .thenReturn(new FeeDemandService.StudentTypeSwitchImpact(0, java.math.BigDecimal.ZERO, List.of()));
+        when(boardingStatusSwitchRepository.save(any(com.cms.model.StudentBoardingStatusSwitch.class)))
+            .thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.BoardingStatusSwitchRequest request =
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, null, null);
+
+        var record = studentService.executeBoardingStatusSwitch(1L, request);
+
+        assertThat(record.newStudentType()).isEqualTo(com.cms.model.enums.StudentType.HOSTELER);
+        verify(studentRepository).save(student);
+    }
+
+    @Test
+    void shouldAllowSwitchWhenNoBillingScheduleConfiguredForCurrentTerm() {
+        Student student = createStudent(1L, "CS2024001", "John", "Doe", "john@college.edu");
+        student.setStudentType(com.cms.model.enums.StudentType.DAY_SCHOLAR);
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+        when(currentUserResolver.resolve()).thenReturn("admin");
+
+        com.cms.model.StudentTermEnrollment enrollment = currentEnrollmentDueOn(LocalDate.now());
+        when(studentTermEnrollmentRepository.findByStudentIdAndStatus(1L, com.cms.model.enums.EnrollmentStatus.ENROLLED))
+            .thenReturn(Optional.of(enrollment));
+        when(termBillingScheduleRepository.findByAcademicYearIdAndTermType(50L, com.cms.model.enums.TermType.ODD))
+            .thenReturn(Optional.empty());
+        when(feeDemandService.applyStudentTypeSwitchAdjustment(1L, com.cms.model.enums.StudentType.HOSTELER, null))
+            .thenReturn(new FeeDemandService.StudentTypeSwitchImpact(0, java.math.BigDecimal.ZERO, List.of()));
+        when(boardingStatusSwitchRepository.save(any(com.cms.model.StudentBoardingStatusSwitch.class)))
+            .thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.BoardingStatusSwitchRequest request =
+            new com.cms.dto.BoardingStatusSwitchRequest(com.cms.model.enums.StudentType.HOSTELER, null, null);
+
+        var record = studentService.executeBoardingStatusSwitch(1L, request);
+
+        assertThat(record.newStudentType()).isEqualTo(com.cms.model.enums.StudentType.HOSTELER);
+    }
+
+    private com.cms.model.StudentTermEnrollment currentEnrollmentDueOn(LocalDate ignored) {
+        com.cms.model.AcademicYear academicYear = new com.cms.model.AcademicYear();
+        academicYear.setId(50L);
+
+        com.cms.model.TermInstance termInstance = new com.cms.model.TermInstance();
+        termInstance.setAcademicYear(academicYear);
+        termInstance.setTermType(com.cms.model.enums.TermType.ODD);
+
+        com.cms.model.StudentTermEnrollment enrollment = new com.cms.model.StudentTermEnrollment();
+        enrollment.setTermInstance(termInstance);
+        enrollment.setSemesterNumber(5);
+        return enrollment;
+    }
+
+    private com.cms.model.TermBillingSchedule billingScheduleDueOn(LocalDate dueDate) {
+        com.cms.model.TermBillingSchedule schedule = new com.cms.model.TermBillingSchedule();
+        schedule.setDueDate(dueDate);
+        return schedule;
     }
 
     private Student createStudent(Long id, String rollNumber, String firstName, String lastName, String email) {

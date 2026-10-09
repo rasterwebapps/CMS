@@ -40,9 +40,22 @@ export interface ProgramTransferRecord {
 
 export type StudentTypeValue = 'DAY_SCHOLAR' | 'HOSTELER';
 
+export interface TermFeeOverrideInput {
+  semesterNumber: number;
+  amount: number;
+}
+
+export interface TermFeeRow {
+  semesterNumber: number;
+  yearOfStudy: number;
+  calculatedAmount: number | null;
+  existingOverride: number | null;
+}
+
 export interface BoardingStatusSwitchRequest {
   newStudentType: StudentTypeValue;
   remarks?: string;
+  termFeeOverrides?: TermFeeOverrideInput[];
 }
 
 export interface BoardingStatusSwitchAnalysis {
@@ -54,6 +67,7 @@ export interface BoardingStatusSwitchAnalysis {
   blockReason: string | null;
   demandsAffected: number;
   estimatedFeeDelta: number;
+  termFees: TermFeeRow[];
 }
 
 export interface BoardingStatusSwitchRecord {

@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -9,12 +10,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cms.dto.FeeDemandDto;
+import com.cms.dto.TermFeeOverrideInput;
+import com.cms.dto.TermFeeRow;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
 import com.cms.model.FeeDemand;
 import com.cms.model.FeeStructure;
 import com.cms.model.FeeStructureYearAmount;
+import com.cms.model.Program;
 import com.cms.model.StudentTermEnrollment;
+import com.cms.model.StudentTermFeeOverride;
 import com.cms.model.TermBillingSchedule;
 import com.cms.model.TermInstance;
 import com.cms.model.enums.AssessmentPattern;
@@ -31,8 +36,10 @@ import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
 import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.StudentTermFeeOverrideRepository;
 import com.cms.repository.TermBillingScheduleRepository;
 import com.cms.repository.TermInstanceRepository;
+import com.cms.util.CurrentUserResolver;
 
 @Service
 @Transactional(readOnly = true)
@@ -47,6 +54,8 @@ public class FeeDemandServiceImpl implements FeeDemandService {
     private final TermBillingScheduleRepository billingScheduleRepository;
     private final AdmissionRepository admissionRepository;
     private final EnquiryPaymentRepository enquiryPaymentRepository;
+    private final StudentTermFeeOverrideRepository termFeeOverrideRepository;
+    private final CurrentUserResolver currentUserResolver;
 
     public FeeDemandServiceImpl(FeeDemandRepository feeDemandRepository,
                                  TermInstanceRepository termInstanceRepository,
@@ -56,7 +65,9 @@ public class FeeDemandServiceImpl implements FeeDemandService {
                                  FeeStructureYearAmountRepository yearAmountRepository,
                                  TermBillingScheduleRepository billingScheduleRepository,
                                  AdmissionRepository admissionRepository,
-                                 EnquiryPaymentRepository enquiryPaymentRepository) {
+                                 EnquiryPaymentRepository enquiryPaymentRepository,
+                                 StudentTermFeeOverrideRepository termFeeOverrideRepository,
+                                 CurrentUserResolver currentUserResolver) {
         this.feeDemandRepository = feeDemandRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.enrollmentRepository = enrollmentRepository;
@@ -66,6 +77,8 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         this.billingScheduleRepository = billingScheduleRepository;
         this.admissionRepository = admissionRepository;
         this.enquiryPaymentRepository = enquiryPaymentRepository;
+        this.termFeeOverrideRepository = termFeeOverrideRepository;
+        this.currentUserResolver = currentUserResolver;
     }
 
     @Override
@@ -180,8 +193,64 @@ public class FeeDemandServiceImpl implements FeeDemandService {
 
     @Override
     @Transactional
-    public StudentTypeSwitchImpact applyStudentTypeSwitchAdjustment(Long studentId, StudentType targetType) {
+    public StudentTypeSwitchImpact applyStudentTypeSwitchAdjustment(Long studentId, StudentType targetType,
+                                                                      List<TermFeeOverrideInput> overrides) {
+        if (overrides != null && !overrides.isEmpty()) {
+            StudentTermEnrollment currentEnrollment = enrollmentRepository
+                .findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED)
+                .orElseThrow(() -> new IllegalStateException(
+                    "Student has no active term enrollment: " + studentId));
+            String actor = currentUserResolver.resolve();
+            for (TermFeeOverrideInput input : overrides) {
+                StudentTermFeeOverride override = termFeeOverrideRepository
+                    .findByStudentIdAndSemesterNumber(studentId, input.semesterNumber())
+                    .orElseGet(StudentTermFeeOverride::new);
+                override.setStudent(currentEnrollment.getStudent());
+                override.setSemesterNumber(input.semesterNumber());
+                override.setOverrideAmount(input.amount());
+                override.setSetBy(actor);
+                override.setSetAt(Instant.now());
+                termFeeOverrideRepository.save(override);
+            }
+        }
         return computeStudentTypeSwitchImpact(studentId, targetType, true);
+    }
+
+    @Override
+    public List<TermFeeRow> previewTermFeeSchedule(Long studentId, StudentType targetType) {
+        StudentTermEnrollment currentEnrollment = enrollmentRepository
+            .findByStudentIdAndStatus(studentId, EnrollmentStatus.ENROLLED)
+            .orElseThrow(() -> new IllegalStateException(
+                "Student has no active term enrollment: " + studentId));
+
+        Program program = currentEnrollment.getCohort().getProgram();
+        AcademicYear academicYear = currentEnrollment.getTermInstance().getAcademicYear();
+        Integer totalTerms = program.getTotalTerms();
+        int lastTerm = totalTerms != null ? totalTerms : currentEnrollment.getSemesterNumber();
+
+        List<TermFeeRow> rows = new ArrayList<>();
+        for (int semNum = currentEnrollment.getSemesterNumber(); semNum <= lastTerm; semNum++) {
+            int yearOfStudy = computeYearOfStudy(semNum, program);
+            BigDecimal calculated;
+            try {
+                calculated = deriveFeeTotalAmountForYear(program, academicYear, yearOfStudy, targetType);
+            } catch (IllegalStateException e) {
+                // No fee plan configured yet for that future year of study -- admin must
+                // supply an explicit override for this row instead of a calculated default.
+                calculated = null;
+            }
+            BigDecimal existingOverride = termFeeOverrideRepository
+                .findByStudentIdAndSemesterNumber(studentId, semNum)
+                .map(StudentTermFeeOverride::getOverrideAmount)
+                .orElse(null);
+            rows.add(new TermFeeRow(semNum, yearOfStudy, calculated, existingOverride));
+        }
+        return rows;
+    }
+
+    private int computeYearOfStudy(int semesterNumber, Program program) {
+        AssessmentPattern pattern = program.getAssessmentPattern();
+        return pattern == AssessmentPattern.YEARLY ? semesterNumber : (int) Math.ceil(semesterNumber / 2.0);
     }
 
     private StudentTypeSwitchImpact computeStudentTypeSwitchImpact(Long studentId, StudentType targetType,
@@ -248,13 +317,26 @@ public class FeeDemandServiceImpl implements FeeDemandService {
     // FeeStructureGroup is a hosteler-only surcharge (see FeeStructureGroup javadoc) — excluded
     // here for DAY_SCHOLAR, mirroring the filter already applied at enquiry-estimate time in
     // FeeStructureService.findForEnquiry.
+    //
+    // A saved StudentTermFeeOverride (set via a boarding-status switch's editable term-fee step)
+    // always wins over the calculated plan amount for that specific term -- this is the single
+    // choke point both generateDemandsForTermInstance (future terms) and the switch's own demand
+    // recompute (current term) go through, so one override row is honored everywhere.
     private BigDecimal deriveFeeTotalAmount(StudentTermEnrollment enrollment, AcademicYear academicYear,
                                              StudentType studentType) {
-        Long programId = enrollment.getCohort().getProgram().getId();
-        Integer yearOfStudy = enrollment.getYearOfStudy();
+        Optional<StudentTermFeeOverride> override = termFeeOverrideRepository
+            .findByStudentIdAndSemesterNumber(enrollment.getStudent().getId(), enrollment.getSemesterNumber());
+        if (override.isPresent()) {
+            return override.get().getOverrideAmount();
+        }
+        return deriveFeeTotalAmountForYear(enrollment.getCohort().getProgram(), academicYear,
+            enrollment.getYearOfStudy(), studentType);
+    }
 
+    private BigDecimal deriveFeeTotalAmountForYear(Program program, AcademicYear academicYear,
+                                                     Integer yearOfStudy, StudentType studentType) {
         List<FeeStructure> allFeeStructures = feeStructureGroupRepository
-            .findByProgramIdAndAcademicYearId(programId, academicYear.getId())
+            .findByProgramIdAndAcademicYearId(program.getId(), academicYear.getId())
             .stream()
             .flatMap(g -> feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(g.getId()).stream())
             .toList();
@@ -262,7 +344,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         if (allFeeStructures.isEmpty()) {
             throw new IllegalStateException(
                 "No fee plan configured for program "
-                + enrollment.getCohort().getProgram().getCode()
+                + program.getCode()
                 + " and academic year " + academicYear.getName()
                 + ". Please configure a fee plan first.");
         }
@@ -286,7 +368,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         if (unfilteredAmounts.isEmpty()) {
             throw new IllegalStateException(
                 "No fee amounts configured for year of study " + yearOfStudy
-                + " in program " + enrollment.getCohort().getProgram().getCode()
+                + " in program " + program.getCode()
                 + ". Please configure fee amounts for this year.");
         }
 

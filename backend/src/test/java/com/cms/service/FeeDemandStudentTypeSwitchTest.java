@@ -10,13 +10,17 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.dto.TermFeeOverrideInput;
+import com.cms.dto.TermFeeRow;
 import com.cms.model.AcademicYear;
 import com.cms.model.Cohort;
 import com.cms.model.Course;
@@ -27,8 +31,11 @@ import com.cms.model.FeeStructureYearAmount;
 import com.cms.model.Program;
 import com.cms.model.Student;
 import com.cms.model.StudentTermEnrollment;
+import com.cms.model.StudentTermFeeOverride;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.DemandStatus;
+import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FeeType;
 import com.cms.model.enums.StudentType;
 import com.cms.model.enums.TermType;
@@ -58,6 +65,8 @@ class FeeDemandStudentTypeSwitchTest {
     @Mock private TermBillingScheduleRepository billingScheduleRepository;
     @Mock private AdmissionRepository admissionRepository;
     @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
+    @Mock private com.cms.repository.StudentTermFeeOverrideRepository termFeeOverrideRepository;
+    @Mock private com.cms.util.CurrentUserResolver currentUserResolver;
 
     private FeeDemandServiceImpl service;
 
@@ -70,7 +79,8 @@ class FeeDemandStudentTypeSwitchTest {
     void setUp() {
         service = new FeeDemandServiceImpl(feeDemandRepository, termInstanceRepository, enrollmentRepository,
             feeStructureGroupRepository, feeStructureRepository, yearAmountRepository,
-            billingScheduleRepository, admissionRepository, enquiryPaymentRepository);
+            billingScheduleRepository, admissionRepository, enquiryPaymentRepository,
+            termFeeOverrideRepository, currentUserResolver);
     }
 
     @Test
@@ -81,7 +91,7 @@ class FeeDemandStudentTypeSwitchTest {
         when(feeDemandRepository.findByStudentTermEnrollmentStudentId(5L)).thenReturn(List.of(demand));
 
         FeeDemandService.StudentTypeSwitchImpact impact =
-            service.applyStudentTypeSwitchAdjustment(5L, StudentType.HOSTELER);
+            service.applyStudentTypeSwitchAdjustment(5L, StudentType.HOSTELER, null);
 
         // 50000 tuition + 15000 hostel = 65000
         assertThat(impact.demandsAffected()).isEqualTo(1);
@@ -100,7 +110,7 @@ class FeeDemandStudentTypeSwitchTest {
         when(feeDemandRepository.findByStudentTermEnrollmentStudentId(6L)).thenReturn(List.of(demand));
 
         FeeDemandService.StudentTypeSwitchImpact impact =
-            service.applyStudentTypeSwitchAdjustment(6L, StudentType.DAY_SCHOLAR);
+            service.applyStudentTypeSwitchAdjustment(6L, StudentType.DAY_SCHOLAR, null);
 
         assertThat(impact.totalDelta()).isEqualByComparingTo("-15000.00");
         assertThat(demand.getTotalAmount()).isEqualByComparingTo("50000.00");
@@ -115,7 +125,7 @@ class FeeDemandStudentTypeSwitchTest {
         when(feeDemandRepository.findByStudentTermEnrollmentStudentId(7L)).thenReturn(List.of(demand));
 
         FeeDemandService.StudentTypeSwitchImpact impact =
-            service.applyStudentTypeSwitchAdjustment(7L, StudentType.DAY_SCHOLAR);
+            service.applyStudentTypeSwitchAdjustment(7L, StudentType.DAY_SCHOLAR, null);
 
         assertThat(impact.demandsAffected()).isEqualTo(1);
         assertThat(demand.getTotalAmount()).isEqualByComparingTo("0.00");
@@ -131,7 +141,7 @@ class FeeDemandStudentTypeSwitchTest {
         when(feeDemandRepository.findByStudentTermEnrollmentStudentId(8L)).thenReturn(List.of(paid, waived));
 
         FeeDemandService.StudentTypeSwitchImpact impact =
-            service.applyStudentTypeSwitchAdjustment(8L, StudentType.HOSTELER);
+            service.applyStudentTypeSwitchAdjustment(8L, StudentType.HOSTELER, null);
 
         assertThat(impact.demandsAffected()).isZero();
         assertThat(impact.totalDelta()).isEqualByComparingTo(BigDecimal.ZERO);
@@ -169,6 +179,134 @@ class FeeDemandStudentTypeSwitchTest {
         BigDecimal dues = service.getOutstandingDuesForStudent(11L);
 
         assertThat(dues).isEqualByComparingTo("30000.00");
+    }
+
+    // ── Term fee override tests ───────────────────────────────────────────────
+
+    @Test
+    void savedOverrideWinsOverCalculatedAmountForCurrentTermDemand() {
+        FeeDemand demand = demand(10L, StudentType.DAY_SCHOLAR, DemandStatus.UNPAID,
+            new BigDecimal("50000.00"), BigDecimal.ZERO);
+        demand.getStudentTermEnrollment().setSemesterNumber(5);
+        Long enrollmentStudentId = demand.getStudentTermEnrollment().getStudent().getId();
+
+        StudentTermFeeOverride override = new StudentTermFeeOverride();
+        override.setOverrideAmount(new BigDecimal("80000.00"));
+        when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(enrollmentStudentId, 5))
+            .thenReturn(Optional.of(override));
+        when(feeDemandRepository.findByStudentTermEnrollmentStudentId(20L)).thenReturn(List.of(demand));
+
+        // No fee-plan stubbing at all -- proves the override short-circuits before the
+        // fee-structure lookup is ever reached.
+        FeeDemandService.StudentTypeSwitchImpact impact =
+            service.applyStudentTypeSwitchAdjustment(20L, StudentType.HOSTELER, null);
+
+        assertThat(demand.getTotalAmount()).isEqualByComparingTo("80000.00");
+        assertThat(impact.totalDelta()).isEqualByComparingTo("30000.00");
+    }
+
+    @Test
+    void applyPersistsSubmittedOverridesBeforeRecomputingDemands() {
+        Student student = new Student();
+        student.setId(30L);
+        StudentTermEnrollment currentEnrollment = new StudentTermEnrollment();
+        currentEnrollment.setStudent(student);
+        currentEnrollment.setSemesterNumber(5);
+
+        when(enrollmentRepository.findByStudentIdAndStatus(30L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Optional.of(currentEnrollment));
+        when(feeDemandRepository.findByStudentTermEnrollmentStudentId(30L)).thenReturn(List.of());
+        when(currentUserResolver.resolve()).thenReturn("admin");
+        when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(30L, 6))
+            .thenReturn(Optional.empty());
+
+        service.applyStudentTypeSwitchAdjustment(30L, StudentType.HOSTELER,
+            List.of(new TermFeeOverrideInput(6, new BigDecimal("80000.00"))));
+
+        ArgumentCaptor<StudentTermFeeOverride> captor = ArgumentCaptor.forClass(StudentTermFeeOverride.class);
+        verify(termFeeOverrideRepository).save(captor.capture());
+        assertThat(captor.getValue().getSemesterNumber()).isEqualTo(6);
+        assertThat(captor.getValue().getOverrideAmount()).isEqualByComparingTo("80000.00");
+        assertThat(captor.getValue().getSetBy()).isEqualTo("admin");
+        assertThat(captor.getValue().getStudent()).isSameAs(student);
+    }
+
+    @Test
+    void applyUpdatesExistingOverrideInsteadOfDuplicating() {
+        Student student = new Student();
+        student.setId(31L);
+        StudentTermEnrollment currentEnrollment = new StudentTermEnrollment();
+        currentEnrollment.setStudent(student);
+        currentEnrollment.setSemesterNumber(5);
+
+        StudentTermFeeOverride existing = new StudentTermFeeOverride();
+        existing.setSemesterNumber(5);
+        existing.setOverrideAmount(new BigDecimal("80000.00"));
+
+        when(enrollmentRepository.findByStudentIdAndStatus(31L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Optional.of(currentEnrollment));
+        when(feeDemandRepository.findByStudentTermEnrollmentStudentId(31L)).thenReturn(List.of());
+        when(currentUserResolver.resolve()).thenReturn("admin");
+        when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(31L, 5))
+            .thenReturn(Optional.of(existing));
+
+        service.applyStudentTypeSwitchAdjustment(31L, StudentType.DAY_SCHOLAR,
+            List.of(new TermFeeOverrideInput(5, new BigDecimal("70000.00"))));
+
+        ArgumentCaptor<StudentTermFeeOverride> captor = ArgumentCaptor.forClass(StudentTermFeeOverride.class);
+        verify(termFeeOverrideRepository).save(captor.capture());
+        assertThat(captor.getValue()).isSameAs(existing);
+        assertThat(captor.getValue().getOverrideAmount()).isEqualByComparingTo("70000.00");
+    }
+
+    @Test
+    void previewTermFeeScheduleNullsCalculatedAmountWhenNoFeePlanConfiguredAndSurfacesExistingOverride() {
+        Program program = new Program();
+        program.setId(PROGRAM_ID);
+        program.setAssessmentPattern(AssessmentPattern.YEARLY);
+        program.setDurationYears(2);
+
+        Course course = new Course();
+        course.setProgram(program);
+        Cohort cohort = new Cohort();
+        cohort.setCourse(course);
+
+        AcademicYear academicYear = new AcademicYear();
+        academicYear.setId(ACADEMIC_YEAR_ID);
+
+        TermInstance termInstance = new TermInstance();
+        termInstance.setAcademicYear(academicYear);
+        termInstance.setTermType(TermType.ODD);
+
+        Student student = new Student();
+        student.setId(40L);
+
+        StudentTermEnrollment currentEnrollment = new StudentTermEnrollment();
+        currentEnrollment.setStudent(student);
+        currentEnrollment.setCohort(cohort);
+        currentEnrollment.setSemesterNumber(1);
+        currentEnrollment.setYearOfStudy(1);
+        currentEnrollment.setTermInstance(termInstance);
+
+        when(enrollmentRepository.findByStudentIdAndStatus(40L, EnrollmentStatus.ENROLLED))
+            .thenReturn(Optional.of(currentEnrollment));
+        stubFeePlan(tuitionAndHostelStructures()); // only configured for YEAR_OF_STUDY (1)
+
+        when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(40L, 1)).thenReturn(Optional.empty());
+        StudentTermFeeOverride override = new StudentTermFeeOverride();
+        override.setOverrideAmount(new BigDecimal("80000.00"));
+        when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(40L, 2))
+            .thenReturn(Optional.of(override));
+
+        List<TermFeeRow> rows = service.previewTermFeeSchedule(40L, StudentType.HOSTELER);
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).semesterNumber()).isEqualTo(1);
+        assertThat(rows.get(0).calculatedAmount()).isEqualByComparingTo("65000.00");
+        assertThat(rows.get(0).existingOverride()).isNull();
+        assertThat(rows.get(1).semesterNumber()).isEqualTo(2);
+        assertThat(rows.get(1).calculatedAmount()).isNull(); // no year-2 plan configured yet
+        assertThat(rows.get(1).existingOverride()).isEqualByComparingTo("80000.00");
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────

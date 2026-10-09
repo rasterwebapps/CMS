@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import com.cms.dto.FeeDemandDto;
+import com.cms.dto.TermFeeOverrideInput;
+import com.cms.dto.TermFeeRow;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.StudentType;
 
@@ -58,8 +60,19 @@ public interface FeeDemandService {
      * Recomputes and saves the new totalAmount (and resulting status) for the student's
      * not-yet-fully-paid demands under {@code targetType}. Already-PAID/WAIVED demands are left
      * untouched — no retroactive refund is issued; any resulting credit is handled manually.
+     * {@code overrides} (sparse -- only terms the admin edited) are persisted first, so the
+     * current term's recomputation above and every later {@link #generateDemandsForTermInstance}
+     * run both pick them up.
      */
-    StudentTypeSwitchImpact applyStudentTypeSwitchAdjustment(Long studentId, StudentType targetType);
+    StudentTypeSwitchImpact applyStudentTypeSwitchAdjustment(Long studentId, StudentType targetType,
+                                                              List<TermFeeOverrideInput> overrides);
+
+    /**
+     * The current term plus every remaining term through the student's program length, each with
+     * its calculated amount under {@code targetType} (null if no fee structure is configured yet
+     * for that term's year of study) and any previously saved override.
+     */
+    List<TermFeeRow> previewTermFeeSchedule(Long studentId, StudentType targetType);
 
     /** Sum of outstanding (unpaid) amounts across the student's non-WAIVED demands. */
     BigDecimal getOutstandingDuesForStudent(Long studentId);

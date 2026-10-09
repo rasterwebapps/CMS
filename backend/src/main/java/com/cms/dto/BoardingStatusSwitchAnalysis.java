@@ -1,6 +1,7 @@
 package com.cms.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import com.cms.model.enums.StudentType;
 
@@ -12,5 +13,6 @@ public record BoardingStatusSwitchAnalysis(
     boolean blocked,
     String blockReason,
     int demandsAffected,
-    BigDecimal estimatedFeeDelta
+    BigDecimal estimatedFeeDelta,
+    List<TermFeeRow> termFees
 ) {}

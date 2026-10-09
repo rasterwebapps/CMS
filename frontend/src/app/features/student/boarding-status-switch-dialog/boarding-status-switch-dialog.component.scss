@@ -91,6 +91,78 @@
   font-style: italic;
 }
 
+// ── Edit fees step ──────────────────────────────────────────────
+.fees-intro {
+  font-size: var(--cms-text-sm);
+  color: var(--mat-sys-on-surface-variant);
+  margin: 0;
+}
+
+.term-fee-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 10px;
+  overflow: hidden;
+
+  &__header,
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 160px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+  }
+
+  &__header {
+    background: var(--mat-sys-surface-container);
+    font-size: var(--cms-text-sm);
+    font-weight: 500;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  &__row {
+    border-top: 1px solid var(--mat-sys-outline-variant);
+  }
+
+  &__label {
+    font-size: var(--cms-text-base);
+    color: var(--mat-sys-on-surface);
+  }
+
+  &__year {
+    color: var(--mat-sys-on-surface-variant);
+    font-size: var(--cms-text-sm);
+    margin-left: 4px;
+  }
+
+  &__input {
+    width: 100%;
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: var(--cms-text-base);
+    background: var(--mat-sys-surface);
+    color: var(--mat-sys-on-surface);
+    box-sizing: border-box;
+    font-family: inherit;
+    outline: none;
+    text-align: right;
+
+    &:focus { border-color: var(--mat-sys-primary); }
+
+    &--unconfigured {
+      border-color: var(--mat-sys-error);
+
+      &::placeholder {
+        color: var(--mat-sys-error);
+        font-size: var(--cms-text-sm);
+        text-align: left;
+      }
+    }
+  }
+}
+
 .load-error {
   padding: 16px;
   border-radius: 8px;

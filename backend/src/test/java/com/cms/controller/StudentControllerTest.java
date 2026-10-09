@@ -398,7 +398,7 @@ class StudentControllerTest {
     void shouldAnalyzeBoardingStatusSwitch() throws Exception {
         BoardingStatusSwitchAnalysis analysis = new BoardingStatusSwitchAnalysis(
             1L, "John Doe", StudentType.DAY_SCHOLAR, StudentType.HOSTELER,
-            false, null, 1, new java.math.BigDecimal("15000.00"));
+            false, null, 1, new java.math.BigDecimal("15000.00"), java.util.List.of());
         when(studentService.analyzeBoardingStatusSwitch(1L, StudentType.HOSTELER)).thenReturn(analysis);
 
         mockMvc.perform(get("/students/1/boarding-status-switch-analysis").param("targetType", "HOSTELER"))
@@ -417,7 +417,7 @@ class StudentControllerTest {
         when(studentService.executeBoardingStatusSwitch(eq(1L), any(BoardingStatusSwitchRequest.class)))
             .thenReturn(record);
 
-        BoardingStatusSwitchRequest request = new BoardingStatusSwitchRequest(StudentType.HOSTELER, "moved to hostel");
+        BoardingStatusSwitchRequest request = new BoardingStatusSwitchRequest(StudentType.HOSTELER, "moved to hostel", null);
 
         mockMvc.perform(post("/students/1/boarding-status-switch")
                 .contentType(MediaType.APPLICATION_JSON)

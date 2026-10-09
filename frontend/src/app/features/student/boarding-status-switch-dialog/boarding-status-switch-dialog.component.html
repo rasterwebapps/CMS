@@ -46,7 +46,49 @@
       </div>
     }
 
-    <!-- Step 2: Confirm -->
+    <!-- Step 2: Edit per-term fees -->
+    @if (step() === 'EDIT_FEES') {
+      <div class="step">
+        <p class="fees-intro">
+          Review the fee for {{ an.studentName }}'s current and remaining terms under
+          {{ label(an.targetStudentType) }}. Edit any term below — changes stick as the final
+          fee for that term going forward until changed again.
+        </p>
+
+        <div class="term-fee-table">
+          <div class="term-fee-table__header">
+            <span>Term</span>
+            <span>Amount</span>
+          </div>
+          @for (row of termFeeRows(); track row.semesterNumber) {
+            <div class="term-fee-table__row">
+              <span class="term-fee-table__label">
+                Term {{ row.semesterNumber }}
+                <span class="term-fee-table__year">(Year {{ row.yearOfStudy }})</span>
+              </span>
+              @if (row.defaultAmount == null) {
+                <input
+                  type="number"
+                  class="term-fee-table__input term-fee-table__input--unconfigured"
+                  [(ngModel)]="row.editedAmount"
+                  [ngModelOptions]="{ standalone: true }"
+                  placeholder="Not configured — enter amount"
+                />
+              } @else {
+                <input
+                  type="number"
+                  class="term-fee-table__input"
+                  [(ngModel)]="row.editedAmount"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Step 3: Confirm -->
     @if (step() === 'CONFIRM') {
       <div class="step">
         <div class="confirm-summary">
@@ -93,10 +135,15 @@
     <button
       mat-flat-button color="primary"
       [disabled]="loading() || !analysis() || analysis()!.blocked"
-      (click)="proceedToConfirm()"
+      (click)="proceedToEditFees()"
     >
       Continue
     </button>
+  }
+
+  @if (step() === 'EDIT_FEES') {
+    <button mat-button (click)="back()">Back</button>
+    <button mat-flat-button color="primary" (click)="proceedToConfirm()">Continue</button>
   }
 
   @if (step() === 'CONFIRM') {

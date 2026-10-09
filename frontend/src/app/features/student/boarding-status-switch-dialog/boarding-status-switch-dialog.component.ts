@@ -5,7 +5,7 @@ import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/materia
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { StudentService } from '../student.service';
-import { BoardingStatusSwitchAnalysis, StudentTypeValue } from '../student.model';
+import { BoardingStatusSwitchAnalysis, StudentTypeValue, TermFeeOverrideInput } from '../student.model';
 import { ToastService } from '../../../core/toast/toast.service';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 
@@ -15,7 +15,14 @@ export interface BoardingStatusSwitchDialogData {
   currentStudentType: StudentTypeValue;
 }
 
-type Step = 'REVIEW' | 'CONFIRM';
+type Step = 'REVIEW' | 'EDIT_FEES' | 'CONFIRM';
+
+interface TermFeeRowModel {
+  semesterNumber: number;
+  yearOfStudy: number;
+  defaultAmount: number | null;
+  editedAmount: number | null;
+}
 
 @Component({
   selector: 'app-boarding-status-switch-dialog',
@@ -41,6 +48,7 @@ export class BoardingStatusSwitchDialogComponent implements OnInit {
   protected loading = signal(true);
   protected submitting = signal(false);
   protected analysis = signal<BoardingStatusSwitchAnalysis | null>(null);
+  protected termFeeRows = signal<TermFeeRowModel[]>([]);
 
   protected remarks = '';
 
@@ -51,6 +59,14 @@ export class BoardingStatusSwitchDialogComponent implements OnInit {
     this.studentService.analyzeBoardingStatusSwitch(this.data.studentId, this.targetStudentType).subscribe({
       next: (analysis) => {
         this.analysis.set(analysis);
+        this.termFeeRows.set(
+          analysis.termFees.map((row) => ({
+            semesterNumber: row.semesterNumber,
+            yearOfStudy: row.yearOfStudy,
+            defaultAmount: row.existingOverride ?? row.calculatedAmount,
+            editedAmount: row.existingOverride ?? row.calculatedAmount,
+          }))
+        );
         this.loading.set(false);
       },
       error: (err) => {
@@ -60,20 +76,29 @@ export class BoardingStatusSwitchDialogComponent implements OnInit {
     });
   }
 
+  protected proceedToEditFees(): void {
+    this.step.set('EDIT_FEES');
+  }
+
   protected proceedToConfirm(): void {
     this.step.set('CONFIRM');
   }
 
   protected back(): void {
-    this.step.set('REVIEW');
+    this.step.set(this.step() === 'CONFIRM' ? 'EDIT_FEES' : 'REVIEW');
   }
 
   protected executeSwitch(): void {
     this.submitting.set(true);
+    const termFeeOverrides: TermFeeOverrideInput[] = this.termFeeRows()
+      .filter((row) => row.editedAmount != null && row.editedAmount !== row.defaultAmount)
+      .map((row) => ({ semesterNumber: row.semesterNumber, amount: row.editedAmount! }));
+
     this.studentService
       .executeBoardingStatusSwitch(this.data.studentId, {
         newStudentType: this.targetStudentType,
         remarks: this.remarks.trim() || undefined,
+        termFeeOverrides: termFeeOverrides.length > 0 ? termFeeOverrides : undefined,
       })
       .subscribe({
         next: (record) => {
