@@ -2,7 +2,6 @@ package com.cms.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -22,9 +21,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.cms.dto.TermFeeOverrideInput;
 import com.cms.dto.TermFeeRow;
 import com.cms.model.AcademicYear;
+import com.cms.model.Admission;
 import com.cms.model.Cohort;
 import com.cms.model.Course;
+import com.cms.model.Enquiry;
 import com.cms.model.FeeDemand;
+import com.cms.model.FeeState;
 import com.cms.model.FeeStructure;
 import com.cms.model.FeeStructureGroup;
 import com.cms.model.FeeStructureYearAmount;
@@ -33,15 +35,19 @@ import com.cms.model.Student;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.StudentTermFeeOverride;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FeeType;
+import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentType;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeDemandRepository;
+import com.cms.repository.FeeStateRepository;
 import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
@@ -67,6 +73,8 @@ class FeeDemandStudentTypeSwitchTest {
     @Mock private EnquiryPaymentRepository enquiryPaymentRepository;
     @Mock private com.cms.repository.StudentTermFeeOverrideRepository termFeeOverrideRepository;
     @Mock private com.cms.util.CurrentUserResolver currentUserResolver;
+    @Mock private EnquiryRepository enquiryRepository;
+    @Mock private FeeStateRepository feeStateRepository;
 
     private FeeDemandServiceImpl service;
 
@@ -80,7 +88,7 @@ class FeeDemandStudentTypeSwitchTest {
         service = new FeeDemandServiceImpl(feeDemandRepository, termInstanceRepository, enrollmentRepository,
             feeStructureGroupRepository, feeStructureRepository, yearAmountRepository,
             billingScheduleRepository, admissionRepository, enquiryPaymentRepository,
-            termFeeOverrideRepository, currentUserResolver);
+            termFeeOverrideRepository, currentUserResolver, enquiryRepository, feeStateRepository);
     }
 
     @Test
@@ -309,6 +317,7 @@ class FeeDemandStudentTypeSwitchTest {
 
         Student student = new Student();
         student.setId(40L);
+        stubAdmissionAndEnquiry(40L);
 
         StudentTermEnrollment currentEnrollment = new StudentTermEnrollment();
         currentEnrollment.setStudent(student);
@@ -338,6 +347,38 @@ class FeeDemandStudentTypeSwitchTest {
         assertThat(rows.get(1).existingOverride()).isEqualByComparingTo("80000.00");
     }
 
+    @Test
+    void resolvesOnlyTheMatchingFeeStructureGroupInsteadOfSummingEveryGroupForTheProgramAndYear() {
+        // Reproduces a real production bug (found via a live-data screenshot, not a guess): a
+        // program+academicYear legitimately has multiple FeeStructureGroup rows, one per
+        // (quota, feeState, gender) combination per BR-30. The old deriveFeeTotalAmount summed
+        // every group's TUITION amount instead of resolving the one group matching this
+        // student's actual admission dimensions, silently inflating every fee demand for any
+        // program with more than one configured group. The single matching group here has a
+        // 75000 TUITION row -- if the fix regressed to the old broad
+        // findByProgramIdAndAcademicYearId lookup (deliberately left unstubbed below), that call
+        // returns an empty list by default and the whole computation throws instead of silently
+        // passing with a wrong number.
+        FeeDemand demand = demand(12L, StudentType.DAY_SCHOLAR, DemandStatus.UNPAID,
+            new BigDecimal("50000.00"), BigDecimal.ZERO);
+
+        FeeStructureGroup matchingGroup = group();
+        FeeStructure tuition = new FeeStructure(matchingGroup, FeeType.TUITION, new BigDecimal("75000.00"), true, true);
+        tuition.setId(41L);
+        when(yearAmountRepository.findByFeeStructureIdAndYearNumber(41L, YEAR_OF_STUDY))
+            .thenReturn(List.of(new FeeStructureYearAmount(tuition, YEAR_OF_STUDY, "Year 1", new BigDecimal("75000.00"))));
+        when(feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(any())).thenReturn(List.of(tuition));
+        when(feeStructureGroupRepository.findExact(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Optional.of(matchingGroup));
+        when(feeDemandRepository.findByStudentTermEnrollmentStudentId(13L)).thenReturn(List.of(demand));
+
+        FeeDemandService.StudentTypeSwitchImpact impact =
+            service.applyStudentTypeSwitchAdjustment(13L, StudentType.DAY_SCHOLAR, null);
+
+        assertThat(demand.getTotalAmount()).isEqualByComparingTo("75000.00");
+        assertThat(impact.totalDelta()).isEqualByComparingTo("25000.00");
+    }
+
     // ── Fixtures ────────────────────────────────────────────────────────────
 
     private FeeDemand demand(Long id, StudentType studentType, DemandStatus status,
@@ -354,6 +395,7 @@ class FeeDemandStudentTypeSwitchTest {
         Student student = new Student();
         student.setId(100L + id);
         student.setStudentType(studentType);
+        stubAdmissionAndEnquiry(student.getId());
 
         StudentTermEnrollment enrollment = new StudentTermEnrollment();
         enrollment.setId(id);
@@ -414,9 +456,28 @@ class FeeDemandStudentTypeSwitchTest {
         FeeStructureGroup group = structures.get(0).getFeeStructureGroup();
         // group.getId() is null on a bare `new FeeStructureGroup()`, which is fine — the mocked
         // repositories below are stubbed by argument matchers, not by that id.
-        when(feeStructureGroupRepository.findByProgramIdAndAcademicYearId(anyLong(), anyLong()))
-            .thenReturn(List.of(group));
-        when(feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(any()))
+        lenient().when(feeStructureGroupRepository.findExact(any(), any(), any(), any(), any(), any()))
+            .thenReturn(Optional.of(group));
+        lenient().when(feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(any()))
             .thenReturn(structures);
+    }
+
+    /** Stubs the admission/enquiry chain `resolveFeeStructureGroup` walks to learn a student's
+     *  quota/feeState/gender -- the actual values don't matter since `stubFeePlan`'s `findExact`
+     *  stub matches on any() args, but the chain must resolve to *something* non-empty or group
+     *  resolution throws before ever reaching the fee-structure lookup. */
+    private void stubAdmissionAndEnquiry(Long studentId) {
+        Admission admission = new Admission();
+        admission.setId(900_000L + studentId);
+        admission.setEnquiryId(800_000L + studentId);
+        lenient().when(admissionRepository.findByStudentId(studentId)).thenReturn(Optional.of(admission));
+
+        FeeState feeState = new FeeState();
+        feeState.setId(1L);
+
+        Enquiry enquiry = new Enquiry();
+        enquiry.setAdmissionQuota(AdmissionQuota.MANAGEMENT);
+        enquiry.setFeeState(feeState);
+        lenient().when(enquiryRepository.findById(admission.getEnquiryId())).thenReturn(Optional.of(enquiry));
     }
 }

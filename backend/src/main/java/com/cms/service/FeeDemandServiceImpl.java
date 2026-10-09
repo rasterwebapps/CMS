@@ -14,24 +14,34 @@ import com.cms.dto.TermFeeOverrideInput;
 import com.cms.dto.TermFeeRow;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Admission;
+import com.cms.model.Cohort;
+import com.cms.model.Enquiry;
 import com.cms.model.FeeDemand;
+import com.cms.model.FeeState;
 import com.cms.model.FeeStructure;
+import com.cms.model.FeeStructureGroup;
 import com.cms.model.FeeStructureYearAmount;
 import com.cms.model.Program;
+import com.cms.model.Student;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.StudentTermFeeOverride;
 import com.cms.model.TermBillingSchedule;
 import com.cms.model.TermInstance;
+import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.AssessmentPattern;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FeeType;
+import com.cms.model.enums.Gender;
 import com.cms.model.enums.StudentType;
 import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.EnquiryPaymentRepository;
+import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeDemandRepository;
+import com.cms.repository.FeeStateRepository;
 import com.cms.repository.FeeStructureGroupRepository;
 import com.cms.repository.FeeStructureRepository;
 import com.cms.repository.FeeStructureYearAmountRepository;
@@ -56,6 +66,8 @@ public class FeeDemandServiceImpl implements FeeDemandService {
     private final EnquiryPaymentRepository enquiryPaymentRepository;
     private final StudentTermFeeOverrideRepository termFeeOverrideRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final EnquiryRepository enquiryRepository;
+    private final FeeStateRepository feeStateRepository;
 
     public FeeDemandServiceImpl(FeeDemandRepository feeDemandRepository,
                                  TermInstanceRepository termInstanceRepository,
@@ -67,7 +79,9 @@ public class FeeDemandServiceImpl implements FeeDemandService {
                                  AdmissionRepository admissionRepository,
                                  EnquiryPaymentRepository enquiryPaymentRepository,
                                  StudentTermFeeOverrideRepository termFeeOverrideRepository,
-                                 CurrentUserResolver currentUserResolver) {
+                                 CurrentUserResolver currentUserResolver,
+                                 EnquiryRepository enquiryRepository,
+                                 FeeStateRepository feeStateRepository) {
         this.feeDemandRepository = feeDemandRepository;
         this.termInstanceRepository = termInstanceRepository;
         this.enrollmentRepository = enrollmentRepository;
@@ -79,6 +93,8 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         this.enquiryPaymentRepository = enquiryPaymentRepository;
         this.termFeeOverrideRepository = termFeeOverrideRepository;
         this.currentUserResolver = currentUserResolver;
+        this.enquiryRepository = enquiryRepository;
+        this.feeStateRepository = feeStateRepository;
     }
 
     @Override
@@ -223,6 +239,8 @@ public class FeeDemandServiceImpl implements FeeDemandService {
 
         Program program = currentEnrollment.getCohort().getProgram();
         AcademicYear academicYear = currentEnrollment.getTermInstance().getAcademicYear();
+        FeeStructureGroup group = resolveFeeStructureGroup(
+            currentEnrollment.getStudent(), currentEnrollment.getCohort(), academicYear);
         Integer totalTerms = program.getTotalTerms();
         int lastTerm = totalTerms != null ? totalTerms : currentEnrollment.getSemesterNumber();
 
@@ -231,7 +249,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
             int yearOfStudy = computeYearOfStudy(semNum, program);
             BigDecimal calculated;
             try {
-                calculated = deriveFeeTotalAmountForYear(program, academicYear, yearOfStudy, targetType);
+                calculated = sumFeeStructureGroupAmount(group, program, yearOfStudy, targetType);
             } catch (IllegalStateException e) {
                 // No fee plan configured yet for that future year of study -- admin must
                 // supply an explicit override for this row instead of a calculated default.
@@ -339,23 +357,62 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         if (override.isPresent()) {
             return override.get().getOverrideAmount();
         }
-        return deriveFeeTotalAmountForYear(enrollment.getCohort().getProgram(), academicYear,
+        FeeStructureGroup group = resolveFeeStructureGroup(enrollment.getStudent(), enrollment.getCohort(), academicYear);
+        return sumFeeStructureGroupAmount(group, enrollment.getCohort().getProgram(),
             enrollment.getYearOfStudy(), studentType);
     }
 
-    private BigDecimal deriveFeeTotalAmountForYear(Program program, AcademicYear academicYear,
-                                                     Integer yearOfStudy, StudentType studentType) {
-        List<FeeStructure> allFeeStructures = feeStructureGroupRepository
-            .findByProgramIdAndAcademicYearId(program.getId(), academicYear.getId())
-            .stream()
-            .flatMap(g -> feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(g.getId()).stream())
-            .toList();
+    /**
+     * Resolves the SINGLE FeeStructureGroup matching the student's actual admission dimensions
+     * (quota/feeState/gender, per BR-30) -- a program+academicYear can legitimately have many
+     * groups, one per dimension combination, via {@code findByProgramIdAndAcademicYearId}. A
+     * prior version of this method summed amounts across every group returned by that finder
+     * instead of resolving to the one that actually applies to this student, silently inflating
+     * every fee demand for any program with more than one configured group. Mirrors the exact
+     * resolution (including fallback fee state) already used by FeeStructureService.findForEnquiry.
+     */
+    private FeeStructureGroup resolveFeeStructureGroup(Student student, Cohort cohort, AcademicYear academicYear) {
+        Long courseId = cohort.getCourse() != null ? cohort.getCourse().getId() : null;
+        Admission admission = admissionRepository.findByStudentId(student.getId())
+            .orElseThrow(() -> new IllegalStateException(
+                "No admission record found for student " + student.getId()
+                + " -- cannot resolve which fee structure group applies."));
+        Enquiry enquiry = enquiryRepository.findById(admission.getEnquiryId())
+            .orElseThrow(() -> new IllegalStateException(
+                "No enquiry record found for admission " + admission.getId()
+                + " -- cannot resolve which fee structure group applies."));
 
-        if (allFeeStructures.isEmpty()) {
+        AdmissionQuota quota = enquiry.getAdmissionQuota();
+        Long feeStateId = enquiry.getFeeState() != null ? enquiry.getFeeState().getId() : null;
+        Gender gender = student.getGender();
+        Long programId = cohort.getProgram().getId();
+
+        Optional<FeeStructureGroup> group = feeStructureGroupRepository.findExact(
+            programId, academicYear.getId(), courseId, quota, feeStateId, gender);
+
+        if (group.isEmpty()) {
+            Optional<FeeState> fallbackState = feeStateRepository.findByIsFallbackTrue();
+            if (fallbackState.isPresent() && !fallbackState.get().getId().equals(feeStateId)) {
+                group = feeStructureGroupRepository.findExact(
+                    programId, academicYear.getId(), courseId, quota, fallbackState.get().getId(), gender);
+            }
+        }
+
+        return group.orElseThrow(() -> new IllegalStateException(
+            "No fee plan configured for program " + cohort.getProgram().getCode()
+            + " and academic year " + academicYear.getName()
+            + " matching quota=" + quota + ", gender=" + gender
+            + ". Please configure a fee plan first."));
+    }
+
+    private BigDecimal sumFeeStructureGroupAmount(FeeStructureGroup group, Program program,
+                                                    Integer yearOfStudy, StudentType studentType) {
+        List<FeeStructure> structures = feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(group.getId());
+
+        if (structures.isEmpty()) {
             throw new IllegalStateException(
                 "No fee plan configured for program "
                 + program.getCode()
-                + " and academic year " + academicYear.getName()
                 + ". Please configure a fee plan first.");
         }
 
@@ -364,7 +421,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         // a legitimate zero rather than a false "no fee amounts configured" error.
         List<FeeStructureYearAmount> unfilteredAmounts = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
-        for (FeeStructure fs : allFeeStructures) {
+        for (FeeStructure fs : structures) {
             List<FeeStructureYearAmount> amounts =
                 yearAmountRepository.findByFeeStructureIdAndYearNumber(fs.getId(), yearOfStudy);
             unfilteredAmounts.addAll(amounts);
