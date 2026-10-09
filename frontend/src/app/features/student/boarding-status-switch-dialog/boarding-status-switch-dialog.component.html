@@ -69,21 +69,31 @@
               @if (row.defaultAmount == null) {
                 <input
                   type="number"
+                  min="0"
                   class="term-fee-table__input term-fee-table__input--unconfigured"
                   [(ngModel)]="row.editedAmount"
                   [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="onFeeAmountChange(row)"
+                  (keydown)="blockNegativeKey($event)"
                   placeholder="Not configured — enter amount"
                 />
               } @else {
                 <input
                   type="number"
+                  min="0"
                   class="term-fee-table__input"
                   [(ngModel)]="row.editedAmount"
                   [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="onFeeAmountChange(row)"
+                  (keydown)="blockNegativeKey($event)"
                 />
               }
             </div>
           }
+          <div class="term-fee-table__row term-fee-table__row--total">
+            <span class="term-fee-table__label">Total</span>
+            <span class="term-fee-table__total">{{ totalAmount() | inr }}</span>
+          </div>
         </div>
       </div>
     }

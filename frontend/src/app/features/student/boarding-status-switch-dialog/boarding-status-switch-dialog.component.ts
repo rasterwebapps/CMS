@@ -88,10 +88,29 @@ export class BoardingStatusSwitchDialogComponent implements OnInit {
     this.step.set(this.step() === 'CONFIRM' ? 'EDIT_FEES' : 'REVIEW');
   }
 
+  protected onFeeAmountChange(row: TermFeeRowModel): void {
+    // A negative number can still reach here via paste/autofill even with the keydown guard —
+    // revert to the row's last valid value instead of letting it through to submission, where
+    // the backend's @Positive check would otherwise surface as a raw validation-message toast.
+    if (row.editedAmount != null && row.editedAmount < 0) {
+      row.editedAmount = row.defaultAmount;
+    }
+  }
+
+  protected blockNegativeKey(event: KeyboardEvent): void {
+    if (event.key === '-' || event.key === 'Minus') {
+      event.preventDefault();
+    }
+  }
+
+  protected totalAmount(): number {
+    return this.termFeeRows().reduce((sum, row) => sum + (row.editedAmount ?? row.defaultAmount ?? 0), 0);
+  }
+
   protected executeSwitch(): void {
     this.submitting.set(true);
     const termFeeOverrides: TermFeeOverrideInput[] = this.termFeeRows()
-      .filter((row) => row.editedAmount != null && row.editedAmount !== row.defaultAmount)
+      .filter((row) => row.editedAmount != null && row.editedAmount > 0 && row.editedAmount !== row.defaultAmount)
       .map((row) => ({ semesterNumber: row.semesterNumber, amount: row.editedAmount! }));
 
     this.studentService

@@ -123,9 +123,20 @@
 
   &__row {
     border-top: 1px solid var(--mat-sys-outline-variant);
+
+    &--total {
+      background: var(--mat-sys-surface-container);
+      font-weight: 600;
+    }
   }
 
   &__label {
+    font-size: var(--cms-text-base);
+    color: var(--mat-sys-on-surface);
+  }
+
+  &__total {
+    text-align: right;
     font-size: var(--cms-text-base);
     color: var(--mat-sys-on-surface);
   }
