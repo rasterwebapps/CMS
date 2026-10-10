@@ -126,6 +126,9 @@ export class StudentDetailComponent implements OnInit {
   protected readonly expandedEnrollments = signal(new Set<number>());
   protected readonly selectedReceipt = signal<ReceiptDisplayData | null>(null);
 
+  /** Student Explorer list filters/page/sort carried forward via query params, restored on Back. */
+  protected readonly backQueryParams = this.route.snapshot.queryParams;
+
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
 
@@ -218,7 +221,7 @@ export class StudentDetailComponent implements OnInit {
       },
       error: () => {
         this.toast.error('Failed to load student');
-        void this.router.navigate(['/students']);
+        void this.router.navigate(['/students'], { queryParams: this.backQueryParams });
       },
     });
   }

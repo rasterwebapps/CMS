@@ -57,6 +57,10 @@ export class StudentFormComponent implements OnInit {
   private readonly bloodGroupService = inject(BloodGroupService);
 
   protected readonly bankAccountTypeOptions = STUDENT_BANK_ACCOUNT_TYPE_OPTIONS;
+
+  /** Student Explorer list filters/page/sort carried forward via query params, restored on Back/Cancel/Save. */
+  protected readonly backQueryParams = this.route.snapshot.queryParams;
+
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
@@ -253,7 +257,7 @@ export class StudentFormComponent implements OnInit {
           ? 'Student updated successfully'
           : 'Student created successfully';
         this.toast.success(message);
-        void this.router.navigate(['/students']);
+        void this.router.navigate(['/students'], { queryParams: this.backQueryParams });
       },
       error: (err) => {
         const message = err?.error?.message ?? (this.isEditMode()
@@ -355,7 +359,7 @@ export class StudentFormComponent implements OnInit {
       },
       error: () => {
         this.toast.error('Failed to load student');
-        void this.router.navigate(['/students']);
+        void this.router.navigate(['/students'], { queryParams: this.backQueryParams });
       },
     });
   }

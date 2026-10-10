@@ -418,11 +418,11 @@ export class StudentListComponent implements OnInit, OnDestroy {
 
   // ── Row actions ───────────────────────────────────────────────
   protected viewStudent(student: Student): void {
-    void this.router.navigate(['/students', student.id]);
+    void this.router.navigate(['/students', student.id], { queryParamsHandling: 'preserve' });
   }
 
   protected editStudent(student: Student): void {
-    void this.router.navigate(['/students', student.id, 'edit']);
+    void this.router.navigate(['/students', student.id, 'edit'], { queryParamsHandling: 'preserve' });
   }
 
   protected deleteStudent(student: Student): void {

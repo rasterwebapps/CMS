@@ -1,6 +1,6 @@
 <div class="entry-form-page">
   <div class="entry-form-header">
-    <a class="entry-form-back-btn" routerLink="/students" aria-label="Back to students">
+    <a class="entry-form-back-btn" routerLink="/students" [queryParams]="backQueryParams" aria-label="Back to students">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
     </a>
     <div class="entry-form-hdr-text">
@@ -395,7 +395,7 @@
           </div>
 
           <div id="tour-stu-submit" class="entry-form-card__footer">
-            <button type="button" class="btn-cancel" routerLink="/students">Cancel</button>
+            <button type="button" class="btn-cancel" routerLink="/students" [queryParams]="backQueryParams">Cancel</button>
             <button type="submit" class="btn-submit" [disabled]="saving()">
               @if (saving()) {
                 <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
