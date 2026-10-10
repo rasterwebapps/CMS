@@ -1,6 +1,7 @@
 package com.cms.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -249,7 +250,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
             int yearOfStudy = computeYearOfStudy(semNum, program);
             BigDecimal calculated;
             try {
-                calculated = sumFeeStructureGroupAmount(group, program, yearOfStudy, targetType);
+                calculated = sumFeeStructureGroupAmount(group, program, yearOfStudy, semNum, targetType);
             } catch (IllegalStateException e) {
                 // No fee plan configured yet for that future year of study -- admin must
                 // supply an explicit override for this row instead of a calculated default.
@@ -359,7 +360,7 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         }
         FeeStructureGroup group = resolveFeeStructureGroup(enrollment.getStudent(), enrollment.getCohort(), academicYear);
         return sumFeeStructureGroupAmount(group, enrollment.getCohort().getProgram(),
-            enrollment.getYearOfStudy(), studentType);
+            enrollment.getYearOfStudy(), enrollment.getSemesterNumber(), studentType);
     }
 
     /**
@@ -405,8 +406,18 @@ public class FeeDemandServiceImpl implements FeeDemandService {
             + ". Please configure a fee plan first."));
     }
 
+    /**
+     * {@code FeeStructureYearAmount} is keyed per year of study, not per term -- for a TERM_BASED
+     * program that year covers two semesters, so the raw year total must be split in half per
+     * term rather than charged in full to each of the year's two semesters (which double-bills
+     * the student across the year). Mirrors RetroAdmitService's own sem1/sem2 split exactly:
+     * floor(total/2) for the odd (first) semester of the year, the remainder for the even
+     * (second) one, so a one-rupee rounding remainder always lands on the second term the same
+     * way it does when a retro-admitted student's historical fee is entered by hand.
+     */
     private BigDecimal sumFeeStructureGroupAmount(FeeStructureGroup group, Program program,
-                                                    Integer yearOfStudy, StudentType studentType) {
+                                                    Integer yearOfStudy, Integer semesterNumber,
+                                                    StudentType studentType) {
         List<FeeStructure> structures = feeStructureRepository.findByFeeStructureGroupIdAndIsActiveTrue(group.getId());
 
         if (structures.isEmpty()) {
@@ -420,14 +431,14 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         // entirely HOSTEL_FEE for this program (filtered to nothing for a day scholar) reports as
         // a legitimate zero rather than a false "no fee amounts configured" error.
         List<FeeStructureYearAmount> unfilteredAmounts = new ArrayList<>();
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal yearTotal = BigDecimal.ZERO;
         for (FeeStructure fs : structures) {
             List<FeeStructureYearAmount> amounts =
                 yearAmountRepository.findByFeeStructureIdAndYearNumber(fs.getId(), yearOfStudy);
             unfilteredAmounts.addAll(amounts);
             if (studentType != StudentType.DAY_SCHOLAR || fs.getFeeType() != FeeType.HOSTEL_FEE) {
                 for (FeeStructureYearAmount ya : amounts) {
-                    total = total.add(ya.getAmount());
+                    yearTotal = yearTotal.add(ya.getAmount());
                 }
             }
         }
@@ -439,7 +450,12 @@ public class FeeDemandServiceImpl implements FeeDemandService {
                 + ". Please configure fee amounts for this year.");
         }
 
-        return total;
+        if (program.getAssessmentPattern() == AssessmentPattern.YEARLY) {
+            return yearTotal;
+        }
+        BigDecimal firstTermShare = yearTotal.divide(BigDecimal.valueOf(2), 0, RoundingMode.FLOOR);
+        boolean isSecondTermOfYear = semesterNumber % 2 == 0;
+        return isSecondTermOfYear ? yearTotal.subtract(firstTermShare) : firstTermShare;
     }
 
     // Applies any unapplied enquiry payment credit to the freshly created demand.

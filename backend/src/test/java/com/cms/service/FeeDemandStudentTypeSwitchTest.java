@@ -348,6 +348,102 @@ class FeeDemandStudentTypeSwitchTest {
     }
 
     @Test
+    void previewTermFeeScheduleSplitsTermBasedYearTotalEvenlyAcrossItsTwoSemesters() {
+        // Regression for a real production bug: FeeStructureYearAmount is keyed per year of
+        // study, but a TERM_BASED program's year covers two semesters -- the old code charged
+        // the FULL year total to EACH semester (double-billing the year across its two terms).
+        // tuitionAndHostelStructures() configures year 1 at 65000.00 (hostel) -- even, so this
+        // splits cleanly with no remainder; see the next test for the odd-total remainder case.
+        Program program = new Program();
+        program.setId(PROGRAM_ID);
+        program.setAssessmentPattern(AssessmentPattern.TERM_BASED);
+        program.setDurationYears(1);
+
+        Course course = new Course();
+        course.setProgram(program);
+        Cohort cohort = new Cohort();
+        cohort.setCourse(course);
+
+        AcademicYear academicYear = new AcademicYear();
+        academicYear.setId(ACADEMIC_YEAR_ID);
+        TermInstance termInstance = new TermInstance();
+        termInstance.setAcademicYear(academicYear);
+        termInstance.setTermType(TermType.ODD);
+
+        Student student = new Student();
+        student.setId(41L);
+        stubAdmissionAndEnquiry(41L);
+
+        StudentTermEnrollment currentEnrollment = new StudentTermEnrollment();
+        currentEnrollment.setStudent(student);
+        currentEnrollment.setCohort(cohort);
+        currentEnrollment.setSemesterNumber(1);
+        currentEnrollment.setYearOfStudy(1);
+        currentEnrollment.setTermInstance(termInstance);
+
+        when(enrollmentRepository.findByStudentIdAndStatus(41L, EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(currentEnrollment));
+        stubFeePlan(tuitionAndHostelStructures());
+        lenient().when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(any(), any()))
+            .thenReturn(Optional.empty());
+
+        List<TermFeeRow> rows = service.previewTermFeeSchedule(41L, StudentType.HOSTELER);
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(0).semesterNumber()).isEqualTo(1);
+        assertThat(rows.get(0).calculatedAmount()).isEqualByComparingTo("32500.00");
+        assertThat(rows.get(1).semesterNumber()).isEqualTo(2);
+        assertThat(rows.get(1).calculatedAmount()).isEqualByComparingTo("32500.00");
+    }
+
+    @Test
+    void previewTermFeeSchedulePutsRoundingRemainderOnSecondSemesterOfAnOddYearTotal() {
+        FeeStructureGroup group = group();
+        FeeStructure tuition = new FeeStructure(group, FeeType.TUITION, new BigDecimal("50001.00"), true, true);
+        tuition.setId(50L);
+        lenient().when(yearAmountRepository.findByFeeStructureIdAndYearNumber(50L, 1))
+            .thenReturn(List.of(new FeeStructureYearAmount(tuition, 1, "Year 1", new BigDecimal("50001.00"))));
+        stubFeePlan(List.of(tuition));
+
+        Program program = new Program();
+        program.setId(PROGRAM_ID);
+        program.setAssessmentPattern(AssessmentPattern.TERM_BASED);
+        program.setDurationYears(1);
+
+        Course course = new Course();
+        course.setProgram(program);
+        Cohort cohort = new Cohort();
+        cohort.setCourse(course);
+
+        AcademicYear academicYear = new AcademicYear();
+        academicYear.setId(ACADEMIC_YEAR_ID);
+        TermInstance termInstance = new TermInstance();
+        termInstance.setAcademicYear(academicYear);
+        termInstance.setTermType(TermType.ODD);
+
+        Student student = new Student();
+        student.setId(42L);
+        stubAdmissionAndEnquiry(42L);
+
+        StudentTermEnrollment currentEnrollment = new StudentTermEnrollment();
+        currentEnrollment.setStudent(student);
+        currentEnrollment.setCohort(cohort);
+        currentEnrollment.setSemesterNumber(1);
+        currentEnrollment.setYearOfStudy(1);
+        currentEnrollment.setTermInstance(termInstance);
+
+        when(enrollmentRepository.findByStudentIdAndStatus(42L, EnrollmentStatus.ENROLLED))
+            .thenReturn(List.of(currentEnrollment));
+        lenient().when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(any(), any()))
+            .thenReturn(Optional.empty());
+
+        List<TermFeeRow> rows = service.previewTermFeeSchedule(42L, StudentType.DAY_SCHOLAR);
+
+        assertThat(rows.get(0).calculatedAmount()).isEqualByComparingTo("25000.00");
+        assertThat(rows.get(1).calculatedAmount()).isEqualByComparingTo("25001.00");
+    }
+
+    @Test
     void resolvesOnlyTheMatchingFeeStructureGroupInsteadOfSummingEveryGroupForTheProgramAndYear() {
         // Reproduces a real production bug (found via a live-data screenshot, not a guess): a
         // program+academicYear legitimately has multiple FeeStructureGroup rows, one per
@@ -385,6 +481,11 @@ class FeeDemandStudentTypeSwitchTest {
                               BigDecimal totalAmount, BigDecimal paidAmount) {
         Program program = new Program();
         program.setId(PROGRAM_ID);
+        // YEARLY so sumFeeStructureGroupAmount's TERM_BASED mid-year split (one term = half the
+        // year's fee) never kicks in here -- this fixture's fee-structure amounts are written as
+        // whole per-year totals, and this suite tests studentType/hostel-fee logic, not the
+        // split itself (see previewTermFeeScheduleSplitsTermBasedYearTotalEvenlyAcross... below).
+        program.setAssessmentPattern(AssessmentPattern.YEARLY);
 
         Course course = new Course();
         course.setProgram(program);
