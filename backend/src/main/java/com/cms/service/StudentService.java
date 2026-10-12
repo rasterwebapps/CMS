@@ -93,6 +93,7 @@ public class StudentService {
     private final FeeDemandService feeDemandService;
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     private final TermBillingScheduleRepository termBillingScheduleRepository;
+    private final FeeFinalizationService feeFinalizationService;
 
     private static final List<IssueStatus> ACTIVE_ISSUE_STATUSES =
         List.of(IssueStatus.ISSUED, IssueStatus.OVERDUE);
@@ -110,7 +111,8 @@ public class StudentService {
                           StudentBoardingStatusSwitchRepository boardingStatusSwitchRepository,
                           FeeDemandService feeDemandService,
                           StudentTermEnrollmentRepository studentTermEnrollmentRepository,
-                          TermBillingScheduleRepository termBillingScheduleRepository) {
+                          TermBillingScheduleRepository termBillingScheduleRepository,
+                          FeeFinalizationService feeFinalizationService) {
         this.studentRepository = studentRepository;
         this.programRepository = programRepository;
         this.courseRepository = courseRepository;
@@ -127,6 +129,7 @@ public class StudentService {
         this.feeDemandService = feeDemandService;
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
         this.termBillingScheduleRepository = termBillingScheduleRepository;
+        this.feeFinalizationService = feeFinalizationService;
     }
 
     @Transactional
@@ -855,6 +858,12 @@ public class StudentService {
         FeeDemandService.StudentTypeSwitchImpact impact =
             feeDemandService.applyStudentTypeSwitchAdjustment(studentId, newType, request.termFeeOverrides());
 
+        // Students finalized under the older StudentFeeAllocation/SemesterFee installment system
+        // have no FeeDemand rows at all, so the recompute above never touches their fees — without
+        // this, their Fee Explorer/installment screen kept showing the pre-switch amount forever.
+        FeeFinalizationService.LegacyFeeSyncResult legacySync =
+            feeFinalizationService.syncSemesterFeesForStudentTypeSwitch(studentId, newType);
+
         StudentBoardingStatusSwitch history = new StudentBoardingStatusSwitch();
         history.setStudent(student);
         history.setOldStudentType(oldType);
@@ -862,8 +871,8 @@ public class StudentService {
         history.setSwitchedAt(Instant.now());
         history.setSwitchedBy(currentUserResolver.resolve());
         history.setRemarks(request.remarks());
-        history.setDemandsAdjusted(impact.demandsAffected());
-        history.setFeeDelta(impact.totalDelta());
+        history.setDemandsAdjusted(impact.demandsAffected() + legacySync.installmentsAdjusted());
+        history.setFeeDelta(impact.totalDelta().add(legacySync.totalDelta()));
         StudentBoardingStatusSwitch saved = boardingStatusSwitchRepository.save(history);
 
         return new BoardingStatusSwitchRecord(

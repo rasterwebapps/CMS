@@ -56,6 +56,7 @@ public class FeeFinalizationService {
     private final TermBillingScheduleRepository billingScheduleRepository;
     private final AcademicYearRepository academicYearRepository;
     private final TermInstanceService termInstanceService;
+    private final FeeDemandService feeDemandService;
     private final ObjectMapper objectMapper;
 
     public FeeFinalizationService(StudentFeeAllocationRepository allocationRepository,
@@ -69,6 +70,7 @@ public class FeeFinalizationService {
                                    TermBillingScheduleRepository billingScheduleRepository,
                                    AcademicYearRepository academicYearRepository,
                                    TermInstanceService termInstanceService,
+                                   FeeDemandService feeDemandService,
                                    ObjectMapper objectMapper) {
         this.allocationRepository = allocationRepository;
         this.semesterFeeRepository = semesterFeeRepository;
@@ -81,7 +83,50 @@ public class FeeFinalizationService {
         this.billingScheduleRepository = billingScheduleRepository;
         this.academicYearRepository = academicYearRepository;
         this.termInstanceService = termInstanceService;
+        this.feeDemandService = feeDemandService;
         this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Resyncs this student's legacy per-term installment amounts (the {@code installment_fees}
+     * table backing {@link StudentFeeAllocation}) after a boarding-status switch -- the switch's
+     * own recompute ({@code FeeDemandServiceImpl.applyStudentTypeSwitchAdjustment}) only updates
+     * {@code FeeDemand}, which a student finalized under this older allocation-based system never
+     * has, so without this their Fee Explorer/installment screen kept showing the pre-switch
+     * amount and outstanding total indefinitely. No-op if the student has no
+     * {@link StudentFeeAllocation}. Already fully-paid installments are left untouched -- no
+     * retroactive refund, matching the FeeDemand side's own PAID/WAIVED skip.
+     */
+    public record LegacyFeeSyncResult(int installmentsAdjusted, BigDecimal totalDelta) {}
+
+    @Transactional
+    public LegacyFeeSyncResult syncSemesterFeesForStudentTypeSwitch(Long studentId, StudentType targetType) {
+        Optional<StudentFeeAllocation> allocationOpt = allocationRepository.findByStudentId(studentId);
+        if (allocationOpt.isEmpty()) {
+            return new LegacyFeeSyncResult(0, BigDecimal.ZERO);
+        }
+        List<SemesterFee> semesterFees = semesterFeeRepository
+            .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocationOpt.get().getId());
+
+        int updated = 0;
+        BigDecimal totalDelta = BigDecimal.ZERO;
+        for (SemesterFee sf : semesterFees) {
+            BigDecimal paid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            if (paid.compareTo(sf.getAmount()) >= 0) {
+                continue;
+            }
+            int semesterNumber = (sf.getYearNumber() - 1) * 2 + sf.getSemesterSequence();
+            BigDecimal newAmount = feeDemandService.resolveTermFeeAmount(studentId, semesterNumber, targetType);
+            if (newAmount == null || newAmount.compareTo(sf.getAmount()) == 0) {
+                continue;
+            }
+            BigDecimal previousAmount = sf.getAmount();
+            sf.setAmount(newAmount);
+            semesterFeeRepository.save(sf);
+            updated++;
+            totalDelta = totalDelta.add(newAmount.subtract(previousAmount));
+        }
+        return new LegacyFeeSyncResult(updated, totalDelta);
     }
 
     /** Returns year-wise fees from the enquiry linked to this student (pre-fill data). */

@@ -3,6 +3,7 @@ package com.cms.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,6 +83,9 @@ class StudentServiceTest {
     @Mock
     private com.cms.repository.TermBillingScheduleRepository termBillingScheduleRepository;
 
+    @Mock
+    private FeeFinalizationService feeFinalizationService;
+
     private StudentService studentService;
 
     private Program testProgram;
@@ -92,7 +96,10 @@ class StudentServiceTest {
             admissionRepository, enquiryDocumentRepository, documentHistoryRepository, transferRepository,
             feeDemandRepository, libraryIssueRepository, currentUserResolver,
             roomAllocationRepository, boardingStatusSwitchRepository, feeDemandService,
-            studentTermEnrollmentRepository, termBillingScheduleRepository);
+            studentTermEnrollmentRepository, termBillingScheduleRepository, feeFinalizationService);
+
+        lenient().when(feeFinalizationService.syncSemesterFeesForStudentTypeSwitch(any(), any()))
+            .thenReturn(new FeeFinalizationService.LegacyFeeSyncResult(0, java.math.BigDecimal.ZERO));
 
         testProgram = new Program();
         testProgram.setId(1L);

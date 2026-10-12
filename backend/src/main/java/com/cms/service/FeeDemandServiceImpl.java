@@ -342,6 +342,23 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         return deriveFeeTotalAmount(enrollment, academicYear, enrollment.getStudent().getStudentType());
     }
 
+    @Override
+    public BigDecimal resolveTermFeeAmount(Long studentId, Integer semesterNumber, StudentType studentType) {
+        Optional<StudentTermEnrollment> enrollment = enrollmentRepository.findByStudentId(studentId)
+            .stream()
+            .filter(e -> semesterNumber.equals(e.getSemesterNumber()))
+            .findFirst();
+        if (enrollment.isEmpty()) {
+            return null;
+        }
+        AcademicYear academicYear = enrollment.get().getTermInstance().getAcademicYear();
+        try {
+            return deriveFeeTotalAmount(enrollment.get(), academicYear, studentType);
+        } catch (IllegalStateException e) {
+            return null;
+        }
+    }
+
     // Day scholar vs hosteler cost is implicit in the fee plan: the HOSTEL_FEE row on a
     // FeeStructureGroup is a hosteler-only surcharge (see FeeStructureGroup javadoc) — excluded
     // here for DAY_SCHOLAR, mirroring the filter already applied at enquiry-estimate time in

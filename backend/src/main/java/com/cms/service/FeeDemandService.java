@@ -76,4 +76,16 @@ public interface FeeDemandService {
 
     /** Sum of outstanding (unpaid) amounts across the student's non-WAIVED demands. */
     BigDecimal getOutstandingDuesForStudent(Long studentId);
+
+    /**
+     * The amount one term (by {@code semesterNumber}) currently bills at under {@code studentType}
+     * -- override-if-present, else this term's fee-structure calculation. This is the same choke
+     * point {@link #generateDemandsForTermInstance} and {@link #applyStudentTypeSwitchAdjustment}
+     * go through, exposed so a different persisted representation of a student's fees (e.g. the
+     * legacy StudentFeeAllocation/SemesterFee installment system) can resync its own stored amount
+     * through it instead of recalculating independently. Returns null if the student has no
+     * enrollment for that term, or no fee structure is configured yet for its year of study and no
+     * override has been saved.
+     */
+    BigDecimal resolveTermFeeAmount(Long studentId, Integer semesterNumber, StudentType studentType);
 }
