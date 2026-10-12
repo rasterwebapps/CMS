@@ -342,18 +342,31 @@ public class FeeDemandServiceImpl implements FeeDemandService {
         return deriveFeeTotalAmount(enrollment, academicYear, enrollment.getStudent().getStudentType());
     }
 
+    // A future term (beyond the student's CURRENT enrollment) has no StudentTermEnrollment row of
+    // its own yet -- years/terms are set up incrementally, same reason previewTermFeeSchedule
+    // reuses the current enrollment's FeeStructureGroup/academicYear and only varies yearOfStudy
+    // per semesterNumber rather than requiring a real enrollment for every row. Mirroring that here
+    // (instead of looking up an enrollment matching semesterNumber, which doesn't exist for most
+    // future terms) is what makes this resolve the same amount previewTermFeeSchedule already
+    // showed the admin for that term.
     @Override
     public BigDecimal resolveTermFeeAmount(Long studentId, Integer semesterNumber, StudentType studentType) {
-        Optional<StudentTermEnrollment> enrollment = enrollmentRepository.findByStudentId(studentId)
-            .stream()
-            .filter(e -> semesterNumber.equals(e.getSemesterNumber()))
-            .findFirst();
-        if (enrollment.isEmpty()) {
+        Optional<StudentTermEnrollment> currentEnrollment = resolveCurrentEnrollment(studentId);
+        if (currentEnrollment.isEmpty()) {
             return null;
         }
-        AcademicYear academicYear = enrollment.get().getTermInstance().getAcademicYear();
+        Optional<StudentTermFeeOverride> override = termFeeOverrideRepository
+            .findByStudentIdAndSemesterNumber(studentId, semesterNumber);
+        if (override.isPresent()) {
+            return override.get().getOverrideAmount();
+        }
+        Program program = currentEnrollment.get().getCohort().getProgram();
+        AcademicYear academicYear = currentEnrollment.get().getTermInstance().getAcademicYear();
+        FeeStructureGroup group = resolveFeeStructureGroup(
+            currentEnrollment.get().getStudent(), currentEnrollment.get().getCohort(), academicYear);
+        int yearOfStudy = computeYearOfStudy(semesterNumber, program);
         try {
-            return deriveFeeTotalAmount(enrollment.get(), academicYear, studentType);
+            return sumFeeStructureGroupAmount(group, program, yearOfStudy, semesterNumber, studentType);
         } catch (IllegalStateException e) {
             return null;
         }
