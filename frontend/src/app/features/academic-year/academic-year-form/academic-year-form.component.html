@@ -54,10 +54,12 @@
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
               <span>
-                {{ oddTermInstance()?.status === 'LOCKED' && evenTermInstance()?.status === 'LOCKED'
-                  ? 'Both terms for this academic year are locked'
-                  : (oddTermInstance()?.status === 'LOCKED' ? 'The ODD term' : 'The EVEN term') + ' for this academic year is locked' }}
-                — dates, billing, and seat counts are frozen and can no longer be edited.
+                @if (seatEditingLocked()) {
+                  Both terms for this academic year are locked — dates, billing, and seat counts are frozen and can no longer be edited.
+                } @else {
+                  {{ (oddTermInstance()?.status === 'LOCKED' ? 'The ODD term' : 'The EVEN term') + ' for this academic year is locked' }}
+                  — dates and billing are frozen, but seat allocations stay editable until both terms lock.
+                }
               </span>
             </div>
           }
@@ -633,7 +635,7 @@
               </a>
             } @else {
               <a class="btn-cancel" routerLink="/academic-years">Cancel</a>
-              <button type="submit" class="btn-submit" [disabled]="saving() || editingLocked()">
+              <button type="submit" class="btn-submit" [disabled]="saving() || seatEditingLocked()">
                 @if (saving()) { <span class="btn-spinner"></span> }
                 {{ saving() ? 'Saving…' : (isEditMode() ? 'Update Academic Year' : 'Create Academic Year') }}
               </button>

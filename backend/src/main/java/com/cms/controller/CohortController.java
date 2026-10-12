@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -155,12 +156,21 @@ public class CohortController {
 
     @PostMapping("/initialize")
     @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
+    @Transactional
     public ResponseEntity<List<CohortSummaryResponse>> initializeCohorts(
             @RequestParam Long academicYearId) {
         AcademicYear ay = academicYearRepository.findById(academicYearId)
             .orElseThrow(() -> new ResourceNotFoundException("Academic year not found: " + academicYearId));
         int startYear = ay.getStartYear();
 
+        // courseRepository.findAll() closes its session before this stream runs, and
+        // Course.program is FetchType.LAZY -- without @Transactional keeping a session open
+        // for the whole method, c.getProgram().getStatus()/getDurationYears() below throw
+        // LazyInitializationException ("no session"). Hit in production 2026-10-12: this method
+        // runs on every Edit Academic Year save, but had never actually been reached before
+        // because AcademicYearService.updateFull's either-term-locked gate always failed first
+        // when a term was locked -- fixing that gate (see academic-year-form.component.ts) exposed
+        // this pre-existing, unrelated bug.
         List<Course> activeCourses = courseRepository.findAll().stream()
             .filter(c -> c.getProgram() != null && c.getProgram().getStatus() == ProgramStatus.ACTIVE)
             .toList();
@@ -191,9 +201,16 @@ public class CohortController {
 
     @PatchMapping("/{id}/seats")
     @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
+    @Transactional
     public ResponseEntity<CohortSummaryResponse> updateSeats(
             @PathVariable Long id,
             @RequestBody CohortSeatsRequest request) {
+        // Without @Transactional, cohortRepository.save(cohort) below merges this already-detached
+        // (session-closed) entity in its own fresh session/transaction -- the merge re-attaches
+        // Cohort.course as a new, uninitialized lazy proxy rather than reusing the join-fetched
+        // Course instance. That proxy then blows up in toResponse() once this session has closed
+        // too, throwing LazyInitializationException even though the save itself already committed
+        // (hit in production 2026-10-12, mirrors the same gap fixed in initializeCohorts above).
         Cohort cohort = cohortRepository.findByIdWithCourse(id)
             .orElseThrow(() -> new ResourceNotFoundException("Cohort not found: " + id));
         requireAdmissionYearNotFullyLocked(cohort);
@@ -231,6 +248,7 @@ public class CohortController {
 
     @PatchMapping("/{id}/quota-status")
     @PreAuthorize("@perm.has('ACADEMIC_YEAR_MANAGE')")
+    @Transactional
     public ResponseEntity<CohortSummaryResponse> updateQuotaStatus(
             @PathVariable Long id,
             @RequestBody CohortQuotaStatusRequest request) {

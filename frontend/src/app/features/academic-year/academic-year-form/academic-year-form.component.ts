@@ -102,26 +102,41 @@ export class AcademicYearFormComponent implements OnInit {
   protected readonly evenTermInstance = computed(() => this.termInstances().find(t => t.termType === 'EVEN') ?? null);
 
   /** Mirrors `AcademicYearService.updateFull`'s own gate exactly (backend/AcademicYearService.java
-   *  `requireNotLocked` on both odd/even) -- that save is one atomic call touching the AY's own
-   *  dates, both terms' dates, both billing schedules, AND (chained right after) every cohort's
-   *  seat allocation, so EITHER term being LOCKED already fails the whole thing server-side.
-   *  Disabling the form here isn't cosmetic parity -- it's the difference between finding that out
-   *  immediately vs. after filling in a whole form and clicking Update. */
+   *  `requireNotLocked` on both odd/even) -- that call touches the AY's own dates, both terms'
+   *  dates, and both billing schedules, so EITHER term being LOCKED already fails it server-side.
+   *  Seat allocations are a separate, looser-gated call (see {@link seatEditingLocked}) and are
+   *  NOT covered by this signal. */
   protected readonly editingLocked = computed(() =>
     this.oddTermInstance()?.status === 'LOCKED' || this.evenTermInstance()?.status === 'LOCKED');
 
-  /** Applies/lifts the form-wide disable driven by {@link editingLocked} -- called after every
-   *  point where `termInstances` (and therefore `editingLocked`) can change: initial load, the
-   *  seat-allocation FormArray being rebuilt from scratch (which would otherwise re-create its rows
-   *  enabled even while the rest of the form is disabled), and a term status advance while this
+  /** Mirrors `CohortController.requireAdmissionYearNotFullyLocked` exactly -- a cohort's seat
+   *  allocation belongs to its whole admission cycle, so it stays editable until BOTH that
+   *  cycle's terms are LOCKED, not just one. This is deliberately looser than {@link editingLocked}
+   *  (which governs the AY's own dates/billing) so seat counts remain editable through the common
+   *  mid-cycle state where ODD has locked but EVEN is still OPEN. */
+  protected readonly seatEditingLocked = computed(() =>
+    this.oddTermInstance()?.status === 'LOCKED' && this.evenTermInstance()?.status === 'LOCKED');
+
+  /** Applies/lifts the form's disable state driven by {@link editingLocked} / {@link seatEditingLocked}
+   *  -- called after every point where `termInstances` (and therefore those signals) can change:
+   *  initial load, the seat-allocation FormArray being rebuilt from scratch (which would otherwise
+   *  re-create its rows enabled regardless of lock state), and a term status advance while this
    *  form is still open. */
   private applyLockedFormState(): void {
     if (this.isViewMode()) return;
-    if (this.editingLocked()) {
+    if (this.seatEditingLocked()) {
       this.form.disable({ emitEvent: false });
-    } else {
-      this.form.enable({ emitEvent: false });
+      return;
     }
+    if (this.editingLocked()) {
+      for (const key of Object.keys(this.form.controls)) {
+        if (key === 'seatAllocations') continue;
+        this.form.get(key)?.disable({ emitEvent: false });
+      }
+      this.seatAllocationArray.enable({ emitEvent: false });
+      return;
+    }
+    this.form.enable({ emitEvent: false });
   }
 
   // Counselling toggle
@@ -269,7 +284,7 @@ export class AcademicYearFormComponent implements OnInit {
   }
 
   protected onSubmit(): void {
-    if (this.editingLocked()) return;
+    if (this.seatEditingLocked()) return;
     if (this.form.invalid) {
       scrollToFirstInvalid(this.form);
       return;
@@ -308,22 +323,14 @@ export class AcademicYearFormComponent implements OnInit {
    * one atomic backend call instead of three sequential ones. Sequential calls deadlocked when an
    * admin shrank (or widened) the academic year and its term together in the same save — each call
    * validated its own dates against the other's still-persisted, not-yet-updated value.
+   *
+   * Seat allocations are chained after that call but are NOT gated by it — {@link editingLocked}
+   * (either term LOCKED) freezes the AY-level fields and skips `updateAcademicYearFull` entirely,
+   * while seat updates still run as long as {@link seatEditingLocked} (both terms LOCKED) is false,
+   * matching the looser rule `CohortController.updateSeats` already enforces server-side.
    */
   private submitEdit(): void {
-    const v = this.form.value;
-    const request: AcademicYearFullUpdateRequest = {
-      name:      (v.name ?? '').trim(),
-      startDate: v.startDate,
-      endDate:   v.endDate,
-      isCurrent: v.isCurrent ?? false,
-      oddTerm:  { startDate: v.oddStartDate,  endDate: v.oddEndDate },
-      evenTerm: { startDate: v.evenStartDate, endDate: v.evenEndDate },
-      oddBilling:  { dueDate: v.oddDueDate,  lateFeeType: v.oddLateFeeType,  lateFeeAmount: v.oddLateFeeAmount,  graceDays: v.oddGraceDays },
-      evenBilling: { dueDate: v.evenDueDate, lateFeeType: v.evenLateFeeType, lateFeeAmount: v.evenLateFeeAmount, graceDays: v.evenGraceDays },
-    };
-
-    this.academicYearService.updateAcademicYearFull(this.academicYearId!, request).pipe(
-      switchMap(() => this.academicYearService.initializeCohorts(this.academicYearId!)),
+    const seatUpdates$ = this.academicYearService.initializeCohorts(this.academicYearId!).pipe(
       switchMap((allCohorts) => {
         const rows = this.seatAllocationControls();
         const updates = rows
@@ -339,7 +346,22 @@ export class AcademicYearFormComponent implements OnInit {
           .filter((u): u is NonNullable<typeof u> => u !== null);
         return updates.length ? forkJoin(updates) : of([]);
       })
-    ).subscribe({
+    );
+
+    const save$ = this.editingLocked()
+      ? seatUpdates$
+      : this.academicYearService.updateAcademicYearFull(this.academicYearId!, {
+          name:      (this.form.value.name ?? '').trim(),
+          startDate: this.form.value.startDate,
+          endDate:   this.form.value.endDate,
+          isCurrent: this.form.value.isCurrent ?? false,
+          oddTerm:  { startDate: this.form.value.oddStartDate,  endDate: this.form.value.oddEndDate },
+          evenTerm: { startDate: this.form.value.evenStartDate, endDate: this.form.value.evenEndDate },
+          oddBilling:  { dueDate: this.form.value.oddDueDate,  lateFeeType: this.form.value.oddLateFeeType,  lateFeeAmount: this.form.value.oddLateFeeAmount,  graceDays: this.form.value.oddGraceDays },
+          evenBilling: { dueDate: this.form.value.evenDueDate, lateFeeType: this.form.value.evenLateFeeType, lateFeeAmount: this.form.value.evenLateFeeAmount, graceDays: this.form.value.evenGraceDays },
+        } as AcademicYearFullUpdateRequest).pipe(switchMap(() => seatUpdates$));
+
+    save$.subscribe({
       next: () => {
         this.toast.success('Academic year updated');
         void this.router.navigate(['/academic-years']);
