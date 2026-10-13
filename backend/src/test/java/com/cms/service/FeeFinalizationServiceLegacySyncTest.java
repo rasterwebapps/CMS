@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -82,6 +83,13 @@ class FeeFinalizationServiceLegacySyncTest {
         sf.setYearNumber(yearNumber);
         sf.setSemesterSequence(sequence);
         sf.setAmount(amount);
+        sf.setDueDate(LocalDate.now().plusMonths(3));
+        return sf;
+    }
+
+    private SemesterFee semesterFeeDue(Long id, int yearNumber, int sequence, BigDecimal amount, LocalDate dueDate) {
+        SemesterFee sf = semesterFee(id, yearNumber, sequence, amount);
+        sf.setDueDate(dueDate);
         return sf;
     }
 
@@ -180,5 +188,108 @@ class FeeFinalizationServiceLegacySyncTest {
 
         assertThat(result.installmentsAdjusted()).isEqualTo(1);
         assertThat(partial.getAmount()).isEqualByComparingTo("72500");
+    }
+
+    // -- collection-date cutoff + never-below-paid (Gaadha Prasad incident, 2026-10-13) ----------
+
+    @Test
+    void pastDueUnpaidInstallment_isNeverRepriced() {
+        SemesterFee pastDue = semesterFeeDue(6L, 1, 2, new BigDecimal("142500"), LocalDate.now().minusDays(1));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(ALLOCATION_ID))
+            .thenReturn(List.of(pastDue));
+
+        FeeFinalizationService.LegacyFeeSyncResult result =
+            service.syncSemesterFeesForStudentTypeSwitch(STUDENT_ID, StudentType.DAY_SCHOLAR);
+
+        assertThat(result.installmentsAdjusted()).isEqualTo(0);
+        assertThat(pastDue.getAmount()).isEqualByComparingTo("142500");
+        verify(feeDemandService, never()).resolveTermFeeAmount(any(), anyInt(), any());
+        verify(semesterFeeRepository, never()).save(any());
+    }
+
+    @Test
+    void pastDuePartlyPaidInstallment_isNeverRepriced() {
+        // Exact incident shape: 127,500 collected against 142,500, due date long past.
+        SemesterFee pastDue = semesterFeeDue(7L, 1, 1, new BigDecimal("142500"), LocalDate.now().minusMonths(10));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(ALLOCATION_ID))
+            .thenReturn(List.of(pastDue));
+
+        service.syncSemesterFeesForStudentTypeSwitch(STUDENT_ID, StudentType.DAY_SCHOLAR);
+
+        assertThat(pastDue.getAmount()).isEqualByComparingTo("142500");
+        verify(semesterFeeRepository, never()).save(any());
+    }
+
+    @Test
+    void installmentDueToday_isStillRepriced() {
+        // "has not passed the collection date" -- the due date itself is still inside the window.
+        SemesterFee dueToday = semesterFeeDue(8L, 2, 1, new BigDecimal("115000"), LocalDate.now());
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(ALLOCATION_ID))
+            .thenReturn(List.of(dueToday));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(8L)).thenReturn(BigDecimal.ZERO);
+        when(feeDemandService.resolveTermFeeAmount(STUDENT_ID, 3, StudentType.DAY_SCHOLAR))
+            .thenReturn(new BigDecimal("95000"));
+
+        FeeFinalizationService.LegacyFeeSyncResult result =
+            service.syncSemesterFeesForStudentTypeSwitch(STUDENT_ID, StudentType.DAY_SCHOLAR);
+
+        assertThat(result.installmentsAdjusted()).isEqualTo(1);
+        assertThat(dueToday.getAmount()).isEqualByComparingTo("95000");
+    }
+
+    @Test
+    void newAmountBelowAlreadyPaid_isSkipped() {
+        SemesterFee partial = semesterFee(9L, 4, 1, new BigDecimal("87500"));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(ALLOCATION_ID))
+            .thenReturn(List.of(partial));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(9L)).thenReturn(new BigDecimal("60000"));
+        when(feeDemandService.resolveTermFeeAmount(STUDENT_ID, 7, StudentType.DAY_SCHOLAR))
+            .thenReturn(new BigDecimal("50000"));
+
+        FeeFinalizationService.LegacyFeeSyncResult result =
+            service.syncSemesterFeesForStudentTypeSwitch(STUDENT_ID, StudentType.DAY_SCHOLAR);
+
+        assertThat(result.installmentsAdjusted()).isEqualTo(0);
+        assertThat(partial.getAmount()).isEqualByComparingTo("87500");
+        verify(semesterFeeRepository, never()).save(any());
+    }
+
+    @Test
+    void newAmountExactlyEqualToPaid_isAllowed() {
+        SemesterFee partial = semesterFee(10L, 4, 1, new BigDecimal("87500"));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(ALLOCATION_ID))
+            .thenReturn(List.of(partial));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(10L)).thenReturn(new BigDecimal("60000"));
+        when(feeDemandService.resolveTermFeeAmount(STUDENT_ID, 7, StudentType.DAY_SCHOLAR))
+            .thenReturn(new BigDecimal("60000"));
+
+        FeeFinalizationService.LegacyFeeSyncResult result =
+            service.syncSemesterFeesForStudentTypeSwitch(STUDENT_ID, StudentType.DAY_SCHOLAR);
+
+        assertThat(result.installmentsAdjusted()).isEqualTo(1);
+        assertThat(partial.getAmount()).isEqualByComparingTo("60000");
+    }
+
+    @Test
+    void mixedPastAndFutureInstallments_onlyFutureOnesChange() {
+        SemesterFee past1 = semesterFeeDue(11L, 1, 1, new BigDecimal("142500"), LocalDate.now().minusMonths(10));
+        SemesterFee past2 = semesterFeeDue(12L, 1, 2, new BigDecimal("142500"), LocalDate.now().minusDays(5));
+        SemesterFee future = semesterFee(13L, 2, 1, new BigDecimal("115000"));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(ALLOCATION_ID))
+            .thenReturn(List.of(past1, past2, future));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(13L)).thenReturn(BigDecimal.ZERO);
+        when(feeDemandService.resolveTermFeeAmount(STUDENT_ID, 3, StudentType.DAY_SCHOLAR))
+            .thenReturn(new BigDecimal("95000"));
+
+        FeeFinalizationService.LegacyFeeSyncResult result =
+            service.syncSemesterFeesForStudentTypeSwitch(STUDENT_ID, StudentType.DAY_SCHOLAR);
+
+        assertThat(result.installmentsAdjusted()).isEqualTo(1);
+        assertThat(result.totalDelta()).isEqualByComparingTo(new BigDecimal("-20000"));
+        assertThat(past1.getAmount()).isEqualByComparingTo("142500");
+        assertThat(past2.getAmount()).isEqualByComparingTo("142500");
+        verify(semesterFeeRepository).save(future);
+        verify(semesterFeeRepository, never()).save(past1);
+        verify(semesterFeeRepository, never()).save(past2);
     }
 }

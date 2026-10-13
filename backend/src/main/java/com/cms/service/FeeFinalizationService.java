@@ -110,7 +110,14 @@ public class FeeFinalizationService {
 
         int updated = 0;
         BigDecimal totalDelta = BigDecimal.ZERO;
+        LocalDate today = LocalDate.now();
         for (SemesterFee sf : semesterFees) {
+            // Same rule as the switch dialog's editable terms: a term whose own fee-collection
+            // date has passed is closed and must keep the amount it was billed at, even if
+            // unpaid or only partly paid.
+            if (sf.getDueDate() != null && today.isAfter(sf.getDueDate())) {
+                continue;
+            }
             BigDecimal paid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
             if (paid.compareTo(sf.getAmount()) >= 0) {
                 continue;
@@ -118,6 +125,11 @@ public class FeeFinalizationService {
             int semesterNumber = (sf.getYearNumber() - 1) * 2 + sf.getSemesterSequence();
             BigDecimal newAmount = feeDemandService.resolveTermFeeAmount(studentId, semesterNumber, targetType);
             if (newAmount == null || newAmount.compareTo(sf.getAmount()) == 0) {
+                continue;
+            }
+            // Never reprice an installment below what has already been collected against it --
+            // that would fabricate an excess payment the legacy system has no way to carry forward.
+            if (newAmount.compareTo(paid) < 0) {
                 continue;
             }
             BigDecimal previousAmount = sf.getAmount();
