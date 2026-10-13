@@ -30,7 +30,6 @@ Copy only these files/folders to `/docker_data/skscms209`:
 - `postgres/Dockerfile` — `postgres:17-alpine` + pgvector built in (required by V561+/OC-277); built into the `cms-postgres-pgvector:latest` image by `scripts/deploy-209.sh` on every `full` deploy
 - `.env` created from `.env.example` with production-only secrets
 - `keycloak/cms-realm.json`
-- `ssl/self.crt` and `ssl/self.key` installed by `scripts/deploy-209.sh`
 
 The `.env` file must include:
 
@@ -42,40 +41,40 @@ LOCAL_HOST=172.16.7.209
 
 ## TLS certificates
 
-Production TLS files are mounted into nginx at runtime and must not be committed
-to Git or baked into the frontend Docker image.
-
-The 209 deployment script reads these local files by default:
-
-```bash
-/home/raster/Downloads/Telegram Desktop/Certificate.txt
-/home/raster/Downloads/Telegram Desktop/Intermediate Certificate.txt
-/home/raster/Downloads/Telegram Desktop/RSA Private Key.txt
-```
-
-It validates that the certificate and private key match, concatenates
-`Certificate.txt` + `Intermediate Certificate.txt` into a full-chain
-`self.crt`, and installs these files on the server:
+The frontend container bind-mounts the server's `/etc/letsencrypt` directly
+(read-only) and nginx reads `live/${DEPLOY_HOST}/fullchain.pem` /
+`privkey.pem` straight from it — see the `frontend` service's `volumes` and
+`SSL_CERT_PATH`/`SSL_KEY_PATH` env vars in `docker-compose.yml`. There is no
+copy step anywhere: `scripts/deploy-209.sh` never stages or installs a TLS
+file. Whoever renews the certificate — IT places the renewed
+fullchain.pem/privkey.pem directly on the server under
+`/etc/letsencrypt/live/${DEPLOY_HOST}/` — only needs to reload the frontend
+container afterward for it to take effect:
 
 ```bash
-/docker_data/skscms209/ssl/self.crt
-/docker_data/skscms209/ssl/self.key
+docker exec skscms209-frontend-1 nginx -s reload
 ```
 
-Override the source paths when needed:
+Mounting the whole `/etc/letsencrypt` tree (not just `live/<domain>/`) is
+required because `live/<domain>/fullchain.pem` is a symlink whose relative
+target reaches two directories up into `archive/<domain>/` — mounting only
+the `live` subdirectory breaks that symlink inside the container.
 
-```bash
-DEPLOY209_TLS_CERT_FILE=/path/to/Certificate.txt \
-DEPLOY209_TLS_INTERMEDIATE_FILE=/path/to/Intermediate\ Certificate.txt \
-DEPLOY209_TLS_PRIVATE_KEY_FILE=/path/to/RSA\ Private\ Key.txt \
-./scripts/deploy-209.sh full
-```
+Note: automated certbot renewal (`authenticator = standalone`, via
+`certbot.timer`) cannot currently succeed — inbound TCP/80 on the public IP
+(`137.97.6.147`) is unreachable from the internet (confirmed with a
+`certbot ... --dry-run`: "Timeout during connect (likely firewall
+problem)"), so the HTTP-01 challenge never completes regardless of
+authenticator (standalone or webroot). Only port 443 is open externally.
+This is why the cert has to be renewed by IT directly rather than by the
+server's own certbot timer — fixing it would need port 80 opened at the
+firewall in front of 137.97.6.147, which is outside this server.
 
-The provided Let's Encrypt certificate for `cms.nursing.sksh.ac.in` is valid for
-the domain name. It will not remove browser certificate warnings for
-`https://137.97.6.147` or `https://172.16.7.209` unless the certificate includes
-those IP addresses as Subject Alternative Names and the issuing CA is trusted by
-the client browser.
+The Let's Encrypt certificate is valid for `cms.nursing.sksh.ac.in` only. It
+will not remove browser certificate warnings for `https://137.97.6.147` or
+`https://172.16.7.209` unless the certificate includes those IP addresses as
+Subject Alternative Names and the issuing CA is trusted by the client
+browser.
 
 ## Compose project name
 

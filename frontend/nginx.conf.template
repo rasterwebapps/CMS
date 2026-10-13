@@ -24,8 +24,8 @@ server {
     client_max_body_size 10m;
     autoindex off;
 
-    ssl_certificate     /etc/nginx/ssl/self.crt;
-    ssl_certificate_key /etc/nginx/ssl/self.key;
+    ssl_certificate     ${SSL_CERT_PATH};
+    ssl_certificate_key ${SSL_KEY_PATH};
     ssl_protocols       TLSv1.2 TLSv1.3;
 
     root  /usr/share/nginx/html;

@@ -23,8 +23,13 @@ export KEYCLOAK_UPSTREAM="${KEYCLOAK_UPSTREAM:-127.0.0.1:8180}"
 export BACKEND_UPSTREAM="${BACKEND_UPSTREAM:-127.0.0.1:8080}"
 export KEYCLOAK_CANONICAL_HOST="${KEYCLOAK_CANONICAL_HOST:-dev.raster.in:212}"
 export KEYCLOAK_CANONICAL_PORT="${KEYCLOAK_CANONICAL_PORT:-212}"
+# Defaults keep local/243 behavior unchanged (self-signed file bind-mounted at
+# this fixed path). 209 overrides these to point at the server's own
+# certbot-managed live/ directory instead, so renewals need no file copy.
+export SSL_CERT_PATH="${SSL_CERT_PATH:-/etc/nginx/ssl/self.crt}"
+export SSL_KEY_PATH="${SSL_KEY_PATH:-/etc/nginx/ssl/self.key}"
 
-envsubst '${KEYCLOAK_UPSTREAM} ${BACKEND_UPSTREAM} ${KEYCLOAK_CANONICAL_HOST} ${KEYCLOAK_CANONICAL_PORT}' \
+envsubst '${KEYCLOAK_UPSTREAM} ${BACKEND_UPSTREAM} ${KEYCLOAK_CANONICAL_HOST} ${KEYCLOAK_CANONICAL_PORT} ${SSL_CERT_PATH} ${SSL_KEY_PATH}' \
   < /etc/nginx/templates/default.conf.template \
   > /etc/nginx/conf.d/default.conf
 

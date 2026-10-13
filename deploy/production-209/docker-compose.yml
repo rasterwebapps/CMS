@@ -125,9 +125,17 @@ services:
       BACKEND_UPSTREAM: 127.0.0.1:8080
       KEYCLOAK_CANONICAL_HOST: cms.nursing.sksh.ac.in
       KEYCLOAK_CANONICAL_PORT: "443"
+      # Points straight at certbot's live/ symlinks on the host (mounted below)
+      # instead of a copy — certbot renews in place, nginx just needs a
+      # restart/reload afterward to pick up the new target, never a file copy.
+      SSL_CERT_PATH: /etc/letsencrypt/live/${DEPLOY_HOST}/fullchain.pem
+      SSL_KEY_PATH: /etc/letsencrypt/live/${DEPLOY_HOST}/privkey.pem
     volumes:
-      - ./ssl/self.crt:/etc/nginx/ssl/self.crt:ro
-      - ./ssl/self.key:/etc/nginx/ssl/self.key:ro
+      # Mount the whole /etc/letsencrypt tree (not just live/<domain>) because
+      # live/*/fullchain.pem is a symlink with a relative target two levels up
+      # into archive/<domain>/ — mounting only the live subdirectory breaks
+      # that symlink resolution inside the container.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
 
