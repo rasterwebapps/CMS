@@ -127,7 +127,13 @@ export class StudentDetailComponent implements OnInit {
   protected readonly selectedReceipt = signal<ReceiptDisplayData | null>(null);
 
   /** Student Explorer list filters/page/sort carried forward via query params, restored on Back. */
-  protected readonly backQueryParams = this.route.snapshot.queryParams;
+  protected readonly backQueryParams = (() => {
+    const { tab: _tab, returnTo: _returnTo, ...rest } = this.route.snapshot.queryParams;
+    return rest;
+  })();
+
+  /** Query params for the "Full Fee Screen" link — lets the fee screen's Back return to the Finance tab. */
+  protected readonly feeScreenQueryParams = { ...this.backQueryParams, returnTo: 'student-detail' };
 
   /** First + last initial of the student's full name. */
   protected readonly initials = computed(() => computeInitials(this.student()?.fullName));
@@ -211,6 +217,9 @@ export class StudentDetailComponent implements OnInit {
       next: (student) => {
         this.student.set(student);
         this.loading.set(false);
+        if (this.route.snapshot.queryParamMap.get('tab') === 'finance') {
+          this.selectedTabIndex.set(this.canViewGuardians() ? 4 : 3);
+        }
         this.loadEnrollments(id);
         this.loadFeeLedger(id);
         this.loadReceipts(id);

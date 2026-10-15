@@ -205,6 +205,17 @@ export class StudentFeeDetailComponent implements OnInit {
 
   private resolveBackTarget(): void {
     const qp = this.route.snapshot.queryParamMap;
+    if (qp.get('returnTo') === 'student-detail') {
+      // Back to Student Explorer > View on the Finance tab, restoring the list's own filters.
+      this.backRoute.set(`/students/${this.studentId}`);
+      const restored: Record<string, string> = { tab: 'finance' };
+      for (const key of qp.keys) {
+        const value = qp.get(key);
+        if (key !== 'returnTo' && value) restored[key] = value;
+      }
+      this.backQueryParams.set(restored);
+      return;
+    }
     if (qp.get('returnTo') !== 'fee-collection') return;
 
     this.backRoute.set('/fee-collection');

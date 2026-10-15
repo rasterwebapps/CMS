@@ -315,7 +315,7 @@
                 <span class="finance-kpi__label">Outstanding</span>
                 <span class="finance-kpi__value">{{ totalOutstanding() | inr:true:false }}</span>
               </div>
-              <a class="finance-detail-link" [routerLink]="['/student-fees', student()!.id]">
+              <a class="finance-detail-link" [routerLink]="['/student-fees', student()!.id]" [queryParams]="feeScreenQueryParams">
                 <mat-icon>open_in_new</mat-icon> Full Fee Screen
               </a>
             </div>
