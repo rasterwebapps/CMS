@@ -253,6 +253,18 @@
               </span>
               <span></span>
             </div>
+
+            @if (noInstallmentOpenYet()) {
+              <div class="term-not-open-notice">
+                <mat-icon>info</mat-icon>
+                <span>
+                  No installment is open for collection yet — the academic term for these fees hasn't been opened by an admin.
+                  @if (canCollectAdvance()) {
+                    Use <strong>Collect Advance Payment</strong> above to collect ahead of schedule.
+                  }
+                </span>
+              </div>
+            }
           </div>
         } @else {
           <div class="loading-box"><mat-spinner diameter="24"></mat-spinner></div>

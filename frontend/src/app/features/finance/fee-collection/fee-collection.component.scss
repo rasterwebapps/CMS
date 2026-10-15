@@ -235,6 +235,21 @@
   min-width: 760px;
 }
 
+.term-not-open-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--cms-line);
+  background: var(--cms-warning-light);
+  color: var(--cms-warning);
+  font-size: var(--cms-text-sm);
+  line-height: 1.4;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+  strong   { font-weight: 700; }
+}
+
 .sem-seq {
   display: inline-flex;
   align-items: center;

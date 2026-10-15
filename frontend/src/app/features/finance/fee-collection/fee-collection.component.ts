@@ -264,6 +264,14 @@ export class FeeCollectionComponent implements OnInit, OnDestroy {
     const entry = this.selectedEntry();
     return !entry || this.semesterRows().length > 0;
   });
+  // True when installments exist but none are open for collection yet (e.g. the Term Instance
+  // for the current academic year/term hasn't been opened by an admin) — the table footer still
+  // shows a nonzero lifetime total, which otherwise looks confusingly uncollectable with no
+  // explanation. Not shown in advance mode, since that mode intentionally collects ahead anyway.
+  protected readonly noInstallmentOpenYet = computed(() =>
+    !this.advanceMode() &&
+    this.semesterRows().length > 0 &&
+    this.semesterRows().every(r => !r.collectibleNow));
 
   protected get hasActiveFilters(): boolean {
     return !!this.searchTerm() || this.filterType() !== 'ENQUIRY' || this.filterStatus() !== 'ALL';
