@@ -42,6 +42,7 @@ import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.util.CurrentUserResolver;
+import com.cms.util.FeeCascadeUtil;
 
 @Service
 @Transactional(readOnly = true)
@@ -119,9 +120,11 @@ public class PaymentCollectionService {
             .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
             .orElse(BigDecimal.ZERO);
         BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+        Map<Long, BigDecimal> cascadedPaid = FeeCascadeUtil.cascadePaid(
+            semesterFees, installmentRepository::sumAmountPaidBySemesterFeeId);
 
         BigDecimal collectibleOutstanding = calculateCollectibleOutstanding(
-            semesterFees, remainingEnquiryCredit, sourceEnquiry, joiningStartYear);
+            semesterFees, cascadedPaid, remainingEnquiryCredit, sourceEnquiry, joiningStartYear);
         if (collectibleOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("No fees are currently due for collection for student: " + student.getRollNumber());
         }
@@ -155,7 +158,7 @@ public class PaymentCollectionService {
             if (!termInstanceService.isSemesterFeeCollectibleNow(joiningStartYear, sf.getYearNumber(), sf.getSemesterSequence())) {
                 // If this non-open semester has outstanding balance, block all later semesters —
                 // a student cannot collect future-year fees while an earlier year is still due.
-                BigDecimal skippedPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+                BigDecimal skippedPaid = cascadedPaid.get(sf.getId());
                 BigDecimal skippedCredited = sourceEnquiry.isPresent()
                     ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
                         sourceEnquiry.get().getId(), sf.getId())
@@ -166,7 +169,7 @@ public class PaymentCollectionService {
                 continue;
             }
 
-            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyPaid = cascadedPaid.get(sf.getId());
             BigDecimal alreadyCredited = sourceEnquiry.isPresent()
                 ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
                     sourceEnquiry.get().getId(), sf.getId())
@@ -269,8 +272,10 @@ public class PaymentCollectionService {
             .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
             .orElse(BigDecimal.ZERO);
         BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+        Map<Long, BigDecimal> cascadedPaid = FeeCascadeUtil.cascadePaid(
+            semesterFees, installmentRepository::sumAmountPaidBySemesterFeeId);
 
-        BigDecimal totalOutstanding = calculateTotalOutstanding(semesterFees, remainingEnquiryCredit, sourceEnquiry);
+        BigDecimal totalOutstanding = calculateTotalOutstanding(semesterFees, cascadedPaid, remainingEnquiryCredit, sourceEnquiry);
         if (totalOutstanding.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalStateException("No outstanding fees for student: " + student.getRollNumber());
         }
@@ -308,7 +313,7 @@ public class PaymentCollectionService {
         for (SemesterFee sf : semesterFees) {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
 
-            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyPaid = cascadedPaid.get(sf.getId());
             BigDecimal alreadyCredited = sourceEnquiry.isPresent()
                 ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
                     sourceEnquiry.get().getId(), sf.getId())
@@ -407,8 +412,10 @@ public class PaymentCollectionService {
             .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
             .orElse(BigDecimal.ZERO);
         BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+        Map<Long, BigDecimal> cascadedPaid = FeeCascadeUtil.cascadePaid(
+            semesterFees, installmentRepository::sumAmountPaidBySemesterFeeId);
 
-        return calculateCollectibleOutstanding(semesterFees, remainingEnquiryCredit, sourceEnquiry, joiningStartYear);
+        return calculateCollectibleOutstanding(semesterFees, cascadedPaid, remainingEnquiryCredit, sourceEnquiry, joiningStartYear);
     }
 
     /**
@@ -436,11 +443,13 @@ public class PaymentCollectionService {
             .map(e -> creditApplicationRepository.sumAmountAppliedByEnquiryId(e.getId()))
             .orElse(BigDecimal.ZERO);
         BigDecimal remainingCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
+        Map<Long, BigDecimal> cascadedPaid = FeeCascadeUtil.cascadePaid(
+            semesterFees, installmentRepository::sumAmountPaidBySemesterFeeId);
 
         for (SemesterFee sf : semesterFees) {
             boolean collectibleNow = termInstanceService.isSemesterFeeCollectibleNow(
                 joiningStartYear, sf.getYearNumber(), sf.getSemesterSequence());
-            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyPaid = cascadedPaid.get(sf.getId());
             BigDecimal alreadyCredited = sourceEnquiry.isPresent()
                 ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
                     sourceEnquiry.get().getId(), sf.getId())
@@ -473,6 +482,7 @@ public class PaymentCollectionService {
      * shown elsewhere (e.g. the Fee Explorer).
      */
     private BigDecimal calculateCollectibleOutstanding(List<SemesterFee> semesterFees,
+                                                         Map<Long, BigDecimal> cascadedPaid,
                                                          BigDecimal netRemainingEnquiryCredit,
                                                          Optional<Enquiry> sourceEnquiry,
                                                          int joiningStartYear) {
@@ -488,7 +498,7 @@ public class PaymentCollectionService {
             if (!collectibleNow) {
                 // Mirror collectPayment()'s break logic: if this non-open semester has outstanding
                 // balance, stop counting — later semesters are not collectible either.
-                BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+                BigDecimal alreadyPaid = cascadedPaid.get(sf.getId());
                 BigDecimal alreadyCredited = sourceEnquiry.isPresent()
                     ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
                         sourceEnquiry.get().getId(), sf.getId())
@@ -499,7 +509,7 @@ public class PaymentCollectionService {
                 continue;
             }
 
-            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyPaid = cascadedPaid.get(sf.getId());
             BigDecimal alreadyCredited = sourceEnquiry.isPresent()
                 ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
                     sourceEnquiry.get().getId(), sf.getId())
@@ -516,13 +526,14 @@ public class PaymentCollectionService {
 
     /** Same as calculateCollectibleOutstanding but without the term-gate — covers all semesters. */
     private BigDecimal calculateTotalOutstanding(List<SemesterFee> semesterFees,
+                                                  Map<Long, BigDecimal> cascadedPaid,
                                                   BigDecimal netRemainingEnquiryCredit,
                                                   Optional<Enquiry> sourceEnquiry) {
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal remainingCredit = netRemainingEnquiryCredit;
 
         for (SemesterFee sf : semesterFees) {
-            BigDecimal alreadyPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal alreadyPaid = cascadedPaid.get(sf.getId());
             BigDecimal alreadyCredited = sourceEnquiry.isPresent()
                 ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
                     sourceEnquiry.get().getId(), sf.getId())

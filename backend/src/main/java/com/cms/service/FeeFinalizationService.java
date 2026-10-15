@@ -37,6 +37,7 @@ import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.TermBillingScheduleRepository;
+import com.cms.util.FeeCascadeUtil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -359,9 +360,15 @@ public class FeeFinalizationService {
 
         int joiningStartYear = termInstanceService.resolveJoiningStartYear(allocation.getStudent());
 
+        // Already-collected money cascades forward across terms in sequence order, so a term whose
+        // amount was later reduced below what was already paid there doesn't just discard the excess —
+        // it credits the next term's balance, same as a brand-new payment would at collection time.
+        Map<Long, BigDecimal> cascadedPaid = FeeCascadeUtil.cascadePaid(
+            semesterFees, installmentRepository::sumAmountPaidBySemesterFeeId);
+
         List<StudentFeeAllocationResponse.InstallmentFeeDetail> details = new ArrayList<>();
         for (SemesterFee sf : semesterFees) {
-            BigDecimal feeInstallmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal feeInstallmentPaid = cascadedPaid.get(sf.getId());
 
             BigDecimal maxCredit = sf.getAmount().subtract(feeInstallmentPaid).max(BigDecimal.ZERO);
             BigDecimal creditForThis = remainingEnquiryCredit.min(maxCredit);
