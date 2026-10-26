@@ -76,8 +76,12 @@ public class AcademicYearService {
         validateDateRange(request, null);
         validateNameFormat(name);
 
-        if (request.endDate().isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Academic year end date cannot be in the past");
+        // Historical years are allowed (Retro Admit needs them to onboard already-enrolled
+        // students). A fully ended year is closed for good: its terms are created LOCKED,
+        // holiday templates are not seeded, and it can never be the current year.
+        boolean historical = request.endDate().isBefore(LocalDate.now());
+        if (historical && Boolean.TRUE.equals(request.isCurrent())) {
+            throw new IllegalArgumentException("A past academic year cannot be marked as current");
         }
 
         if (academicYearRepository.existsByNameIgnoreCase(name)) {
@@ -88,6 +92,10 @@ public class AcademicYearService {
         // The very first academic year ever created must be current — there would be no other
         // row to promote, so leaving it not-current would mean zero current years.
         boolean isFirstEver = academicYearRepository.count() == 0;
+        if (historical && isFirstEver) {
+            throw new IllegalArgumentException(
+                "The first academic year created must be the current one — create the current year before any past year");
+        }
         Boolean isCurrent = isFirstEver ? Boolean.TRUE
             : (request.isCurrent() != null ? request.isCurrent() : false);
 
@@ -104,7 +112,9 @@ public class AcademicYearService {
         AcademicYear saved = academicYearRepository.save(academicYear);
         termInstanceService.createTermInstancesForAcademicYear(saved);
         createCohortsWithSeats(saved, request.cohortSeatAllocations());
-        holidayTemplateSeedingService.seedForAcademicYear(saved);
+        if (!historical) {
+            holidayTemplateSeedingService.seedForAcademicYear(saved);
+        }
         return toResponse(saved);
     }
 

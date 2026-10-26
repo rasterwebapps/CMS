@@ -126,10 +126,13 @@
               <div class="field-group" style="margin-bottom:0">
                 @if (!isViewMode()) {
                   <label class="toggle-wrap">
-                    <input type="checkbox" class="sr-only" formControlName="isCurrent" />
+                    <input type="checkbox" class="sr-only" formControlName="isCurrent" [attr.disabled]="isHistoricalYear() ? true : null" />
                     <span class="toggle-track"></span>
                     <span class="toggle-label">Set as Current Academic Year</span>
                   </label>
+                  @if (isHistoricalYear()) {
+                    <p class="field-hint">Historical year (end date is in the past): terms are created as Locked, holidays are not seeded, and it cannot be the current year.</p>
+                  }
                 } @else {
                   <label class="field-label">Status</label>
                   @if (form.get('isCurrent')?.value) {

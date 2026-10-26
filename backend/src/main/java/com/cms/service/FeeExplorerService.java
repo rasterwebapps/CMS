@@ -38,6 +38,7 @@ import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
 import com.cms.repository.StudentSpecification;
+import com.cms.util.FeeCascadeUtil;
 
 @Service
 @Transactional(readOnly = true)
@@ -303,12 +304,15 @@ public class FeeExplorerService {
             .orElse(BigDecimal.ZERO);
         BigDecimal remainingEnquiryCredit = totalEnquiryCredit.subtract(alreadyAppliedCredit).max(BigDecimal.ZERO);
 
+        Map<Long, BigDecimal> cascadedPaid = FeeCascadeUtil.cascadePaid(
+            semesterFees, installmentRepository::sumAmountPaidBySemesterFeeId);
+
         List<SemesterFeeAmounts> perSemester = new ArrayList<>();
         BigDecimal totalPaid = BigDecimal.ZERO;
         BigDecimal totalPenalty = BigDecimal.ZERO;
 
         for (SemesterFee sf : semesterFees) {
-            BigDecimal installmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal installmentPaid = cascadedPaid.getOrDefault(sf.getId(), BigDecimal.ZERO);
             BigDecimal alreadyCredited = sourceEnquiry.isPresent()
                 ? creditApplicationRepository.sumAmountAppliedByEnquiryIdAndSemesterFeeId(
                     sourceEnquiry.get().getId(), sf.getId())

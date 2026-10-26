@@ -186,6 +186,13 @@ export class AcademicYearFormComponent implements OnInit {
     ],
   });
 
+  /** True when the entered end date is already in the past (create mode): such a year is
+   *  historical — its terms are created Locked, holidays are not seeded, and it can't be current. */
+  protected readonly isHistoricalYear = computed(() => {
+    const end = this.formValue()?.['endDate'] as string | undefined;
+    return !this.isEditMode() && !this.isViewMode() && !!end && end < new Date().toISOString().split('T')[0];
+  });
+
   constructor() {
     this.formValue.set(this.form.value);
     this.form.valueChanges
@@ -195,6 +202,9 @@ export class AcademicYearFormComponent implements OnInit {
         this.previewStart.set(v.startDate || null);
         this.previewEnd.set(v.endDate || null);
         this.formValue.set(v);
+        if (this.isHistoricalYear() && v.isCurrent) {
+          this.form.get('isCurrent')?.setValue(false, { emitEvent: false });
+        }
       });
   }
 

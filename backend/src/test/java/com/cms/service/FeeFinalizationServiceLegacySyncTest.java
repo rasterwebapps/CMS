@@ -65,6 +65,8 @@ class FeeFinalizationServiceLegacySyncTest {
     private static final Long STUDENT_ID = 42L;
     private static final Long ALLOCATION_ID = 7L;
 
+    private StudentFeeAllocation allocation;
+
     @BeforeEach
     void setUp() {
         service = new FeeFinalizationService(allocationRepository, semesterFeeRepository, installmentRepository,
@@ -72,7 +74,7 @@ class FeeFinalizationServiceLegacySyncTest {
             studentScholarshipService, billingScheduleRepository, academicYearRepository, termInstanceService,
             feeDemandService, objectMapper);
 
-        StudentFeeAllocation allocation = new StudentFeeAllocation();
+        allocation = new StudentFeeAllocation();
         allocation.setId(ALLOCATION_ID);
         when(allocationRepository.findByStudentId(STUDENT_ID)).thenReturn(Optional.of(allocation));
     }
@@ -288,8 +290,38 @@ class FeeFinalizationServiceLegacySyncTest {
         assertThat(result.totalDelta()).isEqualByComparingTo(new BigDecimal("-20000"));
         assertThat(past1.getAmount()).isEqualByComparingTo("142500");
         assertThat(past2.getAmount()).isEqualByComparingTo("142500");
+        assertThat(allocation.getNetFee()).isEqualByComparingTo("380000");
+        assertThat(allocation.getTotalFee()).isEqualByComparingTo("380000");
+        assertThat(allocation.isHasHostelFee()).isFalse();
         verify(semesterFeeRepository).save(future);
         verify(semesterFeeRepository, never()).save(past1);
         verify(semesterFeeRepository, never()).save(past2);
+        verify(allocationRepository).save(allocation);
+    }
+
+    @Test
+    void updatedInstallments_recomputesTotalFeePreservingDiscountAndUpdatesHasHostelFee() {
+        allocation.setDiscountAmount(new BigDecimal("10000"));
+        allocation.setTotalFee(new BigDecimal("210000"));
+        allocation.setNetFee(new BigDecimal("200000"));
+        allocation.setHasHostelFee(false);
+
+        SemesterFee paid = semesterFeeDue(14L, 1, 1, new BigDecimal("100000"), LocalDate.now().minusMonths(6));
+        SemesterFee future = semesterFee(15L, 1, 2, new BigDecimal("100000"));
+        when(semesterFeeRepository.findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(ALLOCATION_ID))
+            .thenReturn(List.of(paid, future));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(15L)).thenReturn(BigDecimal.ZERO);
+        when(feeDemandService.resolveTermFeeAmount(STUDENT_ID, 2, StudentType.HOSTELER))
+            .thenReturn(new BigDecimal("125000"));
+
+        FeeFinalizationService.LegacyFeeSyncResult result =
+            service.syncSemesterFeesForStudentTypeSwitch(STUDENT_ID, StudentType.HOSTELER);
+
+        assertThat(result.installmentsAdjusted()).isEqualTo(1);
+        assertThat(result.totalDelta()).isEqualByComparingTo("25000");
+        assertThat(allocation.getNetFee()).isEqualByComparingTo("225000");
+        assertThat(allocation.getTotalFee()).isEqualByComparingTo("235000");
+        assertThat(allocation.isHasHostelFee()).isTrue();
+        verify(allocationRepository).save(allocation);
     }
 }
