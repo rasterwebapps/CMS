@@ -34,6 +34,7 @@ import com.cms.repository.PaymentReceiptRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.util.FeeCascadeUtil;
 
 @Service
 @Transactional(readOnly = true)
@@ -213,9 +214,12 @@ public class FeeReportService {
             .map(e -> enquiryPaymentRepository.findByEnquiryIdOrderByPaymentDateDesc(e.getId()))
             .orElse(List.of());
 
+        Map<Long, BigDecimal> cascadedPaid = FeeCascadeUtil.cascadePaid(
+            semesterFees, installmentRepository::sumAmountPaidBySemesterFeeId);
+
         List<StudentFeeLedgerDto.LedgerEntry> entries = new ArrayList<>();
         for (SemesterFee sf : semesterFees) {
-            BigDecimal feeInstallmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(sf.getId());
+            BigDecimal feeInstallmentPaid = cascadedPaid.getOrDefault(sf.getId(), BigDecimal.ZERO);
             BigDecimal maxCredit = sf.getAmount().subtract(feeInstallmentPaid).max(BigDecimal.ZERO);
             BigDecimal creditForThis = remainingEnquiryCredit.min(maxCredit);
             remainingEnquiryCredit = remainingEnquiryCredit.subtract(creditForThis);

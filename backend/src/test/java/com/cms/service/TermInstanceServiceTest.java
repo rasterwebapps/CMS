@@ -111,6 +111,27 @@ class TermInstanceServiceTest {
     }
 
     @Test
+    void shouldCreateTermInstancesAsLockedForHistoricalAcademicYear() {
+        AcademicYear historical = createAcademicYear(3L, "2023-2024",
+            LocalDate.of(2023, 11, 1), LocalDate.of(2024, 10, 31));
+
+        when(termInstanceRepository.save(any(TermInstance.class))).thenAnswer(inv -> {
+            TermInstance ti = inv.getArgument(0);
+            ti.setId(1L);
+            ti.setCreatedAt(Instant.now());
+            ti.setUpdatedAt(Instant.now());
+            return ti;
+        });
+
+        termInstanceService.createTermInstancesForAcademicYear(historical);
+
+        ArgumentCaptor<TermInstance> captor = ArgumentCaptor.forClass(TermInstance.class);
+        verify(termInstanceRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertThat(captor.getAllValues())
+            .allMatch(t -> t.getStatus() == TermInstanceStatus.LOCKED);
+    }
+
+    @Test
     void shouldDeriveTermWindowsFromNonJuneStartDate() {
         // This college's academic year start month varies year to year (follows the
         // NEET/counselling calendar) — verify a Nov 1 start derives correct windows rather

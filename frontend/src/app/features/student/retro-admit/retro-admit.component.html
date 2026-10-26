@@ -160,6 +160,9 @@
                   <option [value]="y.id">{{ y.name }}</option>
                 }
               </select>
+              @if (pastAcademicYears().length === 0) {
+                <span class="field-hint">No past academic years exist yet. Create the historical academic year(s) first under Preferences → Academic Years.</span>
+              }
             </div>
 
             <div class="field-group">

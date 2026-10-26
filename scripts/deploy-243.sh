@@ -13,7 +13,7 @@ set -e
 # ── Configuration ─────────────────────────────────────────────────────────────
 SERVER="172.17.1.243"
 SERVER_USER="raster"
-SERVER_PASS="ra5terpass@1234"
+# Authentication uses SSH keys (ssh-copy-id raster@$SERVER) — no password is stored here.
 REMOTE_DIR="~/skscms"
 LOCAL_DIR="$(cd "$(dirname "$0")/.." && pwd)"   # project root
 COMPOSE_FILE="$REMOTE_DIR/docker-compose.yml"
@@ -26,15 +26,15 @@ rsync_to_server() {
   local src="$1"
   local dst="$2"
   shift 2
-  SSHPASS="$SERVER_PASS" sshpass -e rsync -avz --delete --progress \
+  rsync -avz --delete --progress \
     "$@" \
     -e "ssh $SSH_OPTS" \
     "$src" "$SERVER_USER@$SERVER:$dst"
 }
 
 ssh_run() {
-  SSHPASS="$SERVER_PASS" sshpass -e ssh $SSH_OPTS "$SERVER_USER@$SERVER" \
-    "echo '$SERVER_PASS' | sudo -S $1 2>&1"
+  # raster is in the docker group, so docker compose runs without sudo.
+  ssh $SSH_OPTS "$SERVER_USER@$SERVER" "$1 2>&1"
 }
 
 print_step() {
@@ -75,11 +75,13 @@ if [ "$MODE" = "full" ]; then
     --exclude='backend/build' \
     --exclude='backend/.gradle' \
     --exclude='.idea' \
+    --exclude='frontend/ssl' \
     --exclude='scripts/__pycache__'
 
 elif [ "$MODE" = "frontend" ]; then
   print_step "Syncing frontend files to server..."
   rsync_to_server "$LOCAL_DIR/frontend/" "$REMOTE_DIR/frontend/" \
+    --exclude='ssl' \
     --exclude='node_modules' \
     --exclude='dist' \
     --exclude='.angular'
@@ -144,9 +146,9 @@ fi
 # ── Step 5: Health check ──────────────────────────────────────────────────────
 print_step "Running health checks..."
 sleep 6
-SSHPASS="$SERVER_PASS" sshpass -e ssh $SSH_OPTS "$SERVER_USER@$SERVER" "
+ssh $SSH_OPTS "$SERVER_USER@$SERVER" "
   echo '--- Container Status ---'
-  echo '$SERVER_PASS' | sudo -S $COMPOSE_CMD ps 2>/dev/null
+  $COMPOSE_CMD ps 2>/dev/null
   echo ''
   echo '--- Service Health ---'
   curl -sk -o /dev/null -w 'Frontend (HTTPS):  %{http_code}\n' https://localhost:8443/

@@ -106,8 +106,9 @@ public class FeeFinalizationService {
         if (allocationOpt.isEmpty()) {
             return new LegacyFeeSyncResult(0, BigDecimal.ZERO);
         }
+        StudentFeeAllocation allocation = allocationOpt.get();
         List<SemesterFee> semesterFees = semesterFeeRepository
-            .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocationOpt.get().getId());
+            .findByAllocationIdOrderByYearNumberAscSemesterSequenceAsc(allocation.getId());
 
         int updated = 0;
         BigDecimal totalDelta = BigDecimal.ZERO;
@@ -139,6 +140,23 @@ public class FeeFinalizationService {
             updated++;
             totalDelta = totalDelta.add(newAmount.subtract(previousAmount));
         }
+
+        boolean targetHasHostel = targetType == StudentType.HOSTELER;
+        if (updated > 0 || allocation.isHasHostelFee() != targetHasHostel) {
+            if (updated > 0) {
+                BigDecimal installmentsSum = semesterFees.stream()
+                    .map(SemesterFee::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal discount = allocation.getDiscountAmount() != null
+                    ? allocation.getDiscountAmount()
+                    : BigDecimal.ZERO;
+                allocation.setNetFee(installmentsSum);
+                allocation.setTotalFee(installmentsSum.add(discount));
+            }
+            allocation.setHasHostelFee(targetHasHostel);
+            allocationRepository.save(allocation);
+        }
+
         return new LegacyFeeSyncResult(updated, totalDelta);
     }
 

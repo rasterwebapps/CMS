@@ -116,6 +116,45 @@ class AcademicYearServiceTest {
     }
 
     @Test
+    void shouldCreateHistoricalAcademicYearWithoutSeedingHolidays() {
+        LocalDate start = LocalDate.of(2023, 11, 1);
+        LocalDate end = LocalDate.of(2024, 10, 31);
+        AcademicYearRequest request = new AcademicYearRequest("2023-2024", start, end, false);
+        AcademicYear saved = createAcademicYear(1L, "2023-2024", start, end, false);
+
+        when(academicYearRepository.count()).thenReturn(1L);
+        when(academicYearRepository.save(any(AcademicYear.class))).thenReturn(saved);
+
+        AcademicYearResponse response = academicYearService.create(request);
+
+        assertThat(response.name()).isEqualTo("2023-2024");
+        assertThat(response.isCurrent()).isFalse();
+        verify(termInstanceService).createTermInstancesForAcademicYear(any(AcademicYear.class));
+        org.mockito.Mockito.verifyNoInteractions(holidayTemplateSeedingService);
+    }
+
+    @Test
+    void shouldRejectPastAcademicYearMarkedAsCurrent() {
+        AcademicYearRequest request = new AcademicYearRequest(
+            "2023-2024", LocalDate.of(2023, 11, 1), LocalDate.of(2024, 10, 31), true);
+
+        assertThatThrownBy(() -> academicYearService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("past academic year cannot be marked as current");
+    }
+
+    @Test
+    void shouldRejectPastAcademicYearWhenItWouldBeTheFirstEver() {
+        AcademicYearRequest request = new AcademicYearRequest(
+            "2023-2024", LocalDate.of(2023, 11, 1), LocalDate.of(2024, 10, 31), false);
+        when(academicYearRepository.count()).thenReturn(0L);
+
+        assertThatThrownBy(() -> academicYearService.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("first academic year");
+    }
+
+    @Test
     void shouldCreateAcademicYearWithNullIsCurrent() {
         AcademicYearRequest request = new AcademicYearRequest(
             FUTURE_NAME,

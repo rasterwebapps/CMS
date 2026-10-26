@@ -147,7 +147,15 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
     return new Date().toISOString().split('T')[0];
   }
 
+  /** Start year of the academic year flagged current in the system. Academic year start months
+   *  vary per college (e.g. 1 Nov), so a fixed calendar cutoff mis-classifies the running year;
+   *  the calendar-based guess is only a fallback when no year is flagged current. */
   private get currentAcademicStartYear(): number {
+    const current = this.academicYears().find(y => y.isCurrent);
+    if (current) {
+      const startYear = parseInt((current.startDate ?? current.name).substring(0, 4), 10);
+      if (!isNaN(startYear)) return startYear;
+    }
     const now = new Date();
     return now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
   }
@@ -314,15 +322,15 @@ export class RetroAdmitComponent implements OnInit, OnDestroy {
       });
   }
 
-  private computeYearOfStudy(joiningAcademicYearId: number | null): number {
+  private computeYearOfStudy(joiningAcademicYearId: number | string | null): number {
     if (!joiningAcademicYearId) return 1;
-    const year = this.academicYears().find(y => y.id === joiningAcademicYearId);
+    // The <select> binds option [value] as a string, so compare numerically — a strict === against
+    // the numeric id never matched and silently left every joiner at year 1.
+    const year = this.academicYears().find(y => y.id === Number(joiningAcademicYearId));
     if (!year) return 1;
     const joinStart = parseInt(year.name.substring(0, 4), 10);
     if (isNaN(joinStart)) return 1;
-    const now = new Date();
-    const currentAcademicStart = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
-    return Math.max(1, currentAcademicStart - joinStart + 1);
+    return Math.max(1, this.currentAcademicStartYear - joinStart + 1);
   }
 
   private enforceCounsellingState(states: { id: number; name: string }[], quota: string | null): void {

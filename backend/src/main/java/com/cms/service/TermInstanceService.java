@@ -70,12 +70,18 @@ public class TermInstanceService {
         LocalDate oddEnd = start.plusMonths(6).minusDays(1);
         LocalDate evenStart = start.plusMonths(6);
 
+        // A historical academic year (already fully ended, e.g. created for Retro Admit) is closed
+        // for good: its terms start LOCKED so they never raise "term not yet opened" alerts.
+        TermInstanceStatus initialStatus = end.isBefore(LocalDate.now())
+            ? TermInstanceStatus.LOCKED
+            : TermInstanceStatus.PLANNED;
+
         TermInstance odd = new TermInstance(
             academicYear,
             TermType.ODD,
             start,
             oddEnd,
-            TermInstanceStatus.PLANNED
+            initialStatus
         );
 
         TermInstance even = new TermInstance(
@@ -83,7 +89,7 @@ public class TermInstanceService {
             TermType.EVEN,
             evenStart,
             end,
-            TermInstanceStatus.PLANNED
+            initialStatus
         );
 
         termInstanceRepository.save(odd);
