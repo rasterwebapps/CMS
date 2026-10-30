@@ -31,6 +31,7 @@ export interface LibraryBook {
   rackName?: string;
   shelfId?: number;
   shelfName?: string;
+  subjectCategoryId?: number;
   subjectCategory?: string;
   sourceOfSupply?: BookSourceOfSupply;
   vendorDonorName?: string;
@@ -58,6 +59,7 @@ export interface LibraryBookRequest {
   callNumber?: string;
   libraryId: number;
   shelfId?: number;
+  subjectCategoryId?: number;
   subjectCategory?: string;
   sourceOfSupply?: BookSourceOfSupply;
   vendorDonorName?: string;
@@ -118,6 +120,23 @@ export interface LibraryShelfRequest {
   rackId: number;
   name: string;
   code: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface LibrarySubjectCategory {
+  id: number;
+  name: string;
+  code: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LibrarySubjectCategoryRequest {
+  name: string;
+  code?: string;
   description?: string;
   isActive?: boolean;
 }

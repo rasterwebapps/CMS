@@ -13,6 +13,7 @@ import {
   SUBJECT_CATEGORY_OPTIONS,
   LibraryRack,
   LibraryShelf,
+  LibrarySubjectCategory,
 } from '../library.model';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -40,6 +41,7 @@ export class LibraryBookFormComponent implements OnInit {
   protected readonly statusOptions   = BOOK_STATUS_OPTIONS;
   protected readonly sourceOptions   = BOOK_SOURCE_OPTIONS;
   protected readonly categoryOptions = SUBJECT_CATEGORY_OPTIONS;
+  protected readonly categories      = signal<LibrarySubjectCategory[]>([]);
   protected readonly racks           = signal<LibraryRack[]>([]);
   protected readonly shelves         = signal<LibraryShelf[]>([]);
 
@@ -55,6 +57,9 @@ export class LibraryBookFormComponent implements OnInit {
       this.pageTitle.set('Edit Book');
     }
     this.buildForm();
+    this.libraryService.getSubjectCategories(true).subscribe({
+      next: (cats) => this.categories.set(cats),
+    });
     this.libraryService.getLibraries().subscribe({
       next: (libraries) => {
         this.libraryId = libraries[0]?.id ?? null;
@@ -92,6 +97,7 @@ export class LibraryBookFormComponent implements OnInit {
       callNumber:         ['', Validators.maxLength(50)],
       rackId:             [''],
       shelfId:            [''],
+      subjectCategoryId:  [''],
       subjectCategory:    [''],
       sourceOfSupply:     [''],
       vendorDonorName:    ['', Validators.maxLength(200)],
@@ -146,6 +152,7 @@ export class LibraryBookFormComponent implements OnInit {
           callNumber:        book.callNumber ?? '',
           rackId:            book.rackId ?? '',
           shelfId:           book.shelfId ?? '',
+          subjectCategoryId: book.subjectCategoryId ?? '',
           subjectCategory:   book.subjectCategory ?? '',
           sourceOfSupply:    book.sourceOfSupply ?? '',
           vendorDonorName:   book.vendorDonorName ?? '',
@@ -213,7 +220,8 @@ export class LibraryBookFormComponent implements OnInit {
       callNumber:        v.callNumber?.trim() || undefined,
       libraryId:         this.libraryId!,
       shelfId:           v.shelfId || undefined,
-      subjectCategory:   v.subjectCategory || undefined,
+      subjectCategoryId: v.subjectCategoryId ? +v.subjectCategoryId : undefined,
+      subjectCategory:   this.categories().find(c => c.id === +v.subjectCategoryId)?.name || v.subjectCategory || undefined,
       sourceOfSupply:    v.sourceOfSupply || undefined,
       vendorDonorName:   v.vendorDonorName?.trim() || undefined,
       billNumber:        v.billNumber?.trim() || undefined,

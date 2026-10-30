@@ -21,6 +21,7 @@ import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +31,7 @@ import com.cms.dto.LibraryImportExecuteResult;
 import com.cms.dto.LibraryImportValidationResult;
 import com.cms.model.Library;
 import com.cms.model.LibraryBook;
+import com.cms.model.LibrarySubjectCategory;
 import com.cms.model.enums.BookSourceOfSupply;
 import com.cms.model.enums.BookStatus;
 import com.cms.repository.LibraryBookRepository;
@@ -53,15 +55,26 @@ public class LibraryBookImportService {
     private final LibraryAccessionRegistryService accessionRegistry;
     private final LibraryService libraryService;
     private final LibraryShelfService shelfService;
+    private final LibrarySubjectCategoryService categoryService;
+
+    @Autowired
+    public LibraryBookImportService(LibraryBookRepository bookRepository,
+                                     LibraryAccessionRegistryService accessionRegistry,
+                                     LibraryService libraryService,
+                                     LibraryShelfService shelfService,
+                                     LibrarySubjectCategoryService categoryService) {
+        this.bookRepository = bookRepository;
+        this.accessionRegistry = accessionRegistry;
+        this.libraryService = libraryService;
+        this.shelfService = shelfService;
+        this.categoryService = categoryService;
+    }
 
     public LibraryBookImportService(LibraryBookRepository bookRepository,
                                      LibraryAccessionRegistryService accessionRegistry,
                                      LibraryService libraryService,
                                      LibraryShelfService shelfService) {
-        this.bookRepository = bookRepository;
-        this.accessionRegistry = accessionRegistry;
-        this.libraryService = libraryService;
-        this.shelfService = shelfService;
+        this(bookRepository, accessionRegistry, libraryService, shelfService, null);
     }
 
     // ── Template download ─────────────────────────────────────────
@@ -256,7 +269,19 @@ public class LibraryBookImportService {
         book.setSeries(blankToNull(str(row, 9)));
         book.setCallNumber(blankToNull(str(row, 10)));
         book.setShelf(shelfService.resolveOrCreateFromLegacyText(library, str(row, 11)));
-        book.setSubjectCategory(blankToNull(str(row, 12)));
+        String catText = blankToNull(str(row, 12));
+        if (catText != null) {
+            if (categoryService != null) {
+                LibrarySubjectCategory cat = categoryService.resolveOrCreate(catText);
+                book.setSubjectCategoryMaster(cat);
+                book.setSubjectCategory(cat != null ? cat.getName() : catText);
+            } else {
+                book.setSubjectCategory(catText);
+            }
+        } else {
+            book.setSubjectCategoryMaster(null);
+            book.setSubjectCategory(null);
+        }
 
         String source = str(row, 13).toUpperCase();
         if (!source.isBlank()) {

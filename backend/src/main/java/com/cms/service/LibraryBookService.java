@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,14 +23,17 @@ import com.cms.model.Library;
 import com.cms.model.LibraryBook;
 import com.cms.model.LibraryBookShelfTransfer;
 import com.cms.model.LibraryShelf;
+import com.cms.model.LibrarySubjectCategory;
 import com.cms.model.enums.BookStatus;
 import com.cms.repository.LibraryBookRepository;
 import com.cms.repository.LibraryBookShelfTransferRepository;
 import com.cms.repository.LibraryIssueRepository;
 import com.cms.repository.LibraryRepository;
 import com.cms.repository.LibraryShelfRepository;
+import com.cms.repository.LibrarySubjectCategoryRepository;
 import com.cms.util.CurrentUserResolver;
 
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
 @Service
@@ -43,6 +47,29 @@ public class LibraryBookService {
     private final LibraryBookShelfTransferRepository transferRepository;
     private final LibraryIssueRepository issueRepository;
     private final CurrentUserResolver currentUserResolver;
+    private final LibrarySubjectCategoryRepository categoryRepository;
+    private final LibrarySubjectCategoryService categoryService;
+
+    @Autowired
+    public LibraryBookService(LibraryBookRepository bookRepository,
+                               LibraryAccessionRegistryService accessionRegistry,
+                               LibraryRepository libraryRepository,
+                               LibraryShelfRepository shelfRepository,
+                               LibraryBookShelfTransferRepository transferRepository,
+                               LibraryIssueRepository issueRepository,
+                               CurrentUserResolver currentUserResolver,
+                               LibrarySubjectCategoryRepository categoryRepository,
+                               LibrarySubjectCategoryService categoryService) {
+        this.bookRepository = bookRepository;
+        this.accessionRegistry = accessionRegistry;
+        this.libraryRepository = libraryRepository;
+        this.shelfRepository = shelfRepository;
+        this.transferRepository = transferRepository;
+        this.issueRepository = issueRepository;
+        this.currentUserResolver = currentUserResolver;
+        this.categoryRepository = categoryRepository;
+        this.categoryService = categoryService;
+    }
 
     public LibraryBookService(LibraryBookRepository bookRepository,
                                LibraryAccessionRegistryService accessionRegistry,
@@ -51,13 +78,8 @@ public class LibraryBookService {
                                LibraryBookShelfTransferRepository transferRepository,
                                LibraryIssueRepository issueRepository,
                                CurrentUserResolver currentUserResolver) {
-        this.bookRepository = bookRepository;
-        this.accessionRegistry = accessionRegistry;
-        this.libraryRepository = libraryRepository;
-        this.shelfRepository = shelfRepository;
-        this.transferRepository = transferRepository;
-        this.issueRepository = issueRepository;
-        this.currentUserResolver = currentUserResolver;
+        this(bookRepository, accessionRegistry, libraryRepository, shelfRepository,
+             transferRepository, issueRepository, currentUserResolver, null, null);
     }
 
     @Transactional
@@ -106,11 +128,25 @@ public class LibraryBookService {
                     cb.like(cb.lower(root.get("title")), p),
                     cb.like(cb.lower(root.get("authors")), p),
                     cb.like(cb.lower(root.get("accessionNumber")), p),
-                    cb.like(cb.lower(root.get("subjectCategory")), p)
+                    cb.like(cb.lower(root.get("subjectCategory")), p),
+                    cb.like(cb.lower(root.join("subjectCategoryMaster", JoinType.LEFT).get("name")), p)
                 ));
             }
             if (status != null) predicates.add(cb.equal(root.get("status"), status));
-            if (category != null && !category.isBlank()) predicates.add(cb.equal(root.get("subjectCategory"), category));
+            if (category != null && !category.isBlank()) {
+                try {
+                    Long catId = Long.parseLong(category.trim());
+                    predicates.add(cb.or(
+                        cb.equal(root.get("subjectCategoryMaster").get("id"), catId),
+                        cb.equal(root.get("subjectCategory"), category)
+                    ));
+                } catch (NumberFormatException e) {
+                    predicates.add(cb.or(
+                        cb.equal(root.get("subjectCategory"), category),
+                        cb.equal(root.join("subjectCategoryMaster", JoinType.LEFT).get("name"), category)
+                    ));
+                }
+            }
             if (shelfId != null) predicates.add(cb.equal(root.get("shelf").get("id"), shelfId));
             else if (rackId != null) predicates.add(cb.equal(root.get("shelf").get("rack").get("id"), rackId));
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -288,7 +324,24 @@ public class LibraryBookService {
             book.setShelf(null);
         }
 
-        book.setSubjectCategory(trim(r.subjectCategory()));
+        if (r.subjectCategoryId() != null && categoryRepository != null) {
+            LibrarySubjectCategory cat = categoryRepository.findById(r.subjectCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Subject category not found with id: " + r.subjectCategoryId()));
+            book.setSubjectCategoryMaster(cat);
+            book.setSubjectCategory(cat.getName());
+        } else if (r.subjectCategory() != null && !r.subjectCategory().isBlank()) {
+            if (categoryService != null) {
+                LibrarySubjectCategory cat = categoryService.resolveOrCreate(r.subjectCategory());
+                book.setSubjectCategoryMaster(cat);
+                book.setSubjectCategory(cat != null ? cat.getName() : trim(r.subjectCategory()));
+            } else {
+                book.setSubjectCategory(trim(r.subjectCategory()));
+            }
+        } else {
+            book.setSubjectCategoryMaster(null);
+            book.setSubjectCategory(null);
+        }
+
         book.setSourceOfSupply(r.sourceOfSupply());
         book.setVendorDonorName(trim(r.vendorDonorName()));
         book.setBillNumber(trim(r.billNumber()));
@@ -335,7 +388,8 @@ public class LibraryBookService {
             b.getStatus(),
             b.getRemarks(),
             b.getCreatedAt(),
-            b.getUpdatedAt()
+            b.getUpdatedAt(),
+            b.getSubjectCategoryId()
         );
     }
 }

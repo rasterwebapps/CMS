@@ -20,6 +20,16 @@ import { staticOptionsFetchPage } from '../infinite-select/infinite-select.utils
   standalone: true,
   imports: [CmsInfiniteSelectComponent],
   templateUrl: './room-picker.component.html',
+  styles: [`
+    :host ::ng-deep .isel-btn {
+      max-width: 360px;
+    }
+    :host ::ng-deep .isel-panel {
+      min-width: 280px;
+      max-width: 420px;
+      width: max-content;
+    }
+  `],
 })
 export class CmsRoomPickerComponent implements OnChanges {
   private readonly campusInfrastructureService = inject(CampusInfrastructureService);
@@ -48,17 +58,28 @@ export class CmsRoomPickerComponent implements OnChanges {
 
   protected readonly rooms = signal<Room[]>([]);
   protected readonly loading = signal(false);
+  protected readonly purposeCategorySig = signal<number | null>(null);
 
   protected readonly pickerLabel = computed(() => {
-    if (this.purposeCategoryId == null) return 'Select a purpose category first';
-    if (this.rooms().length === 0) return this.loading() ? 'Loading rooms…' : 'No matching rooms';
+    const catId = this.purposeCategorySig();
+    const roomsList = this.rooms();
+    const isLoading = this.loading();
+    if (catId == null) return 'Select a purpose category first';
+    if (roomsList.length === 0) return isLoading ? 'Loading rooms…' : 'No matching rooms';
     return 'Select a room';
   });
+
+  protected readonly reloadKey = computed(() =>
+    `${this.purposeCategorySig() ?? ''}_${this.rooms().map(r => r.id).join(',')}`
+  );
 
   protected readonly roomFetchPage = staticOptionsFetchPage(() =>
     this.rooms().map(r => ({ id: r.id, name: this.roomLabel(r) })));
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['purposeCategoryId']) {
+      this.purposeCategorySig.set(this.purposeCategoryId);
+    }
     if (changes['purposeCategoryId'] || changes['subTypeId'] || changes['minCapacity'] || changes['keepRoomId'] || changes['venueType']) {
       this.loadRooms();
     }

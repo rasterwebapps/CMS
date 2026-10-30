@@ -179,6 +179,7 @@ export const NAV_ENTRIES: NavEntry[] = [
       { label: 'My Library',       icon: 'person',             route: '/library/my-issues',      permissions: ['MY_LIBRARY_VIEW'] },
       { label: 'Fines',            icon: 'currency_rupee',     route: '/library/fines',          permissions: ['LIBRARY_FINE_VIEW', 'LIBRARY_FINE_CREATE', 'LIBRARY_FINE_EDIT', 'LIBRARY_FINE_DELETE', 'LIBRARY_FINE_EXPORT', 'LIBRARY_FINE_MANAGE'] },
       { label: 'Racks & Shelves',  icon: 'shelves',            route: '/library/racks',          permissions: ['LIBRARY_SHELF_VIEW', 'LIBRARY_SHELF_MANAGE'] },
+      { label: 'Subject Categories', icon: 'category',          route: '/library/subject-categories', permissions: ['LIBRARY_SUBJECT_CATEGORY_VIEW', 'LIBRARY_SUBJECT_CATEGORY_MANAGE', 'LIBRARY_CATALOGUE_MANAGE'] },
       { label: 'Import',           icon: 'upload',             route: '/library/import',         permissions: ['LIBRARY_IMPORT', 'LIBRARY_PERIODICAL_IMPORT'] },
       { label: 'Library Settings', icon: 'settings',           route: '/library/settings',       permissions: ['LIBRARY_SETTINGS_EDIT', 'LIBRARY_SETTINGS_MANAGE'] },
     ],

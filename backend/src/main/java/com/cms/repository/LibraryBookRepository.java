@@ -26,4 +26,8 @@ public interface LibraryBookRepository extends JpaRepository<LibraryBook, Long>,
     List<LibraryBook> findByStatus(BookStatus status);
 
     List<LibraryBook> findBySubjectCategory(String subjectCategory);
+
+    boolean existsBySubjectCategoryMasterId(Long categoryId);
+
+    List<LibraryBook> findBySubjectCategoryMasterId(Long categoryId);
 }

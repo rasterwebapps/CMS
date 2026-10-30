@@ -1,6 +1,7 @@
 <cms-infinite-select
   [label]="pickerLabel()" [ariaLabel]="label" searchPlaceholder="Search rooms…"
   [fetchPage]="roomFetchPage"
+  [reloadKey]="reloadKey()"
   [selectedValue]="selectedRoomId" (selectedValueChange)="onSelectionChange($event)"
   [disabled]="disabled || purposeCategoryId == null || rooms().length === 0"
 />

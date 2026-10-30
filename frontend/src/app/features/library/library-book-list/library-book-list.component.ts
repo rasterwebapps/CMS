@@ -18,7 +18,7 @@ import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { LibraryService } from '../library.service';
 import { LibraryPrintTransportService } from '../library-print-transport.service';
-import { LibraryBook, BookStatus, BOOK_STATUS_OPTIONS, SUBJECT_CATEGORY_OPTIONS, LibraryRack, LibraryShelf, LibraryBookTransferResult } from '../library.model';
+import { LibraryBook, BookStatus, BOOK_STATUS_OPTIONS, SUBJECT_CATEGORY_OPTIONS, LibraryRack, LibraryShelf, LibrarySubjectCategory, LibraryBookTransferResult } from '../library.model';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
@@ -121,10 +121,13 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   protected readonly shelves       = signal<LibraryShelf[]>([]);
   protected readonly statusOptions  = BOOK_STATUS_OPTIONS;
   protected readonly categoryOptions = SUBJECT_CATEGORY_OPTIONS;
+  protected readonly categories     = signal<LibrarySubjectCategory[]>([]);
   protected readonly statusFetchPage = staticOptionsFetchPage(() =>
     this.statusOptions.map(o => ({ id: o.value, name: o.label })));
   protected readonly categoryFetchPage = staticOptionsFetchPage(() =>
-    this.categoryOptions.map(cat => ({ id: cat, name: cat })));
+    this.categories().length > 0
+      ? this.categories().map(cat => ({ id: cat.name, name: cat.name }))
+      : this.categoryOptions.map(cat => ({ id: cat, name: cat })));
   protected readonly rackFetchPage = staticOptionsFetchPage(() =>
     this.racks().map(r => ({ id: r.id, name: r.name })));
   protected readonly shelfFetchPage = staticOptionsFetchPage(() =>
@@ -161,6 +164,7 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
       .subscribe(() => { this.currentPage = 0; this.loadPage(); });
     this.loadPage();
     this.libraryService.getRacks(undefined, true).subscribe({ next: (racks) => this.racks.set(racks) });
+    this.libraryService.getSubjectCategories(true).subscribe({ next: (cats) => this.categories.set(cats) });
   }
 
   ngOnDestroy(): void {

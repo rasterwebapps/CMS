@@ -67,7 +67,7 @@ export class LibraryMyIssuesComponent implements OnInit, OnDestroy {
   protected readonly books            = signal<LibraryBook[]>([]);
   protected readonly catalogueSearch  = signal('');
   protected readonly categoryFilter   = signal('');
-  protected readonly categoryOptions  = SUBJECT_CATEGORY_OPTIONS;
+  protected categoryOptions: string[] = SUBJECT_CATEGORY_OPTIONS;
   protected readonly racks            = signal<LibraryRack[]>([]);
   protected readonly shelves          = signal<LibraryShelf[]>([]);
   protected readonly rackFilter       = signal<number | null>(null);
@@ -100,6 +100,9 @@ export class LibraryMyIssuesComponent implements OnInit, OnDestroy {
     if (tab === 'search' && !this.catalogueLoaded) {
       this.catalogueLoaded = true;
       this.libraryService.getRacks(undefined, true).subscribe({ next: (racks) => this.racks.set(racks) });
+      this.libraryService.getSubjectCategories(true).subscribe({
+        next: (cats) => { if (cats.length > 0) this.categoryOptions = cats.map(c => c.name); }
+      });
       this.loadCatalogue();
     }
   }

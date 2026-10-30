@@ -36,5 +36,21 @@ public record LibraryBookResponse(
     BookStatus status,
     String remarks,
     Instant createdAt,
-    Instant updatedAt
-) {}
+    Instant updatedAt,
+    Long subjectCategoryId
+) {
+    public LibraryBookResponse(
+        Long id, String accessionNumber, String barcode, LocalDate entryDate, String title,
+        String authors, String publisher, String yearOfPublication, String edition,
+        String isbn, String collation, String series, String callNumber, Long libraryId,
+        String libraryName, Long rackId, String rackName, Long shelfId, String shelfName,
+        String subjectCategory, BookSourceOfSupply sourceOfSupply, String vendorDonorName,
+        String billNumber, LocalDate billDate, BigDecimal priceRs, BookStatus status,
+        String remarks, Instant createdAt, Instant updatedAt
+    ) {
+        this(id, accessionNumber, barcode, entryDate, title, authors, publisher, yearOfPublication,
+             edition, isbn, collation, series, callNumber, libraryId, libraryName, rackId, rackName,
+             shelfId, shelfName, subjectCategory, sourceOfSupply, vendorDonorName, billNumber,
+             billDate, priceRs, status, remarks, createdAt, updatedAt, null);
+    }
+}
