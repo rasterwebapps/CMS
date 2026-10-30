@@ -71,5 +71,20 @@ public record LibraryBookRequest(
 
     BookStatus status,
 
-    String remarks
-) {}
+    String remarks,
+
+    Long subjectCategoryId
+) {
+    public LibraryBookRequest(
+        String accessionNumber, String barcode, LocalDate entryDate, String title,
+        String authors, String publisher, String yearOfPublication, String edition,
+        String isbn, String collation, String series, String callNumber, Long libraryId,
+        Long shelfId, String subjectCategory, BookSourceOfSupply sourceOfSupply,
+        String vendorDonorName, String billNumber, LocalDate billDate, BigDecimal priceRs,
+        BookStatus status, String remarks
+    ) {
+        this(accessionNumber, barcode, entryDate, title, authors, publisher, yearOfPublication,
+             edition, isbn, collation, series, callNumber, libraryId, shelfId, subjectCategory,
+             sourceOfSupply, vendorDonorName, billNumber, billDate, priceRs, status, remarks, null);
+    }
+}

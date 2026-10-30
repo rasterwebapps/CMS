@@ -77,6 +77,10 @@ public class LibraryBook {
     @JoinColumn(name = "shelf_id")
     private LibraryShelf shelf;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_category_id")
+    private LibrarySubjectCategory subjectCategoryMaster;
+
     @Column(name = "subject_category", length = 100)
     private String subjectCategory;
 
@@ -156,8 +160,25 @@ public class LibraryBook {
     public LibraryShelf getShelf() { return shelf; }
     public void setShelf(LibraryShelf shelf) { this.shelf = shelf; }
 
-    public String getSubjectCategory() { return subjectCategory; }
+    public String getSubjectCategory() {
+        if (subjectCategoryMaster != null) {
+            return subjectCategoryMaster.getName();
+        }
+        return subjectCategory;
+    }
     public void setSubjectCategory(String subjectCategory) { this.subjectCategory = subjectCategory; }
+
+    public LibrarySubjectCategory getSubjectCategoryMaster() { return subjectCategoryMaster; }
+    public void setSubjectCategoryMaster(LibrarySubjectCategory subjectCategoryMaster) {
+        this.subjectCategoryMaster = subjectCategoryMaster;
+        if (subjectCategoryMaster != null) {
+            this.subjectCategory = subjectCategoryMaster.getName();
+        }
+    }
+
+    public Long getSubjectCategoryId() {
+        return subjectCategoryMaster != null ? subjectCategoryMaster.getId() : null;
+    }
 
     public BookSourceOfSupply getSourceOfSupply() { return sourceOfSupply; }
     public void setSourceOfSupply(BookSourceOfSupply sourceOfSupply) { this.sourceOfSupply = sourceOfSupply; }

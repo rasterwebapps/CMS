@@ -1,0 +1,47 @@
+<div class="category-dialog">
+  <div class="dialog-header">
+    <h2 class="dialog-title">{{ isEdit() ? 'Edit' : 'Add' }} Subject Category</h2>
+    <button type="button" class="dialog-close-btn" (click)="cancel()" aria-label="Close dialog">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate class="dialog-body">
+    <div class="form-field">
+      <label class="form-label required" for="catName">Category Name</label>
+      <input id="catName" type="text" formControlName="name" class="form-input" placeholder="e.g. Pharmacology" />
+      @if (form.get('name')?.touched && form.get('name')?.errors?.['required']) {
+        <span class="form-error">Category name is required</span>
+      }
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="catCode">
+        Code
+        <span class="form-hint">(Optional — auto-generated if left blank)</span>
+      </label>
+      <input id="catCode" type="text" formControlName="code" class="form-input" placeholder="e.g. PHARM" />
+    </div>
+
+    <div class="form-field">
+      <label class="form-label" for="catDesc">Description</label>
+      <textarea id="catDesc" formControlName="description" class="form-input form-textarea" rows="3" placeholder="Brief description of this classification..."></textarea>
+    </div>
+
+    <div class="form-field toggle-field">
+      <label class="form-label" for="catActive">Status</label>
+      <div class="toggle-row">
+        <mat-slide-toggle id="catActive" formControlName="isActive" color="primary">
+          {{ form.get('isActive')?.value ? 'Active' : 'Inactive' }}
+        </mat-slide-toggle>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn-secondary" (click)="cancel()" [disabled]="saving()">Cancel</button>
+      <button type="submit" class="btn-primary" [disabled]="saving() || form.invalid">
+        {{ saving() ? 'Saving...' : (isEdit() ? 'Update' : 'Create') }}
+      </button>
+    </div>
+  </form>
+</div>

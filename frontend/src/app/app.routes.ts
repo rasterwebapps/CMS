@@ -2584,6 +2584,14 @@ export const routes: Routes = [
         (m) => m.LibraryShelfFormComponent
       ),
   },
+  {
+    path: 'library/subject-categories',
+    canActivate: withPermission('LIBRARY_SUBJECT_CATEGORY_VIEW', 'LIBRARY_SUBJECT_CATEGORY_MANAGE', 'LIBRARY_CATALOGUE_MANAGE'),
+    loadComponent: () =>
+      import('./features/library/library-subject-category-list/library-subject-category-list.component').then(
+        (m) => m.LibrarySubjectCategoryListComponent
+      ),
+  },
   // ── Administration: User & Role Management ───────────────────────────────
   {
     path: 'user-management',

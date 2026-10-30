@@ -2707,8 +2707,16 @@ th.cms-th-resize-hover .mat-sort-header-container {
   // remove its own padding so the children own the spacing.
   &--sectioned {
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
     border-radius: 18px;
+
+    .entry-form-card__hdr {
+      border-radius: 18px 18px 0 0;
+    }
+
+    .entry-form-card__footer {
+      border-radius: 0 0 18px 18px;
+    }
   }
 }
 

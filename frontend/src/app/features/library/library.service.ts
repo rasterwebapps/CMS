@@ -31,6 +31,8 @@ import {
   LibraryRackRequest,
   LibraryShelf,
   LibraryShelfRequest,
+  LibrarySubjectCategory,
+  LibrarySubjectCategoryRequest,
   LibraryBookTransferRequest,
   LibraryBookBulkTransferRequest,
   LibraryBookTransferResult,
@@ -196,6 +198,52 @@ export class LibraryService {
     let params = new HttpParams().set('value', value).set('libraryId', libraryId.toString());
     if (excludeId != null) params = params.set('excludeId', excludeId.toString());
     return this.http.get<boolean>(`${environment.apiUrl}/library/racks/code-exists`, { params });
+  }
+
+  // ── Subject Categories ────────────────────────────────────────
+
+  getSubjectCategories(activeOnly = false): Observable<LibrarySubjectCategory[]> {
+    let params = new HttpParams().set('activeOnly', String(activeOnly));
+    return this.http.get<LibrarySubjectCategory[]>(`${environment.apiUrl}/library/subject-categories`, { params });
+  }
+
+  getSubjectCategoriesPage(p: { search?: string; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibrarySubjectCategory>> {
+    let params = new HttpParams().set('page', (p.page ?? 0).toString()).set('size', (p.size ?? 25).toString());
+    if (p.search) params = params.set('search', p.search);
+    if (p.sort)   params = params.set('sort', `${p.sort},${p.direction ?? 'asc'}`);
+    return this.http.get<Page<LibrarySubjectCategory>>(`${environment.apiUrl}/library/subject-categories/page`, { params });
+  }
+
+  getSubjectCategoryById(id: number): Observable<LibrarySubjectCategory> {
+    return this.http.get<LibrarySubjectCategory>(`${environment.apiUrl}/library/subject-categories/${id}`);
+  }
+
+  createSubjectCategory(request: LibrarySubjectCategoryRequest): Observable<LibrarySubjectCategory> {
+    return this.http.post<LibrarySubjectCategory>(`${environment.apiUrl}/library/subject-categories`, request);
+  }
+
+  updateSubjectCategory(id: number, request: LibrarySubjectCategoryRequest): Observable<LibrarySubjectCategory> {
+    return this.http.put<LibrarySubjectCategory>(`${environment.apiUrl}/library/subject-categories/${id}`, request);
+  }
+
+  deleteSubjectCategory(id: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/library/subject-categories/${id}`);
+  }
+
+  updateSubjectCategoryStatus(id: number, isActive: boolean): Observable<{ id: number; isActive: boolean; updatedAt: string }> {
+    return this.http.patch<{ id: number; isActive: boolean; updatedAt: string }>(`${environment.apiUrl}/library/subject-categories/${id}/status`, { isActive });
+  }
+
+  checkSubjectCategoryNameExists(value: string, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${environment.apiUrl}/library/subject-categories/name-exists`, { params });
+  }
+
+  checkSubjectCategoryCodeExists(value: string, excludeId?: number): Observable<boolean> {
+    let params = new HttpParams().set('value', value);
+    if (excludeId != null) params = params.set('excludeId', excludeId.toString());
+    return this.http.get<boolean>(`${environment.apiUrl}/library/subject-categories/code-exists`, { params });
   }
 
   // ── Shelves (tiers within a rack) ────────────────────────────

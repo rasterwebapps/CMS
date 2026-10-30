@@ -151,11 +151,11 @@
             </select>
           </div>
           <div class="form-field">
-            <label class="form-label" for="subjectCategory">Subject Category</label>
-            <select id="subjectCategory" formControlName="subjectCategory" class="form-select">
+            <label class="form-label" for="subjectCategoryId">Subject Category</label>
+            <select id="subjectCategoryId" formControlName="subjectCategoryId" class="form-select">
               <option value="">— Select —</option>
-              @for (cat of categoryOptions; track cat) {
-                <option [value]="cat">{{ cat }}</option>
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
               }
             </select>
           </div>

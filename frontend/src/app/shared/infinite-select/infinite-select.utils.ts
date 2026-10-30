@@ -14,8 +14,12 @@ import { InfiniteSelectFetchPage, InfiniteSelectOption } from './infinite-select
  * rather than frozen at construction time.
  */
 export function staticOptionsFetchPage(getOptions: () => InfiniteSelectOption[]): InfiniteSelectFetchPage {
-  return () => {
-    const content = getOptions();
+  return (search = '') => {
+    const term = (search || '').trim().toLowerCase();
+    const all = getOptions();
+    const content = term
+      ? all.filter(o => o.name.toLowerCase().includes(term))
+      : all;
     return of({ content, totalElements: content.length });
   };
 }
