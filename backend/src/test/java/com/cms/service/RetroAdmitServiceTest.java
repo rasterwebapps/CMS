@@ -22,6 +22,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import com.cms.dto.LegacyYearFeeEntry;
 import com.cms.dto.RetroAdmitRequest;
 import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
+import com.cms.model.Course;
 import com.cms.model.Enquiry;
 import com.cms.model.Program;
 import com.cms.model.ReferralType;
@@ -33,6 +35,7 @@ import com.cms.model.enums.StudentType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
+import com.cms.repository.CohortRepository;
 import com.cms.repository.CourseRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
@@ -67,6 +70,8 @@ class RetroAdmitServiceTest {
     @Mock private TermBillingScheduleRepository billingScheduleRepository;
     @Mock private ApplicationNumberSequenceService numberSequenceService;
     @Mock private UnifiedReceiptService unifiedReceiptService;
+    @Mock private CohortRepository cohortRepository;
+    @Mock private FeeFinalizationService feeFinalizationService;
 
     private RetroAdmitService service;
 
@@ -76,6 +81,7 @@ class RetroAdmitServiceTest {
             programRepository, courseRepository, academicYearRepository, referralTypeRepository,
             agentRepository, allocationRepository, semesterFeeRepository, installmentRepository,
             billingScheduleRepository, numberSequenceService, unifiedReceiptService);
+        service.setCohortAndEnrollmentDependencies(cohortRepository, feeFinalizationService);
 
         // Every test reaches the yearFees gate, which sits after Program/AcademicYear resolution.
         Program program = new Program("BSc Nursing", "BSC", 4, ProgramStatus.ACTIVE, AssessmentPattern.YEARLY);
@@ -125,6 +131,38 @@ class RetroAdmitServiceTest {
 
         assertThat(captor.getValue().getYearWiseFees())
             .isEqualTo("[{\"yearNumber\":1,\"amount\":50000},{\"yearNumber\":2,\"amount\":60000}]");
+    }
+
+    @Test
+    void autoResolvesSingleCourseAssignsCohortStudentTypeAndSyncsEnrollment() {
+        stubHappyPathChain();
+
+        Program program = programRepository.findById(1L).orElseThrow();
+        Course singleCourse = new Course("B.Sc Nursing", "65", null, program);
+        singleCourse.setId(5L);
+        singleCourse.setIsActive(true);
+        when(courseRepository.findByProgramId(1L)).thenReturn(List.of(singleCourse));
+
+        Cohort cohort = new Cohort();
+        cohort.setId(4L);
+        cohort.setCohortCode("65-2026-2030");
+        when(cohortRepository.findByCourseIdAndAdmissionAcademicYearId(5L, 10L))
+            .thenReturn(Optional.of(cohort));
+
+        List<LegacyYearFeeEntry> yearFees = List.of(
+            new LegacyYearFeeEntry(1, new BigDecimal("175000"))
+        );
+
+        service.admit(baseRequest(yearFees), "admin");
+
+        ArgumentCaptor<Student> studentCaptor = ArgumentCaptor.forClass(Student.class);
+        verify(studentRepository).save(studentCaptor.capture());
+        Student savedStudent = studentCaptor.getValue();
+
+        assertThat(savedStudent.getCourse()).isSameAs(singleCourse);
+        assertThat(savedStudent.getCohort()).isSameAs(cohort);
+        assertThat(savedStudent.getStudentType()).isEqualTo(StudentType.DAY_SCHOLAR);
+        verify(feeFinalizationService).ensureCurrentEnrollmentAndFeeDemand(savedStudent, "admin");
     }
 
     // ── Fixtures ─────────────────────────────────────────────────────────────

@@ -21,10 +21,10 @@ spring:
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://keycloak:8280/realms/cms/protocol/openid-connect/certs}
 
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://dev.raster.in:212,https://122.165.219.66:212,https://172.17.1.243:8443}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://dev.raster.in:212,https://122.165.219.66:212,https://172.17.1.243:8443,https://localhost:8443,http://localhost:8090,https://127.0.0.1:8443,http://127.0.0.1:8090}
 
 keycloak:
-  allowed-issuers: ${KEYCLOAK_ALLOWED_ISSUERS:https://dev.raster.in:212/realms/cms,https://122.165.219.66:212/realms/cms,https://172.17.1.243:8443/realms/cms}
+  allowed-issuers: ${KEYCLOAK_ALLOWED_ISSUERS:https://dev.raster.in:212/realms/cms,https://122.165.219.66:212/realms/cms,https://172.17.1.243:8443/realms/cms,https://localhost:8443/realms/cms,https://127.0.0.1:8443/realms/cms}
   admin:
     base-url: ${KEYCLOAK_BASE_URL:http://keycloak:8280}
     realm: ${KEYCLOAK_REALM:cms}

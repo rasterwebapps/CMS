@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,25 +19,39 @@ import com.cms.dto.StudentFeeAllocationResponse;
 import com.cms.dto.YearFeeFromEnquiry;
 import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
 import com.cms.model.Enquiry;
+import com.cms.model.FeeDemand;
 import com.cms.model.Penalty;
+import com.cms.model.Program;
 import com.cms.model.SemesterFee;
 import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
 import com.cms.model.StudentScholarship;
+import com.cms.model.StudentTermEnrollment;
+import com.cms.model.StudentTermFeeOverride;
 import com.cms.model.TermBillingSchedule;
+import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
+import com.cms.model.enums.DemandStatus;
+import com.cms.model.enums.EnrollmentStatus;
 import com.cms.model.enums.FeeAllocationStatus;
 import com.cms.model.enums.StudentType;
+import com.cms.model.enums.TermInstanceStatus;
 import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.PenaltyRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.StudentTermFeeOverrideRepository;
 import com.cms.repository.TermBillingScheduleRepository;
+import com.cms.repository.TermInstanceRepository;
 import com.cms.util.FeeCascadeUtil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -59,6 +74,21 @@ public class FeeFinalizationService {
     private final TermInstanceService termInstanceService;
     private final FeeDemandService feeDemandService;
     private final ObjectMapper objectMapper;
+
+    @Autowired(required = false)
+    private TermInstanceRepository termInstanceRepository;
+
+    @Autowired(required = false)
+    private StudentTermEnrollmentRepository enrollmentRepository;
+
+    @Autowired(required = false)
+    private StudentTermFeeOverrideRepository termFeeOverrideRepository;
+
+    @Autowired(required = false)
+    private FeeDemandRepository feeDemandRepository;
+
+    @Autowired(required = false)
+    private StudentTermEnrollmentService enrollmentService;
 
     public FeeFinalizationService(StudentFeeAllocationRepository allocationRepository,
                                    SemesterFeeRepository semesterFeeRepository,
@@ -338,7 +368,185 @@ public class FeeFinalizationService {
             semesterFees.add(semesterFeeRepository.save(sf2));
         }
 
+        ensureCurrentEnrollmentAndFeeDemand(student, adminUsername);
+
         return toResponse(saved, semesterFees);
+    }
+
+    /**
+     * Ensures a newly admitted / finalized student has their current {@link StudentTermEnrollment},
+     * remaining {@link StudentTermFeeOverride} rows (pinned to their finalized {@link SemesterFee}
+     * schedule), and current {@link FeeDemand} created immediately at admission time rather than
+     * requiring a manual backfill run. Idempotent and defensive — silently no-ops if the student
+     * has no cohort or if no active term instance is configured yet.
+     */
+    @Transactional
+    public void ensureCurrentEnrollmentAndFeeDemand(Student student, String actor) {
+        if (student == null || student.getId() == null || student.getCohort() == null) {
+            return;
+        }
+        if (termInstanceRepository == null || enrollmentRepository == null
+                || termFeeOverrideRepository == null || feeDemandRepository == null
+                || enrollmentService == null) {
+            return;
+        }
+
+        try {
+            Optional<TermInstance> activeTermOpt = resolveActiveTermInstance();
+            if (activeTermOpt.isEmpty()) {
+                return;
+            }
+            TermInstance termInstance = activeTermOpt.get();
+            Cohort cohort = student.getCohort();
+
+            Integer currentSemesterNumber = enrollmentService.computeSemesterNumber(cohort, termInstance);
+            if (currentSemesterNumber == null) {
+                return;
+            }
+
+            Program program = cohort.getProgram();
+            AssessmentPattern pattern = program.getAssessmentPattern();
+            int currentYearOfStudy = (pattern == AssessmentPattern.YEARLY)
+                ? currentSemesterNumber
+                : (int) Math.ceil(currentSemesterNumber / 2.0);
+
+            StudentTermEnrollment enrollment = enrollmentRepository
+                .findByStudentIdAndTermInstanceId(student.getId(), termInstance.getId())
+                .orElseGet(() -> {
+                    StudentTermEnrollment created = new StudentTermEnrollment();
+                    created.setStudent(student);
+                    created.setTermInstance(termInstance);
+                    created.setCohort(cohort);
+                    created.setSemesterNumber(currentSemesterNumber);
+                    created.setYearOfStudy(currentYearOfStudy);
+                    created.setStatus(EnrollmentStatus.ENROLLED);
+                    return enrollmentRepository.save(created);
+                });
+
+            Optional<StudentFeeAllocation> allocationOpt = allocationRepository.findByStudentId(student.getId());
+            if (allocationOpt.isEmpty() || allocationOpt.get().getStatus() != FeeAllocationStatus.FINALIZED) {
+                return;
+            }
+            StudentFeeAllocation allocation = allocationOpt.get();
+
+            Integer totalTerms = program.getTotalTerms();
+            int lastTerm = totalTerms != null ? totalTerms : currentSemesterNumber;
+            String effectiveActor = (actor != null && !actor.isBlank()) ? actor : "system";
+
+            for (int semNum = currentSemesterNumber; semNum <= lastTerm; semNum++) {
+                Optional<SemesterFee> sfOpt = resolveSemesterFeeForTerm(allocation.getId(), pattern, semNum);
+                if (sfOpt.isEmpty()) {
+                    continue;
+                }
+                BigDecimal legacyAmount = sfOpt.get().getAmount();
+                StudentTermFeeOverride override = termFeeOverrideRepository
+                    .findByStudentIdAndSemesterNumber(student.getId(), semNum)
+                    .orElseGet(StudentTermFeeOverride::new);
+                if (override.getId() == null) {
+                    override.setStudent(student);
+                    override.setSemesterNumber(semNum);
+                }
+                override.setOverrideAmount(legacyAmount);
+                override.setSetBy(effectiveActor);
+                override.setSetAt(Instant.now());
+                termFeeOverrideRepository.save(override);
+            }
+
+            if (feeDemandRepository.findByStudentTermEnrollmentId(enrollment.getId()).isPresent()) {
+                return;
+            }
+
+            Optional<SemesterFee> currentSfOpt = resolveSemesterFeeForTerm(
+                allocation.getId(), pattern, currentSemesterNumber);
+            if (currentSfOpt.isEmpty()) {
+                return;
+            }
+            SemesterFee currentSf = currentSfOpt.get();
+
+            AcademicYear academicYear = termInstance.getAcademicYear();
+            LocalDate dueDate = billingScheduleRepository
+                .findByAcademicYearIdAndTermType(academicYear.getId(), termInstance.getTermType())
+                .map(TermBillingSchedule::getDueDate)
+                .orElse(currentSf.getDueDate());
+            if (dueDate == null) {
+                return;
+            }
+
+            BigDecimal installmentPaid = installmentRepository.sumAmountPaidBySemesterFeeId(currentSf.getId());
+            if (installmentPaid == null) {
+                installmentPaid = BigDecimal.ZERO;
+            }
+            BigDecimal enquiryCredit = BigDecimal.ZERO;
+            if (currentSemesterNumber == 1) {
+                enquiryCredit = enquiryRepository.findByConvertedStudentId(student.getId())
+                    .map(e -> enquiryPaymentRepository.sumAmountPaidByEnquiryId(e.getId()))
+                    .orElse(BigDecimal.ZERO);
+                if (enquiryCredit == null) {
+                    enquiryCredit = BigDecimal.ZERO;
+                }
+            }
+            BigDecimal totalAmount = currentSf.getAmount();
+            BigDecimal cappedPaid = installmentPaid.add(enquiryCredit).min(totalAmount);
+
+            DemandStatus status;
+            if (cappedPaid.compareTo(BigDecimal.ZERO) <= 0) {
+                status = DemandStatus.UNPAID;
+            } else if (cappedPaid.compareTo(totalAmount) >= 0) {
+                status = DemandStatus.PAID;
+            } else {
+                status = DemandStatus.PARTIAL;
+            }
+
+            FeeDemand demand = new FeeDemand();
+            demand.setStudentTermEnrollment(enrollment);
+            demand.setTermInstance(termInstance);
+            demand.setAcademicYear(academicYear);
+            demand.setTotalAmount(totalAmount);
+            demand.setDueDate(dueDate);
+            demand.setPaidAmount(cappedPaid);
+            demand.setStatus(status);
+            feeDemandRepository.save(demand);
+        } catch (Exception ignored) {
+            // Defensive: never fail admission or fee finalization if optional term/billing setup is incomplete.
+        }
+    }
+
+    private Optional<TermInstance> resolveActiveTermInstance() {
+        List<TermInstance> openTerms = termInstanceRepository.findByStatus(TermInstanceStatus.OPEN);
+        if (openTerms != null && !openTerms.isEmpty()) {
+            return openTerms.stream()
+                .max(Comparator.comparing(ti -> ti.getAcademicYear().getStartDate()));
+        }
+        return academicYearRepository.findByIsCurrentTrue()
+            .flatMap(ay -> termInstanceRepository.findByAcademicYearIdAndTermType(ay.getId(), TermType.ODD));
+    }
+
+    private Optional<SemesterFee> resolveSemesterFeeForTerm(Long allocationId,
+                                                             AssessmentPattern pattern,
+                                                             int semesterNumber) {
+        int yearNumber;
+        int semesterSequence;
+        if (pattern == AssessmentPattern.YEARLY) {
+            yearNumber = semesterNumber;
+            semesterSequence = 1;
+        } else {
+            yearNumber = (semesterNumber + 1) / 2;
+            semesterSequence = ((semesterNumber - 1) % 2) + 1;
+        }
+        return semesterFeeRepository.findByAllocationIdAndYearNumberAndSemesterSequence(
+            allocationId, yearNumber, semesterSequence);
+    }
+
+    void setEnrollmentSyncDependencies(TermInstanceRepository termInstanceRepository,
+                                       StudentTermEnrollmentRepository enrollmentRepository,
+                                       StudentTermFeeOverrideRepository termFeeOverrideRepository,
+                                       FeeDemandRepository feeDemandRepository,
+                                       StudentTermEnrollmentService enrollmentService) {
+        this.termInstanceRepository = termInstanceRepository;
+        this.enrollmentRepository = enrollmentRepository;
+        this.termFeeOverrideRepository = termFeeOverrideRepository;
+        this.feeDemandRepository = feeDemandRepository;
+        this.enrollmentService = enrollmentService;
     }
 
     public StudentFeeAllocationResponse getByStudentId(Long studentId) {

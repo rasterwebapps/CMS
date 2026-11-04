@@ -18,18 +18,38 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.cms.model.AcademicYear;
+import com.cms.model.Cohort;
+import com.cms.model.Course;
+import com.cms.model.FeeDemand;
+import com.cms.model.Program;
 import com.cms.model.SemesterFee;
+import com.cms.model.Student;
 import com.cms.model.StudentFeeAllocation;
+import com.cms.model.StudentTermEnrollment;
+import com.cms.model.StudentTermFeeOverride;
+import com.cms.model.TermBillingSchedule;
+import com.cms.model.TermInstance;
+import com.cms.model.enums.AssessmentPattern;
+import com.cms.model.enums.DemandStatus;
+import com.cms.model.enums.FeeAllocationStatus;
+import com.cms.model.enums.ProgramStatus;
 import com.cms.model.enums.StudentType;
+import com.cms.model.enums.TermInstanceStatus;
+import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.EnquiryPaymentRepository;
 import com.cms.repository.EnquiryRepository;
+import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.PenaltyRepository;
 import com.cms.repository.SemesterFeeRepository;
 import com.cms.repository.StudentFeeAllocationRepository;
 import com.cms.repository.StudentRepository;
+import com.cms.repository.StudentTermEnrollmentRepository;
+import com.cms.repository.StudentTermFeeOverrideRepository;
 import com.cms.repository.TermBillingScheduleRepository;
+import com.cms.repository.TermInstanceRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
@@ -59,6 +79,11 @@ class FeeFinalizationServiceLegacySyncTest {
     @Mock private TermInstanceService termInstanceService;
     @Mock private FeeDemandService feeDemandService;
     @Mock private ObjectMapper objectMapper;
+    @Mock private TermInstanceRepository termInstanceRepository;
+    @Mock private StudentTermEnrollmentRepository enrollmentRepository;
+    @Mock private StudentTermFeeOverrideRepository termFeeOverrideRepository;
+    @Mock private FeeDemandRepository feeDemandRepository;
+    @Mock private StudentTermEnrollmentService enrollmentService;
 
     private FeeFinalizationService service;
 
@@ -323,5 +348,82 @@ class FeeFinalizationServiceLegacySyncTest {
         assertThat(allocation.getTotalFee()).isEqualByComparingTo("235000");
         assertThat(allocation.isHasHostelFee()).isTrue();
         verify(allocationRepository).save(allocation);
+    }
+
+    @Test
+    void ensureCurrentEnrollmentAndFeeDemand_createsEnrollmentOverridesAndDemandForAdmittedStudent() {
+        service.setEnrollmentSyncDependencies(
+            termInstanceRepository, enrollmentRepository, termFeeOverrideRepository,
+            feeDemandRepository, enrollmentService);
+
+        Program program = new Program("B.Sc Nursing", "BSC", 4, ProgramStatus.ACTIVE, AssessmentPattern.TERM_BASED);
+        program.setId(1L);
+        Course course = new Course("B.Sc Nursing", "65", null, program);
+        course.setId(1L);
+
+        AcademicYear ay = new AcademicYear("2026-2027", LocalDate.of(2026, 7, 1), LocalDate.of(2027, 6, 30), true);
+        ay.setId(2L);
+
+        Cohort cohort = new Cohort();
+        cohort.setId(4L);
+        cohort.setCourse(course);
+        cohort.setAdmissionAcademicYear(ay);
+
+        Student student = new Student();
+        student.setId(STUDENT_ID);
+        student.setProgram(program);
+        student.setCourse(course);
+        student.setCohort(cohort);
+
+        TermInstance openTerm = new TermInstance(ay, TermType.ODD,
+            LocalDate.of(2026, 7, 1), LocalDate.of(2026, 12, 31), TermInstanceStatus.OPEN);
+        openTerm.setId(3L);
+
+        when(termInstanceRepository.findByStatus(TermInstanceStatus.OPEN)).thenReturn(List.of(openTerm));
+        when(enrollmentService.computeSemesterNumber(cohort, openTerm)).thenReturn(7);
+        when(enrollmentRepository.findByStudentIdAndTermInstanceId(STUDENT_ID, 3L)).thenReturn(Optional.empty());
+        when(enrollmentRepository.save(any())).thenAnswer(inv -> {
+            StudentTermEnrollment e = inv.getArgument(0);
+            e.setId(161L);
+            return e;
+        });
+
+        allocation.setStatus(FeeAllocationStatus.FINALIZED);
+        SemesterFee sem7 = semesterFeeDue(1831L, 4, 1, new BigDecimal("87500"), LocalDate.of(2026, 12, 31));
+        SemesterFee sem8 = semesterFeeDue(1832L, 4, 2, new BigDecimal("87500"), LocalDate.of(2027, 6, 30));
+        when(semesterFeeRepository.findByAllocationIdAndYearNumberAndSemesterSequence(ALLOCATION_ID, 4, 1))
+            .thenReturn(Optional.of(sem7));
+        when(semesterFeeRepository.findByAllocationIdAndYearNumberAndSemesterSequence(ALLOCATION_ID, 4, 2))
+            .thenReturn(Optional.of(sem8));
+        when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(STUDENT_ID, 7)).thenReturn(Optional.empty());
+        when(termFeeOverrideRepository.findByStudentIdAndSemesterNumber(STUDENT_ID, 8)).thenReturn(Optional.empty());
+        when(feeDemandRepository.findByStudentTermEnrollmentId(161L)).thenReturn(Optional.empty());
+
+        TermBillingSchedule schedule = new TermBillingSchedule();
+        schedule.setDueDate(LocalDate.of(2026, 12, 31));
+        when(billingScheduleRepository.findByAcademicYearIdAndTermType(2L, TermType.ODD))
+            .thenReturn(Optional.of(schedule));
+        when(installmentRepository.sumAmountPaidBySemesterFeeId(1831L)).thenReturn(new BigDecimal("21000"));
+
+        service.ensureCurrentEnrollmentAndFeeDemand(student, "admin");
+
+        org.mockito.ArgumentCaptor<StudentTermEnrollment> enrCaptor =
+            org.mockito.ArgumentCaptor.forClass(StudentTermEnrollment.class);
+        verify(enrollmentRepository).save(enrCaptor.capture());
+        assertThat(enrCaptor.getValue().getSemesterNumber()).isEqualTo(7);
+        assertThat(enrCaptor.getValue().getYearOfStudy()).isEqualTo(4);
+
+        org.mockito.ArgumentCaptor<StudentTermFeeOverride> ovrCaptor =
+            org.mockito.ArgumentCaptor.forClass(StudentTermFeeOverride.class);
+        verify(termFeeOverrideRepository, org.mockito.Mockito.times(2)).save(ovrCaptor.capture());
+        assertThat(ovrCaptor.getAllValues()).extracting(StudentTermFeeOverride::getSemesterNumber)
+            .containsExactly(7, 8);
+
+        org.mockito.ArgumentCaptor<FeeDemand> demandCaptor =
+            org.mockito.ArgumentCaptor.forClass(FeeDemand.class);
+        verify(feeDemandRepository).save(demandCaptor.capture());
+        assertThat(demandCaptor.getValue().getTotalAmount()).isEqualByComparingTo("87500");
+        assertThat(demandCaptor.getValue().getPaidAmount()).isEqualByComparingTo("21000");
+        assertThat(demandCaptor.getValue().getStatus()).isEqualTo(DemandStatus.PARTIAL);
     }
 }

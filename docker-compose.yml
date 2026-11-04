@@ -79,11 +79,11 @@ services:
       DB_PASSWORD: cms
       KEYCLOAK_ISSUER_URI: https://dev.raster.in:212/realms/cms
       KEYCLOAK_JWK_SET_URI: http://keycloak:8280/realms/cms/protocol/openid-connect/certs
-      KEYCLOAK_ALLOWED_ISSUERS: https://dev.raster.in:212/realms/cms,https://122.165.219.66:212/realms/cms,https://172.17.1.243:8443/realms/cms
-      CORS_ALLOWED_ORIGINS: https://dev.raster.in:212,https://122.165.219.66:212,https://172.17.1.243:8443
+      KEYCLOAK_ALLOWED_ISSUERS: https://dev.raster.in:212/realms/cms,https://122.165.219.66:212/realms/cms,https://172.17.1.243:8443/realms/cms,https://localhost:8443/realms/cms,https://127.0.0.1:8443/realms/cms
+      CORS_ALLOWED_ORIGINS: https://dev.raster.in:212,https://122.165.219.66:212,https://172.17.1.243:8443,https://localhost:8443,http://localhost:8090,https://127.0.0.1:8443,http://127.0.0.1:8090
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://172.17.1.243:9000}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-cms_minio}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-changeme_local}
       MINIO_BUCKET: ${MINIO_BUCKET:-cms-documents}
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b-instruct}
@@ -92,8 +92,8 @@ services:
         condition: service_started
       keycloak:
         condition: service_started
-      ollama:
-        condition: service_started
+      # ollama:
+      #   condition: service_started
     networks:
       - cms-net
     restart: unless-stopped

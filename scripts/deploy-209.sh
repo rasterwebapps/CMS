@@ -74,7 +74,11 @@ ssh_run() {
   local escaped pass_escaped
   escaped=$(printf '%q' "$command")
 
-  if [ -n "$SERVER_PASS" ]; then
+  if [ "${DEPLOY209_USE_SUDO:-true}" = "false" ]; then
+    # Post-Phase 4.1: sksadmin is in the docker group and owns /docker_data/skscms209.
+    # Direct command execution without sudo.
+    ssh $SSH_OPTS "$SERVER_USER@$SERVER" "bash -lc $escaped 2>&1"
+  elif [ -n "$SERVER_PASS" ]; then
     # Pre-hardening: SSH password auth still active — sshpass handles SSH login,
     # same password piped to sudo -S for privilege escalation.
     # -p '' silences sudo's own "[sudo] password for ...:" prompt: sudo writes it to
@@ -138,10 +142,11 @@ MODE="${1:-full}"
 case "$MODE" in
   frontend|front|fe)  MODE="frontend" ;;
   backend|back|be)    MODE="backend"  ;;
+  app|both|febe)      MODE="app"      ;;
   full|all|"")        MODE="full"     ;;
   *)
     echo "Unknown mode: $MODE"
-    echo "Usage: $0 [frontend|backend|full]"
+    echo "Usage: $0 [frontend|backend|app|full]"
     exit 1
     ;;
 esac
@@ -170,14 +175,14 @@ print_step "Syncing Keycloak themes..."
 remote_run "mkdir -p $REMOTE_STAGE/deploy/keycloak/themes"
 rsync_to_server "$LOCAL_DIR/infrastructure/keycloak/themes/" "$REMOTE_STAGE/deploy/keycloak/themes/"
 
-if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ]; then
+if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ] || [ "$MODE" = "app" ]; then
   print_step "Syncing backend files..."
   rsync_to_server "$LOCAL_DIR/backend/" "$REMOTE_STAGE/backend/" \
     --exclude='build' \
     --exclude='.gradle'
 fi
 
-if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
+if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ] || [ "$MODE" = "app" ]; then
   print_step "Syncing frontend files..."
   rsync_to_server "$LOCAL_DIR/frontend/" "$REMOTE_STAGE/frontend/" \
     --exclude='node_modules' \
@@ -190,11 +195,11 @@ fi
 print_step "Installing staged files into $REMOTE_DIR..."
 ssh_run "mkdir -p $REMOTE_DIR/build && rsync -a --delete --exclude=.env $REMOTE_STAGE/deploy/ $REMOTE_DIR/"
 
-if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ]; then
+if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ] || [ "$MODE" = "app" ]; then
   ssh_run "mkdir -p $REMOTE_DIR/build/backend && rsync -a --delete $REMOTE_STAGE/backend/ $REMOTE_DIR/build/backend/"
 fi
 
-if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
+if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ] || [ "$MODE" = "app" ]; then
   ssh_run "mkdir -p $REMOTE_DIR/build/frontend && rsync -a --delete $REMOTE_STAGE/frontend/ $REMOTE_DIR/build/frontend/"
 fi
 
@@ -278,23 +283,28 @@ ssh_run "
 # ── Step 3: Build Docker image(s) ─────────────────────────────────────────────
 if [ "$MODE" = "full" ]; then
   print_step "Building postgres+pgvector image..."
-  ssh_run "docker build -t cms-postgres-pgvector:latest $REMOTE_DIR/postgres"
+  ssh_run "docker build --network=host -t cms-postgres-pgvector:latest $REMOTE_DIR/postgres"
 fi
 
-if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ]; then
+if [ "$MODE" = "full" ] || [ "$MODE" = "backend" ] || [ "$MODE" = "app" ]; then
   print_step "Building latest backend image..."
-  ssh_run "docker build -t cms-backend:latest $REMOTE_DIR/build/backend"
+  ssh_run "docker build --network=host -t cms-backend:latest $REMOTE_DIR/build/backend"
 fi
 
-if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ]; then
+if [ "$MODE" = "full" ] || [ "$MODE" = "frontend" ] || [ "$MODE" = "app" ]; then
   print_step "Building latest frontend image..."
-  ssh_run "docker build -t cms-frontend:latest $REMOTE_DIR/build/frontend"
+  ssh_run "docker build --network=host -t cms-frontend:latest $REMOTE_DIR/build/frontend"
 fi
 
 # ── Step 4: Stop existing CMS containers ──────────────────────────────────────
 if [ "$MODE" = "full" ]; then
   print_step "Stopping existing $PROJECT_NAME containers..."
   ssh_run "$COMPOSE_CMD down --remove-orphans"
+
+elif [ "$MODE" = "app" ]; then
+  print_step "Stopping existing frontend & backend containers..."
+  ssh_run "$COMPOSE_CMD stop backend frontend || true"
+  ssh_run "$COMPOSE_CMD rm -f backend frontend || true"
 
 elif [ "$MODE" = "frontend" ]; then
   print_step "Stopping existing frontend container..."
@@ -311,6 +321,10 @@ fi
 if [ "$MODE" = "full" ]; then
   print_step "Starting latest $PROJECT_NAME containers..."
   ssh_run "$COMPOSE_CMD up -d --force-recreate"
+
+elif [ "$MODE" = "app" ]; then
+  print_step "Starting latest frontend & backend containers..."
+  ssh_run "$COMPOSE_CMD up -d --no-deps --force-recreate backend frontend"
 
 elif [ "$MODE" = "frontend" ]; then
   print_step "Starting latest frontend container..."
@@ -427,7 +441,17 @@ fi
 
 # ── Step 7: Health check ──────────────────────────────────────────────────────
 print_step "Running health checks..."
-sleep 6
+echo "Waiting for services to become ready..."
+remote_run '
+  for i in $(seq 1 30); do
+    code=$(curl -sk -o /dev/null -w "%{http_code}" https://localhost/api/v1/health || true)
+    if [ "$code" = "200" ]; then
+      echo "Backend became healthy in ${i}s"
+      break
+    fi
+    sleep 2
+  done
+'
 ssh_run "$COMPOSE_CMD ps"
 remote_run "
   echo ''
