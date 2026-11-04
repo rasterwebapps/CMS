@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
 import com.cms.model.Address;
+import com.cms.model.Cohort;
 import com.cms.model.Course;
 import com.cms.model.Enquiry;
 import com.cms.model.FeeInstallment;
@@ -34,6 +36,7 @@ import com.cms.model.TermBillingSchedule;
 import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.AdmissionQuota;
 import com.cms.model.enums.AssessmentPattern;
+import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.CommissionPaymentStatus;
 import com.cms.model.enums.CommissionSource;
 import com.cms.model.enums.EnquiryStatus;
@@ -44,6 +47,7 @@ import com.cms.model.enums.TermType;
 import com.cms.repository.AcademicYearRepository;
 import com.cms.repository.AdmissionRepository;
 import com.cms.repository.AgentRepository;
+import com.cms.repository.CohortRepository;
 import com.cms.repository.EnquiryRepository;
 import com.cms.repository.FeeInstallmentRepository;
 import com.cms.repository.ProgramRepository;
@@ -71,6 +75,12 @@ public class RetroAdmitService {
     private final TermBillingScheduleRepository billingScheduleRepository;
     private final ApplicationNumberSequenceService numberSequenceService;
     private final UnifiedReceiptService unifiedReceiptService;
+
+    @Autowired(required = false)
+    private CohortRepository cohortRepository;
+
+    @Autowired(required = false)
+    private FeeFinalizationService feeFinalizationService;
 
     public RetroAdmitService(StudentRepository studentRepository,
                                AdmissionRepository admissionRepository,
@@ -113,6 +123,8 @@ public class RetroAdmitService {
         if (request.courseId() != null) {
             course = courseRepository.findById(request.courseId())
                     .orElseThrow(() -> new ResourceNotFoundException("Course not found: " + request.courseId()));
+        } else {
+            course = resolveSingleCourseForProgram(program);
         }
 
         AcademicYear joiningYear = academicYearRepository.findById(request.joiningAcademicYearId())
@@ -170,6 +182,8 @@ public class RetroAdmitService {
         student.setBloodGroup(request.bloodGroup());
         student.setPhysicalDisability(Boolean.TRUE.equals(request.physicalDisability()));
         student.setAdmissionCategory(AdmissionCategory.valueOf(quota.name()));
+        student.setStudentType(studentType);
+        assignCohortIfPossible(student, course, program, joiningYear);
         student.setFatherName(request.fatherName());
         student.setFatherPhone(request.fatherPhone());
         student.setFatherEmail(request.fatherEmail());
@@ -393,6 +407,10 @@ public class RetroAdmitService {
                     );
                 }
             }
+
+            if (feeFinalizationService != null) {
+                feeFinalizationService.ensureCurrentEnrollmentAndFeeDemand(saved, performedBy);
+            }
         }
 
         return new RetroAdmitResponse(
@@ -405,6 +423,57 @@ public class RetroAdmitService {
                 paymentRowsCreated,
                 totalHistoricalPaid
         );
+    }
+
+    private Course resolveSingleCourseForProgram(Program program) {
+        if (program == null || program.getId() == null) {
+            return null;
+        }
+        List<Course> courses = courseRepository.findByProgramId(program.getId());
+        if (courses == null || courses.isEmpty()) {
+            return null;
+        }
+        List<Course> activeCourses = courses.stream()
+            .filter(c -> Boolean.TRUE.equals(c.getIsActive()))
+            .toList();
+        if (activeCourses.size() == 1) {
+            return activeCourses.get(0);
+        }
+        return courses.size() == 1 ? courses.get(0) : null;
+    }
+
+    private void assignCohortIfPossible(Student student, Course course, Program program, AcademicYear joiningYear) {
+        if (cohortRepository == null || course == null || course.getId() == null
+                || joiningYear == null || joiningYear.getId() == null) {
+            return;
+        }
+        Cohort cohort = cohortRepository
+            .findByCourseIdAndAdmissionAcademicYearId(course.getId(), joiningYear.getId())
+            .orElseGet(() -> {
+                int startYear = joiningYear.getStartYear();
+                int durationYears = program != null ? program.getDurationYears() : 0;
+                int endYear = startYear + durationYears;
+                AcademicYear expectedGradAY = academicYearRepository
+                    .findByName(endYear + "-" + (endYear + 1))
+                    .orElse(null);
+                Cohort newCohort = new Cohort();
+                newCohort.setCourse(course);
+                newCohort.setAdmissionAcademicYear(joiningYear);
+                newCohort.setExpectedGraduationAcademicYear(expectedGradAY);
+                newCohort.setCohortCode(course.getCode() + "-" + startYear + "-" + endYear);
+                newCohort.setDisplayName(course.getName() + " (" + startYear + "-" + endYear + ")");
+                newCohort.setStatus(CohortStatus.ACTIVE);
+                return cohortRepository.save(newCohort);
+            });
+        if (cohort != null) {
+            student.setCohort(cohort);
+        }
+    }
+
+    void setCohortAndEnrollmentDependencies(CohortRepository cohortRepository,
+                                            FeeFinalizationService feeFinalizationService) {
+        this.cohortRepository = cohortRepository;
+        this.feeFinalizationService = feeFinalizationService;
     }
 
     /** Same hand-built JSON shape as EnquiryService.buildYearWiseFeesJson -- the format

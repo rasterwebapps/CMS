@@ -42,6 +42,7 @@ import com.cms.exception.ResourceNotFoundException;
 import com.cms.model.Admission;
 import com.cms.model.AcademicYear;
 import com.cms.model.Agent;
+import com.cms.model.Cohort;
 import com.cms.model.Course;
 import com.cms.model.Enquiry;
 import com.cms.model.EnquiryDocument;
@@ -51,6 +52,7 @@ import com.cms.model.ReferralType;
 import com.cms.model.Student;
 import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.AdmissionQuota;
+import com.cms.model.enums.CohortStatus;
 import com.cms.model.enums.CommissionPaymentStatus;
 import com.cms.model.enums.CommissionSource;
 import com.cms.model.enums.EnquiryStatus;
@@ -691,6 +693,11 @@ public class EnquiryService {
             throw new IllegalStateException("Enquiry must have a program to convert to student");
         }
 
+        Course resolvedCourse = resolveCourseForProgram(enquiry.getCourse(), program);
+        if (enquiry.getCourse() == null && resolvedCourse != null) {
+            enquiry.setCourse(resolvedCourse);
+        }
+
         Student student = new Student(
             null,
             request.firstName(),
@@ -702,8 +709,8 @@ public class EnquiryService {
             com.cms.model.enums.StudentStatus.ACTIVE
         );
         student.setPhone(request.phone());
-        if (enquiry.getCourse() != null) {
-            student.setCourse(enquiry.getCourse());
+        if (resolvedCourse != null) {
+            student.setCourse(resolvedCourse);
         }
 
         // Personal information (fall back to enquiry data if not provided in convert request)
@@ -770,6 +777,7 @@ public class EnquiryService {
         admission.setDeclarationDate(request.declarationDate());
         Admission savedAdmission = admissionRepository.save(admission);
         linkEnquiryDocumentsToAdmission(enquiryId, savedAdmission);
+        assignCohortIfPossible(savedStudent, program, joiningYear);
         savedStudent.setAdmissionNumber(numberSequenceService.nextAdmissionNumber(joiningYear, savedStudent.getCourse()));
         studentRepository.save(savedStudent);
 
@@ -783,9 +791,58 @@ public class EnquiryService {
                 + savedStudent.getAdmissionNumber() + ", admission created");
 
         feeFinalizationService.autoFinalizeFromEnquiry(savedStudent, saved, performedBy);
+        feeFinalizationService.ensureCurrentEnrollmentAndFeeDemand(savedStudent, performedBy);
 
         BigDecimal paid = enquiryPaymentRepository.sumAmountPaidByEnquiryId(saved.getId());
         return toResponse(saved, paid, savedStudent.getAdmissionNumber());
+    }
+
+    private Course resolveCourseForProgram(Course existingCourse, Program program) {
+        if (existingCourse != null) {
+            return existingCourse;
+        }
+        if (program == null || program.getId() == null) {
+            return null;
+        }
+        List<Course> courses = courseRepository.findByProgramId(program.getId());
+        if (courses == null || courses.isEmpty()) {
+            return null;
+        }
+        List<Course> activeCourses = courses.stream()
+            .filter(c -> Boolean.TRUE.equals(c.getIsActive()))
+            .toList();
+        if (activeCourses.size() == 1) {
+            return activeCourses.get(0);
+        }
+        return courses.size() == 1 ? courses.get(0) : null;
+    }
+
+    private void assignCohortIfPossible(Student student, Program program, AcademicYear joiningYear) {
+        Course course = student.getCourse();
+        if (course == null || course.getId() == null || joiningYear == null || joiningYear.getId() == null) {
+            return;
+        }
+        Cohort cohort = cohortRepository
+            .findByCourseIdAndAdmissionAcademicYearId(course.getId(), joiningYear.getId())
+            .orElseGet(() -> {
+                int startYear = joiningYear.getStartYear();
+                int durationYears = program != null ? program.getDurationYears() : 0;
+                int endYear = startYear + durationYears;
+                AcademicYear expectedGradAY = academicYearRepository
+                    .findByName(endYear + "-" + (endYear + 1))
+                    .orElse(null);
+                Cohort newCohort = new Cohort();
+                newCohort.setCourse(course);
+                newCohort.setAdmissionAcademicYear(joiningYear);
+                newCohort.setExpectedGraduationAcademicYear(expectedGradAY);
+                newCohort.setCohortCode(course.getCode() + "-" + startYear + "-" + endYear);
+                newCohort.setDisplayName(course.getName() + " (" + startYear + "-" + endYear + ")");
+                newCohort.setStatus(CohortStatus.ACTIVE);
+                return cohortRepository.save(newCohort);
+            });
+        if (cohort != null) {
+            student.setCohort(cohort);
+        }
     }
 
     private void linkEnquiryDocumentsToAdmission(Long enquiryId, Admission admission) {
