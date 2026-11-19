@@ -59,7 +59,7 @@ public class LibraryIssueController {
     }
 
     @PostMapping
-    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_MANAGE', 'LIBRARY_QUICK_ISSUE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_MANAGE', 'LIBRARY_QUICK_ISSUE')")
     public ResponseEntity<LibraryIssueResponse> issue(
             @Valid @RequestBody LibraryIssueRequest request,
             @AuthenticationPrincipal Jwt jwt) {
@@ -68,20 +68,20 @@ public class LibraryIssueController {
     }
 
     @GetMapping("/lookup")
-    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_MANAGE', 'LIBRARY_QUICK_ISSUE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_MANAGE', 'LIBRARY_QUICK_ISSUE')")
     public ResponseEntity<LibraryCirculationLookupResponse> lookup(@RequestParam String accessionNumber) {
         return ResponseEntity.ok(issueService.lookupByAccessionNumber(accessionNumber));
     }
 
     /** Scan-to-return: resolve a scanned/typed accession number or barcode to its active issue. */
     @GetMapping("/lookup-active")
-    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<LibraryIssueResponse> lookupActive(@RequestParam String code) {
         return ResponseEntity.ok(issueService.lookupActiveIssueByCode(code));
     }
 
     @GetMapping
-    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<List<LibraryIssueResponse>> findAll(
             @RequestParam(required = false) LibraryMemberType memberType,
             @RequestParam(required = false) IssueStatus status) {
@@ -97,19 +97,19 @@ public class LibraryIssueController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_MANAGE', 'MY_LIBRARY_VIEW')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE', 'MY_LIBRARY_VIEW')")
     public ResponseEntity<LibraryIssueResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(issueService.findById(id));
     }
 
     @GetMapping("/student/{studentId}")
-    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<List<LibraryIssueResponse>> findByStudent(@PathVariable Long studentId) {
         return ResponseEntity.ok(issueService.findByStudentId(studentId));
     }
 
     @GetMapping("/faculty/{facultyId}")
-    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<List<LibraryIssueResponse>> findByFaculty(@PathVariable Long facultyId) {
         return ResponseEntity.ok(issueService.findByFacultyId(facultyId));
     }
@@ -129,7 +129,7 @@ public class LibraryIssueController {
     }
 
     @PostMapping("/{id}/return")
-    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<LibraryIssueResponse> returnBook(
             @PathVariable Long id,
             @RequestBody(required = false) LibraryReturnRequest request,
@@ -139,7 +139,7 @@ public class LibraryIssueController {
     }
 
     @PostMapping("/{id}/renew")
-    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<LibraryIssueResponse> renew(
             @PathVariable Long id,
             @RequestBody(required = false) LibraryRenewRequest request) {
@@ -147,7 +147,7 @@ public class LibraryIssueController {
     }
 
     @GetMapping("/page")
-    @PreAuthorize("@perm.has('LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<Page<LibraryIssueResponse>> findPage(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) IssueStatus status,

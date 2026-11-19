@@ -335,6 +335,69 @@ class LibraryIssueServiceTest {
         verify(bookRepository, never()).save(any());
     }
 
+    @Test
+    void returnBook_damagedWithPenaltyFine_setsBookDamagedAndCreatesFine() {
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null,
+            LocalDate.now().plusDays(5));
+        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
+        when(issueRepository.save(any())).thenReturn(issue);
+        when(settingRepository.findBySettingKey("fine_per_day")).thenReturn(
+            Optional.of(setting("fine_per_day", "1.00")));
+        when(fineRepository.findByIssueId(1L)).thenReturn(Optional.empty());
+
+        var request = new LibraryReturnRequest("Water damage on pages", BookStatus.DAMAGED, new BigDecimal("150.00"));
+        service.returnBook(1L, request, "librarian");
+
+        ArgumentCaptor<LibraryBook> bookCaptor = ArgumentCaptor.forClass(LibraryBook.class);
+        verify(bookRepository).save(bookCaptor.capture());
+        assertThat(bookCaptor.getValue().getStatus()).isEqualTo(BookStatus.DAMAGED);
+        assertThat(issue.getStatus()).isEqualTo(IssueStatus.RETURNED);
+
+        ArgumentCaptor<LibraryFine> fineCaptor = ArgumentCaptor.forClass(LibraryFine.class);
+        verify(fineRepository).save(fineCaptor.capture());
+        LibraryFine fine = fineCaptor.getValue();
+        assertThat(fine.getOverdueDays()).isZero();
+        assertThat(fine.getTotalFine()).isEqualByComparingTo(new BigDecimal("150.00"));
+        assertThat(fine.getRemarks()).isEqualTo("Water damage on pages");
+    }
+
+    @Test
+    void returnBook_lostWithOverdueAndReplacementFine_setsIssueAndBookLostAndCombinesFines() {
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null,
+            LocalDate.now().minusDays(4));
+        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
+        when(issueRepository.save(any())).thenReturn(issue);
+        when(settingRepository.findBySettingKey("fine_per_day")).thenReturn(
+            Optional.of(setting("fine_per_day", "2.00")));
+        when(fineRepository.findByIssueId(1L)).thenReturn(Optional.empty());
+
+        var request = new LibraryReturnRequest("Lost by borrower", BookStatus.LOST, new BigDecimal("500.00"));
+        service.returnBook(1L, request, "librarian");
+
+        ArgumentCaptor<LibraryBook> bookCaptor = ArgumentCaptor.forClass(LibraryBook.class);
+        verify(bookRepository).save(bookCaptor.capture());
+        assertThat(bookCaptor.getValue().getStatus()).isEqualTo(BookStatus.LOST);
+        assertThat(issue.getStatus()).isEqualTo(IssueStatus.LOST);
+
+        ArgumentCaptor<LibraryFine> fineCaptor = ArgumentCaptor.forClass(LibraryFine.class);
+        verify(fineRepository).save(fineCaptor.capture());
+        LibraryFine fine = fineCaptor.getValue();
+        assertThat(fine.getOverdueDays()).isEqualTo(4);
+        assertThat(fine.getTotalFine()).isEqualByComparingTo(new BigDecimal("508.00"));
+    }
+
+    @Test
+    void returnBook_invalidResolutionStatus_throws() {
+        LibraryIssue issue = issuedBookIssue(1L, availableBook, student, null,
+            LocalDate.now().plusDays(5));
+        when(issueRepository.findById(1L)).thenReturn(Optional.of(issue));
+
+        var request = new LibraryReturnRequest(null, BookStatus.WITHDRAWN, null);
+        assertThatThrownBy(() -> service.returnBook(1L, request, "librarian"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Allowed values: AVAILABLE, DAMAGED, LOST");
+    }
+
     // ── renew ─────────────────────────────────────────────────────
 
     @Test

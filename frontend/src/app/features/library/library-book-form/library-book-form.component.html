@@ -54,9 +54,14 @@
           </div>
 
           <div class="form-field">
-            <label class="form-label" for="status">Status</label>
+            <label class="form-label" for="status">
+              Status
+              @if (isCurrentlyIssued()) {
+                <span class="form-hint">Managed via Circulation</span>
+              }
+            </label>
             <select id="status" formControlName="status" class="form-select">
-              @for (opt of statusOptions; track opt.value) {
+              @for (opt of statusOptions(); track opt.value) {
                 <option [value]="opt.value">{{ opt.label }}</option>
               }
             </select>
@@ -133,7 +138,12 @@
               placeholder="e.g. 612 VAN/H" />
           </div>
           <div class="form-field">
-            <label class="form-label" for="rackId">Rack</label>
+            <label class="form-label" for="rackId">
+              Rack
+              @if (locationLockHint()) {
+                <span class="form-hint">{{ locationLockHint() }}</span>
+              }
+            </label>
             <select id="rackId" formControlName="rackId" class="form-select" (change)="onRackChange()">
               <option value="">— Select —</option>
               @for (rack of racks(); track rack.id) {
@@ -142,8 +152,13 @@
             </select>
           </div>
           <div class="form-field">
-            <label class="form-label" for="shelfId">Shelf</label>
-            <select id="shelfId" formControlName="shelfId" class="form-select" [disabled]="!f['rackId'].value">
+            <label class="form-label" for="shelfId">
+              Shelf
+              @if (locationLockHint()) {
+                <span class="form-hint">{{ locationLockHint() }}</span>
+              }
+            </label>
+            <select id="shelfId" formControlName="shelfId" class="form-select">
               <option value="">— Select —</option>
               @for (shelf of shelves(); track shelf.id) {
                 <option [value]="shelf.id">{{ shelf.name }}</option>

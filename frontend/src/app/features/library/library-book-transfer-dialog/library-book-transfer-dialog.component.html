@@ -6,7 +6,7 @@
       <div class="step">
         @if (isBulk) {
           <p class="step-intro">
-            Moving <strong>{{ data().books.length }}</strong> books to a new shelf. Books currently issued will be skipped.
+            Moving <strong>{{ data().books.length }}</strong> books to a new shelf. Only Available and Damaged books can be transferred.
           </p>
         } @else {
           <p class="step-intro">

@@ -28,7 +28,7 @@ public class LibrarySettingController {
     }
 
     @GetMapping
-    @PreAuthorize("@perm.hasAny('LIBRARY_SETTINGS_MANAGE', 'LIBRARY_CATALOGUE_VIEW', 'LIBRARY_ISSUE_MANAGE')")
+    @PreAuthorize("@perm.hasAny('LIBRARY_SETTINGS_EDIT', 'LIBRARY_SETTINGS_MANAGE', 'LIBRARY_CATALOGUE_VIEW', 'LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE')")
     public ResponseEntity<List<LibrarySettingResponse>> findAll() {
         return ResponseEntity.ok(settingService.findAll());
     }

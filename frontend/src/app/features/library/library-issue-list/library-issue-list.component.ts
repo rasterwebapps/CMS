@@ -29,6 +29,7 @@ import { staticOptionsFetchPage } from '../../../shared/infinite-select/infinite
 import { TourService } from '../../../shared/tour/tour.service';
 import { CmsTourButtonComponent } from '../../../shared/tour/tour-button.component';
 import { LIBRARY_ISSUE_LIST_TOUR, LIBRARY_ISSUE_LIST_FLOW_MAP } from '../../../shared/tour/tours/library-circulation.tours';
+import { LibraryIssueReturnDialogComponent } from '../library-issue-return-dialog/library-issue-return-dialog.component';
 
 @Component({
   selector: 'app-library-issue-list',
@@ -40,6 +41,7 @@ import { LIBRARY_ISSUE_LIST_TOUR, LIBRARY_ISSUE_LIST_FLOW_MAP } from '../../../s
     CmsEmptyStateComponent, CmsRowActionButtonComponent, CmsTypeBadgeComponent, ExportButtonComponent,
     CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent, CmsTourButtonComponent,
     CmsInfiniteSelectComponent,
+    LibraryIssueReturnDialogComponent,
   ],
   templateUrl: './library-issue-list.component.html',
   styleUrl: './library-issue-list.component.scss',
@@ -121,8 +123,10 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
     this.memberFilter.set(value != null ? (String(value) as LibraryMemberType) : null);
     this.onFilterChange();
   }
-  protected readonly canExport     = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_EXPORT'));
-  protected readonly canManageIssues = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_MANAGE'));
+  protected readonly canExport      = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_EXPORT'));
+  protected readonly canCreateIssue = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_MANAGE', 'LIBRARY_QUICK_ISSUE'));
+  protected readonly canEditIssue   = computed(() => this.permissions.hasAny('LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_MANAGE'));
+  protected readonly returnTarget   = signal<LibraryIssue | null>(null);
   protected readonly hasActiveFilters = computed(() =>
     this.statusFilter() !== null || this.memberFilter() !== null
     || this.itemTypeFilter() !== null || this.searchValue().length > 0);
@@ -243,15 +247,14 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
   }
 
   protected confirmReturn(issue: LibraryIssue): void {
-    const today = new Date();
-    const due   = new Date(issue.dueDate);
-    const isOverdue = today > due;
-    const overdueDays = isOverdue ? Math.floor((today.getTime() - due.getTime()) / 86400000) : 0;
-    const fineMsg = isOverdue ? `\n\n⚠️ Overdue by ${overdueDays} day(s). A fine will be calculated on return.` : '';
-    const label = issue.itemType === 'BOOK' ? 'Book' : 'Journal';
-    this.dialog.open(ConfirmDialogComponent, {
-      data: { title: `Return ${label}`, message: `Return "${issue.itemTitle}" (${issue.accessionNumber})\nBorrowed by: ${this.memberName(issue)}\nDue: ${issue.dueDate}${fineMsg}`, confirmText: 'Confirm Return', cancelText: 'Cancel' },
-    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performReturn(issue); });
+    this.returnTarget.set(issue);
+  }
+
+  protected onReturnClosed(returned: LibraryIssue | undefined): void {
+    this.returnTarget.set(null);
+    if (returned) {
+      this.loadPage();
+    }
   }
 
   protected confirmRenew(issue: LibraryIssue): void {
@@ -259,18 +262,6 @@ export class LibraryIssueListComponent implements OnInit, OnDestroy {
     this.dialog.open(ConfirmDialogComponent, {
       data: { title: `Renew ${label}`, message: `Renew "${issue.itemTitle}" for ${this.memberName(issue)}?\nRenewal ${issue.renewalCount + 1} will be applied.`, confirmText: 'Renew', cancelText: 'Cancel' },
     }).afterClosed().subscribe(confirmed => { if (confirmed) this.performRenew(issue); });
-  }
-
-  private performReturn(issue: LibraryIssue): void {
-    const label = issue.itemType === 'BOOK' ? 'Book' : 'Journal';
-    this.libraryService.returnBook(issue.id, {}).subscribe({
-      next: returned => {
-        const fineMsg = returned.fine ? ` Fine recorded: ₹${returned.fine.totalFine} (${returned.fine.overdueDays} overdue day(s)).` : '';
-        this.toast.success(`${label} returned successfully.${fineMsg}`);
-        this.loadPage();
-      },
-      error: err => this.toast.error(err?.error?.message ?? `Failed to return ${label.toLowerCase()}`),
-    });
   }
 
   private performRenew(issue: LibraryIssue): void {

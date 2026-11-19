@@ -2434,7 +2434,13 @@ export const routes: Routes = [
   // ── Library ──────────────────────────────────────────────────────────────
   {
     path: 'library/books',
-    canActivate: withPermission('LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_MANAGE'),
+    canActivate: withPermission(
+      'LIBRARY_CATALOGUE_VIEW',
+      'LIBRARY_CATALOGUE_CREATE',
+      'LIBRARY_CATALOGUE_EDIT',
+      'LIBRARY_CATALOGUE_EXPORT',
+      'LIBRARY_CATALOGUE_MANAGE'
+    ),
     loadComponent: () =>
       import('./features/library/library-book-list/library-book-list.component').then(
         (m) => m.LibraryBookListComponent
@@ -2442,7 +2448,7 @@ export const routes: Routes = [
   },
   {
     path: 'library/books/new',
-    canActivate: withPermission('LIBRARY_CATALOGUE_MANAGE'),
+    canActivate: withPermission('LIBRARY_CATALOGUE_CREATE', 'LIBRARY_CATALOGUE_MANAGE'),
     loadComponent: () =>
       import('./features/library/library-book-form/library-book-form.component').then(
         (m) => m.LibraryBookFormComponent
@@ -2458,7 +2464,7 @@ export const routes: Routes = [
   },
   {
     path: 'library/books/:id/edit',
-    canActivate: withPermission('LIBRARY_CATALOGUE_MANAGE'),
+    canActivate: withPermission('LIBRARY_CATALOGUE_EDIT', 'LIBRARY_CATALOGUE_MANAGE'),
     loadComponent: () =>
       import('./features/library/library-book-form/library-book-form.component').then(
         (m) => m.LibraryBookFormComponent
@@ -2466,7 +2472,13 @@ export const routes: Routes = [
   },
   {
     path: 'library/issues',
-    canActivate: withPermission('LIBRARY_ISSUE_MANAGE'),
+    canActivate: withPermission(
+      'LIBRARY_ISSUE_VIEW',
+      'LIBRARY_ISSUE_CREATE',
+      'LIBRARY_ISSUE_EDIT',
+      'LIBRARY_ISSUE_EXPORT',
+      'LIBRARY_ISSUE_MANAGE'
+    ),
     loadComponent: () =>
       import('./features/library/library-issue-list/library-issue-list.component').then(
         (m) => m.LibraryIssueListComponent
@@ -2474,7 +2486,7 @@ export const routes: Routes = [
   },
   {
     path: 'library/issues/new',
-    canActivate: withPermission('LIBRARY_ISSUE_MANAGE'),
+    canActivate: withPermission('LIBRARY_QUICK_ISSUE', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_MANAGE'),
     loadComponent: () =>
       import('./features/library/library-issue-form/library-issue-form.component').then(
         (m) => m.LibraryIssueFormComponent

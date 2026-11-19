@@ -1,5 +1,6 @@
 package com.cms.dto;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -17,6 +18,7 @@ public record LibraryIssueResponse(
     String itemDetail,
     String callNumber,
     String shelfLocation,
+    BigDecimal itemPriceRs,
     LibraryMemberType memberType,
     Long studentId,
     String studentName,

@@ -67,10 +67,6 @@ export class LibraryService {
     return this.http.put<LibraryBook>(`${this.baseUrl}/${id}`, request);
   }
 
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
-  }
-
   getBooksPage(p: { search?: string; status?: BookStatus | null; category?: string | null; rackId?: number | null; shelfId?: number | null; page?: number; size?: number; sort?: string; direction?: string }): Observable<Page<LibraryBook>> {
     let params = new HttpParams().set('page', p.page ?? 0).set('size', p.size ?? 25);
     if (p.search)   params = params.set('search', p.search);
