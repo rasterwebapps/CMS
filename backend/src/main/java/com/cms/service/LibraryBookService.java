@@ -84,6 +84,11 @@ public class LibraryBookService {
 
     @Transactional
     public LibraryBookResponse create(LibraryBookRequest request) {
+        if (request.status() == BookStatus.ISSUED) {
+            throw new IllegalArgumentException(
+                "Cannot manually create a book with ISSUED status — use the Issue Book workflow");
+        }
+
         String accessionNumber = accessionRegistry.resolveAccessionNumber(request.accessionNumber());
 
         if (accessionRegistry.exists(accessionNumber, null, null)) {
@@ -173,6 +178,17 @@ public class LibraryBookService {
     public LibraryBookResponse update(Long id, LibraryBookRequest request) {
         LibraryBook book = require(id);
 
+        if (book.getStatus() == BookStatus.ISSUED
+                && request.status() != null
+                && request.status() != BookStatus.ISSUED) {
+            throw new IllegalStateException(
+                "Cannot change the status of a book that is currently issued — return or mark it lost via Circulation first");
+        }
+        if (book.getStatus() != BookStatus.ISSUED && request.status() == BookStatus.ISSUED) {
+            throw new IllegalArgumentException(
+                "Cannot manually set book status to ISSUED — use the Issue Book workflow");
+        }
+
         String accessionNumber = request.accessionNumber() != null
             ? request.accessionNumber().trim()
             : book.getAccessionNumber();
@@ -197,20 +213,49 @@ public class LibraryBookService {
 
         book.setAccessionNumber(accessionNumber);
         book.setBarcode(barcode);
-        applyFields(book, request);
-        return toResponse(bookRepository.save(book));
-    }
 
-    @Transactional
-    public void delete(Long id) {
-        LibraryBook book = require(id);
-        if (book.getStatus() == BookStatus.ISSUED) {
-            throw new IllegalStateException("Cannot delete a book that is currently issued");
+        Library oldLibrary = book.getLibrary();
+        LibraryShelf oldShelf = book.getShelf();
+        Long oldShelfId = oldShelf != null ? oldShelf.getId() : null;
+        BookStatus targetStatus = request.status() != null ? request.status() : book.getStatus();
+        boolean nonPhysicalTarget = targetStatus == BookStatus.ISSUED
+            || targetStatus == BookStatus.LOST
+            || targetStatus == BookStatus.WITHDRAWN;
+
+        if (nonPhysicalTarget && request.shelfId() != null && !request.shelfId().equals(oldShelfId)) {
+            throw new IllegalStateException(
+                "Cannot change shelf location of a book while its status is " + targetStatus);
         }
-        if (issueRepository.existsByBookId(id)) {
-            throw new IllegalStateException("Cannot delete a book that has issue history");
+
+        applyFields(book, request);
+
+        if (nonPhysicalTarget && request.shelfId() == null && oldShelf != null) {
+            book.setShelf(oldShelf);
         }
-        bookRepository.deleteById(id);
+
+        LibraryBook saved = bookRepository.save(book);
+
+        LibraryShelf newShelf = saved.getShelf();
+        Long newShelfId = newShelf != null ? newShelf.getId() : null;
+        if (!nonPhysicalTarget && newShelf != null && !java.util.Objects.equals(oldShelfId, newShelfId)) {
+            Library newLibrary = (newShelf.getRack() != null && newShelf.getRack().getLibrary() != null)
+                ? newShelf.getRack().getLibrary()
+                : saved.getLibrary();
+            LibraryBookShelfTransfer record = new LibraryBookShelfTransfer();
+            record.setBook(saved);
+            record.setOldLibrary(oldLibrary);
+            record.setOldRack(oldShelf != null ? oldShelf.getRack() : null);
+            record.setOldShelf(oldShelf);
+            record.setNewLibrary(newLibrary);
+            record.setNewRack(newShelf.getRack());
+            record.setNewShelf(newShelf);
+            record.setTransferredAt(Instant.now());
+            record.setTransferredBy(currentUserResolver.resolve());
+            record.setNotes("Updated via Book Edit");
+            transferRepository.save(record);
+        }
+
+        return toResponse(saved);
     }
 
     // ── Shelf transfer ───────────────────────────────────────────
@@ -252,6 +297,18 @@ public class LibraryBookService {
         if (book.getStatus() == BookStatus.ISSUED) {
             throw new IllegalStateException(
                 "Cannot transfer '" + book.getTitle() + "' — it is currently issued");
+        }
+        if (book.getStatus() == BookStatus.LOST) {
+            throw new IllegalStateException(
+                "Cannot transfer '" + book.getTitle() + "' — it is marked as lost");
+        }
+        if (book.getStatus() == BookStatus.WITHDRAWN) {
+            throw new IllegalStateException(
+                "Cannot transfer '" + book.getTitle() + "' — it has been withdrawn from stock");
+        }
+        if (book.getShelf() != null && book.getShelf().getId() != null && book.getShelf().getId().equals(newShelfId)) {
+            throw new IllegalStateException(
+                "Book '" + book.getTitle() + "' is already on this shelf");
         }
 
         LibraryShelf newShelf = shelfRepository.findById(newShelfId)

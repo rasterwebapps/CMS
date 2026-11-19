@@ -324,6 +324,7 @@ export interface LibraryIssue {
   itemDetail: string;
   callNumber?: string;
   shelfLocation?: string;
+  itemPriceRs?: number;
   memberType: LibraryMemberType;
   studentId?: number;
   studentName?: string;
@@ -367,8 +368,12 @@ export interface LibraryCirculationLookup {
   status: BookStatus;
 }
 
+export type IssueResolutionStatus = 'AVAILABLE' | 'DAMAGED' | 'LOST';
+
 export interface LibraryReturnRequest {
   remarks?: string;
+  resolutionStatus?: IssueResolutionStatus;
+  penaltyFine?: number;
 }
 
 // ── Barcode labels ───────────────────────────────────────────

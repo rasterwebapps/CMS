@@ -115,35 +115,68 @@ class LibraryBookServiceTest {
         verify(bookRepository).save(any());
     }
 
-    // ── delete ───────────────────────────────────────────────────
+    // ── status lifecycle guards ──────────────────────────────────
 
     @Test
-    void delete_availableBook_succeeds() {
-        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.AVAILABLE);
-        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+    void create_withIssuedStatus_throws() {
+        var request = new com.cms.dto.LibraryBookRequest(
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
+            null, null, null, 1L, null, null, null, null, null, null, null, BookStatus.ISSUED, null
+        );
 
-        service.delete(1L);
-
-        verify(bookRepository).deleteById(1L);
+        assertThatThrownBy(() -> service.create(request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("ISSUED");
+        verify(bookRepository, never()).save(any());
     }
 
     @Test
-    void delete_issuedBook_throws() {
+    void update_whenBookIsIssued_changingStatusThrows() {
         LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.ISSUED);
         when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
 
-        assertThatThrownBy(() -> service.delete(1L))
+        var request = new com.cms.dto.LibraryBookRequest(
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
+            null, null, null, 1L, null, null, null, null, null, null, null, BookStatus.WITHDRAWN, null
+        );
+
+        assertThatThrownBy(() -> service.update(1L, request))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("currently issued");
-        verify(bookRepository, never()).deleteById(any());
+        verify(bookRepository, never()).save(any());
     }
 
     @Test
-    void delete_notFound_throws() {
-        when(bookRepository.findById(99L)).thenReturn(Optional.empty());
+    void update_whenBookIsAvailable_settingStatusToIssuedThrows() {
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.AVAILABLE);
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
 
-        assertThatThrownBy(() -> service.delete(99L))
-            .isInstanceOf(ResourceNotFoundException.class);
+        var request = new com.cms.dto.LibraryBookRequest(
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
+            null, null, null, 1L, null, null, null, null, null, null, null, BookStatus.ISSUED, null
+        );
+
+        assertThatThrownBy(() -> service.update(1L, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("ISSUED");
+        verify(bookRepository, never()).save(any());
+    }
+
+    @Test
+    void update_whenBookIsAvailable_changingStatusToWithdrawnSucceeds() {
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.AVAILABLE);
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(bookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var request = new com.cms.dto.LibraryBookRequest(
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
+            null, null, null, 1L, null, null, null, null, null, null, null, BookStatus.WITHDRAWN, "Withdrawn from stock"
+        );
+
+        var response = service.update(1L, request);
+
+        assertThat(response.status()).isEqualTo(BookStatus.WITHDRAWN);
+        verify(bookRepository).save(book);
     }
 
     // ── transfer ─────────────────────────────────────────────────
@@ -159,6 +192,66 @@ class LibraryBookServiceTest {
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("currently issued");
         verify(transferRepository, never()).save(any());
+    }
+
+    @Test
+    void transferBook_lostBook_throws() {
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.LOST);
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+
+        var request = new LibraryBookTransferRequest(10L, "moving shelf");
+
+        assertThatThrownBy(() -> service.transferBook(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("marked as lost");
+        verify(transferRepository, never()).save(any());
+    }
+
+    @Test
+    void transferBook_withdrawnBook_throws() {
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.WITHDRAWN);
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+
+        var request = new LibraryBookTransferRequest(10L, "moving shelf");
+
+        assertThatThrownBy(() -> service.transferBook(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("withdrawn from stock");
+        verify(transferRepository, never()).save(any());
+    }
+
+    @Test
+    void transferBook_sameShelf_throws() {
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.AVAILABLE);
+        LibraryShelf currentShelf = shelf(10L, "Tier 1", rack(5L, "Rack B", library));
+        book.setShelf(currentShelf);
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+
+        var request = new LibraryBookTransferRequest(10L, "moving shelf");
+
+        assertThatThrownBy(() -> service.transferBook(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("already on this shelf");
+        verify(transferRepository, never()).save(any());
+    }
+
+    @Test
+    void transferBook_damagedBook_movesShelfAndLibrary() {
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.DAMAGED);
+        book.setLibrary(library);
+
+        LibraryShelf newShelf = shelf(10L, "Repair Tier", rack(5L, "Rack B", library));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(shelfRepository.findById(10L)).thenReturn(Optional.of(newShelf));
+        when(bookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var request = new LibraryBookTransferRequest(10L, "moving damaged book");
+        var response = service.transferBook(1L, request);
+
+        assertThat(response.newShelfName()).isEqualTo("Repair Tier");
+        assertThat(book.getShelf()).isEqualTo(newShelf);
+        verify(bookRepository).save(book);
+        verify(transferRepository).save(any());
     }
 
     @Test
@@ -200,6 +293,96 @@ class LibraryBookServiceTest {
         assertThat(result.failed()).hasSize(1);
         assertThat(result.failed().get(0).bookId()).isEqualTo(2L);
         assertThat(result.failed().get(0).reason()).contains("currently issued");
+    }
+
+    @Test
+    void bulkTransfer_partialSuccess_whenBooksAreLostOrWithdrawn() {
+        LibraryBook available = book(1L, "2024-001", "Anatomy", BookStatus.AVAILABLE);
+        available.setLibrary(library);
+        LibraryBook lost = book(2L, "2024-002", "Physiology", BookStatus.LOST);
+        LibraryBook withdrawn = book(3L, "2024-003", "Biochemistry", BookStatus.WITHDRAWN);
+
+        LibraryShelf newShelf = shelf(10L, "Tier 1", rack(5L, "Rack B", library));
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(available));
+        when(bookRepository.findById(2L)).thenReturn(Optional.of(lost));
+        when(bookRepository.findById(3L)).thenReturn(Optional.of(withdrawn));
+        when(shelfRepository.findById(10L)).thenReturn(Optional.of(newShelf));
+        when(bookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var request = new LibraryBookBulkTransferRequest(List.of(1L, 2L, 3L), 10L, "bulk move");
+        var result = service.bulkTransfer(request);
+
+        assertThat(result.succeededBookIds()).containsExactly(1L);
+        assertThat(result.failed()).hasSize(2);
+        assertThat(result.failed().get(0).bookId()).isEqualTo(2L);
+        assertThat(result.failed().get(0).reason()).contains("marked as lost");
+        assertThat(result.failed().get(1).bookId()).isEqualTo(3L);
+        assertThat(result.failed().get(1).reason()).contains("withdrawn from stock");
+    }
+
+    @Test
+    void update_whenShelfChangedOnAvailableBook_recordsTransferAudit() {
+        LibraryShelf oldShelf = shelf(8L, "Tier 1", rack(4L, "Rack A", library));
+        LibraryShelf newShelf = shelf(10L, "Tier 2", rack(5L, "Rack B", library));
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.AVAILABLE);
+        book.setLibrary(library);
+        book.setShelf(oldShelf);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(shelfRepository.findById(10L)).thenReturn(Optional.of(newShelf));
+        when(bookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var request = new com.cms.dto.LibraryBookRequest(
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
+            null, null, null, 1L, 10L, null, null, null, null, null, null, BookStatus.AVAILABLE, null
+        );
+
+        var response = service.update(1L, request);
+
+        assertThat(response.shelfId()).isEqualTo(10L);
+        verify(transferRepository).save(any());
+    }
+
+    @Test
+    void update_whenBookIsLost_changingShelfThrows() {
+        LibraryShelf oldShelf = shelf(8L, "Tier 1", rack(4L, "Rack A", library));
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.LOST);
+        book.setLibrary(library);
+        book.setShelf(oldShelf);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+
+        var request = new com.cms.dto.LibraryBookRequest(
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
+            null, null, null, 1L, 10L, null, null, null, null, null, null, BookStatus.LOST, null
+        );
+
+        assertThatThrownBy(() -> service.update(1L, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("status is LOST");
+        verify(bookRepository, never()).save(any());
+    }
+
+    @Test
+    void update_whenBookMarkedLostWithNullShelf_preservesLastKnownShelf() {
+        LibraryShelf oldShelf = shelf(8L, "Tier 1", rack(4L, "Rack A", library));
+        LibraryBook book = book(1L, "2024-001", "Anatomy", BookStatus.AVAILABLE);
+        book.setLibrary(library);
+        book.setShelf(oldShelf);
+
+        when(bookRepository.findById(1L)).thenReturn(Optional.of(book));
+        when(bookRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        var request = new com.cms.dto.LibraryBookRequest(
+            "2024-001", null, null, "Anatomy", "Gray", null, null, null, null,
+            null, null, null, 1L, null, null, null, null, null, null, null, BookStatus.LOST, "Reported lost"
+        );
+
+        var response = service.update(1L, request);
+
+        assertThat(response.status()).isEqualTo(BookStatus.LOST);
+        assertThat(response.shelfId()).isEqualTo(8L);
+        verify(transferRepository, never()).save(any());
     }
 
     // ── helpers ──────────────────────────────────────────────────

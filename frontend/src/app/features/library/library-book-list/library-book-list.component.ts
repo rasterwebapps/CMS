@@ -8,7 +8,6 @@ import { MatPaginatorModule, MatPaginator, PageEvent } from '@angular/material/p
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
@@ -19,7 +18,6 @@ import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { LibraryService } from '../library.service';
 import { LibraryPrintTransportService } from '../library-print-transport.service';
 import { LibraryBook, BookStatus, BOOK_STATUS_OPTIONS, SUBJECT_CATEGORY_OPTIONS, LibraryRack, LibraryShelf, LibrarySubjectCategory, LibraryBookTransferResult } from '../library.model';
-import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog.component';
 import { ToastService } from '../../../core/toast/toast.service';
 import { CmsEmptyStateComponent } from '../../../shared/empty-state/empty-state.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
@@ -44,7 +42,7 @@ import { LIBRARY_BOOK_LIST_TOUR, LIBRARY_BOOK_LIST_FLOW_MAP } from '../../../sha
   imports: [
     RouterLink, FormsModule, DatePipe,
     MatTableModule, MatPaginatorModule, MatSortModule,
-    MatDialogModule, MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
+    MatButtonModule, MatCheckboxModule, MatIconModule, MatTooltipModule,
     MatSelectModule, MatInputModule, MatFormFieldModule,
     CmsRowActionButtonComponent, CmsEmptyStateComponent, ExportButtonComponent, CmsColumnPickerComponent, ColumnResizeDirective, CmsWrapTextToggleComponent,
     LibraryBarcodePreviewDialogComponent, LibraryItemHistoryDialogComponent, LibraryBookTransferDialogComponent,
@@ -59,7 +57,6 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   private readonly printTransport = inject(LibraryPrintTransportService);
   private readonly router         = inject(Router);
   private readonly toast          = inject(ToastService);
-  private readonly dialog         = inject(MatDialog);
   private readonly tourService    = inject(TourService);
   protected readonly permissions  = inject(PermissionService);
 
@@ -132,7 +129,8 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
     this.racks().map(r => ({ id: r.id, name: r.name })));
   protected readonly shelfFetchPage = staticOptionsFetchPage(() =>
     this.shelves().map(s => ({ id: s.id, name: s.name })));
-  protected readonly canManage      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_MANAGE'));
+  protected readonly canCreate      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_CREATE', 'LIBRARY_CATALOGUE_MANAGE'));
+  protected readonly canEdit        = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_EDIT', 'LIBRARY_CATALOGUE_MANAGE'));
   protected readonly canImport      = computed(() => this.permissions.hasAny('LIBRARY_IMPORT'));
   protected readonly canExport      = computed(() => this.permissions.hasAny('LIBRARY_CATALOGUE_EXPORT'));
   protected readonly canTransfer    = computed(() => this.permissions.hasAny('LIBRARY_TRANSFER'));
@@ -270,15 +268,37 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/library/books', book.id, 'edit']);
   }
 
-  protected deleteBook(book: LibraryBook): void {
-    this.dialog.open(ConfirmDialogComponent, {
-      data: { title: 'Delete Book', message: `Delete "${book.title}" (${book.accessionNumber})? This cannot be undone.`, confirmText: 'Delete', cancelText: 'Cancel' },
-    }).afterClosed().subscribe(confirmed => { if (confirmed) this.performDelete(book); });
-  }
-
   protected handleEmptyAction(): void {
     if (this.hasActiveFilters()) this.clearFilters();
     else void this.router.navigate(['/library/books/new']);
+  }
+
+  // ── Status & action eligibility ──────────────────────────────
+
+  protected isPhysicallyPresent(book: LibraryBook): boolean {
+    return book.status === 'AVAILABLE' || book.status === 'DAMAGED';
+  }
+
+  protected hasNonPhysicalSelection(): boolean {
+    return this.selection.selected.some(b => !this.isPhysicallyPresent(b));
+  }
+
+  protected transferTooltip(book: LibraryBook): string {
+    switch (book.status) {
+      case 'ISSUED': return 'Cannot transfer — book is currently issued';
+      case 'LOST': return 'Cannot transfer — book is marked as lost';
+      case 'WITHDRAWN': return 'Cannot transfer — book is withdrawn';
+      default: return 'Transfer';
+    }
+  }
+
+  protected barcodeTooltip(book: LibraryBook): string {
+    switch (book.status) {
+      case 'ISSUED': return 'Cannot print barcode — book is currently issued';
+      case 'LOST': return 'Cannot print barcode — book is marked as lost';
+      case 'WITHDRAWN': return 'Cannot print barcode — book is withdrawn';
+      default: return 'Print Barcode';
+    }
   }
 
   // ── Selection ────────────────────────────────────────────────
@@ -295,10 +315,12 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   // ── Transfer ─────────────────────────────────────────────────
 
   protected transferBook(book: LibraryBook): void {
+    if (!this.isPhysicallyPresent(book)) return;
     this.transferTarget.set({ books: [{ id: book.id, title: book.title, accessionNumber: book.accessionNumber }] });
   }
 
   protected transferSelected(): void {
+    if (this.hasNonPhysicalSelection()) return;
     const books = this.selection.selected.map(b => ({ id: b.id, title: b.title, accessionNumber: b.accessionNumber }));
     this.transferTarget.set({ books });
   }
@@ -321,11 +343,12 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
   // ── Barcode labels ───────────────────────────────────────────
 
   protected printBarcode(book: LibraryBook): void {
+    if (!this.isPhysicallyPresent(book)) return;
     this.barcodeTarget.set({ itemType: 'BOOK', id: book.id, title: book.title, code: book.barcode ?? book.accessionNumber });
   }
 
   protected printSelectedLabels(): void {
-    if (this.printingLabels()) return;
+    if (this.printingLabels() || this.hasNonPhysicalSelection()) return;
     this.printingLabels.set(true);
     const ids = this.selection.selected.map(b => b.id);
 
@@ -379,13 +402,6 @@ export class LibraryBookListComponent implements OnInit, OnDestroy {
         this.loading.set(false);
       },
       error: () => { this.toast.error('Failed to load book catalogue'); this.loading.set(false); },
-    });
-  }
-
-  private performDelete(book: LibraryBook): void {
-    this.libraryService.delete(book.id).subscribe({
-      next: () => { this.toast.success('Book deleted successfully'); this.loadPage(); },
-      error: err => this.toast.error(err?.error?.message ?? 'Failed to delete book'),
     });
   }
 }

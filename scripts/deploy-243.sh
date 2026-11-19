@@ -76,6 +76,7 @@ if [ "$MODE" = "full" ]; then
     --exclude='backend/.gradle' \
     --exclude='.idea' \
     --exclude='frontend/ssl' \
+    --exclude='docker-compose.override.yml' \
     --exclude='scripts/__pycache__'
 
 elif [ "$MODE" = "frontend" ]; then

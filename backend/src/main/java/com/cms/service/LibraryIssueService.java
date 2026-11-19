@@ -230,34 +230,56 @@ public class LibraryIssueService {
             throw new IllegalStateException("This item is marked as lost and cannot be returned normally");
         }
 
+        BookStatus resolution = (request != null && request.resolutionStatus() != null)
+            ? request.resolutionStatus()
+            : BookStatus.AVAILABLE;
+        if (resolution != BookStatus.AVAILABLE && resolution != BookStatus.DAMAGED && resolution != BookStatus.LOST) {
+            throw new IllegalArgumentException(
+                "Invalid return resolution status '" + resolution + "'. Allowed values: AVAILABLE, DAMAGED, LOST");
+        }
+        BigDecimal penaltyFine = (request != null && request.penaltyFine() != null)
+            ? request.penaltyFine()
+            : BigDecimal.ZERO;
+        if (penaltyFine.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Penalty fine cannot be negative");
+        }
+
         LocalDate today = LocalDate.now();
         issue.setReturnedDate(today);
         issue.setReturnedTo(returnedTo);
-        issue.setStatus(IssueStatus.RETURNED);
+        issue.setStatus(resolution == BookStatus.LOST ? IssueStatus.LOST : IssueStatus.RETURNED);
         if (request != null && request.remarks() != null) {
             issue.setRemarks(request.remarks());
         }
 
         if (issue.getBook() != null) {
-            issue.getBook().setStatus(BookStatus.AVAILABLE);
+            issue.getBook().setStatus(resolution);
             bookRepository.save(issue.getBook());
         } else {
-            issue.getPeriodical().setStatus(BookStatus.AVAILABLE);
+            issue.getPeriodical().setStatus(resolution);
             periodicalRepository.save(issue.getPeriodical());
         }
 
-        // Calculate and record fine if overdue
-        if (today.isAfter(issue.getDueDate())) {
-            int overdueDays = (int) ChronoUnit.DAYS.between(issue.getDueDate(), today);
-            BigDecimal finePerDay = getSettingDecimal("fine_per_day", BigDecimal.ONE);
-            BigDecimal totalFine  = finePerDay.multiply(BigDecimal.valueOf(overdueDays));
+        // Calculate and record fine if overdue or if a damage/lost penalty fine was specified
+        int overdueDays = today.isAfter(issue.getDueDate())
+            ? (int) ChronoUnit.DAYS.between(issue.getDueDate(), today)
+            : 0;
+        BigDecimal finePerDay = getSettingDecimal("fine_per_day", BigDecimal.ONE);
+        BigDecimal overdueFine = overdueDays > 0
+            ? finePerDay.multiply(BigDecimal.valueOf(overdueDays))
+            : BigDecimal.ZERO;
+        BigDecimal totalFine = overdueFine.add(penaltyFine);
 
+        if (totalFine.compareTo(BigDecimal.ZERO) > 0) {
             LibraryFine fine = new LibraryFine();
             fine.setIssue(issue);
             fine.setOverdueDays(overdueDays);
             fine.setFinePerDay(finePerDay);
             fine.setTotalFine(totalFine);
             fine.setStatus(FineStatus.PENDING);
+            if (request != null && request.remarks() != null && !request.remarks().isBlank()) {
+                fine.setRemarks(request.remarks().trim());
+            }
             fineRepository.save(fine);
         }
 
@@ -509,6 +531,7 @@ public class LibraryIssueService {
             issue.getItemDetail(),
             issue.getCallNumber(),
             issue.getShelfLocation(),
+            issue.getBook() != null ? issue.getBook().getPriceRs() : null,
             issue.getMemberType(),
             student != null ? student.getId() : null,
             student != null ? student.getFirstName() + " " + student.getLastName() : null,

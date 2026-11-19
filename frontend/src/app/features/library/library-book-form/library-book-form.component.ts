@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, AsyncValidatorFn, AbstractControl } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -7,6 +7,7 @@ import { timer } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { LibraryService } from '../library.service';
 import {
+  BookStatus,
   LibraryBookRequest,
   BOOK_STATUS_OPTIONS,
   BOOK_SOURCE_OPTIONS,
@@ -35,10 +36,17 @@ export class LibraryBookFormComponent implements OnInit {
   protected readonly loading    = signal(false);
   protected readonly saving     = signal(false);
   protected readonly isEditMode = signal(false);
+  protected readonly isCurrentlyIssued = signal(false);
+  protected readonly isLocationLocked = signal(false);
+  protected readonly locationLockHint = signal('');
   protected readonly bookId     = signal<number | null>(null);
   protected readonly pageTitle  = signal('Add Book');
 
-  protected readonly statusOptions   = BOOK_STATUS_OPTIONS;
+  protected readonly statusOptions   = computed(() =>
+    this.isCurrentlyIssued()
+      ? BOOK_STATUS_OPTIONS.filter(o => o.value === 'ISSUED')
+      : BOOK_STATUS_OPTIONS.filter(o => o.value !== 'ISSUED')
+  );
   protected readonly sourceOptions   = BOOK_SOURCE_OPTIONS;
   protected readonly categoryOptions = SUBJECT_CATEGORY_OPTIONS;
   protected readonly categories      = signal<LibrarySubjectCategory[]>([]);
@@ -46,6 +54,8 @@ export class LibraryBookFormComponent implements OnInit {
   protected readonly shelves         = signal<LibraryShelf[]>([]);
 
   private libraryId: number | null = null;
+  private savedRackId: number | string = '';
+  private savedShelfId: number | string = '';
 
   protected form!: FormGroup;
 
@@ -57,6 +67,11 @@ export class LibraryBookFormComponent implements OnInit {
       this.pageTitle.set('Edit Book');
     }
     this.buildForm();
+    this.form.get('status')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.syncLocationControlsState(true));
+    this.syncLocationControlsState(false);
+
     this.libraryService.getSubjectCategories(true).subscribe({
       next: (cats) => this.categories.set(cats),
     });
@@ -75,9 +90,50 @@ export class LibraryBookFormComponent implements OnInit {
 
   protected onRackChange(): void {
     this.form.patchValue({ shelfId: '' });
-    const rackId = this.form.value.rackId;
-    if (!rackId) { this.shelves.set([]); return; }
+    const rackId = this.form.getRawValue().rackId;
+    if (!rackId) {
+      this.shelves.set([]);
+      this.form.get('shelfId')?.disable({ emitEvent: false });
+      return;
+    }
+    if (!this.isLocationLocked()) {
+      this.form.get('shelfId')?.enable({ emitEvent: false });
+    }
     this.libraryService.getShelves(+rackId, undefined, true).subscribe({ next: (shelves) => this.shelves.set(shelves) });
+  }
+
+  private syncLocationControlsState(restoreSavedOnLock: boolean): void {
+    const status = (this.form.getRawValue().status || 'AVAILABLE') as BookStatus;
+    const locked = status === 'ISSUED' || status === 'LOST' || status === 'WITHDRAWN';
+    this.isLocationLocked.set(locked);
+
+    if (locked) {
+      this.locationLockHint.set(status === 'ISSUED' ? 'Locked while Issued' : 'Last known location');
+      if (restoreSavedOnLock && this.isEditMode()) {
+        const currentRackId = this.form.getRawValue().rackId;
+        this.form.patchValue(
+          { rackId: this.savedRackId, shelfId: this.savedShelfId },
+          { emitEvent: false },
+        );
+        if (this.savedRackId && String(currentRackId) !== String(this.savedRackId)) {
+          this.libraryService.getShelves(+this.savedRackId, undefined, true).subscribe({
+            next: (shelves) => this.shelves.set(shelves),
+          });
+        } else if (!this.savedRackId) {
+          this.shelves.set([]);
+        }
+      }
+      this.form.get('rackId')?.disable({ emitEvent: false });
+      this.form.get('shelfId')?.disable({ emitEvent: false });
+    } else {
+      this.locationLockHint.set('');
+      this.form.get('rackId')?.enable({ emitEvent: false });
+      if (this.form.getRawValue().rackId) {
+        this.form.get('shelfId')?.enable({ emitEvent: false });
+      } else {
+        this.form.get('shelfId')?.disable({ emitEvent: false });
+      }
+    }
   }
 
   private buildForm(): void {
@@ -137,6 +193,10 @@ export class LibraryBookFormComponent implements OnInit {
     this.loading.set(true);
     this.libraryService.getById(id).subscribe({
       next: book => {
+        const issued = book.status === 'ISSUED';
+        this.isCurrentlyIssued.set(issued);
+        this.savedRackId = book.rackId ?? '';
+        this.savedShelfId = book.shelfId ?? '';
         this.form.patchValue({
           accessionNumber:   book.accessionNumber,
           barcode:           book.barcode ?? '',
@@ -161,7 +221,13 @@ export class LibraryBookFormComponent implements OnInit {
           priceRs:           book.priceRs ?? null,
           status:            book.status,
           remarks:           book.remarks ?? '',
-        });
+        }, { emitEvent: false });
+        if (issued) {
+          this.form.get('status')?.disable({ emitEvent: false });
+        } else {
+          this.form.get('status')?.enable({ emitEvent: false });
+        }
+        this.syncLocationControlsState(false);
         if (book.rackId) {
           this.libraryService.getShelves(book.rackId, undefined, true).subscribe({ next: (shelves) => this.shelves.set(shelves) });
         }
@@ -204,7 +270,7 @@ export class LibraryBookFormComponent implements OnInit {
   protected get f() { return this.form.controls; }
 
   private buildRequest(): LibraryBookRequest {
-    const v = this.form.value;
+    const v = this.form.getRawValue();
     return {
       accessionNumber:   v.accessionNumber?.trim() || undefined,
       barcode:           v.barcode?.trim() || undefined,

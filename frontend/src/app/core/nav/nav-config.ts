@@ -171,10 +171,10 @@ export const NAV_ENTRIES: NavEntry[] = [
     icon: 'local_library',
     modules: ['LIBRARY'],
     items: [
-      { label: 'Issue Books',      icon: 'add_circle_outline', route: '/library/issues/new',     permissions: ['LIBRARY_QUICK_ISSUE'] },
-      { label: 'Issue Explorer',   icon: 'book_online',        route: '/library/issues',         permissions: ['LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_DELETE', 'LIBRARY_ISSUE_EXPORT', 'LIBRARY_ISSUE_MANAGE'] },
+      { label: 'Issue Books',      icon: 'add_circle_outline', route: '/library/issues/new',     permissions: ['LIBRARY_QUICK_ISSUE', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_MANAGE'] },
+      { label: 'Issue Explorer',   icon: 'book_online',        route: '/library/issues',         permissions: ['LIBRARY_ISSUE_VIEW', 'LIBRARY_ISSUE_CREATE', 'LIBRARY_ISSUE_EDIT', 'LIBRARY_ISSUE_EXPORT', 'LIBRARY_ISSUE_MANAGE'] },
       { label: 'Overdue Books',    icon: 'warning',            route: '/library/reports',        permissions: ['LIBRARY_REPORT_VIEW'] },
-      { label: 'Book Explorer',    icon: 'menu_book',          route: '/library/books',          permissions: ['LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_CREATE', 'LIBRARY_CATALOGUE_EDIT', 'LIBRARY_CATALOGUE_DELETE', 'LIBRARY_CATALOGUE_EXPORT', 'LIBRARY_CATALOGUE_MANAGE'] },
+      { label: 'Book Explorer',    icon: 'menu_book',          route: '/library/books',          permissions: ['LIBRARY_CATALOGUE_VIEW', 'LIBRARY_CATALOGUE_CREATE', 'LIBRARY_CATALOGUE_EDIT', 'LIBRARY_CATALOGUE_EXPORT', 'LIBRARY_CATALOGUE_MANAGE'] },
       { label: 'Journal Explorer', icon: 'newspaper',          route: '/library/periodicals',    permissions: ['LIBRARY_PERIODICAL_VIEW', 'LIBRARY_PERIODICAL_CREATE', 'LIBRARY_PERIODICAL_EDIT', 'LIBRARY_PERIODICAL_DELETE', 'LIBRARY_PERIODICAL_EXPORT', 'LIBRARY_PERIODICAL_MANAGE'] },
       { label: 'My Library',       icon: 'person',             route: '/library/my-issues',      permissions: ['MY_LIBRARY_VIEW'] },
       { label: 'Fines',            icon: 'currency_rupee',     route: '/library/fines',          permissions: ['LIBRARY_FINE_VIEW', 'LIBRARY_FINE_CREATE', 'LIBRARY_FINE_EDIT', 'LIBRARY_FINE_DELETE', 'LIBRARY_FINE_EXPORT', 'LIBRARY_FINE_MANAGE'] },

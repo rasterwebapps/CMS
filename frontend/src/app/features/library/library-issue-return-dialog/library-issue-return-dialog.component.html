@@ -1,0 +1,152 @@
+<cms-flyout-panel width="500px" [ariaLabel]="'Return ' + itemLabel()" (closed)="cancel()">
+  <h2 flyoutHeader>Return / Resolve {{ itemLabel() }}</h2>
+
+  <div flyoutBody>
+    <div class="ret-dialog">
+      <!-- Item & Borrower Summary Card -->
+      <div class="ret-summary-card">
+        <div class="ret-summary-title">{{ issue().itemTitle }}</div>
+        <div class="ret-summary-meta">
+          <span class="ret-acc-badge">{{ issue().accessionNumber }}</span>
+          @if (issue().itemPriceRs != null) {
+            <span class="ret-price-badge">Price: ₹{{ issue().itemPriceRs | number:'1.2-2' }}</span>
+          }
+        </div>
+        <div class="ret-summary-grid">
+          <div class="ret-summary-row">
+            <span class="ret-label">Borrowed by</span>
+            <span class="ret-val">{{ memberLabel() }}</span>
+          </div>
+          <div class="ret-summary-row">
+            <span class="ret-label">Issued / Due</span>
+            <span class="ret-val">
+              {{ issue().issuedDate | date:'dd MMM yyyy' }} →
+              <strong [class.ret-overdue-text]="overdueDays() > 0">{{ issue().dueDate | date:'dd MMM yyyy' }}</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overdue Banner (if overdue) -->
+      @if (overdueDays() > 0) {
+        <div class="ret-overdue-banner">
+          <mat-icon aria-hidden="true">warning_amber</mat-icon>
+          <div>
+            <strong>Overdue by {{ overdueDays() }} day(s)</strong>
+            <span> — Overdue fine: ₹{{ overdueFine() | number:'1.2-2' }} ({{ overdueDays() }} × ₹{{ finePerDay() }}/day)</span>
+          </div>
+        </div>
+      }
+
+      <!-- Resolution Condition Selection -->
+      <div class="ret-section">
+        <label class="ret-field-label">Return Condition / Resolution</label>
+        <div class="ret-options" role="radiogroup" aria-label="Return condition">
+          <button
+            type="button"
+            class="ret-option"
+            [class.ret-option--selected]="resolutionStatus() === 'AVAILABLE'"
+            (click)="selectResolution('AVAILABLE')"
+          >
+            <mat-icon class="ret-option__icon ret-option__icon--good">check_circle</mat-icon>
+            <div class="ret-option__body">
+              <span class="ret-option__title">Returned (Good Condition)</span>
+              <span class="ret-option__sub">Issue → Returned · {{ itemLabel() }} → Available</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="ret-option"
+            [class.ret-option--selected]="resolutionStatus() === 'DAMAGED'"
+            (click)="selectResolution('DAMAGED')"
+          >
+            <mat-icon class="ret-option__icon ret-option__icon--damaged">build_circle</mat-icon>
+            <div class="ret-option__body">
+              <span class="ret-option__title">Returned Damaged</span>
+              <span class="ret-option__sub">Issue → Returned · {{ itemLabel() }} → Damaged (held from circulation)</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            class="ret-option"
+            [class.ret-option--selected]="resolutionStatus() === 'LOST'"
+            (click)="selectResolution('LOST')"
+          >
+            <mat-icon class="ret-option__icon ret-option__icon--lost">report_problem</mat-icon>
+            <div class="ret-option__body">
+              <span class="ret-option__title">Lost by Borrower</span>
+              <span class="ret-option__sub">Issue → Lost · {{ itemLabel() }} → Lost</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Optional Penalty / Replacement Fine Input for DAMAGED or LOST -->
+      @if (resolutionStatus() !== 'AVAILABLE') {
+        <div class="ret-section">
+          <label class="ret-field-label" for="retPenaltyFine">
+            {{ resolutionStatus() === 'LOST' ? 'Replacement / Lost Fine (₹)' : 'Damage Penalty Fine (₹)' }}
+            <span class="ret-field-hint">Optional — added to any overdue fine in Fines register</span>
+          </label>
+          <input
+            id="retPenaltyFine"
+            type="number"
+            min="0"
+            step="0.01"
+            class="ret-input"
+            [ngModel]="penaltyFine()"
+            (ngModelChange)="onPenaltyInput($event)"
+            [placeholder]="resolutionStatus() === 'LOST' && issue().itemPriceRs != null ? ('Book price: ₹' + issue().itemPriceRs) : '0.00'"
+          />
+        </div>
+      }
+
+      <!-- Total Fine Summary -->
+      @if (totalFine() > 0) {
+        <div class="ret-fine-summary">
+          <span>Total Fine to Record (Pending Collection / Waiver)</span>
+          <strong>₹{{ totalFine() | number:'1.2-2' }}</strong>
+        </div>
+      }
+
+      <!-- Remarks -->
+      <div class="ret-section">
+        <label class="ret-field-label" for="retRemarks">
+          Remarks
+          <span class="ret-field-hint">{{ resolutionStatus() === 'AVAILABLE' ? 'Optional' : 'Recommended for damaged/lost items' }}</span>
+        </label>
+        <textarea
+          id="retRemarks"
+          class="ret-textarea"
+          rows="2"
+          [ngModel]="remarks()"
+          (ngModelChange)="remarks.set($event)"
+          [placeholder]="resolutionStatus() === 'DAMAGED' ? 'Describe damage (e.g., torn binding, missing pages)…' : (resolutionStatus() === 'LOST' ? 'Details on reported loss…' : 'Optional return notes…')"
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div flyoutFooter>
+    <button mat-button type="button" [disabled]="submitting()" (click)="cancel()">Cancel</button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="button"
+      [disabled]="submitting()"
+      (click)="submitReturn()"
+    >
+      @if (submitting()) {
+        <mat-spinner diameter="16" />
+      } @else if (resolutionStatus() === 'LOST') {
+        Mark as Lost
+      } @else if (resolutionStatus() === 'DAMAGED') {
+        Return as Damaged
+      } @else {
+        Confirm Return
+      }
+    </button>
+  </div>
+</cms-flyout-panel>

@@ -9,7 +9,7 @@
       <p class="mlp-sub">Track all book issues, returns and renewals</p>
     </div>
     <div class="header-actions">
-      @if (canManageIssues()) {
+      @if (canEditIssue()) {
         <div id="tour-libiss-scan" class="scan-return-inline">
           <mat-icon class="scan-return-icon" aria-hidden="true">qr_code_scanner</mat-icon>
           <input class="scan-return-input" [ngModel]="scanCode()" (ngModelChange)="scanCode.set($event)"
@@ -32,10 +32,12 @@
           tooltip="Export issue register as Excel or PDF"
         />
       }
-      <a class="btn-primary" routerLink="/library/issues/new">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Issue Book / Journal
-      </a>
+      @if (canCreateIssue()) {
+        <a class="btn-primary" routerLink="/library/issues/new">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Issue Book / Journal
+        </a>
+      }
     </div>
   </div>
 
@@ -175,13 +177,13 @@
         <ng-container matColumnDef="actions" [sticky]="colState.isSticky('actions')">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let i" class="actions-cell">
-            @if (isActive(i)) {
+            @if (canEditIssue() && isActive(i)) {
               <cms-row-action-btn variant="neutral" [iconOnly]="true" [disabled]="i.renewalCount >= 2"
                 tooltip="Renew" ariaLabel="Renew" (clicked)="confirmRenew(i)">
                 <mat-icon>autorenew</mat-icon>
               </cms-row-action-btn>
               <cms-row-action-btn variant="accent" [iconOnly]="true"
-                tooltip="Return" ariaLabel="Return book" (clicked)="confirmReturn(i)">
+                tooltip="Return / Resolve" ariaLabel="Return or resolve item" (clicked)="confirmReturn(i)">
                 <mat-icon>assignment_return</mat-icon>
               </cms-row-action-btn>
             }
@@ -197,7 +199,7 @@
             <cms-empty-state
               icon="book_online"
               [title]="hasActiveFilters() ? 'No issues match the current filters.' : 'No books or journals have been issued yet.'"
-              [actionLabel]="hasActiveFilters() ? 'Clear Filters' : 'Issue First Item'"
+              [actionLabel]="hasActiveFilters() ? 'Clear Filters' : (canCreateIssue() ? 'Issue First Item' : '')"
               (actionClick)="hasActiveFilters() ? clearFilters() : null"
             />
           </td>
@@ -207,4 +209,8 @@
     <mat-paginator [pageSizeOptions]="[25, 50, 100]" [length]="totalElements" showFirstLastButtons aria-label="Issue register pages" />
     }
   </div>
+
+  @if (returnTarget(); as t) {
+    <app-library-issue-return-dialog [issue]="t" (closed)="onReturnClosed($event)" />
+  }
 </div>
