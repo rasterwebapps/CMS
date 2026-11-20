@@ -57,6 +57,10 @@ public record StudentRequest(
 
     StudentStatus status,
     AdmissionCategory admissionCategory,
+    AdmissionCategory finalAdmissionCategory,
+
+    @Size(max = 1000, message = "Admission category change reason must not exceed 1000 characters")
+    String admissionCategoryChangeReason,
 
     // Personal information
     LocalDate dateOfBirth,
@@ -104,7 +108,7 @@ public record StudentRequest(
                           String fatherName, String fatherPhone, String fatherEmail, String motherName,
                           String motherPhone, String motherEmail, String parentMobile, AddressRequest address) {
         this(rollNumber, null, null, firstName, lastName, email, phone, programId, courseId, specialityId,
-            yearOfStudy, admissionDate, labBatch, status, null, dateOfBirth, gender, aadharNumber, nationality,
+            yearOfStudy, admissionDate, labBatch, status, null, null, null, dateOfBirth, gender, aadharNumber, nationality,
             religion, communityCategory, caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail,
             motherName, motherPhone, motherEmail, parentMobile, false, null, null, address,
             null, null, null, null, null, null);

@@ -40,7 +40,9 @@ public final class SearchFieldRegistry {
         register(fields, "district", "District the student's home address is in", TEXT, CONTAINS);
         register(fields, "state", "State the student's home address is in", TEXT, CONTAINS);
         register(fields, "status", "Student status: ACTIVE, INACTIVE, GRADUATED, ON_LEAVE, SUSPENDED, WITHDRAWN, EXPELLED", ENUM, EQUALS);
-        register(fields, "admissionCategory", "Admission category: MANAGEMENT, COUNSELLING", ENUM, EQUALS);
+        register(fields, "admissionCategory", "Enquiry admission category: MANAGEMENT, COUNSELLING", ENUM, EQUALS);
+        register(fields, "finalAdmissionCategory",
+            "Final admission category: MANAGEMENT, COUNSELLING, LAPSED, MANAGEMENT_TO_COUNSELLING", ENUM, EQUALS);
         register(fields, "gender", "Gender: MALE, FEMALE, OTHER", ENUM, EQUALS);
         register(fields, "previousSchoolOrCollegeName",
             "Name of the school or college the student previously studied at, from their academic qualification records",

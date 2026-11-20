@@ -127,11 +127,15 @@ export class CmsTypeBadgeComponent {
       case 'CANCELLED':
         return 'cms-badge--soft-red';
 
-      // ── Fee quota ─────────────────────────────────────────────────────────
+      // ── Fee quota / Admission category ────────────────────────────────────
       case 'MANAGEMENT':
         return 'cms-badge--soft-purple';
       case 'COUNSELLING':
         return 'cms-badge--soft-blue';
+      case 'LAPSED':
+        return 'cms-badge--soft-amber';
+      case 'MANAGEMENT_TO_COUNSELLING':
+        return 'cms-badge--soft-green';
 
       // ── Journal / periodical scope ─────────────────────────────────────────
       case 'NATIONAL':

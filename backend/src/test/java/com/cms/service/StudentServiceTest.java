@@ -86,6 +86,12 @@ class StudentServiceTest {
     @Mock
     private FeeFinalizationService feeFinalizationService;
 
+    @Mock
+    private com.cms.repository.StudentAdmissionCategoryHistoryRepository admissionCategoryHistoryRepository;
+
+    @Mock
+    private AuditLogService auditLogService;
+
     private StudentService studentService;
 
     private Program testProgram;
@@ -96,7 +102,8 @@ class StudentServiceTest {
             admissionRepository, enquiryDocumentRepository, documentHistoryRepository, transferRepository,
             feeDemandRepository, libraryIssueRepository, currentUserResolver,
             roomAllocationRepository, boardingStatusSwitchRepository, feeDemandService,
-            studentTermEnrollmentRepository, termBillingScheduleRepository, feeFinalizationService);
+            studentTermEnrollmentRepository, termBillingScheduleRepository, feeFinalizationService,
+            admissionCategoryHistoryRepository, auditLogService);
 
         lenient().when(feeFinalizationService.syncSemesterFeesForStudentTypeSwitch(any(), any()))
             .thenReturn(new FeeFinalizationService.LegacyFeeSyncResult(0, java.math.BigDecimal.ZERO));
@@ -673,6 +680,274 @@ class StudentServiceTest {
         var record = studentService.executeBoardingStatusSwitch(1L, request);
 
         assertThat(record.newStudentType()).isEqualTo(com.cms.model.enums.StudentType.HOSTELER);
+    }
+
+    @Test
+    void shouldDefaultFinalAdmissionCategoryFromEnquiryCategoryOnCreate() {
+        StudentRequest request = new StudentRequest(
+            "CS2026001", null, null, "Agalya", "R", "agalya@college.edu", "9876543210",
+            1L, null, null, 1, LocalDate.of(2026, 10, 14), null, StudentStatus.ACTIVE,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT, null, null,
+            LocalDate.of(2007, 5, 10), com.cms.model.enums.Gender.FEMALE, null,
+            "Indian", null, null, null, null, false,
+            null, null, null, null, null, null, null,
+            false, null, null, null,
+            null, null, null, null, null, null
+        );
+
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(studentRepository.save(any(Student.class))).thenAnswer(inv -> {
+            Student s = inv.getArgument(0);
+            s.setId(397L);
+            return s;
+        });
+
+        StudentResponse response = studentService.create(request);
+
+        assertThat(response.admissionCategory()).isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        assertThat(response.finalAdmissionCategory()).isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        assertThat(response.canEditFinalAdmissionCategory()).isTrue();
+    }
+
+    @Test
+    void shouldUpdateFinalAdmissionCategoryForFirstTermStudentAndRecordAuditLog() {
+        Student student = createStudent(397L, "959652026003", "AGALYA", "R", "agalya@college.edu");
+        student.setSemester(1);
+        student.setAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        student.setFinalAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+
+        when(studentRepository.findById(397L)).thenReturn(Optional.of(student));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(studentTermEnrollmentRepository.existsByStudentIdAndSemesterNumberGreaterThan(397L, 1)).thenReturn(false);
+        when(currentUserResolver.resolve()).thenReturn("admissions.admin");
+        when(studentRepository.save(any(Student.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(admissionCategoryHistoryRepository.save(any(com.cms.model.StudentAdmissionCategoryHistory.class)))
+            .thenAnswer(inv -> inv.getArgument(0));
+
+        StudentRequest updateRequest = new StudentRequest(
+            "959652026003", null, null, "AGALYA", "R", "agalya@college.edu", "9876543210",
+            1L, null, null, 1, LocalDate.of(2026, 10, 14), null, StudentStatus.ACTIVE,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING,
+            "Allotted seat in TN Govt Counselling Round 2",
+            LocalDate.of(2007, 5, 10), com.cms.model.enums.Gender.FEMALE, null,
+            "Indian", null, null, null, null, false,
+            null, null, null, null, null, null, null,
+            false, null, null, null,
+            null, null, null, null, null, null
+        );
+
+        StudentResponse response = studentService.update(397L, updateRequest);
+
+        assertThat(response.admissionCategory()).isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        assertThat(response.finalAdmissionCategory()).isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING);
+
+        ArgumentCaptor<com.cms.model.StudentAdmissionCategoryHistory> histCaptor =
+            ArgumentCaptor.forClass(com.cms.model.StudentAdmissionCategoryHistory.class);
+        verify(admissionCategoryHistoryRepository).save(histCaptor.capture());
+        assertThat(histCaptor.getValue().getOldCategory()).isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        assertThat(histCaptor.getValue().getNewCategory()).isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING);
+        assertThat(histCaptor.getValue().getReason()).isEqualTo("Allotted seat in TN Govt Counselling Round 2");
+        assertThat(histCaptor.getValue().getChangedBy()).isEqualTo("admissions.admin");
+
+        verify(auditLogService).record(
+            org.mockito.ArgumentMatchers.eq("admissions.admin"),
+            org.mockito.ArgumentMatchers.eq("STUDENT_ADMISSION_CATEGORY_UPDATED"),
+            org.mockito.ArgumentMatchers.eq("Student"),
+            org.mockito.ArgumentMatchers.eq("397"),
+            org.mockito.ArgumentMatchers.contains("MANAGEMENT_TO_COUNSELLING")
+        );
+    }
+
+    @Test
+    void shouldRejectFinalAdmissionCategoryChangeWithoutReason() {
+        Student student = createStudent(397L, "959652026003", "AGALYA", "R", "agalya@college.edu");
+        student.setSemester(1);
+        student.setAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        student.setFinalAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+
+        when(studentRepository.findById(397L)).thenReturn(Optional.of(student));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(studentTermEnrollmentRepository.existsByStudentIdAndSemesterNumberGreaterThan(397L, 1)).thenReturn(false);
+
+        StudentRequest updateRequest = new StudentRequest(
+            "959652026003", null, null, "AGALYA", "R", "agalya@college.edu", "9876543210",
+            1L, null, null, 1, LocalDate.of(2026, 10, 14), null, StudentStatus.ACTIVE,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT,
+            com.cms.model.enums.AdmissionCategory.LAPSED,
+            "   ",
+            null, null, null, null, null, null, null, null, false,
+            null, null, null, null, null, null, null,
+            false, null, null, null,
+            null, null, null, null, null, null
+        );
+
+        assertThatThrownBy(() -> studentService.update(397L, updateRequest))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Reason is required");
+
+        verify(studentRepository, never()).save(any());
+        verify(admissionCategoryHistoryRepository, never()).save(any());
+        verify(auditLogService, never()).record(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void shouldRejectFinalAdmissionCategoryChangeForSecondYearOrHigherTermStudent() {
+        Student secondYearStudent = createStudent(2L, "959652025028", "KRIPA", "L.S", "kripa@college.edu");
+        secondYearStudent.setSemester(2);
+        secondYearStudent.setAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        secondYearStudent.setFinalAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+
+        when(studentRepository.findById(2L)).thenReturn(Optional.of(secondYearStudent));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+
+        StudentRequest updateRequest = new StudentRequest(
+            "959652025028", null, null, "KRIPA", "L.S", "kripa@college.edu", "9876543210",
+            1L, null, null, 2, LocalDate.of(2025, 9, 17), null, StudentStatus.ACTIVE,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING,
+            "Late counselling conversion attempt",
+            null, null, null, null, null, null, null, null, false,
+            null, null, null, null, null, null, null,
+            false, null, null, null,
+            null, null, null, null, null, null
+        );
+
+        assertThatThrownBy(() -> studentService.update(2L, updateRequest))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("1st term / 1st semester");
+
+        verify(studentRepository, never()).save(any());
+        verify(admissionCategoryHistoryRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectFinalAdmissionCategoryChangeWhenEnrolledBeyondTermOne() {
+        Student student = createStudent(10L, "959652026099", "PRIYA", "K", "priya@college.edu");
+        student.setSemester(1);
+        student.setAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        student.setFinalAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+
+        when(studentRepository.findById(10L)).thenReturn(Optional.of(student));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(studentTermEnrollmentRepository.existsByStudentIdAndSemesterNumberGreaterThan(10L, 1)).thenReturn(true);
+
+        StudentRequest updateRequest = new StudentRequest(
+            "959652026099", null, null, "PRIYA", "K", "priya@college.edu", "9876543210",
+            1L, null, null, 1, LocalDate.of(2026, 6, 1), null, StudentStatus.ACTIVE,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING,
+            "Attempt in Term 2",
+            null, null, null, null, null, null, null, null, false,
+            null, null, null, null, null, null, null,
+            false, null, null, null,
+            null, null, null, null, null, null
+        );
+
+        assertThatThrownBy(() -> studentService.update(10L, updateRequest))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("1st term / 1st semester");
+
+        verify(studentRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectModifyingEnquiryAdmissionCategoryAfterCreation() {
+        Student student = createStudent(397L, "959652026003", "AGALYA", "R", "agalya@college.edu");
+        student.setSemester(1);
+        student.setAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        student.setFinalAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+
+        when(studentRepository.findById(397L)).thenReturn(Optional.of(student));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+
+        StudentRequest updateRequest = new StudentRequest(
+            "959652026003", null, null, "AGALYA", "R", "agalya@college.edu", "9876543210",
+            1L, null, null, 1, LocalDate.of(2026, 10, 14), null, StudentStatus.ACTIVE,
+            com.cms.model.enums.AdmissionCategory.COUNSELLING,
+            com.cms.model.enums.AdmissionCategory.COUNSELLING,
+            "Trying to overwrite enquiry category",
+            null, null, null, null, null, null, null, null, false,
+            null, null, null, null, null, null, null,
+            false, null, null, null,
+            null, null, null, null, null, null
+        );
+
+        assertThatThrownBy(() -> studentService.update(397L, updateRequest))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Admission Category (Enquiry) cannot be modified");
+
+        verify(studentRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldReturnAdmissionCategoryHistoryForStudent() {
+        Student student = createStudent(397L, "959652026003", "AGALYA", "R", "agalya@college.edu");
+        com.cms.model.StudentAdmissionCategoryHistory history = new com.cms.model.StudentAdmissionCategoryHistory();
+        history.setStudent(student);
+        history.setOldCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        history.setNewCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING);
+        history.setReason("Counselling allotment order received");
+        history.setChangedBy("admissions.admin");
+        history.setChangedAt(Instant.now());
+
+        when(studentRepository.existsById(397L)).thenReturn(true);
+        when(admissionCategoryHistoryRepository.findByStudentIdOrderByChangedAtDesc(397L))
+            .thenReturn(List.of(history));
+
+        var result = studentService.getAdmissionCategoryHistory(397L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).oldCategory()).isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        assertThat(result.get(0).newCategory()).isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING);
+        assertThat(result.get(0).reason()).isEqualTo("Counselling allotment order received");
+        assertThat(result.get(0).changedBy()).isEqualTo("admissions.admin");
+    }
+
+    @Test
+    void shouldAllowNonTamilNaduStudentFinalCategoryCounsellingUpdateAndRecordStateAdvisoryInAuditLog() {
+        Student keralaStudent = createStudent(401L, "959652026045", "ANJALI", "MENON", "anjali@college.edu");
+        keralaStudent.setSemester(1);
+        keralaStudent.setAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+        keralaStudent.setFinalAdmissionCategory(com.cms.model.enums.AdmissionCategory.MANAGEMENT);
+
+        when(studentRepository.findById(401L)).thenReturn(Optional.of(keralaStudent));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(testProgram));
+        when(studentTermEnrollmentRepository.existsByStudentIdAndSemesterNumberGreaterThan(401L, 1)).thenReturn(false);
+        when(currentUserResolver.resolve()).thenReturn("admissions.admin");
+        when(studentRepository.save(any(Student.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(admissionCategoryHistoryRepository.save(any(com.cms.model.StudentAdmissionCategoryHistory.class)))
+            .thenAnswer(inv -> inv.getArgument(0));
+
+        com.cms.dto.AddressRequest keralaAddress = new com.cms.dto.AddressRequest(
+            1L, "12 Green Villa", "MG Road", "Kochi", "Ernakulam", "Kerala", "682001"
+        );
+        StudentRequest updateRequest = new StudentRequest(
+            "959652026045", null, null, "ANJALI", "MENON", "anjali@college.edu", "9876543210",
+            1L, null, null, 1, LocalDate.of(2026, 10, 14), null, StudentStatus.ACTIVE,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING,
+            "TN Nativity certificate verified for counselling allotment",
+            LocalDate.of(2007, 5, 12), com.cms.model.enums.Gender.FEMALE, null,
+            "Indian", null, null, null, null, false,
+            null, null, null, null, null, null, null,
+            false, null, null, keralaAddress,
+            null, null, null, null, null, null
+        );
+
+        StudentResponse response = studentService.update(401L, updateRequest);
+
+        assertThat(response.finalAdmissionCategory())
+            .isEqualTo(com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING);
+        assertThat(response.state()).isEqualTo("Kerala");
+
+        verify(auditLogService).record(
+            org.mockito.ArgumentMatchers.eq("admissions.admin"),
+            org.mockito.ArgumentMatchers.eq("STUDENT_ADMISSION_CATEGORY_UPDATED"),
+            org.mockito.ArgumentMatchers.eq("Student"),
+            org.mockito.ArgumentMatchers.eq("401"),
+            org.mockito.ArgumentMatchers.contains("[State Advisory: student state is 'Kerala' (non-Tamil Nadu)]")
+        );
     }
 
     private com.cms.model.StudentTermEnrollment currentEnrollmentDueOn(LocalDate ignored) {

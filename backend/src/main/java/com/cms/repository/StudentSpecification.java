@@ -132,6 +132,17 @@ public final class StudentSpecification {
         };
     }
 
+    public static Specification<Student> byFinalAdmissionCategory(String value) {
+        return (root, query, cb) -> {
+            try {
+                var category = com.cms.model.enums.AdmissionCategory.valueOf(value.toUpperCase());
+                return cb.equal(root.get("finalAdmissionCategory"), category);
+            } catch (IllegalArgumentException e) {
+                return cb.disjunction();
+            }
+        };
+    }
+
     public static Specification<Student> byGender(String value) {
         return (root, query, cb) -> {
             try {

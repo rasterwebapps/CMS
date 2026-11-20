@@ -266,8 +266,14 @@ public class StudentImportService {
 
         // Admission classification
         if (!blank(row.admissionCategory)) {
-            try { s.setAdmissionCategory(AdmissionCategory.valueOf(row.admissionCategory.trim().toUpperCase())); }
-            catch (Exception ignored) {}
+            try {
+                AdmissionCategory cat = AdmissionCategory.valueOf(row.admissionCategory.trim().toUpperCase());
+                AdmissionCategory enquiryCat = (cat == AdmissionCategory.COUNSELLING)
+                    ? AdmissionCategory.COUNSELLING
+                    : AdmissionCategory.MANAGEMENT;
+                s.setAdmissionCategory(enquiryCat);
+                s.setFinalAdmissionCategory(cat);
+            } catch (Exception ignored) {}
         }
 
         // Personal
@@ -335,8 +341,13 @@ public class StudentImportService {
         enquiry.setReferralType(walkIn);
         enquiry.setConvertedStudentId(s.getId());
         if (!blank(row.admissionCategory)) {
-            try { enquiry.setAdmissionQuota(AdmissionQuota.valueOf(row.admissionCategory.trim().toUpperCase())); }
-            catch (Exception ignored) {}
+            try {
+                AdmissionCategory cat = AdmissionCategory.valueOf(row.admissionCategory.trim().toUpperCase());
+                AdmissionQuota quota = (cat == AdmissionCategory.COUNSELLING)
+                    ? AdmissionQuota.COUNSELLING
+                    : AdmissionQuota.MANAGEMENT;
+                enquiry.setAdmissionQuota(quota);
+            } catch (Exception ignored) {}
         }
         // Infer fee state from student's home state: Tamil Nadu → TN slab; anything else → fallback slab.
         // This ensures the enquiry is correctly bucketed for fee structure group reporting.

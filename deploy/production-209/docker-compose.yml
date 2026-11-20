@@ -40,6 +40,7 @@ services:
     network_mode: host
     command: start --import-realm
     environment:
+      JAVA_OPTS_APPEND: '-XX:-UseBASE64Intrinsics'
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://localhost:5433/cms
       KC_DB_USERNAME: ${DB_USERNAME}
@@ -80,6 +81,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
+      JAVA_TOOL_OPTIONS: '-XX:-UseBASE64Intrinsics'
       SPRING_PROFILES_ACTIVE: 209
       DB_URL: jdbc:postgresql://localhost:5433/cms
       # Use the dedicated low-privilege app user (Phase 2.10 — security hardening).

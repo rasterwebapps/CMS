@@ -181,7 +181,9 @@ public class RetroAdmitService {
         student.setCaste(request.caste());
         student.setBloodGroup(request.bloodGroup());
         student.setPhysicalDisability(Boolean.TRUE.equals(request.physicalDisability()));
-        student.setAdmissionCategory(AdmissionCategory.valueOf(quota.name()));
+        AdmissionCategory category = AdmissionCategory.valueOf(quota.name());
+        student.setAdmissionCategory(category);
+        student.setFinalAdmissionCategory(category);
         student.setStudentType(studentType);
         assignCohortIfPossible(student, course, program, joiningYear);
         student.setFatherName(request.fatherName());

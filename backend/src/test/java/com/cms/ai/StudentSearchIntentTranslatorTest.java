@@ -64,6 +64,7 @@ class StudentSearchIntentTranslatorTest {
             case ENUM -> switch (field.name()) {
                 case "status" -> "ACTIVE";
                 case "admissionCategory" -> "MANAGEMENT";
+                case "finalAdmissionCategory" -> "MANAGEMENT_TO_COUNSELLING";
                 case "gender" -> "MALE";
                 case "qualificationType" -> "DEGREE";
                 default -> throw new IllegalStateException("Unmapped enum field: " + field.name());

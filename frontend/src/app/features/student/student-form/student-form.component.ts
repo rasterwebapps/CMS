@@ -3,12 +3,31 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments';
 import { StudentService } from '../student.service';
-import { StudentRequest, STUDENT_BANK_ACCOUNT_TYPE_OPTIONS } from '../student.model';
+import {
+  ENQUIRY_ADMISSION_CATEGORY_OPTIONS,
+  FINAL_ADMISSION_CATEGORY_OPTIONS,
+  formatAdmissionCategory,
+  StudentRequest,
+  STUDENT_BANK_ACCOUNT_TYPE_OPTIONS,
+} from '../student.model';
+import {
+  AdmissionCategoryConfirmDialogComponent,
+  AdmissionCategoryConfirmDialogData,
+} from '../admission-category-confirm-dialog/admission-category-confirm-dialog.component';
+import {
+  CounsellingStateConfirmDialogComponent,
+  CounsellingStateConfirmDialogData,
+} from '../../../shared/counselling-state-confirm-dialog/counselling-state-confirm-dialog.component';
+import {
+  getCounsellingStateWarning,
+  isCounsellingCategory,
+} from '../../../shared/utils/counselling-state.util';
 import { CommunityService } from '../../community/community.service';
 import { BloodGroupService } from '../../blood-group/blood-group.service';
 import { Community } from '../../community/community.model';
@@ -34,6 +53,7 @@ interface Program {
     RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
+    MatDialogModule,
     MatIconModule,
     MatProgressSpinnerModule,
     CmsTourButtonComponent,
@@ -55,6 +75,7 @@ export class StudentFormComponent implements OnInit {
   private readonly tourService = inject(TourService);
   private readonly communityService = inject(CommunityService);
   private readonly bloodGroupService = inject(BloodGroupService);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly bankAccountTypeOptions = STUDENT_BANK_ACCOUNT_TYPE_OPTIONS;
 
@@ -71,7 +92,22 @@ export class StudentFormComponent implements OnInit {
 
   protected readonly statusOptions = ['ACTIVE', 'INACTIVE', 'GRADUATED', 'DROPPED'];
   protected readonly genderOptions = ['MALE', 'FEMALE', 'OTHER'];
-  protected readonly admissionCategoryOptions = ['MANAGEMENT', 'COUNSELLING'];
+  protected readonly enquiryAdmissionCategoryOptions = ENQUIRY_ADMISSION_CATEGORY_OPTIONS;
+  protected readonly finalAdmissionCategoryOptions = FINAL_ADMISSION_CATEGORY_OPTIONS;
+  protected readonly canEditFinalAdmissionCategory = signal(true);
+  protected readonly selectedState = signal('');
+  protected readonly selectedFinalCategory = signal('');
+  protected readonly counsellingStateWarning = computed(() => {
+    const cat = this.selectedFinalCategory();
+    if (!isCounsellingCategory(cat)) return null;
+    return getCounsellingStateWarning(
+      formatAdmissionCategory(cat),
+      this.selectedState(),
+      'student',
+    );
+  });
+  private initialFinalAdmissionCategory = '';
+  private initialState = '';
 
   // Preview signals
   protected readonly previewFirstName = signal('');
@@ -122,6 +158,7 @@ export class StudentFormComponent implements OnInit {
     labBatch: [''],
     status: ['ACTIVE', Validators.required],
     admissionCategory: ['', Validators.required],
+    finalAdmissionCategory: ['', Validators.required],
     dateOfBirth: [''],
     gender: ['', Validators.required],
     nationality: [''],
@@ -168,6 +205,35 @@ export class StudentFormComponent implements OnInit {
         this.previewLabBatch.set((v.labBatch ?? '').trim());
         this.previewStatus.set(v.status || 'ACTIVE');
         this.previewBloodGroup.set(v.bloodGroup || '');
+        this.syncStateAndCategorySignals();
+      });
+
+    this.form.get('admissionCategory')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((enquiryCat: string) => {
+        if (!this.isEditMode()) {
+          const finalCtrl = this.form.get('finalAdmissionCategory');
+          if (finalCtrl && (!finalCtrl.dirty || !finalCtrl.value)) {
+            finalCtrl.setValue(enquiryCat || '', { emitEvent: false });
+          }
+        }
+        this.syncStateAndCategorySignals();
+      });
+
+    this.form.get('yearOfStudy')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((yr) => {
+        if (this.isEditMode() && this.canEditFinalAdmissionCategory()) {
+          const finalCtrl = this.form.get('finalAdmissionCategory');
+          if (!finalCtrl) return;
+          if (Number(yr) === 1) {
+            finalCtrl.enable({ emitEvent: false });
+          } else {
+            finalCtrl.setValue(this.initialFinalAdmissionCategory, { emitEvent: false });
+            finalCtrl.disable({ emitEvent: false });
+          }
+          this.syncStateAndCategorySignals();
+        }
       });
   }
 
@@ -186,6 +252,7 @@ export class StudentFormComponent implements OnInit {
       this.studentId = Number(idParam);
       this.isEditMode.set(true);
       this.pageTitle.set('Edit Student');
+      this.form.get('admissionCategory')?.disable({ emitEvent: false });
       this.loadStudent();
     }
   }
@@ -196,7 +263,7 @@ export class StudentFormComponent implements OnInit {
       return;
     }
 
-    const v = this.form.value;
+    const v = this.form.getRawValue();
     const request: StudentRequest = {
       rollNumber: v.rollNumber.trim(),
       universityRegistrationNumber: v.universityRegistrationNumber?.trim() || undefined,
@@ -211,6 +278,7 @@ export class StudentFormComponent implements OnInit {
       labBatch: v.labBatch?.trim() || undefined,
       status: v.status || undefined,
       admissionCategory: v.admissionCategory || undefined,
+      finalAdmissionCategory: v.finalAdmissionCategory || v.admissionCategory || undefined,
       dateOfBirth: v.dateOfBirth || undefined,
       gender: v.gender || undefined,
       nationality: v.nationality?.trim() || undefined,
@@ -245,6 +313,68 @@ export class StudentFormComponent implements OnInit {
       bankAccountType: v.bankAccountType || undefined,
     };
 
+    if (
+      this.isEditMode()
+      && v.finalAdmissionCategory
+      && v.finalAdmissionCategory !== this.initialFinalAdmissionCategory
+    ) {
+      const dialogData: AdmissionCategoryConfirmDialogData = {
+        studentName: `${v.firstName.trim()} ${v.lastName.trim()}`.trim(),
+        enquiryCategory: v.admissionCategory || this.initialFinalAdmissionCategory,
+        oldFinalCategory: this.initialFinalAdmissionCategory,
+        newFinalCategory: v.finalAdmissionCategory,
+        studentState: v.state?.trim() || null,
+      };
+      const ref = this.dialog.open(AdmissionCategoryConfirmDialogComponent, {
+        data: dialogData,
+        width: '520px',
+        maxWidth: '95vw',
+        disableClose: true,
+      });
+      ref.afterClosed().subscribe((reason: string | null | undefined) => {
+        if (!reason) return;
+        this.saveStudent({
+          ...request,
+          admissionCategoryChangeReason: reason,
+        });
+      });
+      return;
+    }
+
+    const effectiveFinal = v.finalAdmissionCategory || v.admissionCategory || '';
+    const trimmedState = (v.state ?? '').trim();
+    const stateWarning = isCounsellingCategory(effectiveFinal)
+      ? getCounsellingStateWarning(formatAdmissionCategory(effectiveFinal), trimmedState, 'student')
+      : null;
+
+    if (stateWarning && (!this.isEditMode() || trimmedState !== this.initialState)) {
+      const dialogData: CounsellingStateConfirmDialogData = {
+        title: 'Confirm Counselling Category for Non-Tamil Nadu State',
+        personLabel: 'Student',
+        personName: `${v.firstName.trim()} ${v.lastName.trim()}`.trim(),
+        categoryFieldLabel: 'Admission Category (Final)',
+        categoryValueLabel: formatAdmissionCategory(effectiveFinal),
+        stateName: trimmedState || null,
+        warningMessage: stateWarning,
+        confirmText: this.isEditMode() ? 'Confirm & Update Student' : 'Confirm & Create Student',
+      };
+      const ref = this.dialog.open(CounsellingStateConfirmDialogComponent, {
+        data: dialogData,
+        width: '500px',
+        maxWidth: '95vw',
+        disableClose: true,
+      });
+      ref.afterClosed().subscribe((confirmed: boolean | undefined) => {
+        if (!confirmed) return;
+        this.saveStudent(request);
+      });
+      return;
+    }
+
+    this.saveStudent(request);
+  }
+
+  private saveStudent(request: StudentRequest): void {
     this.saving.set(true);
 
     const operation$ = this.isEditMode()
@@ -292,7 +422,8 @@ export class StudentFormComponent implements OnInit {
       yearOfStudy: 'Year of Study',
       admissionDate: 'Admission Date',
       status: 'Status',
-      admissionCategory: 'Admission Category',
+      admissionCategory: 'Admission Category (Enquiry)',
+      finalAdmissionCategory: 'Admission Category (Final)',
       gender: 'Gender',
     };
     return labels[fieldName] || fieldName;
@@ -310,6 +441,13 @@ export class StudentFormComponent implements OnInit {
     this.loading.set(true);
     this.studentService.getById(this.studentId).subscribe({
       next: (student) => {
+        const enquiryCat = student.admissionCategory || '';
+        const finalCat = student.finalAdmissionCategory || enquiryCat;
+        this.initialFinalAdmissionCategory = finalCat;
+        this.initialState = (student.state || '').trim();
+        const canEditFinal = student.canEditFinalAdmissionCategory ?? (student.yearOfStudy === 1);
+        this.canEditFinalAdmissionCategory.set(canEditFinal);
+
         this.form.patchValue({
           rollNumber: student.rollNumber,
           universityRegistrationNumber: student.universityRegistrationNumber || '',
@@ -323,7 +461,8 @@ export class StudentFormComponent implements OnInit {
           admissionDate: student.admissionDate,
           labBatch: student.labBatch || '',
           status: student.status,
-          admissionCategory: student.admissionCategory || '',
+          admissionCategory: enquiryCat,
+          finalAdmissionCategory: finalCat,
           dateOfBirth: student.dateOfBirth || '',
           gender: student.gender || '',
           nationality: student.nationality || '',
@@ -355,6 +494,13 @@ export class StudentFormComponent implements OnInit {
           bankName: student.bankName || '',
           bankAccountType: student.bankAccountType || null,
         });
+        this.form.get('admissionCategory')?.disable({ emitEvent: false });
+        if (canEditFinal && student.yearOfStudy === 1) {
+          this.form.get('finalAdmissionCategory')?.enable({ emitEvent: false });
+        } else {
+          this.form.get('finalAdmissionCategory')?.disable({ emitEvent: false });
+        }
+        this.syncStateAndCategorySignals();
         this.loading.set(false);
       },
       error: () => {
@@ -362,5 +508,11 @@ export class StudentFormComponent implements OnInit {
         void this.router.navigate(['/students'], { queryParams: this.backQueryParams });
       },
     });
+  }
+
+  private syncStateAndCategorySignals(): void {
+    const raw = this.form.getRawValue();
+    this.selectedState.set((raw.state ?? '').trim());
+    this.selectedFinalCategory.set(raw.finalAdmissionCategory || raw.admissionCategory || '');
   }
 }

@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
@@ -20,6 +21,14 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_FORM_TOUR, ENQUIRY_FORM_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
 import { CmsCountryStateDistrictSelectorComponent } from '../../../shared/country-state-district-selector/country-state-district-selector.component';
+import {
+  CounsellingStateConfirmDialogComponent,
+  CounsellingStateConfirmDialogData,
+} from '../../../shared/counselling-state-confirm-dialog/counselling-state-confirm-dialog.component';
+import {
+  getCounsellingStateWarning,
+  isCounsellingCategory,
+} from '../../../shared/utils/counselling-state.util';
 import { trimmedMinLength } from '../../../shared/validators/cms-validators';
 import { RoomPreferencePickerComponent } from '../../hostel/room-preference/room-preference-picker/room-preference-picker.component';
 import { of } from 'rxjs';
@@ -92,7 +101,7 @@ const MIN_AUTOCOMPLETE_CHARS = 2;
   standalone: true,
   imports: [
     InrPipe,
-    RouterLink, ReactiveFormsModule, MatButtonModule, MatIconModule,
+    RouterLink, ReactiveFormsModule, MatButtonModule, MatDialogModule, MatIconModule,
     MatProgressSpinnerModule,
     CmsTourButtonComponent,
     CmsCountryStateDistrictSelectorComponent,
@@ -115,10 +124,18 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly toast = inject(ToastService);
   private readonly tourService = inject(TourService);
+  private readonly dialog = inject(MatDialog);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly isEditMode = signal(false);
   protected readonly lockedTier = signal<'none' | 'fee' | 'identity'>('none');
+  protected readonly selectedState = signal('');
+  protected readonly selectedQuota = signal('MANAGEMENT');
+  protected readonly counsellingStateWarning = computed(() =>
+    isCounsellingCategory(this.selectedQuota())
+      ? getCounsellingStateWarning('Counselling Quota', this.selectedState(), 'enquiry')
+      : null,
+  );
 
   // ── Stepper ──────────────────────────────────────────────────────────────
   protected readonly enqSteps       = ENQ_STEPS;
@@ -338,8 +355,14 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
     this.scrollListener = onScroll;
     this.scrollContainer?.addEventListener('scroll', onScroll, { passive: true });
 
-    // Re-compute fee whenever the address state changes
-    this.form.get('state')?.valueChanges.subscribe(() => this.tryLoadFeeGuideline());
+    // Re-compute fee and state advisory whenever the address state or quota changes
+    this.form.get('state')?.valueChanges.subscribe((state: string | null) => {
+      this.selectedState.set(state ?? '');
+      this.tryLoadFeeGuideline();
+    });
+    this.form.get('admissionQuota')?.valueChanges.subscribe((quota: string | null) => {
+      this.selectedQuota.set(quota ?? '');
+    });
 
     this.form.get('enquiryDate')?.valueChanges.subscribe(() => this.recomputeAgeRestrictionError());
 
@@ -403,6 +426,8 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
             dateOfBirth: item.dateOfBirth ?? '',
             gender: item.gender ?? 'FEMALE',
           });
+          this.selectedState.set(item.state ?? '');
+          this.selectedQuota.set(item.admissionQuota ?? 'MANAGEMENT');
           // Pre-populate person search term for display
           if (item.referredStudentName) {
             this.personSearchTerm.set(item.referredStudentName);
@@ -792,13 +817,46 @@ export class EnquiryFormComponent implements OnInit, OnDestroy {
       admissionQuota: v.admissionQuota || undefined,
       feeStateId: this.resolveFeeStateId() ?? undefined,
     };
+
+    const raw = this.form.getRawValue();
+    const warning = isCounsellingCategory(raw.admissionQuota)
+      ? getCounsellingStateWarning('Counselling Quota', raw.state, 'enquiry')
+      : null;
+    if (warning && this.lockedTier() === 'none') {
+      const dialogData: CounsellingStateConfirmDialogData = {
+        title: 'Confirm Counselling Quota for Non-Tamil Nadu State',
+        personLabel: 'Candidate',
+        personName: (raw.name ?? '').trim(),
+        categoryFieldLabel: 'Admission Quota',
+        categoryValueLabel: 'Counselling Quota',
+        stateName: raw.state?.trim() || null,
+        warningMessage: warning,
+        confirmText: this.isEditMode() ? 'Confirm & Update Enquiry' : 'Confirm & Save Enquiry',
+      };
+      const ref = this.dialog.open(CounsellingStateConfirmDialogComponent, {
+        data: dialogData,
+        width: '500px',
+        maxWidth: '95vw',
+        disableClose: true,
+      });
+      ref.afterClosed().subscribe((confirmed: boolean | undefined) => {
+        if (!confirmed) return;
+        this.persistEnquiry(request, v.studentType);
+      });
+      return;
+    }
+
+    this.persistEnquiry(request, v.studentType);
+  }
+
+  private persistEnquiry(request: EnquiryRequest, studentType: string | undefined): void {
     this.saving.set(true);
     const op$ = this.isEditMode()
       ? this.enquiryService.updateEnquiry(this.itemId!, request)
       : this.enquiryService.createEnquiry(request);
     op$.subscribe({
       next: (savedEnquiry) => {
-        const preference$ = (v.studentType === 'HOSTELER' && this.preferencePicker)
+        const preference$ = (studentType === 'HOSTELER' && this.preferencePicker)
           ? this.preferencePicker.persist(savedEnquiry.id)
           : of(null);
         preference$.subscribe({
