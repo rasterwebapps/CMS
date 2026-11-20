@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.cms.repository.StudentSpecification;
 
 import com.cms.dto.AddressRequest;
+import com.cms.dto.AdmissionCategoryHistoryRecord;
 import com.cms.dto.BoardingStatusSwitchAnalysis;
 import com.cms.dto.BoardingStatusSwitchRecord;
 import com.cms.dto.BoardingStatusSwitchRequest;
@@ -43,11 +44,13 @@ import com.cms.model.EnquiryDocument;
 import com.cms.model.EnquiryDocumentHistory;
 import com.cms.model.Program;
 import com.cms.model.Student;
+import com.cms.model.StudentAdmissionCategoryHistory;
 import com.cms.model.StudentBoardingStatusSwitch;
 import com.cms.model.StudentProgramTransfer;
 import com.cms.model.StudentTermEnrollment;
 import com.cms.model.TermBillingSchedule;
 import com.cms.model.FeeDemand;
+import com.cms.model.enums.AdmissionCategory;
 import com.cms.model.enums.DemandStatus;
 import com.cms.model.enums.DocumentType;
 import com.cms.model.enums.DocumentVerificationStatus;
@@ -64,6 +67,7 @@ import com.cms.repository.FeeDemandRepository;
 import com.cms.repository.ProgramRepository;
 import com.cms.repository.LibraryIssueRepository;
 import com.cms.repository.RoomAllocationRepository;
+import com.cms.repository.StudentAdmissionCategoryHistoryRepository;
 import com.cms.repository.StudentBoardingStatusSwitchRepository;
 import com.cms.repository.StudentProgramTransferRepository;
 import com.cms.repository.StudentRepository;
@@ -94,6 +98,8 @@ public class StudentService {
     private final StudentTermEnrollmentRepository studentTermEnrollmentRepository;
     private final TermBillingScheduleRepository termBillingScheduleRepository;
     private final FeeFinalizationService feeFinalizationService;
+    private final StudentAdmissionCategoryHistoryRepository admissionCategoryHistoryRepository;
+    private final AuditLogService auditLogService;
 
     private static final List<IssueStatus> ACTIVE_ISSUE_STATUSES =
         List.of(IssueStatus.ISSUED, IssueStatus.OVERDUE);
@@ -112,7 +118,9 @@ public class StudentService {
                           FeeDemandService feeDemandService,
                           StudentTermEnrollmentRepository studentTermEnrollmentRepository,
                           TermBillingScheduleRepository termBillingScheduleRepository,
-                          FeeFinalizationService feeFinalizationService) {
+                          FeeFinalizationService feeFinalizationService,
+                          StudentAdmissionCategoryHistoryRepository admissionCategoryHistoryRepository,
+                          AuditLogService auditLogService) {
         this.studentRepository = studentRepository;
         this.programRepository = programRepository;
         this.courseRepository = courseRepository;
@@ -130,6 +138,8 @@ public class StudentService {
         this.studentTermEnrollmentRepository = studentTermEnrollmentRepository;
         this.termBillingScheduleRepository = termBillingScheduleRepository;
         this.feeFinalizationService = feeFinalizationService;
+        this.admissionCategoryHistoryRepository = admissionCategoryHistoryRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
@@ -167,7 +177,13 @@ public class StudentService {
         }
 
         student.setLabBatch(request.labBatch());
+        validateEnquiryAdmissionCategory(request.admissionCategory());
         student.setAdmissionCategory(request.admissionCategory());
+        student.setFinalAdmissionCategory(
+            request.finalAdmissionCategory() != null
+                ? request.finalAdmissionCategory()
+                : request.admissionCategory()
+        );
 
         // Personal information
         student.setDateOfBirth(request.dateOfBirth());
@@ -273,7 +289,7 @@ public class StudentService {
     private Page<StudentResponse> fetchPage(Specification<Student> spec, Pageable pageable) {
         // Step 1: Lightweight ID + count query via spec
         Page<Student> idPage = studentRepository.findAll(spec, pageable);
-        if (idPage.isEmpty()) return idPage.map(s -> toResponseWithExtras(s, null, null, null));
+        if (idPage.isEmpty()) return idPage.map(s -> toResponseWithExtras(s, null, null, null, false));
 
         // Step 2: Fetch full entity graph for this page's IDs
         List<Long> ids = idPage.getContent().stream().map(Student::getId).toList();
@@ -286,6 +302,8 @@ public class StudentService {
         Map<Long, String> feeStatusMap = computeFeeStatusMap(studentIds);
         Map<Long, Admission> admissionMap = admissionRepository.findByStudentIdInFetchJoiningYear(studentIds)
             .stream().collect(Collectors.toMap(a -> a.getStudent().getId(), a -> a, (a, b) -> a));
+        Set<Long> rawTermGtOne = studentTermEnrollmentRepository.findStudentIdsWithTermGreaterThanOne(studentIds);
+        Set<Long> termGtOneIds = rawTermGtOne != null ? rawTermGtOne : Set.of();
 
         List<StudentResponse> content = orderedPage.stream()
             .map(s -> {
@@ -295,7 +313,10 @@ public class StudentService {
                     ? adm.getJoiningAcademicYear().getId() : null;
                 String fallbackAyName = (adm != null && adm.getJoiningAcademicYear() != null)
                     ? adm.getJoiningAcademicYear().getName() : null;
-                return toResponseWithExtras(s, fs, fallbackAyId, fallbackAyName);
+                boolean canEditFinal = s.getYearOfStudy() != null
+                    && s.getYearOfStudy() == 1
+                    && !termGtOneIds.contains(s.getId());
+                return toResponseWithExtras(s, fs, fallbackAyId, fallbackAyName, canEditFinal);
             })
             .toList();
 
@@ -310,6 +331,8 @@ public class StudentService {
         // Bulk-fetch admissions so we can derive academic year for students without a cohort
         Map<Long, Admission> admissionByStudent = admissionRepository.findByStudentIdInFetchJoiningYear(ids)
             .stream().collect(Collectors.toMap(a -> a.getStudent().getId(), a -> a, (a, b) -> a));
+        Set<Long> rawTermGtOne = studentTermEnrollmentRepository.findStudentIdsWithTermGreaterThanOne(ids);
+        Set<Long> termGtOneIds = rawTermGtOne != null ? rawTermGtOne : Set.of();
         return students.stream()
             .map(s -> {
                 String fs = feeStatusByStudent.getOrDefault(s.getId(), "NOT_ASSIGNED");
@@ -318,7 +341,10 @@ public class StudentService {
                     ? adm.getJoiningAcademicYear().getId() : null;
                 String fallbackAyName = (adm != null && adm.getJoiningAcademicYear() != null)
                     ? adm.getJoiningAcademicYear().getName() : null;
-                return toResponseWithExtras(s, fs, fallbackAyId, fallbackAyName);
+                boolean canEditFinal = s.getYearOfStudy() != null
+                    && s.getYearOfStudy() == 1
+                    && !termGtOneIds.contains(s.getId());
+                return toResponseWithExtras(s, fs, fallbackAyId, fallbackAyName, canEditFinal);
             })
             .toList();
     }
@@ -416,10 +442,56 @@ public class StudentService {
             student.setSpeciality(null);
         }
 
+        // Admission Category (Enquiry) is locked once recorded on the student.
+        if (student.getAdmissionCategory() != null) {
+            if (request.admissionCategory() != null
+                && request.admissionCategory() != student.getAdmissionCategory()) {
+                throw new IllegalStateException(
+                    "Admission Category (Enquiry) cannot be modified after student creation.");
+            }
+        } else if (request.admissionCategory() != null) {
+            validateEnquiryAdmissionCategory(request.admissionCategory());
+            student.setAdmissionCategory(request.admissionCategory());
+        }
+
+        // Admission Category (Final): strictly editable only for 1st-term / 1st-semester students,
+        // and requires a mandatory reason + audit trail whenever changed.
+        AdmissionCategory oldFinal = student.getFinalAdmissionCategory() != null
+            ? student.getFinalAdmissionCategory()
+            : student.getAdmissionCategory();
+        AdmissionCategory newFinal = request.finalAdmissionCategory() != null
+            ? request.finalAdmissionCategory()
+            : oldFinal;
+        StudentAdmissionCategoryHistory pendingCategoryHistory = null;
+
+        if (oldFinal != newFinal) {
+            if (oldFinal == null && newFinal == student.getAdmissionCategory()) {
+                student.setFinalAdmissionCategory(newFinal);
+            } else {
+                if (!isFirstTermStudent(student)
+                    || (request.yearOfStudy() != null && request.yearOfStudy() != 1)) {
+                    throw new IllegalStateException(
+                        "Admission Category (Final) can only be modified for 1st term / 1st semester students.");
+                }
+                if (request.admissionCategoryChangeReason() == null
+                    || request.admissionCategoryChangeReason().isBlank()) {
+                    throw new IllegalArgumentException(
+                        "Reason is required when changing Admission Category (Final).");
+                }
+                String trimmedReason = request.admissionCategoryChangeReason().trim();
+                AdmissionCategory recordedOld = oldFinal != null
+                    ? oldFinal
+                    : (student.getAdmissionCategory() != null ? student.getAdmissionCategory() : newFinal);
+                student.setFinalAdmissionCategory(newFinal);
+                pendingCategoryHistory = buildCategoryHistory(student, recordedOld, newFinal, trimmedReason);
+            }
+        } else if (student.getFinalAdmissionCategory() == null && oldFinal != null) {
+            student.setFinalAdmissionCategory(oldFinal);
+        }
+
         student.setSemester(request.yearOfStudy());
         student.setAdmissionDate(request.admissionDate());
         student.setLabBatch(request.labBatch());
-        student.setAdmissionCategory(request.admissionCategory());
 
         if (request.status() != null) {
             StudentStatus newStatus = request.status();
@@ -473,6 +545,24 @@ public class StudentService {
         student.setBankAccountType(request.bankAccountType());
 
         Student updated = studentRepository.save(student);
+        if (pendingCategoryHistory != null) {
+            pendingCategoryHistory.setStudent(updated);
+            admissionCategoryHistoryRepository.save(pendingCategoryHistory);
+            String actor = pendingCategoryHistory.getChangedBy() != null
+                ? pendingCategoryHistory.getChangedBy()
+                : "system";
+            auditLogService.record(
+                actor,
+                "STUDENT_ADMISSION_CATEGORY_UPDATED",
+                "Student",
+                String.valueOf(updated.getId()),
+                "Admission Category (Final) changed from " + pendingCategoryHistory.getOldCategory()
+                    + " to " + pendingCategoryHistory.getNewCategory()
+                    + " for " + updated.getFullName()
+                    + ". Reason: " + pendingCategoryHistory.getReason()
+                    + buildCounsellingStateAuditNote(updated, pendingCategoryHistory.getNewCategory())
+            );
+        }
         return toResponse(updated);
     }
 
@@ -541,14 +631,12 @@ public class StudentService {
     }
 
     private StudentResponse toResponse(Student student) {
-        return toResponseWithExtras(student, null, null, null);
+        return toResponseWithExtras(student, null, null, null, isFirstTermStudent(student));
     }
 
-    private StudentResponse toResponseWithExtras(Student student, String feeStatus) {
-        return toResponseWithExtras(student, feeStatus, null, null);
-    }
-
-    private StudentResponse toResponseWithExtras(Student student, String feeStatus, Long fallbackAyId, String fallbackAyName) {
+    private StudentResponse toResponseWithExtras(Student student, String feeStatus,
+                                                  Long fallbackAyId, String fallbackAyName,
+                                                  boolean canEditFinalAdmissionCategory) {
         Address address = student.getAddress();
         Long ayId;
         String ayName;
@@ -559,6 +647,9 @@ public class StudentService {
             ayId   = fallbackAyId;
             ayName = fallbackAyName;
         }
+        AdmissionCategory effectiveFinalCategory = student.getFinalAdmissionCategory() != null
+            ? student.getFinalAdmissionCategory()
+            : student.getAdmissionCategory();
         return new StudentResponse(
             student.getId(),
             student.getRollNumber(),
@@ -581,6 +672,8 @@ public class StudentService {
             student.getLabBatch(),
             student.getStatus(),
             student.getAdmissionCategory(),
+            effectiveFinalCategory,
+            canEditFinalAdmissionCategory,
             student.getStudentType(),
             student.getDateOfBirth(),
             student.getGender(),
@@ -895,6 +988,74 @@ public class StudentService {
                 h.getDemandsAdjusted(), h.getFeeDelta()
             ))
             .toList();
+    }
+
+    public List<AdmissionCategoryHistoryRecord> getAdmissionCategoryHistory(Long studentId) {
+        if (!studentRepository.existsById(studentId)) {
+            throw new ResourceNotFoundException("Student not found: " + studentId);
+        }
+        return admissionCategoryHistoryRepository.findByStudentIdOrderByChangedAtDesc(studentId).stream()
+            .map(h -> new AdmissionCategoryHistoryRecord(
+                h.getId(),
+                studentId,
+                h.getStudent().getFullName(),
+                h.getOldCategory(),
+                h.getNewCategory(),
+                h.getReason(),
+                h.getChangedBy(),
+                h.getChangedAt()
+            ))
+            .toList();
+    }
+
+    private void validateEnquiryAdmissionCategory(AdmissionCategory category) {
+        if (category != null
+            && category != AdmissionCategory.MANAGEMENT
+            && category != AdmissionCategory.COUNSELLING) {
+            throw new IllegalArgumentException(
+                "Admission Category (Enquiry) must be MANAGEMENT or COUNSELLING.");
+        }
+    }
+
+    private boolean isFirstTermStudent(Student student) {
+        if (student.getYearOfStudy() == null || student.getYearOfStudy() != 1) {
+            return false;
+        }
+        if (student.getId() == null) {
+            return true;
+        }
+        return !studentTermEnrollmentRepository
+            .existsByStudentIdAndSemesterNumberGreaterThan(student.getId(), 1);
+    }
+
+    private StudentAdmissionCategoryHistory buildCategoryHistory(Student student,
+                                                                 AdmissionCategory oldCategory,
+                                                                 AdmissionCategory newCategory,
+                                                                 String reason) {
+        StudentAdmissionCategoryHistory history = new StudentAdmissionCategoryHistory();
+        history.setStudent(student);
+        history.setOldCategory(oldCategory);
+        history.setNewCategory(newCategory);
+        history.setReason(reason);
+        history.setChangedBy(currentUserResolver.resolve());
+        history.setChangedAt(Instant.now());
+        return history;
+    }
+
+    private String buildCounsellingStateAuditNote(Student student, AdmissionCategory newCategory) {
+        if (newCategory != AdmissionCategory.COUNSELLING
+            && newCategory != AdmissionCategory.MANAGEMENT_TO_COUNSELLING) {
+            return "";
+        }
+        String rawState = student.getAddress() != null ? student.getAddress().getState() : null;
+        if (rawState != null) {
+            String normalized = rawState.trim().replaceAll("\\s+", " ").toLowerCase();
+            if ("tamil nadu".equals(normalized) || "tamilnadu".equals(normalized)) {
+                return "";
+            }
+        }
+        String label = (rawState != null && !rawState.isBlank()) ? rawState.trim() : "Not specified";
+        return " [State Advisory: student state is '" + label + "' (non-Tamil Nadu)]";
     }
 
     private ProgramTransferDocumentInfo toDocInfo(EnquiryDocument doc) {

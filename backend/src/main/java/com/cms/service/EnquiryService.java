@@ -726,7 +726,9 @@ public class EnquiryService {
         student.setBloodGroup(request.bloodGroup());
         student.setPhysicalDisability(Boolean.TRUE.equals(request.physicalDisability()));
         if (enquiry.getAdmissionQuota() != null) {
-            student.setAdmissionCategory(AdmissionCategory.valueOf(enquiry.getAdmissionQuota().name()));
+            AdmissionCategory category = AdmissionCategory.valueOf(enquiry.getAdmissionQuota().name());
+            student.setAdmissionCategory(category);
+            student.setFinalAdmissionCategory(category);
         }
         student.setStudentType(enquiry.getStudentType());
 

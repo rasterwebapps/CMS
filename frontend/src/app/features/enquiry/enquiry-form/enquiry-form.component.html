@@ -185,9 +185,18 @@
                   [parentForm]="form"
                   [countryRequired]="true"
                   [stateRequired]="true"
-                  defaultStateName="Tamil Nadu"
-                  defaultDistrictName="Salem"
+                  [defaultStateName]="isEditMode() ? '' : 'Tamil Nadu'"
+                  [defaultDistrictName]="isEditMode() ? '' : 'Salem'"
                 />
+                @if (counsellingStateWarning()) {
+                  <div class="state-advisory-banner" role="alert">
+                    <mat-icon>warning_amber</mat-icon>
+                    <div>
+                      <strong>State Eligibility Advisory:</strong>
+                      {{ counsellingStateWarning() }}
+                    </div>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -282,6 +291,16 @@
                     </div>
                   </div>
                 </div>
+
+                @if (counsellingStateWarning()) {
+                  <div class="state-advisory-banner" role="alert">
+                    <mat-icon>warning_amber</mat-icon>
+                    <div>
+                      <strong>State Eligibility Advisory:</strong>
+                      {{ counsellingStateWarning() }}
+                    </div>
+                  </div>
+                }
 
                 @if (form.get('studentType')?.value === 'HOSTELER') {
                   <app-room-preference-picker [enquiryId]="itemId" [gender]="form.get('gender')?.value ?? null"></app-room-preference-picker>

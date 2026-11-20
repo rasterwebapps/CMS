@@ -442,6 +442,28 @@ class StudentControllerTest {
         verify(studentService).getBoardingStatusSwitchHistory(1L);
     }
 
+    @Test
+    void shouldGetAdmissionCategoryHistory() throws Exception {
+        com.cms.dto.AdmissionCategoryHistoryRecord record = new com.cms.dto.AdmissionCategoryHistoryRecord(
+            1L, 397L, "AGALYA R",
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT,
+            com.cms.model.enums.AdmissionCategory.MANAGEMENT_TO_COUNSELLING,
+            "Allotted through Govt Counselling Round 2",
+            "admissions.admin",
+            Instant.now()
+        );
+        when(studentService.getAdmissionCategoryHistory(397L)).thenReturn(List.of(record));
+
+        mockMvc.perform(get("/students/397/admission-category-history"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].oldCategory").value("MANAGEMENT"))
+            .andExpect(jsonPath("$[0].newCategory").value("MANAGEMENT_TO_COUNSELLING"))
+            .andExpect(jsonPath("$[0].reason").value("Allotted through Govt Counselling Round 2"));
+
+        verify(studentService).getAdmissionCategoryHistory(397L);
+    }
+
     private StudentResponse createStudentResponse(Long id, String rollNumber, String firstName, String lastName) {
         Instant now = Instant.now();
         return new StudentResponse(

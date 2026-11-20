@@ -1,0 +1,34 @@
+<h2 mat-dialog-title>{{ data.title }}</h2>
+<mat-dialog-content>
+  <div class="dialog-body">
+    <div class="warning-banner" role="alert">
+      <mat-icon>warning_amber</mat-icon>
+      <div>
+        <strong>State Eligibility Advisory</strong>
+        <p>{{ data.warningMessage }}</p>
+      </div>
+    </div>
+
+    <div class="confirm-summary">
+      <div class="confirm-summary__row">
+        <span class="confirm-summary__label">{{ data.personLabel }}</span>
+        <strong>{{ data.personName || '—' }}</strong>
+      </div>
+      <div class="confirm-summary__row">
+        <span class="confirm-summary__label">{{ data.categoryFieldLabel }}</span>
+        <span class="summary-chip summary-chip--primary">{{ data.categoryValueLabel }}</span>
+      </div>
+      <div class="confirm-summary__row">
+        <span class="confirm-summary__label">Residential State</span>
+        <span class="summary-chip summary-chip--warn">{{ data.stateName || 'Not specified' }}</span>
+      </div>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" (click)="onCancel()">Cancel</button>
+  <button mat-flat-button color="warn" type="button" (click)="onConfirm()">
+    {{ data.confirmText || 'Confirm & Proceed' }}
+  </button>
+</mat-dialog-actions>

@@ -1,5 +1,6 @@
 package com.cms.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -17,6 +18,11 @@ public interface StudentTermEnrollmentRepository extends JpaRepository<StudentTe
     List<StudentTermEnrollment> findByTermInstanceId(Long termInstanceId);
     List<StudentTermEnrollment> findByTermInstanceIdAndStatus(Long termInstanceId, EnrollmentStatus status);
     List<StudentTermEnrollment> findByStudentId(Long studentId);
+    boolean existsByStudentIdAndSemesterNumberGreaterThan(Long studentId, Integer semesterNumber);
+
+    @Query("select distinct e.student.id from StudentTermEnrollment e "
+        + "where e.student.id in :studentIds and e.semesterNumber > 1")
+    Set<Long> findStudentIdsWithTermGreaterThanOne(@Param("studentIds") Collection<Long> studentIds);
 
     /** A student can legitimately hold more than one ENROLLED row at once -- an earlier term's
      *  enrollment is only marked COMPLETED when an actual promotion decision runs, so it can

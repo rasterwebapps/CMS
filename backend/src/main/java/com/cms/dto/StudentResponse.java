@@ -31,6 +31,8 @@ public record StudentResponse(
     String labBatch,
     StudentStatus status,
     AdmissionCategory admissionCategory,
+    AdmissionCategory finalAdmissionCategory,
+    Boolean canEditFinalAdmissionCategory,
     StudentType studentType,
 
     // Personal information
@@ -101,7 +103,7 @@ public record StudentResponse(
                            Instant createdAt, Instant updatedAt) {
         this(id, rollNumber, null, null, null, firstName, lastName, fullName, email, phone, programId, programName,
             courseId, courseName, specialityId, specialityName, yearOfStudy,
-            admissionDate, labBatch, status, null, null, dateOfBirth, gender, nationality, religion, communityCategory,
+            admissionDate, labBatch, status, null, null, null, null, dateOfBirth, gender, nationality, religion, communityCategory,
             caste, bloodGroup, false, fatherName, fatherPhone, fatherEmail, motherName, motherPhone, motherEmail,
             parentMobile, false, null, null, countryId, postalAddress, street, city, district, state, pincode,
             null, null, null, null, null, null,

@@ -154,6 +154,33 @@
                 <span class="detail-label">Lab Batch</span>
                 <span class="detail-value">{{ student()!.labBatch || '—' }}</span>
               </div>
+              <div class="detail-item">
+                <span class="detail-label">Admission Category (Enquiry)</span>
+                <span class="detail-value">
+                  @if (student()!.admissionCategory) {
+                    <cms-type-badge
+                      [value]="student()!.admissionCategory"
+                      [label]="formatAdmissionCategory(student()!.admissionCategory)"
+                    />
+                  } @else {
+                    —
+                  }
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Admission Category (Final)</span>
+                <span class="detail-value">
+                  @let finalCat = student()!.finalAdmissionCategory || student()!.admissionCategory;
+                  @if (finalCat) {
+                    <cms-type-badge
+                      [value]="finalCat"
+                      [label]="formatAdmissionCategory(finalCat)"
+                    />
+                  } @else {
+                    —
+                  }
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -727,6 +754,33 @@
                     }
                     @if (record.remarks) {
                       <span class="transfer-notes">{{ record.remarks }}</span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </mat-tab>
+      }
+
+      @if (admissionCategoryHistory().length > 0) {
+        <mat-tab label="Admission Category History">
+          <div class="tab-content">
+            <div class="transfer-history">
+              @for (record of admissionCategoryHistory(); track record.id) {
+                <div class="transfer-card">
+                  <div class="transfer-card__arrow">
+                    <span class="t-program">{{ formatAdmissionCategory(record.oldCategory) }}</span>
+                    <mat-icon>arrow_forward</mat-icon>
+                    <span class="t-program t-program--new">{{ formatAdmissionCategory(record.newCategory) }}</span>
+                  </div>
+                  <div class="transfer-card__meta">
+                    <span>{{ record.changedAt | appDate }}</span>
+                    @if (record.changedBy) {
+                      <span>by {{ record.changedBy }}</span>
+                    }
+                    @if (record.reason) {
+                      <span class="transfer-notes">{{ record.reason }}</span>
                     }
                   </div>
                 </div>

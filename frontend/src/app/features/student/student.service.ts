@@ -3,6 +3,7 @@ import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments';
 import {
+  AdmissionCategoryHistoryRecord,
   BoardingStatusSwitchAnalysis,
   BoardingStatusSwitchRecord,
   BoardingStatusSwitchRequest,
@@ -151,6 +152,10 @@ export class StudentService {
 
   getBoardingStatusSwitchHistory(studentId: number): Observable<BoardingStatusSwitchRecord[]> {
     return this.http.get<BoardingStatusSwitchRecord[]>(`${this.baseUrl}/${studentId}/boarding-status-switches`);
+  }
+
+  getAdmissionCategoryHistory(studentId: number): Observable<AdmissionCategoryHistoryRecord[]> {
+    return this.http.get<AdmissionCategoryHistoryRecord[]>(`${this.baseUrl}/${studentId}/admission-category-history`);
   }
 
   exportStudents(

@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { forkJoin, EMPTY } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatIconModule } from '@angular/material/icon';
@@ -23,6 +24,14 @@ import { TourService } from '../../../shared/tour/tour.service';
 import { ENQUIRY_CONVERT_TOUR, ENQUIRY_CONVERT_FLOW_MAP } from '../../../shared/tour/tours/enquiry.tours';
 import { computeInitials } from '../../../shared/utils/initials';
 import { scrollToFirstInvalid } from '../../../shared/utils/scroll-to-invalid';
+import {
+  CounsellingStateConfirmDialogComponent,
+  CounsellingStateConfirmDialogData,
+} from '../../../shared/counselling-state-confirm-dialog/counselling-state-confirm-dialog.component';
+import {
+  getCounsellingStateWarning,
+  isCounsellingCategory,
+} from '../../../shared/utils/counselling-state.util';
 import { IndiaLocationService } from '../../india-location/india-location.service';
 import { Country, IndiaState, IndiaDistrict } from '../../india-location/india-location.model';
 import { AdmissionService } from '../../admission/admission.service';
@@ -77,6 +86,7 @@ const CONV_STEP_FIELDS: Record<number, string[]> = {
   imports: [
     RouterLink,
     ReactiveFormsModule,
+    MatDialogModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatIconModule,
@@ -95,6 +105,7 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
   private readonly admissionService  = inject(AdmissionService);
   private readonly toast             = inject(ToastService);
   private readonly tourService       = inject(TourService);
+  private readonly dialog            = inject(MatDialog);
 
   protected readonly computeInitials = computeInitials;
 
@@ -226,6 +237,14 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
   protected readonly seatWarning           = signal<string | null>(null);
   protected readonly seatWarningSoft       = signal(false);
 
+  protected readonly counsellingStateWarning = computed(() => {
+    this.formVersion();
+    const quota = this.enquiry()?.admissionQuota;
+    if (!isCounsellingCategory(quota)) return null;
+    const state = this.form.get('address.state')?.value as string | null;
+    return getCounsellingStateWarning('Counselling Quota', state, 'convert');
+  });
+
   private readonly collegeLogo      = signal<string | null>(null);
   private readonly collegeName      = signal<string | null>(null);
   private readonly collegeTrustLine = signal<string | null>(null);
@@ -354,7 +373,7 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
       const stateCtrl = this.form.get('address.state')!;
       if (stateCtrl.value) {
         this.loadAddrDistrictsForStateName(stateCtrl.value as string);
-      } else {
+      } else if (!this.prefill()) {
         const match = states.find(s => s.name.toLowerCase() === 'tamil nadu');
         if (match) stateCtrl.setValue(match.name, { emitEvent: true });
       }
@@ -583,6 +602,41 @@ export class EnquiryConvertComponent implements OnInit, AfterViewInit, OnDestroy
 
     const id = this.enquiry()?.id;
     if (!id) return;
+
+    const addrState = (this.form.get('address.state')?.value as string | null)?.trim() || null;
+    const warning = isCounsellingCategory(this.enquiry()?.admissionQuota)
+      ? getCounsellingStateWarning('Counselling Quota', addrState, 'convert')
+      : null;
+    if (warning) {
+      const firstName = ((this.form.get('firstName')?.value as string) ?? '').trim();
+      const lastName = ((this.form.get('lastName')?.value as string) ?? '').trim();
+      const dialogData: CounsellingStateConfirmDialogData = {
+        title: 'Confirm Admission for Non-Tamil Nadu Counselling Candidate',
+        personLabel: 'Student',
+        personName: `${firstName} ${lastName}`.trim() || (this.enquiry()?.name ?? ''),
+        categoryFieldLabel: 'Admission Quota',
+        categoryValueLabel: 'Counselling Quota',
+        stateName: addrState,
+        warningMessage: warning,
+        confirmText: 'Confirm & Create Admission',
+      };
+      const ref = this.dialog.open(CounsellingStateConfirmDialogComponent, {
+        data: dialogData,
+        width: '500px',
+        maxWidth: '95vw',
+        disableClose: true,
+      });
+      ref.afterClosed().subscribe((confirmed: boolean | undefined) => {
+        if (!confirmed) return;
+        this.executeConversion(id);
+      });
+      return;
+    }
+
+    this.executeConversion(id);
+  }
+
+  private executeConversion(id: number): void {
     this.saving.set(true);
 
     this.enquiryService.convertEnquiry(id, this.buildRequest()).subscribe({

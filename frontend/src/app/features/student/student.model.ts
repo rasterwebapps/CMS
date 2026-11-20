@@ -112,6 +112,8 @@ export interface Student {
   labBatch?: string;
   status: string;
   admissionCategory?: string;
+  finalAdmissionCategory?: string;
+  canEditFinalAdmissionCategory?: boolean;
   studentType?: StudentTypeValue;
   dateOfBirth?: string;
   gender?: string;
@@ -230,6 +232,8 @@ export interface StudentRequest {
   labBatch?: string;
   status?: string;
   admissionCategory?: string;
+  finalAdmissionCategory?: string;
+  admissionCategoryChangeReason?: string;
   dateOfBirth?: string;
   gender?: string;
   nationality?: string;
@@ -272,6 +276,47 @@ export const STUDENT_BANK_ACCOUNT_TYPE_OPTIONS: { value: BankAccountType; label:
   { value: 'CURRENT', label: 'Current' },
   { value: 'SALARY', label: 'Salary' },
 ];
+
+export type AdmissionCategoryValue =
+  | 'MANAGEMENT'
+  | 'COUNSELLING'
+  | 'LAPSED'
+  | 'MANAGEMENT_TO_COUNSELLING';
+
+export const ENQUIRY_ADMISSION_CATEGORY_OPTIONS: { value: AdmissionCategoryValue; label: string }[] = [
+  { value: 'MANAGEMENT', label: 'Management' },
+  { value: 'COUNSELLING', label: 'Counselling' },
+];
+
+export const FINAL_ADMISSION_CATEGORY_OPTIONS: { value: AdmissionCategoryValue; label: string }[] = [
+  { value: 'MANAGEMENT', label: 'Management' },
+  { value: 'COUNSELLING', label: 'Counselling' },
+  { value: 'LAPSED', label: 'Lapsed' },
+  { value: 'MANAGEMENT_TO_COUNSELLING', label: 'Management to Counselling' },
+];
+
+export const ADMISSION_CATEGORY_LABELS: Record<string, string> = {
+  MANAGEMENT: 'Management',
+  COUNSELLING: 'Counselling',
+  LAPSED: 'Lapsed',
+  MANAGEMENT_TO_COUNSELLING: 'Management to Counselling',
+};
+
+export function formatAdmissionCategory(value?: string | null): string {
+  if (!value) return '—';
+  return ADMISSION_CATEGORY_LABELS[value] ?? value;
+}
+
+export interface AdmissionCategoryHistoryRecord {
+  id: number;
+  studentId: number;
+  studentName: string;
+  oldCategory: AdmissionCategoryValue;
+  newCategory: AdmissionCategoryValue;
+  reason: string;
+  changedBy: string | null;
+  changedAt: string;
+}
 
 export interface Page<T> {
   content: T[];

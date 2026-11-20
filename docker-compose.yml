@@ -19,6 +19,7 @@ services:
     image: quay.io/keycloak/keycloak:26.0
     container_name: cms-keycloak
     environment:
+      JAVA_OPTS_APPEND: "-XX:-UseBASE64Intrinsics"
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
       KC_HTTP_PORT: 8280
@@ -73,6 +74,7 @@ services:
     build: ./backend
     container_name: cms-backend
     environment:
+      JAVA_TOOL_OPTIONS: "-XX:-UseBASE64Intrinsics"
       SPRING_PROFILES_ACTIVE: 243
       DB_URL: jdbc:postgresql://postgres:5432/cmsdb
       DB_USERNAME: cms

@@ -236,6 +236,16 @@
           </div>
         </div>
 
+        @if (counsellingStateWarning()) {
+          <div class="state-advisory-banner" role="alert">
+            <mat-icon>warning_amber</mat-icon>
+            <div>
+              <strong>State Eligibility Advisory:</strong>
+              {{ counsellingStateWarning() }}
+            </div>
+          </div>
+        }
+
         <!-- Document Verification Warning Banner -->
         @if (docsNotVerified()) {
           <div class="doc-verify-banner" role="alert">
@@ -684,6 +694,15 @@
                     </div>
                   </div>
                 </div>
+                @if (counsellingStateWarning()) {
+                  <div class="state-advisory-banner" role="alert">
+                    <mat-icon>warning_amber</mat-icon>
+                    <div>
+                      <strong>State Eligibility Advisory:</strong>
+                      {{ counsellingStateWarning() }}
+                    </div>
+                  </div>
+                }
               </div>
             </div>
 

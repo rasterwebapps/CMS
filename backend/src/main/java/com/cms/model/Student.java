@@ -104,8 +104,12 @@ public class Student {
     private Gender gender;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "admission_category", length = 20)
+    @Column(name = "admission_category", length = 40)
     private AdmissionCategory admissionCategory;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "final_admission_category", length = 40)
+    private AdmissionCategory finalAdmissionCategory;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "student_type", length = 20)
@@ -388,6 +392,14 @@ public class Student {
 
     public void setAdmissionCategory(AdmissionCategory admissionCategory) {
         this.admissionCategory = admissionCategory;
+    }
+
+    public AdmissionCategory getFinalAdmissionCategory() {
+        return finalAdmissionCategory;
+    }
+
+    public void setFinalAdmissionCategory(AdmissionCategory finalAdmissionCategory) {
+        this.finalAdmissionCategory = finalAdmissionCategory;
     }
 
     public StudentType getStudentType() {

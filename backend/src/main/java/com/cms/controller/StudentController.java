@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.cms.dto.AdmissionCategoryHistoryRecord;
 import com.cms.dto.BoardingStatusSwitchAnalysis;
 import com.cms.dto.BoardingStatusSwitchRecord;
 import com.cms.dto.BoardingStatusSwitchRequest;
@@ -289,6 +290,12 @@ public class StudentController {
     @PreAuthorize("@perm.hasAny('STUDENT_VIEW', 'STUDENT_BOARDING_STATUS_MANAGE')")
     public ResponseEntity<List<BoardingStatusSwitchRecord>> getBoardingStatusSwitchHistory(@PathVariable Long id) {
         return ResponseEntity.ok(studentService.getBoardingStatusSwitchHistory(id));
+    }
+
+    @GetMapping("/{id}/admission-category-history")
+    @PreAuthorize("@perm.hasAny('STUDENT_VIEW', 'STUDENT_EDIT')")
+    public ResponseEntity<List<AdmissionCategoryHistoryRecord>> getAdmissionCategoryHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(studentService.getAdmissionCategoryHistory(id));
     }
 }
 

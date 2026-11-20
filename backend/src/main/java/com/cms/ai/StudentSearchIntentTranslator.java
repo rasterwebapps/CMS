@@ -40,6 +40,7 @@ public class StudentSearchIntentTranslator {
             case "state" -> StudentSpecification.byStateContains(value);
             case "status" -> StudentSpecification.byStatus(value);
             case "admissionCategory" -> StudentSpecification.byAdmissionCategory(value);
+            case "finalAdmissionCategory" -> StudentSpecification.byFinalAdmissionCategory(value);
             case "gender" -> StudentSpecification.byGender(value);
             case "previousSchoolOrCollegeName" -> StudentSpecification.byAcademicQualificationSchoolNameContains(value);
             case "previousBoardOrUniversity" -> StudentSpecification.byAcademicQualificationBoardContains(value);

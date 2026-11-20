@@ -18,6 +18,7 @@ import {
   TermFeePaymentSummary,
 } from '../student.model';
 import { CmsStatusBadgeComponent } from '../../../shared/status-badge/status-badge.component';
+import { CmsTypeBadgeComponent } from '../../../shared/type-badge/type-badge.component';
 import { CmsSkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { CmsRowActionButtonComponent } from '../../../shared/row-action-button/row-action-button.component';
 import { computeInitials } from '../../../shared/utils/initials';
@@ -43,7 +44,12 @@ import {
   BoardingStatusSwitchDialogComponent,
   BoardingStatusSwitchDialogData,
 } from '../boarding-status-switch-dialog/boarding-status-switch-dialog.component';
-import { BoardingStatusSwitchRecord, ProgramTransferRecord } from '../student.model';
+import {
+  AdmissionCategoryHistoryRecord,
+  BoardingStatusSwitchRecord,
+  formatAdmissionCategory,
+  ProgramTransferRecord,
+} from '../student.model';
 import { Program } from '../../program/program.model';
 import { ProgramService } from '../../program/program.service';
 import {
@@ -74,6 +80,7 @@ import { StudentGuardiansTabComponent } from '../../guardian/student-guardians-t
     MatIconModule,
     MatDialogModule,
     CmsStatusBadgeComponent,
+    CmsTypeBadgeComponent,
     CmsSkeletonComponent,
     CmsTourButtonComponent,
     CmsRowActionButtonComponent,
@@ -121,6 +128,8 @@ export class StudentDetailComponent implements OnInit {
   protected readonly passportPhotoUrl = signal<string | null>(null);
   protected readonly transferHistory = signal<ProgramTransferRecord[]>([]);
   protected readonly boardingStatusSwitchHistory = signal<BoardingStatusSwitchRecord[]>([]);
+  protected readonly admissionCategoryHistory = signal<AdmissionCategoryHistoryRecord[]>([]);
+  protected readonly formatAdmissionCategory = formatAdmissionCategory;
   protected readonly allPrograms = signal<Program[]>([]);
   protected readonly selectedTabIndex = signal(0);
   protected readonly expandedEnrollments = signal(new Set<number>());
@@ -227,6 +236,7 @@ export class StudentDetailComponent implements OnInit {
         this.loadAdmission(id);
         this.loadTransferHistory(id);
         this.loadBoardingStatusSwitchHistory(id);
+        this.loadAdmissionCategoryHistory(id);
       },
       error: () => {
         this.toast.error('Failed to load student');
@@ -416,6 +426,13 @@ export class StudentDetailComponent implements OnInit {
   private loadBoardingStatusSwitchHistory(studentId: number): void {
     this.studentService.getBoardingStatusSwitchHistory(studentId).subscribe({
       next: (history) => this.boardingStatusSwitchHistory.set(history),
+      error: () => {},
+    });
+  }
+
+  private loadAdmissionCategoryHistory(studentId: number): void {
+    this.studentService.getAdmissionCategoryHistory(studentId).subscribe({
+      next: (history) => this.admissionCategoryHistory.set(history),
       error: () => {},
     });
   }
